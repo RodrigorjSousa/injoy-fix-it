@@ -22,8 +22,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-sidebar text-sidebar-foreground">
         <div className="px-6 py-6 flex items-center gap-3 border-b border-sidebar-border">
-          <div className="h-10 w-10 rounded-xl bg-sidebar-primary text-sidebar-primary-foreground grid place-items-center">
-            <Wrench className="h-5 w-5" />
+          <div className="h-11 w-11 rounded-xl bg-white shadow-sm overflow-hidden grid place-items-center">
+            <img src={injoyLogo.url} alt="INJOY" className="h-9 w-9 object-contain" />
           </div>
           <div className="min-w-0">
             <div className="font-semibold tracking-tight">Manutenção</div>
