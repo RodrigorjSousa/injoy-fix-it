@@ -1,5 +1,6 @@
 import { createFileRoute, Link, useParams } from "@tanstack/react-router";
 import { useRef, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -118,15 +119,29 @@ function PhotoSlot({
   const inputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleFile = (file: File) => {
+  const handleFile = async (file: File) => {
     setLoading(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      onChange(reader.result as string);
-      setLoading(false);
+    try {
+      const ext = file.name.split(".").pop() || "jpg";
+      const path = `chamados/${crypto.randomUUID()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("fotos-manutencao")
+        .upload(path, file, { upsert: false, contentType: file.type });
+      if (upErr) throw upErr;
+
+      const { data: signed, error: signErr } = await supabase.storage
+        .from("fotos-manutencao")
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 anos
+      if (signErr) throw signErr;
+
+      onChange(signed.signedUrl);
       toast.success(`${label} salva`);
-    };
-    reader.readAsDataURL(file);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Falha no upload";
+      toast.error(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
