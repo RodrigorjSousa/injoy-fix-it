@@ -63,9 +63,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 text-xs text-sidebar-foreground/50 border-t border-sidebar-border">
-          v1.0 · Mockup local
+        <div className="p-3 border-t border-sidebar-border">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span>Sair</span>
+          </button>
+          <div className="px-3 pt-3 text-xs text-sidebar-foreground/50">v1.0</div>
         </div>
+
       </aside>
 
       {/* Mobile top bar */}
