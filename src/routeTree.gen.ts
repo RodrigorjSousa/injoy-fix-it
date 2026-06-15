@@ -9,10 +9,16 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as PreventivaRouteImport } from './routes/preventiva'
 import { Route as PainelRouteImport } from './routes/painel'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChamadosIdRouteImport } from './routes/chamados.$id'
 
+const PreventivaRoute = PreventivaRouteImport.update({
+  id: '/preventiva',
+  path: '/preventiva',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -32,35 +38,46 @@ const ChamadosIdRoute = ChamadosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/painel': typeof PainelRoute
+  '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/painel': typeof PainelRoute
+  '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/painel': typeof PainelRoute
+  '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/painel' | '/chamados/$id'
+  fullPaths: '/' | '/painel' | '/preventiva' | '/chamados/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/painel' | '/chamados/$id'
-  id: '__root__' | '/' | '/painel' | '/chamados/$id'
+  to: '/' | '/painel' | '/preventiva' | '/chamados/$id'
+  id: '__root__' | '/' | '/painel' | '/preventiva' | '/chamados/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   PainelRoute: typeof PainelRoute
+  PreventivaRoute: typeof PreventivaRoute
   ChamadosIdRoute: typeof ChamadosIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/preventiva': {
+      id: '/preventiva'
+      path: '/preventiva'
+      fullPath: '/preventiva'
+      preLoaderRoute: typeof PreventivaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/painel': {
       id: '/painel'
       path: '/painel'
@@ -88,6 +105,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   PainelRoute: PainelRoute,
+  PreventivaRoute: PreventivaRoute,
   ChamadosIdRoute: ChamadosIdRoute,
 }
 export const routeTree = rootRouteImport
