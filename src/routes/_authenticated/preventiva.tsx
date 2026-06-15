@@ -22,7 +22,7 @@ import {
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/preventiva")({
+export const Route = createFileRoute("/_authenticated/preventiva")({
   component: Preventiva,
 });
 

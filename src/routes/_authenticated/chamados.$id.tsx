@@ -16,7 +16,7 @@ import {
 import { actions, useStore, type Status } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/chamados/$id")({
+export const Route = createFileRoute("/_authenticated/chamados/$id")({
   component: ChamadoDetalhe,
 });
 
@@ -122,8 +122,10 @@ function PhotoSlot({
   const handleFile = async (file: File) => {
     setLoading(true);
     try {
+      const { data: userData, error: userErr } = await supabase.auth.getUser();
+      if (userErr || !userData.user) throw new Error("Sessão expirada. Entre novamente.");
       const ext = file.name.split(".").pop() || "jpg";
-      const path = `chamados/${crypto.randomUUID()}.${ext}`;
+      const path = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("fotos-manutencao")
         .upload(path, file, { upsert: false, contentType: file.type });
@@ -143,6 +145,7 @@ function PhotoSlot({
       setLoading(false);
     }
   };
+
 
   return (
     <div

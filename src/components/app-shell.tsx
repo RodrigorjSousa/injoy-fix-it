@@ -1,7 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
 const nav: NavItem[] = [
@@ -13,9 +15,19 @@ const nav: NavItem[] = [
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+
+  const handleSignOut = async () => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut();
+    navigate({ to: "/auth", replace: true });
+  };
+
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -51,9 +63,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-4 text-xs text-sidebar-foreground/50 border-t border-sidebar-border">
-          v1.0 · Mockup local
+        <div className="p-3 border-t border-sidebar-border">
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
+          >
+            <LogOut className="h-4 w-4 shrink-0" />
+            <span>Sair</span>
+          </button>
+          <div className="px-3 pt-3 text-xs text-sidebar-foreground/50">v1.0</div>
         </div>
+
       </aside>
 
       {/* Mobile top bar */}
@@ -61,10 +81,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
           <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm leading-tight">Manutenção INJOY</div>
           <div className="text-[11px] text-muted-foreground leading-tight">Gestão predial</div>
         </div>
+        <button
+          onClick={handleSignOut}
+          aria-label="Sair"
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+
       </header>
 
       {/* Main */}

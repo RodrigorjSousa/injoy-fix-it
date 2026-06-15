@@ -25,7 +25,7 @@ import {
   type Unidade,
 } from "@/lib/store";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/")({
   component: NovoChamado,
 });
 
