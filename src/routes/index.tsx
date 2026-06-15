@@ -1,29 +1,206 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Snowflake,
+  Zap,
+  Cpu,
+  Droplets,
+  Hammer,
+  PaintRoller,
+  MapPin,
+  ArrowRight,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import {
+  CATEGORIAS,
+  UNIDADES,
+  actions,
+  useStore,
+  type Categoria,
+  type Unidade,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/")({
-  head: () => ({
-    meta: [
-      { title: "Your App" },
-      { name: "description", content: "Replace this with a one-sentence description of your app." },
-      { property: "og:title", content: "Your App" },
-      { property: "og:description", content: "Replace this with a one-sentence description of your app." },
-    ],
-  }),
-  component: Index,
+  component: NovoChamado,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
+const ICONS: Record<Categoria, typeof Snowflake> = {
+  "Ar condicionado": Snowflake,
+  "Elétrica": Zap,
+  "Automação": Cpu,
+  "Hidráulica": Droplets,
+  "Alvenaria": Hammer,
+  "Pintura": PaintRoller,
+};
+
+function NovoChamado() {
+  const navigate = useNavigate();
+  const funcionarios = useStore((s) => s.funcionarios);
+  const [unidade, setUnidade] = useState<Unidade | null>(null);
+  const [categoria, setCategoria] = useState<Categoria | null>(null);
+  const [descricao, setDescricao] = useState("");
+
+  const responsavel = useMemo(
+    () => (categoria ? funcionarios.find((f) => f.categorias.includes(categoria)) : undefined),
+    [categoria, funcionarios],
+  );
+
+  const podeEnviar = unidade && categoria && descricao.trim().length > 3;
+
+  const submit = () => {
+    if (!podeEnviar || !unidade || !categoria) return;
+    const id = actions.criarChamado({
+      unidade,
+      categoria,
+      descricao: descricao.trim(),
+      responsavelId: responsavel?.id ?? null,
+    });
+    toast.success("Chamado aberto com sucesso", {
+      description: responsavel
+        ? `Designado para ${responsavel.nome}`
+        : "Sem responsável designado",
+    });
+    navigate({ to: "/painel" });
+    void id;
+  };
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="space-y-8">
+      <header>
+        <Badge variant="secondary" className="mb-3 rounded-full font-medium">
+          Abertura rápida
+        </Badge>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Novo Chamado</h1>
+        <p className="text-muted-foreground mt-2 max-w-xl">
+          Registre uma ocorrência em poucos cliques. O responsável é sugerido automaticamente com base na categoria.
+        </p>
+      </header>
+
+      {/* Step 1 — Unidade */}
+      <section className="space-y-3">
+        <StepLabel n={1} title="Selecione a unidade" />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {UNIDADES.map((u) => {
+            const active = unidade === u;
+            return (
+              <button
+                key={u}
+                type="button"
+                onClick={() => setUnidade(u)}
+                className={cn(
+                  "group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all",
+                  "hover:border-primary/50 hover:shadow-md",
+                  active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                )}
+              >
+                <div className="flex items-center gap-4">
+                  <div
+                    className={cn(
+                      "h-12 w-12 rounded-xl grid place-items-center transition-colors",
+                      active ? "bg-primary text-primary-foreground" : "bg-muted text-foreground",
+                    )}
+                  >
+                    <MapPin className="h-6 w-6" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="text-xs text-muted-foreground uppercase tracking-wider">INJOY</div>
+                    <div className="text-xl font-semibold">{u}</div>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Step 2 — Categoria */}
+      <section className="space-y-3">
+        <StepLabel n={2} title="Categoria do problema" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          {CATEGORIAS.map((c) => {
+            const Icon = ICONS[c];
+            const active = categoria === c;
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setCategoria(c)}
+                className={cn(
+                  "rounded-2xl border bg-card p-4 flex flex-col items-center gap-2 transition-all",
+                  "hover:border-primary/50 hover:shadow-md",
+                  active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                )}
+              >
+                <div
+                  className={cn(
+                    "h-12 w-12 rounded-xl grid place-items-center transition-colors",
+                    active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+                  )}
+                >
+                  <Icon className="h-6 w-6" />
+                </div>
+                <span className="text-sm font-medium text-center leading-tight">{c}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* Step 3 — Descricao */}
+      <section className="space-y-3">
+        <StepLabel n={3} title="Descreva brevemente" />
+        <Textarea
+          value={descricao}
+          onChange={(e) => setDescricao(e.target.value)}
+          placeholder="Ex.: Tomada do quarto 302 sem energia desde a manhã."
+          className="min-h-[110px] resize-none bg-card"
+        />
+      </section>
+
+      {/* Resp + CTA */}
+      {categoria && (
+        <Card className="p-4 flex items-center justify-between gap-3 bg-accent/20 border-accent/40">
+          <div className="min-w-0">
+            <div className="text-xs text-muted-foreground">Responsável sugerido</div>
+            <div className="font-semibold truncate">
+              {responsavel ? responsavel.nome : "Nenhum técnico cadastrado para esta categoria"}
+            </div>
+          </div>
+          {responsavel && (
+            <Badge variant="outline" className="shrink-0">
+              {responsavel.categorias.length} categorias
+            </Badge>
+          )}
+        </Card>
+      )}
+
+      <div className="sticky bottom-20 lg:bottom-6 lg:static z-10">
+        <Button
+          size="lg"
+          className="w-full h-14 text-base font-semibold rounded-xl shadow-lg"
+          disabled={!podeEnviar}
+          onClick={submit}
+        >
+          Abrir Chamado
+          <ArrowRight className="ml-1 h-5 w-5" />
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function StepLabel({ n, title }: { n: number; title: string }) {
+  return (
+    <div className="flex items-center gap-3">
+      <span className="h-7 w-7 rounded-full bg-primary text-primary-foreground text-sm font-bold grid place-items-center">
+        {n}
+      </span>
+      <h2 className="text-lg font-semibold">{title}</h2>
     </div>
   );
 }
