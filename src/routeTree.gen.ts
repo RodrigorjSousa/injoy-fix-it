@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as PreventivaRouteImport } from './routes/preventiva'
 import { Route as PainelRouteImport } from './routes/painel'
+import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ChamadosIdRouteImport } from './routes/chamados.$id'
 
@@ -22,6 +23,11 @@ const PreventivaRoute = PreventivaRouteImport.update({
 const PainelRoute = PainelRouteImport.update({
   id: '/painel',
   path: '/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
+  id: '/configuracoes',
+  path: '/configuracoes',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -37,12 +43,14 @@ const ChamadosIdRoute = ChamadosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/painel': typeof PainelRoute
   '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/painel': typeof PainelRoute
   '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
@@ -50,20 +58,33 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/configuracoes': typeof ConfiguracoesRoute
   '/painel': typeof PainelRoute
   '/preventiva': typeof PreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/painel' | '/preventiva' | '/chamados/$id'
+  fullPaths:
+    | '/'
+    | '/configuracoes'
+    | '/painel'
+    | '/preventiva'
+    | '/chamados/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/painel' | '/preventiva' | '/chamados/$id'
-  id: '__root__' | '/' | '/painel' | '/preventiva' | '/chamados/$id'
+  to: '/' | '/configuracoes' | '/painel' | '/preventiva' | '/chamados/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/configuracoes'
+    | '/painel'
+    | '/preventiva'
+    | '/chamados/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ConfiguracoesRoute: typeof ConfiguracoesRoute
   PainelRoute: typeof PainelRoute
   PreventivaRoute: typeof PreventivaRoute
   ChamadosIdRoute: typeof ChamadosIdRoute
@@ -85,6 +106,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PainelRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/configuracoes': {
+      id: '/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof ConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -104,6 +132,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ConfiguracoesRoute: ConfiguracoesRoute,
   PainelRoute: PainelRoute,
   PreventivaRoute: PreventivaRoute,
   ChamadosIdRoute: ChamadosIdRoute,
