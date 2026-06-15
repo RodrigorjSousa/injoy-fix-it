@@ -81,10 +81,18 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
           <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 flex-1">
           <div className="font-semibold text-sm leading-tight">Manutenção INJOY</div>
           <div className="text-[11px] text-muted-foreground leading-tight">Gestão predial</div>
         </div>
+        <button
+          onClick={handleSignOut}
+          aria-label="Sair"
+          className="p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+        >
+          <LogOut className="h-5 w-5" />
+        </button>
+
       </header>
 
       {/* Main */}
