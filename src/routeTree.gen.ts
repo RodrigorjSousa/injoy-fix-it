@@ -9,29 +9,14 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as PreventivaRouteImport } from './routes/preventiva'
-import { Route as PainelRouteImport } from './routes/painel'
-import { Route as ConfiguracoesRouteImport } from './routes/configuracoes'
-import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as ChamadosIdRouteImport } from './routes/chamados.$id'
+import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 
-const PreventivaRoute = PreventivaRouteImport.update({
-  id: '/preventiva',
-  path: '/preventiva',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PainelRoute = PainelRouteImport.update({
-  id: '/painel',
-  path: '/painel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ConfiguracoesRoute = ConfiguracoesRouteImport.update({
-  id: '/configuracoes',
-  path: '/configuracoes',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
+const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
+  id: '/_authenticated/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
@@ -40,84 +25,79 @@ const ChamadosIdRoute = ChamadosIdRouteImport.update({
   path: '/chamados/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
+  id: '/_authenticated/preventiva',
+  path: '/preventiva',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/_authenticated/painel',
+  path: '/painel',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/_authenticated/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/painel': typeof PainelRoute
-  '/preventiva': typeof PreventivaRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/painel': typeof AuthenticatedPainelRoute
+  '/preventiva': typeof AuthenticatedPreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/painel': typeof PainelRoute
-  '/preventiva': typeof PreventivaRoute
+  '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/painel': typeof AuthenticatedPainelRoute
+  '/preventiva': typeof AuthenticatedPreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
+  '/': typeof AuthenticatedIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/configuracoes': typeof ConfiguracoesRoute
-  '/painel': typeof PainelRoute
-  '/preventiva': typeof PreventivaRoute
+  '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/chamados/$id': typeof ChamadosIdRoute
+  '/_authenticated/': typeof AuthenticatedIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
-    | '/'
     | '/configuracoes'
     | '/painel'
     | '/preventiva'
     | '/chamados/$id'
+    | '/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/configuracoes' | '/painel' | '/preventiva' | '/chamados/$id'
+  to: '/configuracoes' | '/painel' | '/preventiva' | '/chamados/$id' | '/'
   id:
     | '__root__'
-    | '/'
-    | '/configuracoes'
-    | '/painel'
-    | '/preventiva'
+    | '/_authenticated/configuracoes'
+    | '/_authenticated/painel'
+    | '/_authenticated/preventiva'
     | '/chamados/$id'
+    | '/_authenticated/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  ConfiguracoesRoute: typeof ConfiguracoesRoute
-  PainelRoute: typeof PainelRoute
-  PreventivaRoute: typeof PreventivaRoute
+  AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   ChamadosIdRoute: typeof ChamadosIdRoute
+  AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/preventiva': {
-      id: '/preventiva'
-      path: '/preventiva'
-      fullPath: '/preventiva'
-      preLoaderRoute: typeof PreventivaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/painel': {
-      id: '/painel'
-      path: '/painel'
-      fullPath: '/painel'
-      preLoaderRoute: typeof PainelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/configuracoes': {
-      id: '/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof ConfiguracoesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/': {
-      id: '/'
+    '/_authenticated/': {
+      id: '/_authenticated/'
       path: '/'
       fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+      preLoaderRoute: typeof AuthenticatedIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/chamados/$id': {
@@ -127,16 +107,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ChamadosIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/preventiva': {
+      id: '/_authenticated/preventiva'
+      path: '/preventiva'
+      fullPath: '/preventiva'
+      preLoaderRoute: typeof AuthenticatedPreventivaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,
-  ConfiguracoesRoute: ConfiguracoesRoute,
-  PainelRoute: PainelRoute,
-  PreventivaRoute: PreventivaRoute,
+  AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   ChamadosIdRoute: ChamadosIdRoute,
+  AuthenticatedIndexRoute: AuthenticatedIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

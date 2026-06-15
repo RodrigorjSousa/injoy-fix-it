@@ -23,7 +23,7 @@ import {
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/painel")({
+export const Route = createFileRoute("/_authenticated/painel")({
   component: Painel,
 });
 
