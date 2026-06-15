@@ -58,8 +58,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
-        <div className="h-9 w-9 rounded-lg bg-primary text-primary-foreground grid place-items-center">
-          <Wrench className="h-4 w-4" />
+        <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
+          <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
         <div className="min-w-0">
           <div className="font-semibold text-sm leading-tight">Manutenção INJOY</div>
