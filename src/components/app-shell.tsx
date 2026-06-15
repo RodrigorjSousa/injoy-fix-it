@@ -1,7 +1,9 @@
-import { Link, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings } from "lucide-react";
+import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
 const nav: NavItem[] = [
