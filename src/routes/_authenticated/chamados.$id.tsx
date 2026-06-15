@@ -16,7 +16,7 @@ import {
 import { actions, useStore, type Status } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export const Route = createFileRoute("/chamados/$id")({
+export const Route = createFileRoute("/_authenticated/chamados/$id")({
   component: ChamadoDetalhe,
 });
 
