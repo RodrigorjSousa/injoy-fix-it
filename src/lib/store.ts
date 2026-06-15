@@ -65,17 +65,17 @@ const daysAgo = (d: number) => {
 
 const seed = (): State => {
   const rodrigo: Funcionario = {
-    id: uid(),
+    id: "fn-rodrigo",
     nome: "Rodrigo Sousa",
     categorias: ["Elétrica", "Automação", "Ar condicionado"],
   };
   const carlos: Funcionario = {
-    id: uid(),
+    id: "fn-carlos",
     nome: "Carlos Mendes",
     categorias: ["Hidráulica", "Alvenaria"],
   };
   const ana: Funcionario = {
-    id: uid(),
+    id: "fn-ana",
     nome: "Ana Ribeiro",
     categorias: ["Pintura", "Alvenaria"],
   };
@@ -84,7 +84,7 @@ const seed = (): State => {
     funcionarios: [rodrigo, carlos, ana],
     chamados: [
       {
-        id: uid(),
+        id: "ch-001",
         unidade: "Botafogo",
         categoria: "Elétrica",
         descricao: "Tomada do quarto 302 sem energia.",
@@ -95,7 +95,7 @@ const seed = (): State => {
         criadoEm: daysAgo(1),
       },
       {
-        id: uid(),
+        id: "ch-002",
         unidade: "Ipanema",
         categoria: "Hidráulica",
         descricao: "Vazamento no chuveiro do quarto 511.",
@@ -106,7 +106,7 @@ const seed = (): State => {
         criadoEm: daysAgo(2),
       },
       {
-        id: uid(),
+        id: "ch-003",
         unidade: "Botafogo",
         categoria: "Pintura",
         descricao: "Retoque na parede do corredor 4º andar.",
