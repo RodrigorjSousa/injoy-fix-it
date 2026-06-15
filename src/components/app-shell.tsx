@@ -2,12 +2,13 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { PlusCircle, LayoutGrid, Snowflake, Settings, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const nav = [
+type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
+const nav: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
   { to: "/configuracoes", label: "Configurações", icon: Settings },
-] as const;
+];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
