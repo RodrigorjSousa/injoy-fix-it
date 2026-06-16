@@ -73,7 +73,12 @@ function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen grid place-items-center bg-background px-4">
+    <div className="relative min-h-screen grid place-items-center bg-background px-4 overflow-hidden">
+      <img
+        src={injoyLogo.url}
+        alt=""
+        className="pointer-events-none absolute inset-0 m-auto h-[60vh] w-[60vh] object-contain opacity-[0.04] select-none"
+      />
       <Card className="w-full max-w-md p-8 space-y-6">
         <div className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-primary text-primary-foreground grid place-items-center">
