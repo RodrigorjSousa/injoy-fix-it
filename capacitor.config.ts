@@ -1,7 +1,7 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.lovable.e316cfb5227e4195884c0f51635d3f28',
+  appId: 'com.injoy.manutencao',
   appName: 'Manutenção INJOY',
   webDir: 'dist',
   server: {
