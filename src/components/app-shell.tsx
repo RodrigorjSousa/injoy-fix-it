@@ -4,19 +4,23 @@ import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+import { useMe } from "@/lib/store";
 
-type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
-const nav: NavItem[] = [
-  { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true },
+type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; gestorOnly?: boolean };
+const ALL_NAV: NavItem[] = [
+  { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, gestorOnly: true },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
-  { to: "/configuracoes", label: "Configurações", icon: Settings },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, gestorOnly: true },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { data: me } = useMe();
+
+  const nav = ALL_NAV.filter((n) => !n.gestorOnly || me?.isGestor);
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
@@ -102,7 +106,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className="grid grid-cols-4">
+        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : "grid-cols-4")}>
           {nav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
