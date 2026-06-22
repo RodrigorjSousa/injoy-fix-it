@@ -10,7 +10,7 @@ import { toast } from "sonner";
 import { Wrench } from "lucide-react";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 
-export const Route = createFileRoute("/auth")({
+export const Route = createFileRoute("/auth/")({
   ssr: false,
   head: () => ({
     meta: [
