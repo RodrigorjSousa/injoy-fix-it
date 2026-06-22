@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/chat")({
 interface Contato {
   id: string;
   nome: string;
-  email: string;
+  
   role: "gestor" | "funcionario" | "outro";
   naoLidas: number;
   ultimaEm: string | null;
@@ -40,7 +40,7 @@ function ChatPage() {
     enabled: !!me?.userId,
     queryFn: async (): Promise<Contato[]> => {
       const [{ data: profiles, error: pErr }, { data: roles }, { data: msgs }] = await Promise.all([
-        supabase.from("profiles").select("id, nome, email").neq("id", me!.userId),
+        supabase.from("profiles").select("id, nome").neq("id", me!.userId),
         supabase.from("user_roles").select("user_id, role"),
         supabase
           .from("mensagens")
@@ -66,8 +66,7 @@ function ChatPage() {
       });
       const list: Contato[] = (profiles ?? []).map((p) => ({
         id: p.id,
-        nome: p.nome ?? p.email,
-        email: p.email,
+        nome: p.nome ?? "Usuário",
         role: roleMap.get(p.id) ?? "outro",
         naoLidas: unreadMap.get(p.id) ?? 0,
         ultimaEm: lastMap.get(p.id) ?? null,
@@ -198,7 +197,7 @@ function ChatPage() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
-                    {c.role === "gestor" ? "Gestor" : c.role === "funcionario" ? "Funcionário" : c.email}
+                    {c.role === "gestor" ? "Gestor" : c.role === "funcionario" ? "Funcionário" : "Usuário"}
                   </div>
                 </div>
               </button>
@@ -285,7 +284,7 @@ function ConversaView({
         <div className="min-w-0">
           <div className="font-medium text-sm truncate">{contato.nome}</div>
           <div className="text-xs text-muted-foreground truncate">
-            {contato.role === "gestor" ? "Gestor" : contato.role === "funcionario" ? "Funcionário" : contato.email}
+            {contato.role === "gestor" ? "Gestor" : contato.role === "funcionario" ? "Funcionário" : "Usuário"}
           </div>
         </div>
       </header>
