@@ -111,6 +111,8 @@ const mapAtivo = (r: AtivoRow): AtivoAr => ({
   localizacao: r.localizacao,
   ultimaLimpeza: r.ultima_limpeza,
   intervaloDias: r.intervalo_dias,
+  tecnico: r.tecnico,
+  status: (r.status === "Sujo" ? "Sujo" : "Limpo"),
 });
 
 /* ------------------------------ queries ----------------------------- */
