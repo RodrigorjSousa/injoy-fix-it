@@ -170,6 +170,18 @@ function Preventiva() {
                     {a.tecnico ?? "—"}
                   </span>
                 </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  {vencida ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                  ) : (
+                    <Calendar className="h-3.5 w-3.5" />
+                  )}
+                  Próxima:{" "}
+                  <span className={cn("font-medium", vencida ? "text-destructive" : "text-foreground")}>
+                    {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}
+                  </span>
+                  <span className="text-foreground/60">(máx. 90 dias)</span>
+                </div>
                 <Badge
                   variant="outline"
                   className={cn(
