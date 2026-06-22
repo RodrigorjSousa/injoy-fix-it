@@ -2,7 +2,6 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -15,7 +14,9 @@ import { ChevronRight, MapPin, User2, Clock } from "lucide-react";
 import {
   CATEGORIAS,
   UNIDADES,
-  useStore,
+  useChamados,
+  useFuncionarios,
+  useMe,
   type Categoria,
   type Status,
   type Unidade,
@@ -34,8 +35,9 @@ const COLUNAS: { status: Status; label: string; tone: string }[] = [
 ];
 
 function Painel() {
-  const chamados = useStore((s) => s.chamados);
-  const funcionarios = useStore((s) => s.funcionarios);
+  const { data: me } = useMe();
+  const { data: chamados = [], isLoading } = useChamados();
+  const { data: funcionarios = [] } = useFuncionarios();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
   const [categoria, setCategoria] = useState<Categoria | "todas">("todas");
 
@@ -53,9 +55,15 @@ function Painel() {
     <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge variant="secondary" className="mb-3 rounded-full">Painel de chamados</Badge>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Operação</h1>
-          <p className="text-muted-foreground mt-1">{filtrados.length} chamados visíveis</p>
+          <Badge variant="secondary" className="mb-3 rounded-full">
+            {me?.isGestor ? "Painel de chamados" : "Meus chamados"}
+          </Badge>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+            {me?.isGestor ? "Operação" : `Olá, ${me?.funcionario?.nome ?? "técnico"}`}
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            {isLoading ? "Carregando..." : `${filtrados.length} chamados visíveis`}
+          </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade | "todas")}>
@@ -172,6 +180,3 @@ function ChamadoCard({ c, responsavel }: { c: Chamado; responsavel: string }) {
     </Link>
   );
 }
-
-// Helper Button to avoid unused import warning (Button reserved for future actions)
-void Button;

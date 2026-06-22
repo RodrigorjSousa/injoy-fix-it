@@ -13,7 +13,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { actions, useStore, type Status } from "@/lib/store";
+import {
+  useAtualizarChamado,
+  useChamado,
+  useFuncionarios,
+  type Status,
+} from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
@@ -21,9 +26,14 @@ export const Route = createFileRoute("/_authenticated/chamados/$id")({
 });
 
 function ChamadoDetalhe() {
-  const { id } = useParams({ from: "/chamados/$id" });
-  const chamado = useStore((s) => s.chamados.find((c) => c.id === id));
-  const funcionarios = useStore((s) => s.funcionarios);
+  const { id } = useParams({ from: "/_authenticated/chamados/$id" });
+  const { data: chamado, isLoading } = useChamado(id);
+  const { data: funcionarios = [] } = useFuncionarios();
+  const atualizar = useAtualizarChamado();
+
+  if (isLoading) {
+    return <div className="text-center py-20 text-muted-foreground">Carregando...</div>;
+  }
 
   if (!chamado) {
     return (
@@ -37,8 +47,17 @@ function ChamadoDetalhe() {
   const responsavel = funcionarios.find((f) => f.id === chamado.responsavelId);
 
   const setStatus = (status: Status) => {
-    actions.atualizarChamado(chamado.id, { status });
-    toast.success(`Status atualizado: ${status}`);
+    atualizar.mutate(
+      { id: chamado.id, patch: { status } },
+      {
+        onSuccess: () => toast.success(`Status atualizado: ${status}`),
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  const setFoto = (field: "fotoAntes" | "fotoDepois", value: string | null) => {
+    atualizar.mutate({ id: chamado.id, patch: { [field]: value } });
   };
 
   return (
@@ -76,12 +95,12 @@ function ChamadoDetalhe() {
         <PhotoSlot
           label="Foto ANTES"
           value={chamado.fotoAntes}
-          onChange={(v) => actions.atualizarChamado(chamado.id, { fotoAntes: v })}
+          onChange={(v) => setFoto("fotoAntes", v)}
         />
         <PhotoSlot
           label="Foto DEPOIS"
           value={chamado.fotoDepois}
-          onChange={(v) => actions.atualizarChamado(chamado.id, { fotoDepois: v })}
+          onChange={(v) => setFoto("fotoDepois", v)}
           accent
         />
       </div>
@@ -133,7 +152,7 @@ function PhotoSlot({
 
       const { data: signed, error: signErr } = await supabase.storage
         .from("fotos-manutencao")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10); // 10 anos
+        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
       if (signErr) throw signErr;
 
       onChange(signed.signedUrl);
@@ -145,7 +164,6 @@ function PhotoSlot({
       setLoading(false);
     }
   };
-
 
   return (
     <div

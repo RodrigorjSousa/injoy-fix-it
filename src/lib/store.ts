@@ -250,7 +250,12 @@ export function useAtualizarChamado() {
   const invalidate = useInvalidate([["chamados"]]);
   return useMutation({
     mutationFn: async (input: { id: string; patch: Partial<Chamado> }) => {
-      const patch: Record<string, unknown> = {};
+      const patch: {
+        status?: Status;
+        foto_antes?: string | null;
+        foto_depois?: string | null;
+        responsavel_id?: string | null;
+      } = {};
       if (input.patch.status !== undefined) patch.status = input.patch.status;
       if (input.patch.fotoAntes !== undefined) patch.foto_antes = input.patch.fotoAntes;
       if (input.patch.fotoDepois !== undefined) patch.foto_depois = input.patch.fotoDepois;

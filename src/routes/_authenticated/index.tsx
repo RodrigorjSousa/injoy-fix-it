@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -19,8 +19,9 @@ import { cn } from "@/lib/utils";
 import {
   CATEGORIAS,
   UNIDADES,
-  actions,
-  useStore,
+  useCriarChamado,
+  useFuncionarios,
+  useMe,
   type Categoria,
   type Unidade,
 } from "@/lib/store";
@@ -40,33 +41,44 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
 
 function NovoChamado() {
   const navigate = useNavigate();
-  const funcionarios = useStore((s) => s.funcionarios);
+  const { data: me } = useMe();
+  const { data: funcionarios = [] } = useFuncionarios();
+  const criar = useCriarChamado();
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [descricao, setDescricao] = useState("");
+
+  // Funcionários não criam chamados — vão direto ao painel ver os seus
+  if (me && !me.isGestor) return <Navigate to="/painel" replace />;
 
   const responsavel = useMemo(
     () => (categoria ? funcionarios.find((f) => f.categorias.includes(categoria)) : undefined),
     [categoria, funcionarios],
   );
 
-  const podeEnviar = unidade && categoria && descricao.trim().length > 3;
+  const podeEnviar = !!unidade && !!categoria && descricao.trim().length > 3 && !criar.isPending;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
-    const id = actions.criarChamado({
-      unidade,
-      categoria,
-      descricao: descricao.trim(),
-      responsavelId: responsavel?.id ?? null,
-    });
-    toast.success("Chamado aberto com sucesso", {
-      description: responsavel
-        ? `Designado para ${responsavel.nome}`
-        : "Sem responsável designado",
-    });
-    navigate({ to: "/painel" });
-    void id;
+    criar.mutate(
+      {
+        unidade,
+        categoria,
+        descricao: descricao.trim(),
+        responsavelId: responsavel?.id ?? null,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Chamado aberto com sucesso", {
+            description: responsavel
+              ? `Designado para ${responsavel.nome}`
+              : "Sem responsável designado",
+          });
+          navigate({ to: "/painel" });
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
   };
 
   return (
@@ -81,7 +93,6 @@ function NovoChamado() {
         </p>
       </header>
 
-      {/* Step 1 — Unidade */}
       <section className="space-y-3">
         <StepLabel n={1} title="Selecione a unidade" />
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -118,7 +129,6 @@ function NovoChamado() {
         </div>
       </section>
 
-      {/* Step 2 — Categoria */}
       <section className="space-y-3">
         <StepLabel n={2} title="Categoria do problema" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -151,7 +161,6 @@ function NovoChamado() {
         </div>
       </section>
 
-      {/* Step 3 — Descricao */}
       <section className="space-y-3">
         <StepLabel n={3} title="Descreva brevemente" />
         <Textarea
@@ -162,7 +171,6 @@ function NovoChamado() {
         />
       </section>
 
-      {/* Resp + CTA */}
       {categoria && (
         <Card className="p-4 flex items-center justify-between gap-3 bg-accent/20 border-accent/40">
           <div className="min-w-0">
@@ -186,7 +194,7 @@ function NovoChamado() {
           disabled={!podeEnviar}
           onClick={submit}
         >
-          Abrir Chamado
+          {criar.isPending ? "Enviando..." : "Abrir Chamado"}
           <ArrowRight className="ml-1 h-5 w-5" />
         </Button>
       </div>

@@ -1,58 +1,75 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, RotateCcw } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { CATEGORIAS, actions, useStore, type Categoria } from "@/lib/store";
+import {
+  CATEGORIAS,
+  useAdicionarFuncionario,
+  useFuncionarios,
+  useMe,
+  useRemoverFuncionario,
+  type Categoria,
+} from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
 });
 
 function Configuracoes() {
-  const funcionarios = useStore((s) => s.funcionarios);
+  const { data: me } = useMe();
+  const { data: funcionarios = [] } = useFuncionarios();
+  const adicionar = useAdicionarFuncionario();
+  const remover = useRemoverFuncionario();
+
   const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
+
+  // Apenas gestores
+  if (me && !me.isGestor) return <Navigate to="/painel" replace />;
 
   const toggle = (c: Categoria) =>
     setSelecionadas((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
-  const adicionar = () => {
-    if (!nome.trim() || selecionadas.length === 0) {
-      toast.error("Informe o nome e pelo menos uma categoria");
+  const submitar = () => {
+    if (!nome.trim() || !email.trim() || selecionadas.length === 0) {
+      toast.error("Preencha nome, email e ao menos uma categoria");
       return;
     }
-    actions.adicionarFuncionario(nome.trim(), selecionadas);
-    toast.success(`${nome} cadastrado`);
-    setNome("");
-    setSelecionadas([]);
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+      toast.error("Email inválido");
+      return;
+    }
+    adicionar.mutate(
+      { nome: nome.trim(), email: email.trim(), categorias: selecionadas },
+      {
+        onSuccess: () => {
+          toast.success(`${nome} cadastrado`, {
+            description: "Quando criar conta com este email, será vinculado automaticamente.",
+          });
+          setNome("");
+          setEmail("");
+          setSelecionadas([]);
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
   };
 
   return (
     <div className="space-y-8 max-w-3xl">
-      <header className="flex items-start justify-between gap-3">
-        <div>
-          <Badge variant="secondary" className="mb-3 rounded-full">Configurações</Badge>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Equipe</h1>
-          <p className="text-muted-foreground mt-1">Cadastre técnicos e suas especialidades</p>
-        </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            if (confirm("Restaurar dados de demonstração?")) {
-              actions.resetSeed();
-              toast.success("Dados restaurados");
-            }
-          }}
-        >
-          <RotateCcw className="h-4 w-4 mr-1" /> Resetar
-        </Button>
+      <header>
+        <Badge variant="secondary" className="mb-3 rounded-full">Configurações</Badge>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Equipe</h1>
+        <p className="text-muted-foreground mt-1">
+          Cadastre técnicos com email. Quando criarem conta com esse email, recebem automaticamente acesso aos chamados atribuídos.
+        </p>
       </header>
 
       <Card className="p-5 space-y-5">
@@ -61,14 +78,21 @@ function Configuracoes() {
           <h2 className="font-semibold">Novo funcionário</h2>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="nome">Nome</Label>
-          <Input
-            id="nome"
-            value={nome}
-            onChange={(e) => setNome(e.target.value)}
-            placeholder="Ex.: Maria Silva"
-          />
+        <div className="grid sm:grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="nome">Nome</Label>
+            <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Ex.: Maria Silva" />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="email">Email de acesso</Label>
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="maria@injoy.com.br"
+            />
+          </div>
         </div>
 
         <div className="space-y-2">
@@ -89,7 +113,9 @@ function Configuracoes() {
           </div>
         </div>
 
-        <Button onClick={adicionar} className="w-full sm:w-auto">Cadastrar funcionário</Button>
+        <Button onClick={submitar} className="w-full sm:w-auto" disabled={adicionar.isPending}>
+          {adicionar.isPending ? "Salvando..." : "Cadastrar funcionário"}
+        </Button>
       </Card>
 
       <section className="space-y-3">
@@ -99,6 +125,18 @@ function Configuracoes() {
             <Card key={f.id} className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
                 <div className="font-semibold truncate">{f.nome}</div>
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
+                  <Mail className="h-3 w-3" /> {f.email}
+                  {f.userId ? (
+                    <span className="ml-2 inline-flex items-center gap-1 text-success">
+                      <CheckCircle2 className="h-3 w-3" /> Conta vinculada
+                    </span>
+                  ) : (
+                    <span className="ml-2 inline-flex items-center gap-1 text-warning-foreground">
+                      <AlertCircle className="h-3 w-3" /> Aguardando cadastro
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap gap-1 mt-1.5">
                   {f.categorias.map((c) => (
                     <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
@@ -110,8 +148,10 @@ function Configuracoes() {
                 size="icon"
                 onClick={() => {
                   if (confirm(`Remover ${f.nome}?`)) {
-                    actions.removerFuncionario(f.id);
-                    toast.success("Funcionário removido");
+                    remover.mutate(f.id, {
+                      onSuccess: () => toast.success("Funcionário removido"),
+                      onError: (e) => toast.error(e.message),
+                    });
                   }
                 }}
               >
