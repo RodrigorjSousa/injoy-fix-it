@@ -197,7 +197,7 @@ function ChatPage() {
                     )}
                   </div>
                   <div className="text-xs text-muted-foreground truncate">
-                    {c.role === "gestor" ? "Gestor" : c.role === "funcionario" ? "Funcionário" : c.email}
+                    {c.role === "gestor" ? "Gestor" : c.role === "funcionario" ? "Funcionário" : "Usuário"}
                   </div>
                 </div>
               </button>
