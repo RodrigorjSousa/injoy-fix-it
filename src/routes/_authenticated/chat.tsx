@@ -66,8 +66,7 @@ function ChatPage() {
       });
       const list: Contato[] = (profiles ?? []).map((p) => ({
         id: p.id,
-        nome: p.nome ?? p.email,
-        email: p.email,
+        nome: p.nome ?? "Usuário",
         role: roleMap.get(p.id) ?? "outro",
         naoLidas: unreadMap.get(p.id) ?? 0,
         ultimaEm: lastMap.get(p.id) ?? null,
