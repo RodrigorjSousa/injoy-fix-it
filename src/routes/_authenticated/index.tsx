@@ -122,7 +122,7 @@ function NovoChamado() {
                 type="button"
                 onClick={() => {
                   setUnidade(u);
-                  if (u !== "Botafogo") setQuarto(null);
+                  setQuarto(null);
                 }}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all",
