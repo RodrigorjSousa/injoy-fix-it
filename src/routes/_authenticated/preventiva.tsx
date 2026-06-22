@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Snowflake, MapPin, Calendar, Sparkles, CheckCircle2, ClipboardCheck } from "lucide-react";
+import { Snowflake, MapPin, Calendar, Sparkles, CheckCircle2, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ import {
 import {
   UNIDADES,
   diasDesdeLimpeza,
+  proximaLimpeza,
   isAtivoLimpo,
   useAtivos,
   useRegistrarLimpeza,
@@ -121,6 +122,8 @@ function Preventiva() {
         {filtrados.map((a) => {
           const limpo = isAtivoLimpo(a);
           const dias = diasDesdeLimpeza(a);
+          const proxima = proximaLimpeza(a);
+          const vencida = proxima ? proxima.getTime() < Date.now() : true;
           return (
             <Card key={a.id} className="p-4 space-y-3 relative overflow-hidden">
               <span
@@ -166,6 +169,18 @@ function Preventiva() {
                   <span className="text-foreground font-medium">
                     {a.tecnico ?? "—"}
                   </span>
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  {vencida ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                  ) : (
+                    <Calendar className="h-3.5 w-3.5" />
+                  )}
+                  Próxima:{" "}
+                  <span className={cn("font-medium", vencida ? "text-destructive" : "text-foreground")}>
+                    {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}
+                  </span>
+                  <span className="text-foreground/60">(máx. 90 dias)</span>
                 </div>
                 <Badge
                   variant="outline"
