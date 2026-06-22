@@ -170,7 +170,7 @@ function NovoChamado() {
       )}
 
       <section className="space-y-3">
-        <StepLabel n={2} title="Categoria do problema" />
+        <StepLabel n={precisaQuarto ? 3 : 2} title="Categoria do problema" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CATEGORIAS.map((c) => {
             const Icon = ICONS[c];
