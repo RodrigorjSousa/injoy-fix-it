@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
@@ -19,14 +20,19 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
-  id: '/auth/',
-  path: '/auth/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
@@ -34,9 +40,9 @@ const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthAdminRoute = AuthAdminRouteImport.update({
-  id: '/auth/admin',
-  path: '/auth/admin',
-  getParentRoute: () => rootRouteImport,
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
   id: '/preventiva',
@@ -67,6 +73,7 @@ const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthRouteWithChildren
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/painel': typeof AuthenticatedPainelRoute
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRouteWithChildren
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
@@ -101,6 +109,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/auth'
     | '/chat'
     | '/configuracoes'
     | '/painel'
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/_authenticated'
+    | '/auth'
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
     | '/_authenticated/painel'
@@ -133,12 +143,18 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
-  AuthAdminRoute: typeof AuthAdminRoute
-  AuthIndexRoute: typeof AuthIndexRoute
+  AuthRoute: typeof AuthRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated': {
       id: '/_authenticated'
       path: ''
@@ -148,10 +164,10 @@ declare module '@tanstack/react-router' {
     }
     '/auth/': {
       id: '/auth/'
-      path: '/auth'
+      path: '/'
       fullPath: '/auth/'
       preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/': {
       id: '/_authenticated/'
@@ -162,10 +178,10 @@ declare module '@tanstack/react-router' {
     }
     '/auth/admin': {
       id: '/auth/admin'
-      path: '/auth/admin'
+      path: '/admin'
       fullPath: '/auth/admin'
       preLoaderRoute: typeof AuthAdminRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/preventiva': {
       id: '/_authenticated/preventiva'
@@ -226,10 +242,21 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
 const AuthenticatedRouteRouteWithChildren =
   AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
 
-const rootRouteChildren: RootRouteChildren = {
-  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+interface AuthRouteChildren {
+  AuthAdminRoute: typeof AuthAdminRoute
+  AuthIndexRoute: typeof AuthIndexRoute
+}
+
+const AuthRouteChildren: AuthRouteChildren = {
   AuthAdminRoute: AuthAdminRoute,
   AuthIndexRoute: AuthIndexRoute,
+}
+
+const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
+
+const rootRouteChildren: RootRouteChildren = {
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
