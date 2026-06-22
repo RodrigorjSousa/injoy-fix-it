@@ -114,7 +114,10 @@ function NovoChamado() {
               <button
                 key={u}
                 type="button"
-                onClick={() => setUnidade(u)}
+                onClick={() => {
+                  setUnidade(u);
+                  if (u !== "Botafogo") setQuarto(null);
+                }}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all",
                   "hover:border-primary/50 hover:shadow-md",
