@@ -39,10 +39,15 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Pintura": PaintRoller,
 };
 
-const QUARTOS_BOTAFOGO = [
-  "001","002","003","005","006","107","108","109","110","111",
-  "112","113","114","115","117","118","301","401","501",
-];
+const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
+  Botafogo: [
+    "001","002","003","005","006","107","108","109","110","111",
+    "112","113","114","115","117","118","301","401","501",
+  ],
+  Ipanema: [
+    "001","002","103","104","205","206","307","308","309","410","411","412",
+  ],
+};
 
 function NovoChamado() {
   const navigate = useNavigate();
