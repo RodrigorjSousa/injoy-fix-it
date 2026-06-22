@@ -253,8 +253,18 @@ function Preventiva() {
                   className="flex h-9 w-full rounded-md border bg-background px-3 py-1 text-sm shadow-sm transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                   value={tecnico}
                   onChange={(e) => setTecnico(e.target.value)}
-                  placeholder="Nome / matrícula"
+                  onClick={() => {
+                    if (!tecnico) setTecnico("Rodrigo Sousa - CFT 09413001707");
+                  }}
+                  placeholder="Clique para preencher: Rodrigo Sousa - CFT 09413001707"
                 />
+                <button
+                  type="button"
+                  onClick={() => setTecnico("Rodrigo Sousa - CFT 09413001707")}
+                  className="text-xs text-primary hover:underline"
+                >
+                  Usar: Rodrigo Sousa — CFT 09413001707
+                </button>
               </div>
               <div className="space-y-1.5">
                 <Label>Data da verificação</Label>
