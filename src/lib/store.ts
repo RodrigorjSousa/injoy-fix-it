@@ -51,8 +51,10 @@ export interface AtivoAr {
   id: string;
   unidade: Unidade;
   localizacao: string;
-  ultimaLimpeza: string;
+  ultimaLimpeza: string | null;
   intervaloDias: number;
+  tecnico: string | null;
+  status: "Limpo" | "Sujo";
 }
 
 /* ----------------------------- mappers ----------------------------- */
