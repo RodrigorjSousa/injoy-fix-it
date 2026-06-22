@@ -39,12 +39,18 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Pintura": PaintRoller,
 };
 
+const QUARTOS_BOTAFOGO = [
+  "001","002","003","005","006","107","108","109","110","111",
+  "112","113","114","115","117","118","301","401","501",
+];
+
 function NovoChamado() {
   const navigate = useNavigate();
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const criar = useCriarChamado();
   const [unidade, setUnidade] = useState<Unidade | null>(null);
+  const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [descricao, setDescricao] = useState("");
 
