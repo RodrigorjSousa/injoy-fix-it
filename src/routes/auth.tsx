@@ -162,6 +162,13 @@ function AuthPage() {
             ? "Não tem conta? Criar conta"
             : "Já tem conta? Entrar"}
         </button>
+
+        <Link
+          to="/auth/admin"
+          className="flex items-center justify-center gap-2 text-sm font-medium text-primary hover:text-primary/80 w-full text-center border-t pt-4"
+        >
+          Acesso administrador
+        </Link>
       </Card>
     </div>
   );
