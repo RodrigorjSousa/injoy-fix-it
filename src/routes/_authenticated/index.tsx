@@ -144,6 +144,31 @@ function NovoChamado() {
         </div>
       </section>
 
+      {unidade === "Botafogo" && (
+        <section className="space-y-3">
+          <StepLabel n={2} title="Em qual quarto?" />
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {QUARTOS_BOTAFOGO.map((q) => {
+              const active = quarto === q;
+              return (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuarto(q)}
+                  className={cn(
+                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold tabular-nums transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5 text-primary",
+                  )}
+                >
+                  {q}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-3">
         <StepLabel n={2} title="Categoria do problema" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
