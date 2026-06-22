@@ -122,6 +122,8 @@ function Preventiva() {
         {filtrados.map((a) => {
           const limpo = isAtivoLimpo(a);
           const dias = diasDesdeLimpeza(a);
+          const proxima = proximaLimpeza(a);
+          const vencida = proxima ? proxima.getTime() < Date.now() : true;
           return (
             <Card key={a.id} className="p-4 space-y-3 relative overflow-hidden">
               <span
