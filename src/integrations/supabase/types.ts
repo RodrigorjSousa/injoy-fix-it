@@ -98,13 +98,6 @@ export type Database = {
             referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "chamados_responsavel_id_fkey"
-            columns: ["responsavel_id"]
-            isOneToOne: false
-            referencedRelation: "funcionarios_publico"
-            referencedColumns: ["id"]
-          },
         ]
       }
       funcionarios: {
@@ -167,21 +160,18 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string
-          email: string
           id: string
           nome: string | null
           updated_at: string
         }
         Insert: {
           created_at?: string
-          email: string
           id: string
           nome?: string | null
           updated_at?: string
         }
         Update: {
           created_at?: string
-          email?: string
           id?: string
           nome?: string | null
           updated_at?: string
@@ -211,42 +201,7 @@ export type Database = {
       }
     }
     Views: {
-      funcionarios_publico: {
-        Row: {
-          categorias: string[] | null
-          id: string | null
-          nome: string | null
-          user_id: string | null
-        }
-        Insert: {
-          categorias?: string[] | null
-          id?: string | null
-          nome?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          categorias?: string[] | null
-          id?: string | null
-          nome?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
-      profiles_publico: {
-        Row: {
-          id: string | null
-          nome: string | null
-        }
-        Insert: {
-          id?: string | null
-          nome?: string | null
-        }
-        Update: {
-          id?: string | null
-          nome?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       [_ in never]: never
