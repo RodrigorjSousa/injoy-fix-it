@@ -1,5 +1,11 @@
-// Mock data store backed by localStorage with a tiny pub/sub.
-import { useSyncExternalStore } from "react";
+// Data layer backed by Lovable Cloud (Supabase) + React Query.
+import {
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type UseMutationOptions,
+} from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export type Unidade = "Botafogo" | "Ipanema";
 export type Categoria =
@@ -24,7 +30,9 @@ export const CATEGORIAS: Categoria[] = [
 export interface Funcionario {
   id: string;
   nome: string;
+  email: string;
   categorias: Categoria[];
+  userId: string | null;
 }
 
 export interface Chamado {
@@ -43,194 +51,268 @@ export interface AtivoAr {
   id: string;
   unidade: Unidade;
   localizacao: string;
-  ultimaLimpeza: string; // ISO
+  ultimaLimpeza: string;
   intervaloDias: number;
 }
 
-interface State {
-  funcionarios: Funcionario[];
-  chamados: Chamado[];
-  ativos: AtivoAr[];
+/* ----------------------------- mappers ----------------------------- */
+
+type FuncionarioRow = {
+  id: string;
+  nome: string;
+  email: string;
+  categorias: string[] | null;
+  user_id: string | null;
+};
+type ChamadoRow = {
+  id: string;
+  unidade: Unidade;
+  categoria: string;
+  descricao: string;
+  status: Status;
+  responsavel_id: string | null;
+  foto_antes: string | null;
+  foto_depois: string | null;
+  created_at: string;
+};
+type AtivoRow = {
+  id: string;
+  unidade: Unidade;
+  localizacao: string;
+  ultima_limpeza: string;
+  intervalo_dias: number;
+};
+
+const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
+  id: r.id,
+  nome: r.nome,
+  email: r.email,
+  categorias: (r.categorias ?? []) as Categoria[],
+  userId: r.user_id,
+});
+const mapChamado = (r: ChamadoRow): Chamado => ({
+  id: r.id,
+  unidade: r.unidade,
+  categoria: r.categoria as Categoria,
+  descricao: r.descricao,
+  status: r.status,
+  responsavelId: r.responsavel_id,
+  fotoAntes: r.foto_antes,
+  fotoDepois: r.foto_depois,
+  criadoEm: r.created_at,
+});
+const mapAtivo = (r: AtivoRow): AtivoAr => ({
+  id: r.id,
+  unidade: r.unidade,
+  localizacao: r.localizacao,
+  ultimaLimpeza: r.ultima_limpeza,
+  intervaloDias: r.intervalo_dias,
+});
+
+/* ------------------------------ queries ----------------------------- */
+
+export function useFuncionarios() {
+  return useQuery({
+    queryKey: ["funcionarios"],
+    queryFn: async (): Promise<Funcionario[]> => {
+      const { data, error } = await supabase
+        .from("funcionarios")
+        .select("id, nome, email, categorias, user_id")
+        .order("nome");
+      if (error) throw error;
+      return (data ?? []).map((r) => mapFuncionario(r as FuncionarioRow));
+    },
+  });
 }
 
-const KEY = "injoy-manutencao-v1";
-
-const uid = () => Math.random().toString(36).slice(2, 10);
-
-const daysAgo = (d: number) => {
-  const dt = new Date();
-  dt.setDate(dt.getDate() - d);
-  return dt.toISOString();
-};
-
-const seed = (): State => {
-  const rodrigo: Funcionario = {
-    id: "fn-rodrigo",
-    nome: "Rodrigo Sousa",
-    categorias: ["Elétrica", "Automação", "Ar condicionado"],
-  };
-  const carlos: Funcionario = {
-    id: "fn-carlos",
-    nome: "Carlos Mendes",
-    categorias: ["Hidráulica", "Alvenaria"],
-  };
-  const ana: Funcionario = {
-    id: "fn-ana",
-    nome: "Ana Ribeiro",
-    categorias: ["Pintura", "Alvenaria"],
-  };
-
-  return {
-    funcionarios: [rodrigo, carlos, ana],
-    chamados: [
-      {
-        id: "ch-001",
-        unidade: "Botafogo",
-        categoria: "Elétrica",
-        descricao: "Tomada do quarto 302 sem energia.",
-        status: "Aberto",
-        responsavelId: rodrigo.id,
-        fotoAntes: null,
-        fotoDepois: null,
-        criadoEm: daysAgo(1),
-      },
-      {
-        id: "ch-002",
-        unidade: "Ipanema",
-        categoria: "Hidráulica",
-        descricao: "Vazamento no chuveiro do quarto 511.",
-        status: "Em Andamento",
-        responsavelId: carlos.id,
-        fotoAntes: null,
-        fotoDepois: null,
-        criadoEm: daysAgo(2),
-      },
-      {
-        id: "ch-003",
-        unidade: "Botafogo",
-        categoria: "Pintura",
-        descricao: "Retoque na parede do corredor 4º andar.",
-        status: "Concluído",
-        responsavelId: ana.id,
-        fotoAntes: null,
-        fotoDepois: null,
-        criadoEm: daysAgo(5),
-      },
-    ],
-    ativos: [
-      { id: "AC-B-101", unidade: "Botafogo", localizacao: "Quarto 101", ultimaLimpeza: daysAgo(20), intervaloDias: 90 },
-      { id: "AC-B-201", unidade: "Botafogo", localizacao: "Quarto 201", ultimaLimpeza: daysAgo(120), intervaloDias: 90 },
-      { id: "AC-B-LOB", unidade: "Botafogo", localizacao: "Lobby Principal", ultimaLimpeza: daysAgo(45), intervaloDias: 90 },
-      { id: "AC-I-301", unidade: "Ipanema", localizacao: "Quarto 301", ultimaLimpeza: daysAgo(15), intervaloDias: 90 },
-      { id: "AC-I-401", unidade: "Ipanema", localizacao: "Quarto 401", ultimaLimpeza: daysAgo(100), intervaloDias: 90 },
-      { id: "AC-I-RES", unidade: "Ipanema", localizacao: "Restaurante", ultimaLimpeza: daysAgo(60), intervaloDias: 90 },
-    ],
-  };
-};
-
-let state: State = (() => {
-  if (typeof window === "undefined") return seed();
-  try {
-    const raw = localStorage.getItem(KEY);
-    if (raw) return JSON.parse(raw) as State;
-  } catch {
-    /* ignore */
-  }
-  const s = seed();
-  try {
-    localStorage.setItem(KEY, JSON.stringify(s));
-  } catch {
-    /* ignore */
-  }
-  return s;
-})();
-
-const listeners = new Set<() => void>();
-const subscribe = (l: () => void) => {
-  listeners.add(l);
-  return () => listeners.delete(l);
-};
-const getSnapshot = () => state;
-const getServerSnapshot = () => state;
-
-const setState = (updater: (s: State) => State) => {
-  state = updater(state);
-  if (typeof window !== "undefined") {
-    try {
-      localStorage.setItem(KEY, JSON.stringify(state));
-    } catch {
-      /* ignore */
-    }
-  }
-  listeners.forEach((l) => l());
-};
-
-export function useStore<T>(selector: (s: State) => T): T {
-  return useSyncExternalStore(
-    subscribe,
-    () => selector(getSnapshot()),
-    () => selector(getServerSnapshot()),
-  );
+export function useChamados() {
+  return useQuery({
+    queryKey: ["chamados"],
+    queryFn: async (): Promise<Chamado[]> => {
+      const { data, error } = await supabase
+        .from("chamados")
+        .select(
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, created_at",
+        )
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []).map((r) => mapChamado(r as ChamadoRow));
+    },
+  });
 }
 
-// ---- Actions ----
-export const actions = {
-  funcionarioPorCategoria(cat: Categoria): Funcionario | undefined {
-    return state.funcionarios.find((f) => f.categorias.includes(cat));
-  },
-  criarChamado(input: {
-    unidade: Unidade;
-    categoria: Categoria;
-    descricao: string;
-    responsavelId: string | null;
-  }) {
-    const novo: Chamado = {
-      id: uid(),
-      ...input,
-      status: "Aberto",
-      fotoAntes: null,
-      fotoDepois: null,
-      criadoEm: new Date().toISOString(),
-    };
-    setState((s) => ({ ...s, chamados: [novo, ...s.chamados] }));
-    return novo.id;
-  },
-  atualizarChamado(id: string, patch: Partial<Chamado>) {
-    setState((s) => ({
-      ...s,
-      chamados: s.chamados.map((c) => (c.id === id ? { ...c, ...patch } : c)),
-    }));
-  },
-  adicionarFuncionario(nome: string, categorias: Categoria[]) {
-    setState((s) => ({
-      ...s,
-      funcionarios: [...s.funcionarios, { id: uid(), nome, categorias }],
-    }));
-  },
-  removerFuncionario(id: string) {
-    setState((s) => ({
-      ...s,
-      funcionarios: s.funcionarios.filter((f) => f.id !== id),
-    }));
-  },
-  registrarLimpeza(ativoId: string) {
-    setState((s) => ({
-      ...s,
-      ativos: s.ativos.map((a) =>
-        a.id === ativoId ? { ...a, ultimaLimpeza: new Date().toISOString() } : a,
-      ),
-    }));
-  },
-  resetSeed() {
-    setState(() => seed());
-  },
-};
+export function useChamado(id: string) {
+  return useQuery({
+    queryKey: ["chamados", id],
+    queryFn: async (): Promise<Chamado | null> => {
+      const { data, error } = await supabase
+        .from("chamados")
+        .select(
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, created_at",
+        )
+        .eq("id", id)
+        .maybeSingle();
+      if (error) throw error;
+      return data ? mapChamado(data as ChamadoRow) : null;
+    },
+  });
+}
+
+export function useAtivos() {
+  return useQuery({
+    queryKey: ["ativos_ar"],
+    queryFn: async (): Promise<AtivoAr[]> => {
+      const { data, error } = await supabase
+        .from("ativos_ar")
+        .select("id, unidade, localizacao, ultima_limpeza, intervalo_dias")
+        .order("id");
+      if (error) throw error;
+      return (data ?? []).map((r) => mapAtivo(r as AtivoRow));
+    },
+  });
+}
+
+export interface MeInfo {
+  userId: string;
+  email: string | null;
+  isGestor: boolean;
+  isFuncionario: boolean;
+  funcionario: Funcionario | null;
+}
+
+export function useMe() {
+  return useQuery({
+    queryKey: ["me"],
+    queryFn: async (): Promise<MeInfo | null> => {
+      const { data: u } = await supabase.auth.getUser();
+      if (!u.user) return null;
+      const [{ data: roles }, { data: func }] = await Promise.all([
+        supabase.from("user_roles").select("role").eq("user_id", u.user.id),
+        supabase
+          .from("funcionarios")
+          .select("id, nome, email, categorias, user_id")
+          .eq("user_id", u.user.id)
+          .maybeSingle(),
+      ]);
+      const roleList = (roles ?? []).map((r) => r.role);
+      return {
+        userId: u.user.id,
+        email: u.user.email ?? null,
+        isGestor: roleList.includes("gestor"),
+        isFuncionario: roleList.includes("funcionario"),
+        funcionario: func ? mapFuncionario(func as FuncionarioRow) : null,
+      };
+    },
+  });
+}
+
+/* ----------------------------- mutations ---------------------------- */
+
+function useInvalidate(keys: string[][]) {
+  const qc = useQueryClient();
+  return () => keys.forEach((k) => qc.invalidateQueries({ queryKey: k }));
+}
+
+export function useCriarChamado(
+  opts?: UseMutationOptions<
+    string,
+    Error,
+    { unidade: Unidade; categoria: Categoria; descricao: string; responsavelId: string | null }
+  >,
+) {
+  const invalidate = useInvalidate([["chamados"]]);
+  return useMutation({
+    mutationFn: async (input) => {
+      const { data: u } = await supabase.auth.getUser();
+      const { data, error } = await supabase
+        .from("chamados")
+        .insert({
+          unidade: input.unidade,
+          categoria: input.categoria,
+          descricao: input.descricao,
+          responsavel_id: input.responsavelId,
+          criado_por: u.user?.id ?? null,
+        })
+        .select("id")
+        .single();
+      if (error) throw error;
+      return data.id as string;
+    },
+    onSuccess: (...a) => {
+      invalidate();
+      opts?.onSuccess?.(...a);
+    },
+    ...opts,
+  });
+}
+
+export function useAtualizarChamado() {
+  const invalidate = useInvalidate([["chamados"]]);
+  return useMutation({
+    mutationFn: async (input: { id: string; patch: Partial<Chamado> }) => {
+      const patch: {
+        status?: Status;
+        foto_antes?: string | null;
+        foto_depois?: string | null;
+        responsavel_id?: string | null;
+      } = {};
+      if (input.patch.status !== undefined) patch.status = input.patch.status;
+      if (input.patch.fotoAntes !== undefined) patch.foto_antes = input.patch.fotoAntes;
+      if (input.patch.fotoDepois !== undefined) patch.foto_depois = input.patch.fotoDepois;
+      if (input.patch.responsavelId !== undefined) patch.responsavel_id = input.patch.responsavelId;
+      const { error } = await supabase.from("chamados").update(patch).eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useAdicionarFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"]]);
+  return useMutation({
+    mutationFn: async (input: { nome: string; email: string; categorias: Categoria[] }) => {
+      const { error } = await supabase.from("funcionarios").insert({
+        nome: input.nome,
+        email: input.email.toLowerCase().trim(),
+        categorias: input.categorias,
+      });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoverFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"]]);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("funcionarios").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRegistrarLimpeza() {
+  const invalidate = useInvalidate([["ativos_ar"]]);
+  return useMutation({
+    mutationFn: async (ativoId: string) => {
+      const { error } = await supabase
+        .from("ativos_ar")
+        .update({ ultima_limpeza: new Date().toISOString() })
+        .eq("id", ativoId);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+/* ------------------------------ helpers ----------------------------- */
 
 export function isAtivoLimpo(a: AtivoAr): boolean {
   const diff = (Date.now() - new Date(a.ultimaLimpeza).getTime()) / (1000 * 60 * 60 * 24);
   return diff <= a.intervaloDias;
 }
-
 export function diasDesdeLimpeza(a: AtivoAr): number {
   return Math.floor((Date.now() - new Date(a.ultimaLimpeza).getTime()) / (1000 * 60 * 60 * 24));
 }

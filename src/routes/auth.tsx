@@ -25,6 +25,7 @@ export const Route = createFileRoute("/auth")({
 function AuthPage() {
   const navigate = useNavigate();
   const [mode, setMode] = useState<"signin" | "signup">("signin");
+  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -43,7 +44,10 @@ function AuthPage() {
         const { error } = await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: window.location.origin },
+          options: {
+            emailRedirectTo: window.location.origin,
+            data: { nome: nome.trim() || email.split("@")[0] },
+          },
         });
         if (error) throw error;
         toast.success("Conta criada. Verifique seu e-mail se necessário.");
@@ -107,6 +111,20 @@ function AuthPage() {
         </div>
 
         <form onSubmit={handleEmail} className="space-y-3">
+          {mode === "signup" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="nome">Nome</Label>
+              <Input
+                id="nome"
+                type="text"
+                required
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                autoComplete="name"
+                placeholder="Seu nome completo"
+              />
+            </div>
+          )}
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail</Label>
             <Input

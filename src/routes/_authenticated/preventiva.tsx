@@ -14,10 +14,10 @@ import {
 } from "@/components/ui/select";
 import {
   UNIDADES,
-  actions,
   diasDesdeLimpeza,
   isAtivoLimpo,
-  useStore,
+  useAtivos,
+  useRegistrarLimpeza,
   type Unidade,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -27,7 +27,8 @@ export const Route = createFileRoute("/_authenticated/preventiva")({
 });
 
 function Preventiva() {
-  const ativos = useStore((s) => s.ativos);
+  const { data: ativos = [], isLoading } = useAtivos();
+  const registrar = useRegistrarLimpeza();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
 
   const filtrados = ativos.filter((a) => unidade === "todas" || a.unidade === unidade);
@@ -40,7 +41,9 @@ function Preventiva() {
         <div>
           <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva</Badge>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Ar Condicionado</h1>
-          <p className="text-muted-foreground mt-1">Controle de limpeza técnica periódica</p>
+          <p className="text-muted-foreground mt-1">
+            {isLoading ? "Carregando..." : "Controle de limpeza técnica periódica"}
+          </p>
         </div>
         <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade | "todas")}>
           <SelectTrigger className="w-[180px] bg-card"><SelectValue /></SelectTrigger>
@@ -114,9 +117,13 @@ function Preventiva() {
               <Button
                 variant={limpo ? "outline" : "default"}
                 className="w-full"
+                disabled={registrar.isPending}
                 onClick={() => {
-                  actions.registrarLimpeza(a.id);
-                  toast.success("Limpeza registrada", { description: `${a.id} — ${a.localizacao}` });
+                  registrar.mutate(a.id, {
+                    onSuccess: () =>
+                      toast.success("Limpeza registrada", { description: `${a.id} — ${a.localizacao}` }),
+                    onError: (e) => toast.error(e.message),
+                  });
                 }}
               >
                 Registrar Limpeza Técnica
