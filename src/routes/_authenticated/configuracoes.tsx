@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,9 @@ import {
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
+  useUsuariosComRoles,
+  useTornarGestor,
+  useRemoverGestor,
   type Categoria,
 } from "@/lib/store";
 
@@ -31,8 +34,8 @@ function Configuracoes() {
   const [email, setEmail] = useState("");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
 
-  // Apenas gestores
-  if (me && !me.isGestor) return <Navigate to="/painel" replace />;
+  // Apenas gestores e administradores
+  if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
 
   const toggle = (c: Categoria) =>
     setSelecionadas((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -164,6 +167,76 @@ function Configuracoes() {
           )}
         </div>
       </section>
+
+      {me?.isAdmin && <GestoresAdmin />}
     </div>
+  );
+}
+
+function GestoresAdmin() {
+  const { data: usuarios = [], isLoading } = useUsuariosComRoles();
+  const tornar = useTornarGestor();
+  const remover = useRemoverGestor();
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <ShieldCheck className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold text-lg">Gestores (administrador)</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Promova ou remova gestores do sistema. Administradores não aparecem nesta lista.
+      </p>
+      <div className="space-y-2">
+        {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+        {usuarios
+          .filter((u) => !u.isAdmin)
+          .map((u) => (
+            <Card key={u.userId} className="p-4 flex items-center justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <div className="font-semibold truncate">{u.nome}</div>
+                <div className="mt-1">
+                  {u.isGestor ? (
+                    <Badge className="text-[10px]">Gestor</Badge>
+                  ) : (
+                    <Badge variant="secondary" className="text-[10px]">Funcionário</Badge>
+                  )}
+                </div>
+              </div>
+              {u.isGestor ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    remover.mutate(u.userId, {
+                      onSuccess: () => toast.success(`${u.nome} não é mais gestor`),
+                      onError: (e) => toast.error(e.message),
+                    })
+                  }
+                  disabled={remover.isPending}
+                >
+                  <ShieldOff className="h-4 w-4 mr-1" /> Remover gestor
+                </Button>
+              ) : (
+                <Button
+                  size="sm"
+                  onClick={() =>
+                    tornar.mutate(u.userId, {
+                      onSuccess: () => toast.success(`${u.nome} agora é gestor`),
+                      onError: (e) => toast.error(e.message),
+                    })
+                  }
+                  disabled={tornar.isPending}
+                >
+                  <ShieldCheck className="h-4 w-4 mr-1" /> Tornar gestor
+                </Button>
+              )}
+            </Card>
+          ))}
+        {!isLoading && usuarios.filter((u) => !u.isAdmin).length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">Nenhum usuário cadastrado.</p>
+        )}
+      </div>
+    </section>
   );
 }

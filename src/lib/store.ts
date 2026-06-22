@@ -181,6 +181,7 @@ export function useAtivos() {
 export interface MeInfo {
   userId: string;
   email: string | null;
+  isAdmin: boolean;
   isGestor: boolean;
   isFuncionario: boolean;
   funcionario: Funcionario | null;
@@ -204,11 +205,76 @@ export function useMe() {
       return {
         userId: u.user.id,
         email: u.user.email ?? null,
+        isAdmin: roleList.includes("admin"),
         isGestor: roleList.includes("gestor"),
         isFuncionario: roleList.includes("funcionario"),
         funcionario: func ? mapFuncionario(func as FuncionarioRow) : null,
       };
     },
+  });
+}
+
+export interface UsuarioComRole {
+  userId: string;
+  nome: string;
+  isGestor: boolean;
+  isAdmin: boolean;
+}
+
+export function useUsuariosComRoles() {
+  return useQuery({
+    queryKey: ["usuarios_roles"],
+    queryFn: async (): Promise<UsuarioComRole[]> => {
+      const [{ data: profs, error: e1 }, { data: roles, error: e2 }] = await Promise.all([
+        supabase.from("profiles").select("id, nome"),
+        supabase.from("user_roles").select("user_id, role"),
+      ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      const rolesByUser = new Map<string, string[]>();
+      (roles ?? []).forEach((r) => {
+        const arr = rolesByUser.get(r.user_id) ?? [];
+        arr.push(r.role);
+        rolesByUser.set(r.user_id, arr);
+      });
+      return (profs ?? []).map((p) => {
+        const rs = rolesByUser.get(p.id) ?? [];
+        return {
+          userId: p.id,
+          nome: p.nome ?? "(sem nome)",
+          isGestor: rs.includes("gestor"),
+          isAdmin: rs.includes("admin"),
+        };
+      });
+    },
+  });
+}
+
+export function useTornarGestor() {
+  const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: userId, role: "gestor" });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoverGestor() {
+  const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
+  return useMutation({
+    mutationFn: async (userId: string) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId)
+        .eq("role", "gestor");
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
   });
 }
 

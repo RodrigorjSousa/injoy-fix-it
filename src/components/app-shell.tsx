@@ -21,7 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { data: me } = useMe();
 
-  const nav = ALL_NAV.filter((n) => !n.gestorOnly || me?.isGestor);
+  const nav = ALL_NAV.filter((n) => !n.gestorOnly || me?.isGestor || me?.isAdmin);
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
