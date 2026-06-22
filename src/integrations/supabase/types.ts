@@ -98,6 +98,13 @@ export type Database = {
             referencedRelation: "funcionarios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "chamados_responsavel_id_fkey"
+            columns: ["responsavel_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios_publico"
+            referencedColumns: ["id"]
+          },
         ]
       }
       funcionarios: {
@@ -204,16 +211,45 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      funcionarios_publico: {
+        Row: {
+          categorias: string[] | null
+          id: string | null
+          nome: string | null
+          user_id: string | null
+        }
+        Insert: {
+          categorias?: string[] | null
+          id?: string | null
+          nome?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          categorias?: string[] | null
+          id?: string | null
+          nome?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles_publico: {
+        Row: {
+          id: string | null
+          nome: string | null
+        }
+        Insert: {
+          id?: string | null
+          nome?: string | null
+        }
+        Update: {
+          id?: string | null
+          nome?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
       app_role: "gestor" | "funcionario"
