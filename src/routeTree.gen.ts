@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
@@ -27,6 +28,11 @@ const AuthRoute = AuthRouteImport.update({
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
@@ -73,16 +79,17 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/auth/admin': typeof AuthAdminRoute
+  '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
 }
 export interface FileRoutesByTo {
-  '/auth': typeof AuthRouteWithChildren
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/auth/admin': typeof AuthAdminRoute
   '/': typeof AuthenticatedIndexRoute
+  '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
 }
 export interface FileRoutesById {
@@ -95,6 +102,7 @@ export interface FileRoutesById {
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/auth/admin': typeof AuthAdminRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
+  '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
 }
 export interface FileRouteTypes {
@@ -107,16 +115,17 @@ export interface FileRouteTypes {
     | '/painel'
     | '/preventiva'
     | '/auth/admin'
+    | '/auth/'
     | '/chamados/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
-    | '/auth'
     | '/chat'
     | '/configuracoes'
     | '/painel'
     | '/preventiva'
     | '/auth/admin'
     | '/'
+    | '/auth'
     | '/chamados/$id'
   id:
     | '__root__'
@@ -128,6 +137,7 @@ export interface FileRouteTypes {
     | '/_authenticated/preventiva'
     | '/auth/admin'
     | '/_authenticated/'
+    | '/auth/'
     | '/_authenticated/chamados/$id'
   fileRoutesById: FileRoutesById
 }
@@ -151,6 +161,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
     }
     '/_authenticated/': {
       id: '/_authenticated/'
@@ -227,10 +244,12 @@ const AuthenticatedRouteRouteWithChildren =
 
 interface AuthRouteChildren {
   AuthAdminRoute: typeof AuthAdminRoute
+  AuthIndexRoute: typeof AuthIndexRoute
 }
 
 const AuthRouteChildren: AuthRouteChildren = {
   AuthAdminRoute: AuthAdminRoute,
+  AuthIndexRoute: AuthIndexRoute,
 }
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
