@@ -202,7 +202,7 @@ function NovoChamado() {
       </section>
 
       <section className="space-y-3">
-        <StepLabel n={3} title="Descreva brevemente" />
+        <StepLabel n={precisaQuarto ? 4 : 3} title="Descreva brevemente" />
         <Textarea
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
