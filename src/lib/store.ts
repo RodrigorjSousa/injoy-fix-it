@@ -51,8 +51,10 @@ export interface AtivoAr {
   id: string;
   unidade: Unidade;
   localizacao: string;
-  ultimaLimpeza: string;
+  ultimaLimpeza: string | null;
   intervaloDias: number;
+  tecnico: string | null;
+  status: "Limpo" | "Sujo";
 }
 
 /* ----------------------------- mappers ----------------------------- */
@@ -79,8 +81,10 @@ type AtivoRow = {
   id: string;
   unidade: Unidade;
   localizacao: string;
-  ultima_limpeza: string;
+  ultima_limpeza: string | null;
   intervalo_dias: number;
+  tecnico: string | null;
+  status: string;
 };
 
 const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
@@ -107,6 +111,8 @@ const mapAtivo = (r: AtivoRow): AtivoAr => ({
   localizacao: r.localizacao,
   ultimaLimpeza: r.ultima_limpeza,
   intervaloDias: r.intervalo_dias,
+  tecnico: r.tecnico,
+  status: (r.status === "Sujo" ? "Sujo" : "Limpo"),
 });
 
 /* ------------------------------ queries ----------------------------- */
@@ -164,8 +170,8 @@ export function useAtivos() {
     queryFn: async (): Promise<AtivoAr[]> => {
       const { data, error } = await supabase
         .from("ativos_ar")
-        .select("id, unidade, localizacao, ultima_limpeza, intervalo_dias")
-        .order("id");
+        .select("id, unidade, localizacao, ultima_limpeza, intervalo_dias, tecnico, status")
+        .order("localizacao");
       if (error) throw error;
       return (data ?? []).map((r) => mapAtivo(r as AtivoRow));
     },
@@ -296,11 +302,15 @@ export function useRemoverFuncionario() {
 export function useRegistrarLimpeza() {
   const invalidate = useInvalidate([["ativos_ar"]]);
   return useMutation({
-    mutationFn: async (ativoId: string) => {
+    mutationFn: async (input: { ativoId: string; tecnico?: string | null }) => {
       const { error } = await supabase
         .from("ativos_ar")
-        .update({ ultima_limpeza: new Date().toISOString() })
-        .eq("id", ativoId);
+        .update({
+          ultima_limpeza: new Date().toISOString(),
+          status: "Limpo",
+          ...(input.tecnico !== undefined ? { tecnico: input.tecnico } : {}),
+        })
+        .eq("id", input.ativoId);
       if (error) throw error;
     },
     onSuccess: invalidate,
@@ -310,9 +320,13 @@ export function useRegistrarLimpeza() {
 /* ------------------------------ helpers ----------------------------- */
 
 export function isAtivoLimpo(a: AtivoAr): boolean {
-  const diff = (Date.now() - new Date(a.ultimaLimpeza).getTime()) / (1000 * 60 * 60 * 24);
-  return diff <= a.intervaloDias;
+  return a.status === "Limpo";
 }
-export function diasDesdeLimpeza(a: AtivoAr): number {
+export function diasDesdeLimpeza(a: AtivoAr): number | null {
+  if (!a.ultimaLimpeza) return null;
   return Math.floor((Date.now() - new Date(a.ultimaLimpeza).getTime()) / (1000 * 60 * 60 * 24));
+}
+export function proximaLimpeza(a: AtivoAr): Date | null {
+  if (!a.ultimaLimpeza) return null;
+  return new Date(new Date(a.ultimaLimpeza).getTime() + a.intervaloDias * 86400000);
 }

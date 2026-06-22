@@ -78,15 +78,18 @@ function Preventiva() {
 
   function confirmar() {
     if (!ativoSelecionado || !tudoOk) return;
-    registrar.mutate(ativoSelecionado.id, {
-      onSuccess: () => {
-        toast.success("Limpeza PMOC registrada", {
-          description: `${ativoSelecionado.id} — ${ativoSelecionado.localizacao}`,
-        });
-        setAtivoSelecionado(null);
+    registrar.mutate(
+      { ativoId: ativoSelecionado.id, tecnico: tecnico.trim() || null },
+      {
+        onSuccess: () => {
+          toast.success("Limpeza PMOC registrada", {
+            description: `${ativoSelecionado.localizacao} — ${tecnico}`,
+          });
+          setAtivoSelecionado(null);
+        },
+        onError: (e) => toast.error(e.message),
       },
-      onError: (e) => toast.error(e.message),
-    });
+    );
   }
 
   return (
@@ -148,8 +151,21 @@ function Preventiva() {
               <div className="space-y-1.5 text-xs">
                 <div className="flex items-center gap-1.5 text-muted-foreground">
                   <Calendar className="h-3.5 w-3.5" />
-                  Última limpeza: {new Date(a.ultimaLimpeza).toLocaleDateString("pt-BR")}
-                  <span className="text-foreground/70">({dias}d atrás)</span>
+                  Realizado:{" "}
+                  <span className="text-foreground font-medium">
+                    {a.ultimaLimpeza
+                      ? new Date(a.ultimaLimpeza).toLocaleDateString("pt-BR")
+                      : "—"}
+                  </span>
+                  {dias !== null && (
+                    <span className="text-foreground/70">({dias}d atrás)</span>
+                  )}
+                </div>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="i">Técnico:</span>
+                  <span className="text-foreground font-medium">
+                    {a.tecnico ?? "—"}
+                  </span>
                 </div>
                 <Badge
                   variant="outline"
@@ -163,10 +179,11 @@ function Preventiva() {
                   {limpo ? (
                     <><CheckCircle2 className="h-3 w-3 mr-1" /> Limpo</>
                   ) : (
-                    <><Sparkles className="h-3 w-3 mr-1" /> Sujo / Requer Limpeza</>
+                    <><Sparkles className="h-3 w-3 mr-1" /> Sujo</>
                   )}
                 </Badge>
               </div>
+
 
               <Button
                 variant={limpo ? "outline" : "default"}
