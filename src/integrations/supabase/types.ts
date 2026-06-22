@@ -204,7 +204,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      get_chat_contacts: {
+      chat_contacts: {
         Args: never
         Returns: {
           id: string
