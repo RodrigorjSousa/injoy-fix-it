@@ -78,15 +78,18 @@ function Preventiva() {
 
   function confirmar() {
     if (!ativoSelecionado || !tudoOk) return;
-    registrar.mutate(ativoSelecionado.id, {
-      onSuccess: () => {
-        toast.success("Limpeza PMOC registrada", {
-          description: `${ativoSelecionado.id} — ${ativoSelecionado.localizacao}`,
-        });
-        setAtivoSelecionado(null);
+    registrar.mutate(
+      { ativoId: ativoSelecionado.id, tecnico: tecnico.trim() || null },
+      {
+        onSuccess: () => {
+          toast.success("Limpeza PMOC registrada", {
+            description: `${ativoSelecionado.localizacao} — ${tecnico}`,
+          });
+          setAtivoSelecionado(null);
+        },
+        onError: (e) => toast.error(e.message),
       },
-      onError: (e) => toast.error(e.message),
-    });
+    );
   }
 
   return (
