@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Snowflake, MapPin, Calendar, Sparkles, CheckCircle2, ClipboardCheck } from "lucide-react";
+import { Snowflake, MapPin, Calendar, Sparkles, CheckCircle2, ClipboardCheck, AlertTriangle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
