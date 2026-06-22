@@ -20,6 +20,7 @@ export type Database = {
           id: string
           intervalo_dias: number
           localizacao: string
+          status: string
           tecnico: string | null
           ultima_limpeza: string | null
           unidade: Database["public"]["Enums"]["unidade"]
@@ -30,6 +31,7 @@ export type Database = {
           id: string
           intervalo_dias?: number
           localizacao: string
+          status?: string
           tecnico?: string | null
           ultima_limpeza?: string | null
           unidade: Database["public"]["Enums"]["unidade"]
@@ -40,6 +42,7 @@ export type Database = {
           id?: string
           intervalo_dias?: number
           localizacao?: string
+          status?: string
           tecnico?: string | null
           ultima_limpeza?: string | null
           unidade?: Database["public"]["Enums"]["unidade"]
