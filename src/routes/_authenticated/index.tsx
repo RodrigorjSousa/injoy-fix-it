@@ -39,12 +39,18 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Pintura": PaintRoller,
 };
 
+const QUARTOS_BOTAFOGO = [
+  "001","002","003","005","006","107","108","109","110","111",
+  "112","113","114","115","117","118","301","401","501",
+];
+
 function NovoChamado() {
   const navigate = useNavigate();
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const criar = useCriarChamado();
   const [unidade, setUnidade] = useState<Unidade | null>(null);
+  const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [descricao, setDescricao] = useState("");
 
@@ -56,15 +62,21 @@ function NovoChamado() {
     [categoria, funcionarios],
   );
 
-  const podeEnviar = !!unidade && !!categoria && descricao.trim().length > 3 && !criar.isPending;
+  const precisaQuarto = unidade === "Botafogo";
+  const quartoOk = !precisaQuarto || !!quarto;
+  const podeEnviar =
+    !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
+    const descricaoFinal = precisaQuarto && quarto
+      ? `[Quarto ${quarto}] ${descricao.trim()}`
+      : descricao.trim();
     criar.mutate(
       {
         unidade,
         categoria,
-        descricao: descricao.trim(),
+        descricao: descricaoFinal,
         responsavelId: responsavel?.id ?? null,
       },
       {
@@ -102,7 +114,10 @@ function NovoChamado() {
               <button
                 key={u}
                 type="button"
-                onClick={() => setUnidade(u)}
+                onClick={() => {
+                  setUnidade(u);
+                  if (u !== "Botafogo") setQuarto(null);
+                }}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all",
                   "hover:border-primary/50 hover:shadow-md",
@@ -129,8 +144,33 @@ function NovoChamado() {
         </div>
       </section>
 
+      {unidade === "Botafogo" && (
+        <section className="space-y-3">
+          <StepLabel n={2} title="Em qual quarto?" />
+          <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+            {QUARTOS_BOTAFOGO.map((q) => {
+              const active = quarto === q;
+              return (
+                <button
+                  key={q}
+                  type="button"
+                  onClick={() => setQuarto(q)}
+                  className={cn(
+                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold tabular-nums transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5 text-primary",
+                  )}
+                >
+                  {q}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
       <section className="space-y-3">
-        <StepLabel n={2} title="Categoria do problema" />
+        <StepLabel n={precisaQuarto ? 3 : 2} title="Categoria do problema" />
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
           {CATEGORIAS.map((c) => {
             const Icon = ICONS[c];
@@ -162,7 +202,7 @@ function NovoChamado() {
       </section>
 
       <section className="space-y-3">
-        <StepLabel n={3} title="Descreva brevemente" />
+        <StepLabel n={precisaQuarto ? 4 : 3} title="Descreva brevemente" />
         <Textarea
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
