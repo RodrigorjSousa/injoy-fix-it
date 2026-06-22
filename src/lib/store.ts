@@ -170,8 +170,8 @@ export function useAtivos() {
     queryFn: async (): Promise<AtivoAr[]> => {
       const { data, error } = await supabase
         .from("ativos_ar")
-        .select("id, unidade, localizacao, ultima_limpeza, intervalo_dias")
-        .order("id");
+        .select("id, unidade, localizacao, ultima_limpeza, intervalo_dias, tecnico, status")
+        .order("localizacao");
       if (error) throw error;
       return (data ?? []).map((r) => mapAtivo(r as AtivoRow));
     },
