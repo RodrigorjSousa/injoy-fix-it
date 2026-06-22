@@ -15,7 +15,7 @@ export const Route = createFileRoute("/_authenticated/chat")({
 interface Contato {
   id: string;
   nome: string;
-  email: string;
+  
   role: "gestor" | "funcionario" | "outro";
   naoLidas: number;
   ultimaEm: string | null;
