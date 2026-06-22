@@ -150,11 +150,11 @@ function NovoChamado() {
         </div>
       </section>
 
-      {unidade === "Botafogo" && (
+      {precisaQuarto && (
         <section className="space-y-3">
           <StepLabel n={2} title="Em qual quarto?" />
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            {QUARTOS_BOTAFOGO.map((q) => {
+            {quartosDisponiveis.map((q) => {
               const active = quarto === q;
               return (
                 <button
