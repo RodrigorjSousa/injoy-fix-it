@@ -69,11 +69,14 @@ function NovoChamado() {
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
+    const descricaoFinal = precisaQuarto && quarto
+      ? `[Quarto ${quarto}] ${descricao.trim()}`
+      : descricao.trim();
     criar.mutate(
       {
         unidade,
         categoria,
-        descricao: descricao.trim(),
+        descricao: descricaoFinal,
         responsavelId: responsavel?.id ?? null,
       },
       {
