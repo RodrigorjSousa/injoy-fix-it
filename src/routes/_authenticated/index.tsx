@@ -62,7 +62,10 @@ function NovoChamado() {
     [categoria, funcionarios],
   );
 
-  const podeEnviar = !!unidade && !!categoria && descricao.trim().length > 3 && !criar.isPending;
+  const precisaQuarto = unidade === "Botafogo";
+  const quartoOk = !precisaQuarto || !!quarto;
+  const podeEnviar =
+    !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
