@@ -204,7 +204,13 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      chat_contacts: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
     }
     Enums: {
       app_role: "gestor" | "funcionario"
