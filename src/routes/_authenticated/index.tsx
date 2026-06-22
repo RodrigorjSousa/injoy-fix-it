@@ -67,7 +67,8 @@ function NovoChamado() {
     [categoria, funcionarios],
   );
 
-  const precisaQuarto = unidade === "Botafogo";
+  const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
+  const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
   const quartoOk = !precisaQuarto || !!quarto;
   const podeEnviar =
     !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
