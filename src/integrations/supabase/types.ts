@@ -124,6 +124,33 @@ export type Database = {
         }
         Relationships: []
       }
+      mensagens: {
+        Row: {
+          conteudo: string
+          created_at: string
+          destinatario_id: string
+          id: string
+          lida_em: string | null
+          remetente_id: string
+        }
+        Insert: {
+          conteudo: string
+          created_at?: string
+          destinatario_id: string
+          id?: string
+          lida_em?: string | null
+          remetente_id: string
+        }
+        Update: {
+          conteudo?: string
+          created_at?: string
+          destinatario_id?: string
+          id?: string
+          lida_em?: string | null
+          remetente_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string

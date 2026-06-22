@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,6 +11,7 @@ const ALL_NAV: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, gestorOnly: true },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
+  { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/configuracoes", label: "Configurações", icon: Settings, gestorOnly: true },
 ];
 
