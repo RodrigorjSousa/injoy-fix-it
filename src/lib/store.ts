@@ -81,8 +81,10 @@ type AtivoRow = {
   id: string;
   unidade: Unidade;
   localizacao: string;
-  ultima_limpeza: string;
+  ultima_limpeza: string | null;
   intervalo_dias: number;
+  tecnico: string | null;
+  status: string;
 };
 
 const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
