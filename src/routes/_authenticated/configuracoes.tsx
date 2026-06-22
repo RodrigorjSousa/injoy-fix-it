@@ -34,8 +34,8 @@ function Configuracoes() {
   const [email, setEmail] = useState("");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
 
-  // Apenas gestores
-  if (me && !me.isGestor) return <Navigate to="/painel" replace />;
+  // Apenas gestores e administradores
+  if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
 
   const toggle = (c: Categoria) =>
     setSelecionadas((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
