@@ -284,7 +284,7 @@ function ConversaView({
         <div className="min-w-0">
           <div className="font-medium text-sm truncate">{contato.nome}</div>
           <div className="text-xs text-muted-foreground truncate">
-            {contato.role === "gestor" ? "Gestor" : contato.role === "funcionario" ? "Funcionário" : contato.email}
+            {contato.role === "gestor" ? "Gestor" : contato.role === "funcionario" ? "Funcionário" : "Usuário"}
           </div>
         </div>
       </header>
