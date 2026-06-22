@@ -40,7 +40,7 @@ function ChatPage() {
     enabled: !!me?.userId,
     queryFn: async (): Promise<Contato[]> => {
       const [{ data: profiles, error: pErr }, { data: roles }, { data: msgs }] = await Promise.all([
-        supabase.from("profiles").select("id, nome, email").neq("id", me!.userId),
+        supabase.from("profiles").select("id, nome").neq("id", me!.userId),
         supabase.from("user_roles").select("user_id, role"),
         supabase
           .from("mensagens")
