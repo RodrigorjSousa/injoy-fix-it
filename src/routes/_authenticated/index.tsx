@@ -39,10 +39,15 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Pintura": PaintRoller,
 };
 
-const QUARTOS_BOTAFOGO = [
-  "001","002","003","005","006","107","108","109","110","111",
-  "112","113","114","115","117","118","301","401","501",
-];
+const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
+  Botafogo: [
+    "001","002","003","005","006","107","108","109","110","111",
+    "112","113","114","115","117","118","301","401","501",
+  ],
+  Ipanema: [
+    "001","002","103","104","205","206","307","308","309","410","411","412",
+  ],
+};
 
 function NovoChamado() {
   const navigate = useNavigate();
@@ -62,7 +67,8 @@ function NovoChamado() {
     [categoria, funcionarios],
   );
 
-  const precisaQuarto = unidade === "Botafogo";
+  const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
+  const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
   const quartoOk = !precisaQuarto || !!quarto;
   const podeEnviar =
     !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
@@ -116,7 +122,7 @@ function NovoChamado() {
                 type="button"
                 onClick={() => {
                   setUnidade(u);
-                  if (u !== "Botafogo") setQuarto(null);
+                  setQuarto(null);
                 }}
                 className={cn(
                   "group relative overflow-hidden rounded-2xl border bg-card p-6 text-left transition-all",
@@ -144,11 +150,11 @@ function NovoChamado() {
         </div>
       </section>
 
-      {unidade === "Botafogo" && (
+      {precisaQuarto && (
         <section className="space-y-3">
           <StepLabel n={2} title="Em qual quarto?" />
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
-            {QUARTOS_BOTAFOGO.map((q) => {
+            {quartosDisponiveis.map((q) => {
               const active = quarto === q;
               return (
                 <button
