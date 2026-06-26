@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Users } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -17,6 +17,8 @@ import {
   useUsuariosComRoles,
   useTornarGestor,
   useRemoverGestor,
+  useAtribuirRole,
+  useRemoverRole,
   type Categoria,
 } from "@/lib/store";
 
@@ -168,8 +170,75 @@ function Configuracoes() {
         </div>
       </section>
 
+      {(me?.isGestor || me?.isAdmin) && <PerfisAcesso />}
       {me?.isAdmin && <GestoresAdmin />}
     </div>
+  );
+}
+
+function PerfisAcesso() {
+  const { data: usuarios = [], isLoading } = useUsuariosComRoles();
+  const atribuir = useAtribuirRole();
+  const remover = useRemoverRole();
+
+  const toggle = (userId: string, role: "recepcao" | "camareira", has: boolean, nome: string) => {
+    const fn = has ? remover : atribuir;
+    fn.mutate(
+      { userId, role },
+      {
+        onSuccess: () => toast.success(`${nome} ${has ? "removido(a) de" : "agora é"} ${role === "recepcao" ? "Recepção" : "Camareira"}`),
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  return (
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Users className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold text-lg">Perfis de acesso (Recepção / Camareira)</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Recepção e camareiras podem abrir chamados diretamente e conversar pelo chat com toda a equipe.
+      </p>
+      <div className="space-y-2">
+        {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
+        {usuarios.map((u) => (
+          <Card key={u.userId} className="p-4 flex items-center justify-between gap-3 flex-wrap">
+            <div className="min-w-0 flex-1">
+              <div className="font-semibold truncate">{u.nome}</div>
+              <div className="flex gap-1 mt-1 flex-wrap">
+                {u.isAdmin && <Badge className="text-[10px]">Admin</Badge>}
+                {u.isGestor && <Badge className="text-[10px]">Gestor</Badge>}
+                {u.isRecepcao && <Badge variant="outline" className="text-[10px]">Recepção</Badge>}
+                {u.isCamareira && <Badge variant="outline" className="text-[10px]">Camareira</Badge>}
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={u.isRecepcao ? "secondary" : "outline"}
+                onClick={() => toggle(u.userId, "recepcao", u.isRecepcao, u.nome)}
+                disabled={atribuir.isPending || remover.isPending}
+              >
+                {u.isRecepcao ? "Tirar Recepção" : "Recepção"}
+              </Button>
+              <Button
+                size="sm"
+                variant={u.isCamareira ? "secondary" : "outline"}
+                onClick={() => toggle(u.userId, "camareira", u.isCamareira, u.nome)}
+                disabled={atribuir.isPending || remover.isPending}
+              >
+                {u.isCamareira ? "Tirar Camareira" : "Camareira"}
+              </Button>
+            </div>
+          </Card>
+        ))}
+        {!isLoading && usuarios.length === 0 && (
+          <p className="text-sm text-muted-foreground text-center py-6">Nenhum usuário cadastrado.</p>
+        )}
+      </div>
+    </section>
   );
 }
 
