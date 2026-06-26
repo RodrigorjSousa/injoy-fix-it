@@ -258,6 +258,7 @@ function ReportarDefeitoForm({
   onSucesso: () => void;
 }) {
   const criar = useCriarChamado();
+  const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const [catLabel, setCatLabel] = useState<string>("");
   const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
