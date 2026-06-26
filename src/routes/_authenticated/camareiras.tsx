@@ -12,6 +12,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
