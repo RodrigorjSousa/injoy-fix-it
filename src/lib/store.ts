@@ -377,6 +377,17 @@ export function useAtualizarChamado() {
   });
 }
 
+export function useExcluirChamado() {
+  const invalidate = useInvalidate([["chamados"]]);
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("chamados").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useAdicionarFuncionario() {
   const invalidate = useInvalidate([["funcionarios"]]);
   return useMutation({
