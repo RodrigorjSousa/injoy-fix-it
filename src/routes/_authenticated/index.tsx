@@ -39,13 +39,14 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Pintura": PaintRoller,
 };
 
+const AREA_COMUM = "Área comum";
 const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
   Botafogo: [
     "001","002","003","005","006","107","108","109","110","111",
-    "112","113","114","115","117","118","301","401","501",
+    "112","113","114","115","117","118","301","401","501", AREA_COMUM,
   ],
   Ipanema: [
-    "001","002","103","104","205","206","307","308","309","410","411","412",
+    "001","002","103","104","205","206","307","308","309","410","411","412", AREA_COMUM,
   ],
 };
 
@@ -76,7 +77,7 @@ function NovoChamado() {
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
     const descricaoFinal = precisaQuarto && quarto
-      ? `[Quarto ${quarto}] ${descricao.trim()}`
+      ? `[${quarto === AREA_COMUM ? "Área comum" : `Quarto ${quarto}`}] ${descricao.trim()}`
       : descricao.trim();
     criar.mutate(
       {
@@ -152,17 +153,20 @@ function NovoChamado() {
 
       {precisaQuarto && (
         <section className="space-y-3">
-          <StepLabel n={2} title="Em qual quarto?" />
+          <StepLabel n={2} title="Em qual local?" />
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {quartosDisponiveis.map((q) => {
               const active = quarto === q;
+              const isArea = q === AREA_COMUM;
               return (
                 <button
                   key={q}
                   type="button"
                   onClick={() => setQuarto(q)}
                   className={cn(
-                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold tabular-nums transition-all",
+                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold transition-all",
+                    !isArea && "tabular-nums",
+                    isArea && "col-span-4 sm:col-span-6 bg-accent/30",
                     "hover:border-primary/50 hover:shadow-sm",
                     active && "border-primary ring-2 ring-primary/30 bg-primary/5 text-primary",
                   )}
