@@ -257,9 +257,16 @@ function ReportarDefeitoForm({
   onSucesso: () => void;
 }) {
   const criar = useCriarChamado();
+  const { data: funcionarios = [] } = useFuncionarios();
   const [catLabel, setCatLabel] = useState<string>("");
   const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
   const [descricao, setDescricao] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState(false);
+  const [tecnicoAcionado, setTecnicoAcionado] = useState<string | null>(null);
+  const [categoriaAcionada, setCategoriaAcionada] = useState<string>("");
+
+  const CATEGORIAS_RODRIGO = new Set(["Elétrica", "Ar Condicionado", "Outros"]);
   const [foto, setFoto] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
 
