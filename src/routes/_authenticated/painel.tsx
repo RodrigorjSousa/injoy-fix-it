@@ -10,11 +10,25 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { ChevronRight, MapPin, User2, Clock } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { ChevronRight, MapPin, User2, Clock, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import {
   CATEGORIAS,
   UNIDADES,
   useChamados,
+  useExcluirChamado,
   useFuncionarios,
   useMe,
   type Categoria,
