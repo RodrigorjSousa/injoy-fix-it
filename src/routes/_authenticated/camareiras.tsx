@@ -1,76 +1,464 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, MessageSquare } from "lucide-react";
-import { useMe } from "@/lib/store";
+import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
+import {
+  Play,
+  Check,
+  AlertTriangle,
+  Camera,
+  ArrowLeft,
+  Send,
+  MessageSquare,
+  Building2,
+} from "lucide-react";
+import { useCriarChamado, useMe, type Categoria, type Unidade } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
   component: CamareirasPage,
 });
 
+type LimpezaStatus = "Pendente" | "Em Andamento" | "Concluído";
+type Tarefa = {
+  id: string;
+  unidade: Unidade;
+  quarto: string;
+  status: LimpezaStatus;
+};
+
+const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
+  Botafogo: [
+    "001","002","003","005","006","107","108","109","110","111",
+    "112","113","114","115","117","118","301","401","501",
+  ],
+  Ipanema: [
+    "001","002","103","104","205","206","307","308","309","410","411","412",
+  ],
+};
+
+const STORAGE_KEY = "injoy.camareiras.tarefas.v1";
+
+function buildInitial(): Tarefa[] {
+  const arr: Tarefa[] = [];
+  (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
+    QUARTOS_POR_UNIDADE[u].forEach((q) => {
+      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente" });
+    });
+  });
+  return arr;
+}
+
+function loadTarefas(): Tarefa[] {
+  if (typeof window === "undefined") return buildInitial();
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) return buildInitial();
+    const parsed = JSON.parse(raw) as Tarefa[];
+    if (!Array.isArray(parsed) || parsed.length === 0) return buildInitial();
+    return parsed;
+  } catch {
+    return buildInitial();
+  }
+}
+
+const CATEGORIAS_RAPIDAS: { label: string; backend: Categoria }[] = [
+  { label: "Elétrica", backend: "Elétrica" },
+  { label: "Hidráulica", backend: "Hidráulica" },
+  { label: "Ar Condicionado", backend: "Ar condicionado" },
+  { label: "Mobiliário", backend: "Alvenaria" },
+  { label: "TV / Internet", backend: "Automação" },
+  { label: "Outros", backend: "Alvenaria" },
+];
+
+type Urgencia = "Leve" | "Normal" | "Urgente";
+
 function CamareirasPage() {
   const { data: me } = useMe();
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
 
+  const [tarefas, setTarefas] = useState<Tarefa[]>(() => loadTarefas());
+  const [filtro, setFiltro] = useState<"Todos" | LimpezaStatus>("Todos");
+  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
+  const [reportar, setReportar] = useState<Tarefa | null>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas));
+    } catch {
+      /* ignore quota */
+    }
+  }, [tarefas]);
+
+  const visiveis = useMemo(
+    () =>
+      tarefas
+        .filter((t) => t.unidade === unidadeAtiva)
+        .filter((t) => filtro === "Todos" || t.status === filtro),
+    [tarefas, unidadeAtiva, filtro],
+  );
+
+  const alterar = (id: string, novo: LimpezaStatus) =>
+    setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, status: novo } : t)));
+
+  if (reportar) {
+    return (
+      <ReportarDefeitoForm
+        tarefa={reportar}
+        onClose={() => setReportar(null)}
+        onSucesso={() => {
+          // Marca quarto como Urgente visualmente: muda status para "Em Andamento" se Pendente
+          setReportar(null);
+        }}
+      />
+    );
+  }
+
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Camareiras</h1>
-        <p className="text-sm text-muted-foreground">
-          Espaço da equipe de camareiras. Em breve novas funções por aqui.
-        </p>
-      </header>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        {podeCriar && (
-          <Link
-            to="/"
-            className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all"
-          >
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-                <PlusCircle className="h-5 w-5" />
-              </div>
-              <div>
-                <div className="font-medium">Abrir novo chamado</div>
-                <div className="text-xs text-muted-foreground">Registrar uma ocorrência no quarto</div>
-              </div>
-            </div>
-          </Link>
-        )}
-
-        <Link
-          to="/painel"
-          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all"
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-              <LayoutGrid className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium">Acompanhar chamados</div>
-              <div className="text-xs text-muted-foreground">Status dos atendimentos</div>
-            </div>
-          </div>
-        </Link>
-
+    <div className="space-y-5">
+      <header className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold tracking-tight">Camareiras</h1>
+          <p className="text-sm text-muted-foreground">
+            Controle de faxina e abertura rápida de manutenção.
+          </p>
+        </div>
         <Link
           to="/chat"
-          className="group rounded-xl border border-border bg-card p-5 hover:border-primary/40 hover:shadow-sm transition-all"
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium hover:border-primary/40"
         >
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 text-primary grid place-items-center">
-              <MessageSquare className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="font-medium">Conversar com a equipe</div>
-              <div className="text-xs text-muted-foreground">Mensagens diretas</div>
-            </div>
-          </div>
+          <MessageSquare className="h-4 w-4" /> Chat
         </Link>
+      </header>
+
+      {/* Unidades */}
+      <div className="flex gap-2">
+        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => {
+          const active = unidadeAtiva === u;
+          return (
+            <button
+              key={u}
+              onClick={() => setUnidadeAtiva(u)}
+              className={cn(
+                "flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all",
+                active
+                  ? "border-primary bg-primary/10 text-primary"
+                  : "border-border bg-card text-muted-foreground hover:border-primary/40",
+              )}
+            >
+              <Building2 className="h-4 w-4" /> {u}
+            </button>
+          );
+        })}
       </div>
 
-      <div className="rounded-xl border border-dashed border-border bg-muted/30 p-6 text-sm text-muted-foreground">
-        Em breve: checklist de limpeza por quarto, status de arrumação, controle de enxoval e mais.
+      {/* Filtros */}
+      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 py-1">
+        {(["Todos", "Pendente", "Em Andamento", "Concluído"] as const).map((f) => {
+          const active = filtro === f;
+          return (
+            <button
+              key={f}
+              onClick={() => setFiltro(f)}
+              className={cn(
+                "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border",
+                active
+                  ? "bg-primary text-primary-foreground border-primary"
+                  : "bg-card text-muted-foreground border-border hover:border-primary/40",
+              )}
+            >
+              {f}
+            </button>
+          );
+        })}
       </div>
+
+      {/* Cards */}
+      <div className="space-y-3">
+        {visiveis.length === 0 && (
+          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
+            Nenhum quarto neste filtro.
+          </div>
+        )}
+        {visiveis.map((t) => (
+          <div
+            key={t.id}
+            className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+          >
+            <div className="p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-2xl font-black tracking-tight">Q. {t.quarto}</div>
+                  <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
+                    INJOY {t.unidade}
+                  </div>
+                </div>
+                <span
+                  className={cn(
+                    "shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-md",
+                    t.status === "Pendente" && "bg-muted text-muted-foreground",
+                    t.status === "Em Andamento" && "bg-amber-500 text-white",
+                    t.status === "Concluído" && "bg-emerald-500 text-white",
+                  )}
+                >
+                  {t.status}
+                </span>
+              </div>
+
+              <div className="mt-4 flex gap-2 border-t border-border pt-3">
+                {!podeCriar ? null : t.status === "Pendente" ? (
+                  <button
+                    onClick={() => alterar(t.id, "Em Andamento")}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm py-3 font-bold active:scale-[0.99] transition"
+                  >
+                    <Play className="h-4 w-4" /> Iniciar Limpeza
+                  </button>
+                ) : t.status === "Em Andamento" ? (
+                  <button
+                    onClick={() => alterar(t.id, "Concluído")}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white text-sm py-3 font-bold active:scale-[0.99] transition"
+                  >
+                    <Check className="h-4 w-4" /> Concluir Faxina
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => alterar(t.id, "Pendente")}
+                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-muted text-foreground text-sm py-3 font-semibold"
+                  >
+                    Reabrir
+                  </button>
+                )}
+
+                <button
+                  onClick={() => setReportar(t)}
+                  aria-label={`Reportar defeito no quarto ${t.quarto}`}
+                  className="shrink-0 inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 px-4 py-3 active:bg-red-100 transition-colors dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400"
+                >
+                  <AlertTriangle className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------- Reportar Defeito -------------------------- */
+
+function ReportarDefeitoForm({
+  tarefa,
+  onClose,
+  onSucesso,
+}: {
+  tarefa: Tarefa;
+  onClose: () => void;
+  onSucesso: () => void;
+}) {
+  const criar = useCriarChamado();
+  const [catLabel, setCatLabel] = useState<string>("");
+  const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
+  const [descricao, setDescricao] = useState("");
+  const [foto, setFoto] = useState<string | null>(null);
+  const [sucesso, setSucesso] = useState(false);
+
+  const podeEnviar = !!catLabel && !criar.isPending;
+
+  const enviar = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!podeEnviar) return;
+    const cat = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel)!;
+    const prefixoUrg =
+      urgencia === "Urgente"
+        ? "🚨 URGENTE — bloqueia quarto. "
+        : urgencia === "Leve"
+          ? "Prioridade leve. "
+          : "";
+    const obs = descricao.trim() ? ` Obs.: ${descricao.trim()}` : "";
+    const fotoNota = foto ? " [Foto anexada pela camareira]" : "";
+    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}`;
+
+    criar.mutate(
+      {
+        unidade: tarefa.unidade,
+        categoria: cat.backend,
+        descricao: descricaoFinal,
+        responsavelId: null,
+      },
+      {
+        onSuccess: () => {
+          setSucesso(true);
+          toast.success("Chamado enviado para manutenção");
+          setTimeout(() => {
+            onSucesso();
+          }, 1600);
+        },
+        onError: (err) => toast.error(err.message),
+      },
+    );
+  };
+
+  const onFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setFoto(typeof reader.result === "string" ? reader.result : null);
+    reader.readAsDataURL(file);
+  };
+
+  if (sucesso) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
+        <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 grid place-items-center mb-4 shadow-sm">
+          <Check className="h-10 w-10 stroke-[3]" />
+        </div>
+        <h2 className="text-2xl font-black">Defeito reportado!</h2>
+        <p className="text-muted-foreground mt-2">
+          A equipe de manutenção recebeu o chamado para o Quarto {tarefa.quarto}.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="-mx-4 sm:-mx-6 lg:-mx-10 -my-6 lg:-my-10">
+      <div className="bg-red-600 text-white px-4 py-4 shadow-md flex items-center gap-3">
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Voltar"
+          className="p-1 rounded-lg active:bg-red-700"
+        >
+          <ArrowLeft className="h-6 w-6" />
+        </button>
+        <div className="min-w-0">
+          <h1 className="text-xl font-bold tracking-tight truncate">Reportar Defeito</h1>
+          <p className="text-xs text-red-100">
+            Quarto {tarefa.quarto} · INJOY {tarefa.unidade}
+          </p>
+        </div>
+      </div>
+
+      <form onSubmit={enviar} className="p-4 space-y-5 max-w-2xl mx-auto">
+        {/* Categorias */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Qual é o problema?</label>
+          <div className="grid grid-cols-2 gap-2">
+            {CATEGORIAS_RAPIDAS.map((c) => {
+              const active = catLabel === c.label;
+              return (
+                <button
+                  type="button"
+                  key={c.label}
+                  onClick={() => setCatLabel(c.label)}
+                  className={cn(
+                    "py-3 px-3 rounded-xl border font-semibold text-sm transition-all",
+                    active
+                      ? "bg-red-50 dark:bg-red-950/30 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500"
+                      : "bg-card border-border text-foreground/80 hover:border-primary/40",
+                  )}
+                >
+                  {c.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Urgência */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Bloqueia a venda do quarto?</label>
+          <div className="flex gap-2">
+            {([
+              { nivel: "Leve", desc: "Não impede venda" },
+              { nivel: "Normal", desc: "Consertar logo" },
+              { nivel: "Urgente", desc: "Bloqueia quarto!" },
+            ] as { nivel: Urgencia; desc: string }[]).map((u) => {
+              const active = urgencia === u.nivel;
+              const palette =
+                u.nivel === "Leve"
+                  ? "border-amber-300 text-amber-700 bg-amber-50 ring-amber-500 dark:bg-amber-950/30 dark:text-amber-400"
+                  : u.nivel === "Normal"
+                    ? "border-orange-300 text-orange-700 bg-orange-50 ring-orange-500 dark:bg-orange-950/30 dark:text-orange-400"
+                    : "border-red-500 text-red-700 bg-red-50 ring-red-500 dark:bg-red-950/30 dark:text-red-400";
+              return (
+                <button
+                  type="button"
+                  key={u.nivel}
+                  onClick={() => setUrgencia(u.nivel)}
+                  className={cn(
+                    "flex-1 py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center",
+                    active
+                      ? `${palette} ring-2 ring-offset-1 font-bold`
+                      : "bg-card border-border text-muted-foreground opacity-70",
+                  )}
+                >
+                  <span className="text-sm">{u.nivel}</span>
+                  <span className="text-[10px] leading-tight mt-0.5 font-normal">{u.desc}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Foto */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Foto do Problema (Opcional)</label>
+          {foto ? (
+            <div className="relative">
+              <img
+                src={foto}
+                alt="Prévia do defeito"
+                className="w-full max-h-64 object-cover rounded-xl border border-border"
+              />
+              <button
+                type="button"
+                onClick={() => setFoto(null)}
+                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md"
+              >
+                Remover
+              </button>
+            </div>
+          ) : (
+            <label className="w-full cursor-pointer bg-card border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground active:bg-muted/50 transition-colors">
+              <div className="p-3 bg-muted rounded-full">
+                <Camera className="h-6 w-6" />
+              </div>
+              <span className="text-sm font-medium">Tirar foto com o celular</span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={onFotoChange}
+                className="hidden"
+              />
+            </label>
+          )}
+        </div>
+
+        {/* Observações */}
+        <div>
+          <label className="block text-sm font-bold mb-2">Observações Adicionais</label>
+          <textarea
+            value={descricao}
+            onChange={(e) => setDescricao(e.target.value)}
+            placeholder="Descreva brevemente o problema encontrado..."
+            className="w-full bg-card border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none h-24 resize-none"
+          />
+        </div>
+
+        <button
+          type="submit"
+          disabled={!podeEnviar}
+          className={cn(
+            "w-full py-3.5 rounded-xl text-white font-bold text-base flex items-center justify-center gap-2 transition-all shadow-sm",
+            podeEnviar ? "bg-red-600 active:bg-red-700" : "bg-muted-foreground/40 cursor-not-allowed",
+          )}
+        >
+          <Send className="h-4 w-4" />
+          {criar.isPending ? "Enviando..." : "Abrir Ordem de Serviço"}
+        </button>
+      </form>
     </div>
   );
 }
