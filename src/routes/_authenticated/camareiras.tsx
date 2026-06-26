@@ -12,6 +12,7 @@ import {
   Building2,
 } from "lucide-react";
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
@@ -257,6 +258,7 @@ function ReportarDefeitoForm({
   onSucesso: () => void;
 }) {
   const criar = useCriarChamado();
+  const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const [catLabel, setCatLabel] = useState<string>("");
   const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
@@ -304,13 +306,47 @@ function ReportarDefeitoForm({
         responsavelId,
       },
       {
-        onSuccess: (novo) => {
+        onSuccess: async (novo) => {
           console.log("[camareiras] chamado criado", {
             chamado: novo,
             tecnicoResponsavel: tecnicoNome,
             categoria: catLabel,
             quarto: tarefa.quarto,
           });
+
+          // 🚨 Notifica a RECEPÇÃO quando o chamado URGENTE bloqueia o quarto
+          if (urgencia === "Urgente" && me?.userId) {
+            try {
+              const { data: recep, error: recepErr } = await supabase
+                .rpc("get_recepcao_user_ids");
+              if (recepErr) throw recepErr;
+              const destinatarios = (recep ?? []).filter(
+                (r: { user_id: string }) => r.user_id !== me.userId,
+              );
+              if (destinatarios.length > 0) {
+                const aviso =
+                  `🚨 QUARTO BLOQUEADO — Q. ${tarefa.quarto} (INJOY ${tarefa.unidade})\n` +
+                  `Defeito URGENTE reportado: ${catLabel}.\n` +
+                  `Técnico acionado: ${tecnicoNome}.\n` +
+                  (descricao.trim() ? `Obs.: ${descricao.trim()}\n` : "") +
+                  `⚠️ Não vender este quarto até liberação.`;
+                const rows = destinatarios.map((r: { user_id: string }) => ({
+                  remetente_id: me.userId!,
+                  destinatario_id: r.user_id,
+                  conteudo: aviso,
+                }));
+                const { error: msgErr } = await supabase.from("mensagens").insert(rows);
+                if (msgErr) throw msgErr;
+                toast.success(`Recepção notificada (${destinatarios.length}) — quarto bloqueado.`);
+              } else {
+                toast.message("Nenhum recepcionista cadastrado para notificar.");
+              }
+            } catch (e) {
+              console.error("[camareiras] falha ao notificar recepção", e);
+              toast.error("Chamado criado, mas não foi possível notificar a recepção.");
+            }
+          }
+
           setTecnicoAcionado(tecnicoNome);
           setCategoriaAcionada(catLabel);
           setSucesso(true);

@@ -211,6 +211,12 @@ export type Database = {
           nome: string
         }[]
       }
+      get_recepcao_user_ids: {
+        Args: never
+        Returns: {
+          user_id: string
+        }[]
+      }
     }
     Enums: {
       app_role: "gestor" | "funcionario" | "admin" | "recepcao" | "camareira"
