@@ -77,7 +77,7 @@ function NovoChamado() {
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
     const descricaoFinal = precisaQuarto && quarto
-      ? `[Quarto ${quarto}] ${descricao.trim()}`
+      ? `[${quarto === AREA_COMUM ? "Área comum" : `Quarto ${quarto}`}] ${descricao.trim()}`
       : descricao.trim();
     criar.mutate(
       {
