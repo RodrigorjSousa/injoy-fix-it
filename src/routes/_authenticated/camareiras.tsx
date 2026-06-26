@@ -306,8 +306,10 @@ function ReportarDefeitoForm({
       {
         onSuccess: (novo) => {
           console.log("[camareiras] chamado criado", {
-            ...novo,
+            chamado: novo,
             tecnicoResponsavel: tecnicoNome,
+            categoria: catLabel,
+            quarto: tarefa.quarto,
           });
           setTecnicoAcionado(tecnicoNome);
           setCategoriaAcionada(catLabel);
