@@ -1,8 +1,8 @@
-import { createFileRoute, Link, useParams } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, CheckCircle2, X } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -14,9 +14,22 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   useAtualizarChamado,
   useChamado,
+  useExcluirChamado,
   useFuncionarios,
+  useMe,
   type Status,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -27,9 +40,12 @@ export const Route = createFileRoute("/_authenticated/chamados/$id")({
 
 function ChamadoDetalhe() {
   const { id } = useParams({ from: "/_authenticated/chamados/$id" });
+  const navigate = useNavigate();
   const { data: chamado, isLoading } = useChamado(id);
   const { data: funcionarios = [] } = useFuncionarios();
+  const { data: me } = useMe();
   const atualizar = useAtualizarChamado();
+  const excluir = useExcluirChamado();
 
   if (isLoading) {
     return <div className="text-center py-20 text-muted-foreground">Carregando...</div>;
@@ -110,6 +126,40 @@ function ChamadoDetalhe() {
           <Button onClick={() => setStatus("Concluído")} className="gap-2">
             <CheckCircle2 className="h-4 w-4" /> Marcar como concluído
           </Button>
+        )}
+        {me?.isGestor && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="h-4 w-4" /> Excluir chamado
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir este chamado?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é permanente. Todo o histórico e fotos relacionadas serão removidos do painel.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() =>
+                    excluir.mutate(chamado.id, {
+                      onSuccess: () => {
+                        toast.success("Chamado excluído");
+                        navigate({ to: "/painel" });
+                      },
+                      onError: (e) => toast.error(e.message),
+                    })
+                  }
+                >
+                  Excluir definitivamente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
         )}
       </div>
     </div>
