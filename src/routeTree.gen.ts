@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
+import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -43,6 +44,11 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
+  id: '/recepcao',
+  path: '/recepcao',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
   id: '/preventiva',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -87,6 +94,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
+  '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/auth/admin': typeof AuthAdminRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
@@ -100,6 +108,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
+  '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/auth/admin': typeof AuthAdminRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
@@ -114,6 +123,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/painel'
     | '/preventiva'
+    | '/recepcao'
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
@@ -123,6 +133,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/painel'
     | '/preventiva'
+    | '/recepcao'
     | '/auth/admin'
     | '/'
     | '/auth'
@@ -135,6 +146,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
+    | '/_authenticated/recepcao'
     | '/auth/admin'
     | '/_authenticated/'
     | '/auth/'
@@ -183,6 +195,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof AuthRoute
     }
+    '/_authenticated/recepcao': {
+      id: '/_authenticated/recepcao'
+      path: '/recepcao'
+      fullPath: '/recepcao'
+      preLoaderRoute: typeof AuthenticatedRecepcaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/preventiva': {
       id: '/_authenticated/preventiva'
       path: '/preventiva'
@@ -226,6 +245,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
+  AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
 }
@@ -235,6 +255,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
+  AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
 }
