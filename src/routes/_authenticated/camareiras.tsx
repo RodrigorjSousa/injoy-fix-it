@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Building2,
 } from "lucide-react";
-import { useCriarChamado, useMe, type Categoria, type Unidade } from "@/lib/store";
+import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
