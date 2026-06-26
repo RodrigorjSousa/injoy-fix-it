@@ -60,8 +60,9 @@ function NovoChamado() {
   const [categoria, setCategoria] = useState<Categoria | null>(null);
   const [descricao, setDescricao] = useState("");
 
-  // Funcionários não criam chamados — vão direto ao painel ver os seus
-  if (me && !me.isGestor) return <Navigate to="/painel" replace />;
+  // Apenas gestores, recepção e camareiras abrem chamados
+  const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
+  if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
   const responsavel = useMemo(
     () => (categoria ? funcionarios.find((f) => f.categorias.includes(categoria)) : undefined),
