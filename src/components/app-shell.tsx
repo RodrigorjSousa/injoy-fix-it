@@ -6,13 +6,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 
-type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; gestorOnly?: boolean };
+type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; show?: (me: ReturnType<typeof useMe>["data"]) => boolean };
+const podeCriar = (me: ReturnType<typeof useMe>["data"]) =>
+  !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
+const ehStaff = (me: ReturnType<typeof useMe>["data"]) => !!me && (me.isGestor || me.isAdmin);
 const ALL_NAV: NavItem[] = [
-  { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, gestorOnly: true },
+  { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
   { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, gestorOnly: true },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, show: ehStaff },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -21,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { data: me } = useMe();
 
-  const nav = ALL_NAV.filter((n) => !n.gestorOnly || me?.isGestor || me?.isAdmin);
+  const nav = ALL_NAV.filter((n) => !n.show || n.show(me));
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");

@@ -184,6 +184,8 @@ export interface MeInfo {
   isAdmin: boolean;
   isGestor: boolean;
   isFuncionario: boolean;
+  isRecepcao: boolean;
+  isCamareira: boolean;
   funcionario: Funcionario | null;
 }
 
@@ -208,17 +210,23 @@ export function useMe() {
         isAdmin: roleList.includes("admin"),
         isGestor: roleList.includes("gestor"),
         isFuncionario: roleList.includes("funcionario"),
+        isRecepcao: roleList.includes("recepcao"),
+        isCamareira: roleList.includes("camareira"),
         funcionario: func ? mapFuncionario(func as FuncionarioRow) : null,
       };
     },
   });
 }
 
+export type AppRole = "admin" | "gestor" | "funcionario" | "recepcao" | "camareira";
+
 export interface UsuarioComRole {
   userId: string;
   nome: string;
   isGestor: boolean;
   isAdmin: boolean;
+  isRecepcao: boolean;
+  isCamareira: boolean;
 }
 
 export function useUsuariosComRoles() {
@@ -244,6 +252,8 @@ export function useUsuariosComRoles() {
           nome: p.nome ?? "(sem nome)",
           isGestor: rs.includes("gestor"),
           isAdmin: rs.includes("admin"),
+          isRecepcao: rs.includes("recepcao"),
+          isCamareira: rs.includes("camareira"),
         };
       });
     },
@@ -272,6 +282,34 @@ export function useRemoverGestor() {
         .delete()
         .eq("user_id", userId)
         .eq("role", "gestor");
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useAtribuirRole() {
+  const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
+  return useMutation({
+    mutationFn: async (input: { userId: string; role: AppRole }) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .insert({ user_id: input.userId, role: input.role });
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+export function useRemoverRole() {
+  const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
+  return useMutation({
+    mutationFn: async (input: { userId: string; role: AppRole }) => {
+      const { error } = await supabase
+        .from("user_roles")
+        .delete()
+        .eq("user_id", input.userId)
+        .eq("role", input.role);
       if (error) throw error;
     },
     onSuccess: invalidate,
