@@ -131,7 +131,13 @@ function Painel() {
                       <div className="text-xs text-muted-foreground px-2 py-6 text-center">Vazio</div>
                     )}
                     {itens.map((c) => (
-                      <ChamadoCard key={c.id} c={c} responsavel={nomePor(c.responsavelId)} />
+                      <ChamadoCard
+                        key={c.id}
+                        c={c}
+                        responsavel={nomePor(c.responsavelId)}
+                        canDelete={!!me?.isGestor}
+                        onDelete={handleDelete}
+                      />
                     ))}
                   </div>
                 </div>
@@ -146,26 +152,30 @@ function Painel() {
               <div className="p-8 text-center text-sm text-muted-foreground">Nenhum chamado encontrado</div>
             )}
             {filtrados.map((c) => (
-              <Link
-                key={c.id}
-                to="/chamados/$id"
-                params={{ id: c.id }}
-                className="flex items-center gap-4 p-4 hover:bg-muted/40 transition-colors"
-              >
-                <StatusDot status={c.status} />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <MapPin className="h-3 w-3" />{c.unidade}
-                    <span>·</span>
-                    <span>{c.categoria}</span>
+              <div key={c.id} className="flex items-center gap-2 p-2 sm:p-3 hover:bg-muted/40 transition-colors">
+                <Link
+                  to="/chamados/$id"
+                  params={{ id: c.id }}
+                  className="flex items-center gap-4 flex-1 min-w-0 p-2"
+                >
+                  <StatusDot status={c.status} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <MapPin className="h-3 w-3" />{c.unidade}
+                      <span>·</span>
+                      <span>{c.categoria}</span>
+                    </div>
+                    <div className="font-medium truncate">{c.descricao}</div>
+                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
+                      <User2 className="h-3 w-3" />{nomePor(c.responsavelId)}
+                    </div>
                   </div>
-                  <div className="font-medium truncate">{c.descricao}</div>
-                  <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                    <User2 className="h-3 w-3" />{nomePor(c.responsavelId)}
-                  </div>
-                </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
-              </Link>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+                </Link>
+                {me?.isGestor && (
+                  <DeleteChamadoButton descricao={c.descricao} onConfirm={() => handleDelete(c.id)} />
+                )}
+              </div>
             ))}
           </Card>
         </TabsContent>
@@ -181,25 +191,84 @@ function StatusDot({ status }: { status: Status }) {
   return <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", cls)} />;
 }
 
-function ChamadoCard({ c, responsavel }: { c: Chamado; responsavel: string }) {
+function ChamadoCard({
+  c,
+  responsavel,
+  canDelete,
+  onDelete,
+}: {
+  c: Chamado;
+  responsavel: string;
+  canDelete: boolean;
+  onDelete: (id: string) => void;
+}) {
   return (
-    <Link
-      to="/chamados/$id"
-      params={{ id: c.id }}
-      className="block bg-card rounded-xl p-3 border border-border hover:border-primary/40 hover:shadow-sm transition-all"
-    >
-      <div className="flex items-center justify-between gap-2 mb-1">
-        <Badge variant="outline" className="text-[10px] font-medium">{c.categoria}</Badge>
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-          <Clock className="h-3 w-3" />
-          {new Date(c.criadoEm).toLocaleDateString("pt-BR")}
-        </span>
-      </div>
-      <div className="text-sm font-medium line-clamp-2">{c.descricao}</div>
-      <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-        <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.unidade}</span>
-        <span className="truncate max-w-[140px]">{responsavel}</span>
-      </div>
-    </Link>
+    <div className="relative group bg-card rounded-xl border border-border hover:border-primary/40 hover:shadow-sm transition-all">
+      <Link
+        to="/chamados/$id"
+        params={{ id: c.id }}
+        className="block p-3"
+      >
+        <div className="flex items-center justify-between gap-2 mb-1 pr-7">
+          <Badge variant="outline" className="text-[10px] font-medium">{c.categoria}</Badge>
+          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+            <Clock className="h-3 w-3" />
+            {new Date(c.criadoEm).toLocaleDateString("pt-BR")}
+          </span>
+        </div>
+        <div className="text-sm font-medium line-clamp-2">{c.descricao}</div>
+        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.unidade}</span>
+          <span className="truncate max-w-[140px]">{responsavel}</span>
+        </div>
+      </Link>
+      {canDelete && (
+        <div className="absolute top-1.5 right-1.5">
+          <DeleteChamadoButton descricao={c.descricao} onConfirm={() => onDelete(c.id)} />
+        </div>
+      )}
+    </div>
   );
 }
+
+function DeleteChamadoButton({
+  descricao,
+  onConfirm,
+}: {
+  descricao: string;
+  onConfirm: () => void;
+}) {
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-7 w-7 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          onClick={(e) => e.stopPropagation()}
+          aria-label="Excluir chamado"
+        >
+          <Trash2 className="h-4 w-4" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Excluir chamado?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta ação é permanente. O chamado "{descricao}" será removido definitivamente.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            onClick={onConfirm}
+          >
+            Excluir
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  );
+}
+
