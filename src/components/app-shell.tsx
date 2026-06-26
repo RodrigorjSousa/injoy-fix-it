@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,9 +10,12 @@ type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boo
 const podeCriar = (me: ReturnType<typeof useMe>["data"]) =>
   !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
 const ehStaff = (me: ReturnType<typeof useMe>["data"]) => !!me && (me.isGestor || me.isAdmin);
+const podeRecepcao = (me: ReturnType<typeof useMe>["data"]) =>
+  !!me && (me.isGestor || me.isAdmin || me.isRecepcao);
 const ALL_NAV: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
+  { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/configuracoes", label: "Configurações", icon: Settings, show: ehStaff },
