@@ -267,8 +267,6 @@ function ReportarDefeitoForm({
   const [categoriaAcionada, setCategoriaAcionada] = useState<string>("");
 
   const CATEGORIAS_RODRIGO = new Set(["Elétrica", "Ar Condicionado", "Outros"]);
-  const [foto, setFoto] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState(false);
 
   const podeEnviar = !!catLabel && !criar.isPending;
 
@@ -276,6 +274,17 @@ function ReportarDefeitoForm({
     e.preventDefault();
     if (!podeEnviar) return;
     const cat = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel)!;
+
+    // Atribuição automática por categoria
+    const rodrigo = funcionarios.find((f) =>
+      f.nome.toLowerCase().includes("rodrigo sousa"),
+    );
+    const ehRodrigo = CATEGORIAS_RODRIGO.has(catLabel);
+    const responsavelId = ehRodrigo && rodrigo ? rodrigo.id : null;
+    const tecnicoNome = ehRodrigo
+      ? "Rodrigo Sousa"
+      : "Pendente de Atribuição";
+
     const prefixoUrg =
       urgencia === "Urgente"
         ? "🚨 URGENTE — bloqueia quarto. "
@@ -284,22 +293,29 @@ function ReportarDefeitoForm({
           : "";
     const obs = descricao.trim() ? ` Obs.: ${descricao.trim()}` : "";
     const fotoNota = foto ? " [Foto anexada pela camareira]" : "";
-    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}`;
+    const tecnicoNota = ` [Técnico responsável: ${tecnicoNome}]`;
+    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}${tecnicoNota}`;
 
     criar.mutate(
       {
         unidade: tarefa.unidade,
         categoria: cat.backend,
         descricao: descricaoFinal,
-        responsavelId: null,
+        responsavelId,
       },
       {
-        onSuccess: () => {
+        onSuccess: (novo) => {
+          console.log("[camareiras] chamado criado", {
+            ...novo,
+            tecnicoResponsavel: tecnicoNome,
+          });
+          setTecnicoAcionado(tecnicoNome);
+          setCategoriaAcionada(catLabel);
           setSucesso(true);
-          toast.success("Chamado enviado para manutenção");
+          toast.success(`Chamado enviado para ${tecnicoNome}`);
           setTimeout(() => {
             onSucesso();
-          }, 1600);
+          }, 2200);
         },
         onError: (err) => toast.error(err.message),
       },
