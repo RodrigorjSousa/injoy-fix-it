@@ -153,17 +153,20 @@ function NovoChamado() {
 
       {precisaQuarto && (
         <section className="space-y-3">
-          <StepLabel n={2} title="Em qual quarto?" />
+          <StepLabel n={2} title="Em qual local?" />
           <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
             {quartosDisponiveis.map((q) => {
               const active = quarto === q;
+              const isArea = q === AREA_COMUM;
               return (
                 <button
                   key={q}
                   type="button"
                   onClick={() => setQuarto(q)}
                   className={cn(
-                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold tabular-nums transition-all",
+                    "rounded-xl border bg-card px-3 py-3 text-sm font-semibold transition-all",
+                    !isArea && "tabular-nums",
+                    isArea && "col-span-4 sm:col-span-6 bg-accent/30",
                     "hover:border-primary/50 hover:shadow-sm",
                     active && "border-primary ring-2 ring-primary/30 bg-primary/5 text-primary",
                   )}
