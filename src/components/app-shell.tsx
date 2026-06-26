@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,10 +12,13 @@ const podeCriar = (me: ReturnType<typeof useMe>["data"]) =>
 const ehStaff = (me: ReturnType<typeof useMe>["data"]) => !!me && (me.isGestor || me.isAdmin);
 const podeRecepcao = (me: ReturnType<typeof useMe>["data"]) =>
   !!me && (me.isGestor || me.isAdmin || me.isRecepcao);
+const podeCamareira = (me: ReturnType<typeof useMe>["data"]) =>
+  !!me && (me.isGestor || me.isAdmin || me.isCamareira);
 const ALL_NAV: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
   { to: "/painel", label: "Painel", icon: LayoutGrid },
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
+  { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
   { to: "/chat", label: "Chat", icon: MessageSquare },
   { to: "/configuracoes", label: "Configurações", icon: Settings, show: ehStaff },
@@ -113,7 +116,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : "grid-cols-6")}>
+        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : "grid-cols-7")}>
           {nav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
