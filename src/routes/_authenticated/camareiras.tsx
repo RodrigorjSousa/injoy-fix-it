@@ -11,7 +11,7 @@ import {
   MessageSquare,
   Building2,
 } from "lucide-react";
-import { useCriarChamado, useMe, type Categoria, type Unidade } from "@/lib/store";
+import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
@@ -257,11 +257,16 @@ function ReportarDefeitoForm({
   onSucesso: () => void;
 }) {
   const criar = useCriarChamado();
+  const { data: funcionarios = [] } = useFuncionarios();
   const [catLabel, setCatLabel] = useState<string>("");
   const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
   const [descricao, setDescricao] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
   const [sucesso, setSucesso] = useState(false);
+  const [tecnicoAcionado, setTecnicoAcionado] = useState<string | null>(null);
+  const [categoriaAcionada, setCategoriaAcionada] = useState<string>("");
+
+  const CATEGORIAS_RODRIGO = new Set(["Elétrica", "Ar Condicionado", "Outros"]);
 
   const podeEnviar = !!catLabel && !criar.isPending;
 
@@ -269,6 +274,17 @@ function ReportarDefeitoForm({
     e.preventDefault();
     if (!podeEnviar) return;
     const cat = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel)!;
+
+    // Atribuição automática por categoria
+    const rodrigo = funcionarios.find((f) =>
+      f.nome.toLowerCase().includes("rodrigo sousa"),
+    );
+    const ehRodrigo = CATEGORIAS_RODRIGO.has(catLabel);
+    const responsavelId = ehRodrigo && rodrigo ? rodrigo.id : null;
+    const tecnicoNome = ehRodrigo
+      ? "Rodrigo Sousa"
+      : "Pendente de Atribuição";
+
     const prefixoUrg =
       urgencia === "Urgente"
         ? "🚨 URGENTE — bloqueia quarto. "
@@ -277,22 +293,31 @@ function ReportarDefeitoForm({
           : "";
     const obs = descricao.trim() ? ` Obs.: ${descricao.trim()}` : "";
     const fotoNota = foto ? " [Foto anexada pela camareira]" : "";
-    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}`;
+    const tecnicoNota = ` [Técnico responsável: ${tecnicoNome}]`;
+    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}${tecnicoNota}`;
 
     criar.mutate(
       {
         unidade: tarefa.unidade,
         categoria: cat.backend,
         descricao: descricaoFinal,
-        responsavelId: null,
+        responsavelId,
       },
       {
-        onSuccess: () => {
+        onSuccess: (novo) => {
+          console.log("[camareiras] chamado criado", {
+            chamado: novo,
+            tecnicoResponsavel: tecnicoNome,
+            categoria: catLabel,
+            quarto: tarefa.quarto,
+          });
+          setTecnicoAcionado(tecnicoNome);
+          setCategoriaAcionada(catLabel);
           setSucesso(true);
-          toast.success("Chamado enviado para manutenção");
+          toast.success(`Chamado enviado para ${tecnicoNome}`);
           setTimeout(() => {
             onSucesso();
-          }, 1600);
+          }, 2200);
         },
         onError: (err) => toast.error(err.message),
       },
@@ -314,9 +339,23 @@ function ReportarDefeitoForm({
           <Check className="h-10 w-10 stroke-[3]" />
         </div>
         <h2 className="text-2xl font-black">Defeito reportado!</h2>
-        <p className="text-muted-foreground mt-2">
-          A equipe de manutenção recebeu o chamado para o Quarto {tarefa.quarto}.
-        </p>
+        {tecnicoAcionado && tecnicoAcionado !== "Pendente de Atribuição" ? (
+          <p className="text-foreground mt-3 max-w-md">
+            O técnico <span className="font-bold">{tecnicoAcionado}</span>{" "}
+            <span className="text-muted-foreground">
+              (Especialista em {categoriaAcionada})
+            </span>{" "}
+            já recebeu o chamado para o{" "}
+            <span className="font-bold">Q. {tarefa.quarto}</span>!
+          </p>
+        ) : (
+          <p className="text-foreground mt-3 max-w-md">
+            Chamado do <span className="font-bold">Q. {tarefa.quarto}</span>{" "}
+            registrado como{" "}
+            <span className="font-bold">Pendente de Atribuição</span>. O gestor
+            irá direcionar ao técnico responsável.
+          </p>
+        )}
       </div>
     );
   }
