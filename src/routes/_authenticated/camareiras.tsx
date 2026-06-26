@@ -339,9 +339,23 @@ function ReportarDefeitoForm({
           <Check className="h-10 w-10 stroke-[3]" />
         </div>
         <h2 className="text-2xl font-black">Defeito reportado!</h2>
-        <p className="text-muted-foreground mt-2">
-          A equipe de manutenção recebeu o chamado para o Quarto {tarefa.quarto}.
-        </p>
+        {tecnicoAcionado && tecnicoAcionado !== "Pendente de Atribuição" ? (
+          <p className="text-foreground mt-3 max-w-md">
+            O técnico <span className="font-bold">{tecnicoAcionado}</span>{" "}
+            <span className="text-muted-foreground">
+              (Especialista em {categoriaAcionada})
+            </span>{" "}
+            já recebeu o chamado para o{" "}
+            <span className="font-bold">Q. {tarefa.quarto}</span>!
+          </p>
+        ) : (
+          <p className="text-foreground mt-3 max-w-md">
+            Chamado do <span className="font-bold">Q. {tarefa.quarto}</span>{" "}
+            registrado como{" "}
+            <span className="font-bold">Pendente de Atribuição</span>. O gestor
+            irá direcionar ao técnico responsável.
+          </p>
+        )}
       </div>
     );
   }
