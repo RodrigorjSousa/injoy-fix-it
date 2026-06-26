@@ -52,6 +52,7 @@ function Painel() {
   const { data: me } = useMe();
   const { data: chamados = [], isLoading } = useChamados();
   const { data: funcionarios = [] } = useFuncionarios();
+  const excluir = useExcluirChamado();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
   const [categoria, setCategoria] = useState<Categoria | "todas">("todas");
 
@@ -64,6 +65,14 @@ function Painel() {
   }, [chamados, unidade, categoria]);
 
   const nomePor = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? "—";
+
+  const handleDelete = (id: string) => {
+    excluir.mutate(id, {
+      onSuccess: () => toast.success("Chamado excluído"),
+      onError: (e) => toast.error(e.message),
+    });
+  };
+
 
   return (
     <div className="space-y-6">
