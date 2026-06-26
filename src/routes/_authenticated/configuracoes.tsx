@@ -26,14 +26,18 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
 });
 
+type TipoFuncionario = "tecnico" | "recepcao" | "camareira";
+
 function Configuracoes() {
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const adicionar = useAdicionarFuncionario();
   const remover = useRemoverFuncionario();
+  const atribuirRole = useAtribuirRole();
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [tipo, setTipo] = useState<TipoFuncionario>("tecnico");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
 
   // Apenas gestores e administradores
@@ -43,23 +47,44 @@ function Configuracoes() {
     setSelecionadas((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
   const submitar = () => {
-    if (!nome.trim() || !email.trim() || selecionadas.length === 0) {
-      toast.error("Preencha nome, email e ao menos uma categoria");
+    if (!nome.trim() || !email.trim()) {
+      toast.error("Preencha nome e email");
       return;
     }
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
       toast.error("Email inválido");
       return;
     }
+    if (tipo === "tecnico" && selecionadas.length === 0) {
+      toast.error("Selecione ao menos uma categoria para o técnico");
+      return;
+    }
     adicionar.mutate(
-      { nome: nome.trim(), email: email.trim(), categorias: selecionadas },
+      { nome: nome.trim(), email: email.trim(), categorias: tipo === "tecnico" ? selecionadas : [] },
       {
-        onSuccess: () => {
-          toast.success(`${nome} cadastrado`, {
-            description: "Quando criar conta com este email, será vinculado automaticamente.",
-          });
+        onSuccess: async () => {
+          // Para recepção/camareira, tenta atribuir role imediatamente se a conta já existir
+          if (tipo !== "tecnico") {
+            const { data } = await import("@/integrations/supabase/client").then((m) =>
+              m.supabase.from("funcionarios").select("user_id").eq("email", email.toLowerCase().trim()).maybeSingle(),
+            );
+            const userId = (data as { user_id: string | null } | null)?.user_id;
+            if (userId) {
+              atribuirRole.mutate({ userId, role: tipo });
+              toast.success(`${nome} cadastrado(a) como ${tipo === "recepcao" ? "Recepção" : "Camareira"}`);
+            } else {
+              toast.success(`${nome} cadastrado(a)`, {
+                description: `Quando criar conta com este email, atribua o perfil "${tipo === "recepcao" ? "Recepção" : "Camareira"}" em Perfis de acesso.`,
+              });
+            }
+          } else {
+            toast.success(`${nome} cadastrado`, {
+              description: "Quando criar conta com este email, será vinculado automaticamente.",
+            });
+          }
           setNome("");
           setEmail("");
+          setTipo("tecnico");
           setSelecionadas([]);
         },
         onError: (e) => toast.error(e.message),
@@ -73,14 +98,38 @@ function Configuracoes() {
         <Badge variant="secondary" className="mb-3 rounded-full">Configurações</Badge>
         <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Equipe</h1>
         <p className="text-muted-foreground mt-1">
-          Cadastre técnicos com email. Quando criarem conta com esse email, recebem automaticamente acesso aos chamados atribuídos.
+          Cadastre técnicos, recepcionistas e camareiras. Quando criarem conta com o mesmo email, recebem acesso automaticamente.
         </p>
       </header>
 
       <Card className="p-5 space-y-5">
         <div className="flex items-center gap-2">
           <UserPlus className="h-5 w-5 text-primary" />
-          <h2 className="font-semibold">Novo funcionário</h2>
+          <h2 className="font-semibold">Novo membro da equipe</h2>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Função</Label>
+          <div className="grid grid-cols-3 gap-2">
+            {([
+              { v: "tecnico", l: "Técnico" },
+              { v: "recepcao", l: "Recepção" },
+              { v: "camareira", l: "Camareira" },
+            ] as { v: TipoFuncionario; l: string }[]).map((opt) => (
+              <button
+                key={opt.v}
+                type="button"
+                onClick={() => setTipo(opt.v)}
+                className={`rounded-lg border p-3 text-sm transition-colors ${
+                  tipo === opt.v
+                    ? "border-primary bg-primary/10 text-primary font-medium"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                {opt.l}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="grid sm:grid-cols-2 gap-3">
@@ -100,28 +149,31 @@ function Configuracoes() {
           </div>
         </div>
 
-        <div className="space-y-2">
-          <Label>Categorias atendidas</Label>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-            {CATEGORIAS.map((c) => {
-              const checked = selecionadas.includes(c);
-              return (
-                <label
-                  key={c}
-                  className="flex items-center gap-2 rounded-lg border bg-background p-3 cursor-pointer hover:border-primary/40"
-                >
-                  <Checkbox checked={checked} onCheckedChange={() => toggle(c)} />
-                  <span className="text-sm">{c}</span>
-                </label>
-              );
-            })}
+        {tipo === "tecnico" && (
+          <div className="space-y-2">
+            <Label>Categorias atendidas</Label>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {CATEGORIAS.map((c) => {
+                const checked = selecionadas.includes(c);
+                return (
+                  <label
+                    key={c}
+                    className="flex items-center gap-2 rounded-lg border bg-background p-3 cursor-pointer hover:border-primary/40"
+                  >
+                    <Checkbox checked={checked} onCheckedChange={() => toggle(c)} />
+                    <span className="text-sm">{c}</span>
+                  </label>
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
 
         <Button onClick={submitar} className="w-full sm:w-auto" disabled={adicionar.isPending}>
-          {adicionar.isPending ? "Salvando..." : "Cadastrar funcionário"}
+          {adicionar.isPending ? "Salvando..." : "Cadastrar"}
         </Button>
       </Card>
+
 
       <section className="space-y-3">
         <h2 className="font-semibold text-lg">Funcionários cadastrados</h2>
