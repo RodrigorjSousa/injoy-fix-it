@@ -194,35 +194,35 @@ function CamareirasPage() {
                 </div>
                 <span
                   className={cn(
-                    "shrink-0 text-[11px] font-bold px-2.5 py-1 rounded-md",
-                    t.status === "Pendente" && "bg-muted text-muted-foreground",
-                    t.status === "Em Andamento" && "bg-amber-500 text-white",
-                    t.status === "Concluído" && "bg-emerald-500 text-white",
+                    "shrink-0 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm",
+                    t.status === "Pendente" && "bg-red-600 text-white",
+                    t.status === "Em Andamento" && "bg-[#0b2545] text-white",
+                    t.status === "Concluído" && "bg-emerald-600 text-white",
                   )}
                 >
                   {t.status}
                 </span>
               </div>
 
-              <div className="mt-4 flex gap-2 border-t border-border pt-3">
+              <div className="mt-4 flex flex-col sm:flex-row gap-2 border-t border-border pt-3">
                 {!podeCriar ? null : t.status === "Pendente" ? (
                   <button
                     onClick={() => alterar(t.id, "Em Andamento")}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground text-sm py-3 font-bold active:scale-[0.99] transition"
+                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2545] hover:bg-[#0b2545]/90 text-white text-sm py-3.5 font-bold active:scale-[0.99] transition shadow-sm"
                   >
                     <Play className="h-4 w-4" /> Iniciar Limpeza
                   </button>
                 ) : t.status === "Em Andamento" ? (
                   <button
                     onClick={() => alterar(t.id, "Concluído")}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 text-white text-sm py-3 font-bold active:scale-[0.99] transition"
+                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-3.5 font-bold active:scale-[0.99] transition shadow-sm"
                   >
                     <Check className="h-4 w-4" /> Concluir Faxina
                   </button>
                 ) : (
                   <button
                     onClick={() => alterar(t.id, "Pendente")}
-                    className="flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-muted text-foreground text-sm py-3 font-semibold"
+                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-muted text-foreground text-sm py-3.5 font-semibold"
                   >
                     Reabrir
                   </button>
@@ -231,9 +231,10 @@ function CamareirasPage() {
                 <button
                   onClick={() => setReportar(t)}
                   aria-label={`Reportar defeito no quarto ${t.quarto}`}
-                  className="shrink-0 inline-flex items-center justify-center rounded-lg border border-red-200 bg-red-50 text-red-600 px-4 py-3 active:bg-red-100 transition-colors dark:bg-red-950/30 dark:border-red-900/50 dark:text-red-400"
+                  className="w-full sm:w-auto sm:shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-3.5 sm:px-5 active:scale-[0.99] transition shadow-sm"
                 >
                   <AlertTriangle className="h-5 w-5" />
+                  <span className="sm:hidden">Reportar Defeito</span>
                 </button>
               </div>
             </div>
