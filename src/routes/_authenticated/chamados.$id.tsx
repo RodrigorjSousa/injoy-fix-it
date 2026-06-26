@@ -127,6 +127,40 @@ function ChamadoDetalhe() {
             <CheckCircle2 className="h-4 w-4" /> Marcar como concluído
           </Button>
         )}
+        {me?.isGestor && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" className="gap-2">
+                <Trash2 className="h-4 w-4" /> Excluir chamado
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Excluir este chamado?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação é permanente. Todo o histórico e fotos relacionadas serão removidos do painel.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={() =>
+                    excluir.mutate(chamado.id, {
+                      onSuccess: () => {
+                        toast.success("Chamado excluído");
+                        navigate({ to: "/painel" });
+                      },
+                      onError: (e) => toast.error(e.message),
+                    })
+                  }
+                >
+                  Excluir definitivamente
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
     </div>
   );
