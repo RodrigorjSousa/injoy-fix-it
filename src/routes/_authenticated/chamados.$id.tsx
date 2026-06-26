@@ -40,9 +40,12 @@ export const Route = createFileRoute("/_authenticated/chamados/$id")({
 
 function ChamadoDetalhe() {
   const { id } = useParams({ from: "/_authenticated/chamados/$id" });
+  const navigate = useNavigate();
   const { data: chamado, isLoading } = useChamado(id);
   const { data: funcionarios = [] } = useFuncionarios();
+  const { data: me } = useMe();
   const atualizar = useAtualizarChamado();
+  const excluir = useExcluirChamado();
 
   if (isLoading) {
     return <div className="text-center py-20 text-muted-foreground">Carregando...</div>;
