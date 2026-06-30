@@ -354,12 +354,16 @@ function Stat({
   label,
   value,
   tone,
+  border,
+  activeBorder,
   active,
   onClick,
 }: {
   label: string;
   value: number;
   tone: string;
+  border?: string;
+  activeBorder?: string;
   active?: boolean;
   onClick?: () => void;
 }) {
@@ -375,7 +379,9 @@ function Stat({
       <Card
         className={cn(
           "p-4 h-full",
-          active && "ring-2 ring-primary border-primary/40 shadow-sm",
+          border,
+          active && activeBorder,
+          active && "shadow-md",
         )}
       >
         <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
