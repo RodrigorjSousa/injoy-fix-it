@@ -14,7 +14,8 @@ export type Categoria =
   | "Automação"
   | "Hidráulica"
   | "Alvenaria"
-  | "Pintura";
+  | "Pintura"
+  | "Marcenaria";
 export type Status = "Aberto" | "Em Andamento" | "Concluído";
 
 export const UNIDADES: Unidade[] = ["Botafogo", "Ipanema"];
@@ -25,6 +26,7 @@ export const CATEGORIAS: Categoria[] = [
   "Hidráulica",
   "Alvenaria",
   "Pintura",
+  "Marcenaria",
 ];
 
 export interface Funcionario {

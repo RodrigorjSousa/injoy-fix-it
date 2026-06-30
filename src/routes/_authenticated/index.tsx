@@ -37,6 +37,7 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Hidráulica": Droplets,
   "Alvenaria": Hammer,
   "Pintura": PaintRoller,
+  "Marcenaria": Hammer,
 };
 
 const AREA_COMUM = "Área comum";

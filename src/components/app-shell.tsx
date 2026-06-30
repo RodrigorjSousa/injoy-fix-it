@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +24,7 @@ const podePreventiva = (me: Me) => isFullAccess(me) || isTecnicoAC(me);
 
 const ALL_NAV: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
+  { to: "/servicos", label: "Serviços", icon: Wrench, show: podePainel },
   { to: "/painel", label: "Painel", icon: LayoutGrid, show: podePainel },
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
@@ -124,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : "grid-cols-7")}>
+        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : nav.length === 7 ? "grid-cols-7" : "grid-cols-8")}>
           {nav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
