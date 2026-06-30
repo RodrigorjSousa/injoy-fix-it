@@ -344,13 +344,39 @@ function Preventiva() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <Card className="p-4">
-      <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
-        {label}
-      </div>
-      <div className="text-3xl font-bold tracking-tight">{value}</div>
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "text-left transition-all",
+        onClick && "hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl",
+      )}
+    >
+      <Card
+        className={cn(
+          "p-4 h-full",
+          active && "ring-2 ring-primary border-primary/40 shadow-sm",
+        )}
+      >
+        <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
+          {label}
+        </div>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+      </Card>
+    </button>
   );
 }
