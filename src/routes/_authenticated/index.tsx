@@ -60,22 +60,40 @@ function NovoChamado() {
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(null);
+  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
 
   // Apenas gestores, recepção e camareiras abrem chamados
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const responsavel = useMemo(
-    () => (categoria ? funcionarios.find((f) => f.categorias.includes(categoria)) : undefined),
+  const tecnicosDaCategoria = useMemo(
+    () => (categoria ? funcionarios.filter((f) => f.categorias.includes(categoria)) : []),
     [categoria, funcionarios],
   );
+
+  // Auto-seleciona se houver apenas 1 técnico; reseta se mudar categoria.
+  useEffect(() => {
+    if (tecnicosDaCategoria.length === 1) {
+      setTecnicoId(tecnicosDaCategoria[0].id);
+    } else {
+      setTecnicoId(null);
+    }
+  }, [categoria, tecnicosDaCategoria]);
+
+  const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
+  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
   const quartoOk = !precisaQuarto || !!quarto;
   const podeEnviar =
-    !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
+    !!unidade &&
+    quartoOk &&
+    !!categoria &&
+    !precisaEscolherTecnico &&
+    descricao.trim().length > 3 &&
+    !criar.isPending;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
@@ -102,6 +120,7 @@ function NovoChamado() {
       },
     );
   };
+
 
   return (
     <div className="space-y-8">
