@@ -99,25 +99,50 @@ function CamareirasPage() {
   const [filtro, setFiltro] = useState<"Todos" | LimpezaStatus>("Todos");
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [reportar, setReportar] = useState<Tarefa | null>(null);
+  const [prioridade, setPrioridade] = useState<PrioridadeEntry[]>(() => loadPrioridade());
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas));
-    } catch {
-      /* ignore quota */
-    }
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas)); } catch { /* ignore */ }
   }, [tarefas]);
+
+  useEffect(() => {
+    const refresh = () => setPrioridade(loadPrioridade());
+    window.addEventListener("injoy:prioridade-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("injoy:prioridade-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const ehPrioridade = (t: Tarefa) =>
+    prioridade.find((p) => p.unidade === t.unidade && p.quarto === t.quarto);
 
   const visiveis = useMemo(
     () =>
       tarefas
         .filter((t) => t.unidade === unidadeAtiva)
-        .filter((t) => filtro === "Todos" || t.status === filtro),
-    [tarefas, unidadeAtiva, filtro],
+        .filter((t) => filtro === "Todos" || t.status === filtro)
+        .sort((a, b) => {
+          const pa = ehPrioridade(a) ? 0 : 1;
+          const pb = ehPrioridade(b) ? 0 : 1;
+          return pa - pb;
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tarefas, unidadeAtiva, filtro, prioridade],
   );
 
-  const alterar = (id: string, novo: LimpezaStatus) =>
+  const alterar = (id: string, novo: LimpezaStatus) => {
     setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, status: novo } : t)));
+    if (novo === "Concluído") {
+      const t = tarefas.find((x) => x.id === id);
+      if (t) {
+        const pri = loadPrioridade().filter((p) => !(p.unidade === t.unidade && p.quarto === t.quarto));
+        savePrioridade(pri);
+        setPrioridade(pri);
+      }
+    }
+  };
 
   if (reportar) {
     return (
