@@ -18,6 +18,7 @@ import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
@@ -67,6 +68,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -95,6 +101,7 @@ export interface FileRoutesByFullPath {
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -107,6 +114,7 @@ export interface FileRoutesByTo {
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/dashboard': typeof AuthenticatedDashboardRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -123,6 +131,7 @@ export interface FileRoutesById {
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -140,6 +149,7 @@ export interface FileRouteTypes {
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
+    | '/dashboard'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -152,6 +162,7 @@ export interface FileRouteTypes {
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
+    | '/dashboard'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -167,6 +178,7 @@ export interface FileRouteTypes {
     | '/_authenticated/camareiras'
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/dashboard'
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
@@ -247,6 +259,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/dashboard': {
+      id: '/_authenticated/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthenticatedDashboardRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -282,6 +301,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCamareirasRoute: typeof AuthenticatedCamareirasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
@@ -294,6 +314,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCamareirasRoute: AuthenticatedCamareirasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
