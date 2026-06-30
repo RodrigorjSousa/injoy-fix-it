@@ -119,10 +119,34 @@ function Preventiva() {
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Stat label="Total" value={filtrados.length} tone="bg-primary/10 text-primary" />
-        <Stat label="Em dia" value={limpos} tone="bg-success/15 text-success" />
-        <Stat label="Requer limpeza" value={sujos} tone="bg-destructive/15 text-destructive" />
+        <Stat
+          label="Total"
+          value={porUnidade.length}
+          tone="bg-primary/10 text-primary"
+          active={filtroStatus === "todos"}
+          onClick={() => setFiltroStatus("todos")}
+        />
+        <Stat
+          label="Em dia"
+          value={limpos}
+          tone="bg-success/15 text-success"
+          active={filtroStatus === "limpos"}
+          onClick={() => setFiltroStatus("limpos")}
+        />
+        <Stat
+          label="Requer limpeza"
+          value={sujos}
+          tone="bg-destructive/15 text-destructive"
+          active={filtroStatus === "sujos"}
+          onClick={() => setFiltroStatus("sujos")}
+        />
       </div>
+
+      {filtrados.length === 0 && (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Nenhum aparelho neste filtro.
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtrados.map((a) => {
