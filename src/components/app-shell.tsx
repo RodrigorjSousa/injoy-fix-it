@@ -11,7 +11,7 @@ type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boo
 
 const isFullAccess = (me: Me) => !!me && (me.isGestor || me.isAdmin);
 const isTecnicoAC = (me: Me) =>
-  !!me && me.isFuncionario && !!me.funcionario?.categorias?.includes("Ar Condicionado");
+  !!me && me.isFuncionario && !!me.funcionario?.categorias?.includes("Ar condicionado");
 
 const podeCriar = (me: Me) =>
   isFullAccess(me) || !!me?.isRecepcao || !!me?.isCamareira;
