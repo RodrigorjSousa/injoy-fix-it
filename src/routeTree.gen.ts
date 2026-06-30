@@ -14,6 +14,7 @@ import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
+import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
@@ -47,6 +48,11 @@ const AuthAdminRoute = AuthAdminRouteImport.update({
   id: '/admin',
   path: '/admin',
   getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedVistoriaRoute = AuthenticatedVistoriaRouteImport.update({
+  id: '/vistoria',
+  path: '/vistoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
   id: '/servicos',
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/servicos': typeof AuthenticatedServicosRoute
+  '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -119,6 +126,7 @@ export interface FileRoutesByTo {
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/servicos': typeof AuthenticatedServicosRoute
+  '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
@@ -136,6 +144,7 @@ export interface FileRoutesById {
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
+  '/_authenticated/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/preventiva'
     | '/recepcao'
     | '/servicos'
+    | '/vistoria'
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
@@ -167,6 +177,7 @@ export interface FileRouteTypes {
     | '/preventiva'
     | '/recepcao'
     | '/servicos'
+    | '/vistoria'
     | '/auth/admin'
     | '/'
     | '/auth'
@@ -183,6 +194,7 @@ export interface FileRouteTypes {
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
     | '/_authenticated/servicos'
+    | '/_authenticated/vistoria'
     | '/auth/admin'
     | '/_authenticated/'
     | '/auth/'
@@ -230,6 +242,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/auth/admin'
       preLoaderRoute: typeof AuthAdminRouteImport
       parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/vistoria': {
+      id: '/_authenticated/vistoria'
+      path: '/vistoria'
+      fullPath: '/vistoria'
+      preLoaderRoute: typeof AuthenticatedVistoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/servicos': {
       id: '/_authenticated/servicos'
@@ -306,6 +325,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
+  AuthenticatedVistoriaRoute: typeof AuthenticatedVistoriaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
 }
@@ -319,6 +339,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
+  AuthenticatedVistoriaRoute: AuthenticatedVistoriaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
 }
@@ -345,13 +366,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
