@@ -315,7 +315,8 @@ function CamareirasPage() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
