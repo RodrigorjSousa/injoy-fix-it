@@ -450,6 +450,45 @@ function ReportarDefeitoForm({
           </div>
         </div>
 
+        {/* Seleção de técnico (apenas se houver 2+ cadastrados na categoria) */}
+        {catLabel && tecnicosDaCategoria.length >= 2 && (
+          <div>
+            <label className="block text-sm font-bold mb-2">
+              Qual técnico vai atender?
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {tecnicosDaCategoria.map((t) => {
+                const active = tecnicoId === t.id;
+                return (
+                  <button
+                    type="button"
+                    key={t.id}
+                    onClick={() => setTecnicoId(t.id)}
+                    className={cn(
+                      "py-3 px-3 rounded-xl border text-left transition-all",
+                      active
+                        ? "bg-red-50 dark:bg-red-950/30 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500 font-bold"
+                        : "bg-card border-border text-foreground/80 hover:border-primary/40 font-semibold",
+                    )}
+                  >
+                    <div className="text-sm">{t.nome}</div>
+                    <div className="text-[11px] text-muted-foreground font-normal">
+                      {t.categorias.join(" · ")}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {precisaEscolherTecnico && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Escolha o técnico que deve atender este chamado.
+              </p>
+            )}
+          </div>
+        )}
+
+
+
         {/* Urgência */}
         <div>
           <label className="block text-sm font-bold mb-2">Bloqueia a venda do quarto?</label>
