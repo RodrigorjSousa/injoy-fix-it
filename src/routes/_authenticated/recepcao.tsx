@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, MessageSquare } from "lucide-react";
+import { PlusCircle, LayoutGrid, MessageSquare, ClipboardCheck } from "lucide-react";
 import { useMe } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
