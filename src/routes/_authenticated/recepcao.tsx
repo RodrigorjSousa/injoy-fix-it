@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, MessageSquare } from "lucide-react";
+import { PlusCircle, LayoutGrid, MessageSquare, ClipboardCheck } from "lucide-react";
 import { useMe } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
@@ -36,6 +36,21 @@ function RecepcaoPage() {
             </div>
           </Link>
         )}
+
+        <Link
+          to="/vistoria"
+          className="group rounded-xl border-2 border-emerald-200 bg-gradient-to-br from-emerald-50 to-card p-5 hover:border-emerald-400 hover:shadow-md transition-all sm:col-span-2"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-lg bg-emerald-600 text-white grid place-items-center shadow-sm">
+              <ClipboardCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="font-semibold text-emerald-900">Vistoria para Check-in</div>
+              <div className="text-xs text-emerald-800/70">Verificar quarto antes da entrada do hóspede</div>
+            </div>
+          </div>
+        </Link>
 
         <Link
           to="/painel"
