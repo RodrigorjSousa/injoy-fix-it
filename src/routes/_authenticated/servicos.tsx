@@ -122,7 +122,9 @@ function contarAbertos(chamados: Chamado[], s: Servico) {
 }
 
 function tecnicosDe(funcs: Funcionario[], categoria: string) {
-  return funcs.filter((f) => (f.categorias ?? []).includes(categoria));
+  return funcs.filter((f) =>
+    (f.categorias ?? []).some((c) => c === categoria),
+  );
 }
 
 function Servicos() {
