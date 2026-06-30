@@ -38,6 +38,24 @@ const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
 };
 
 const STORAGE_KEY = "injoy.camareiras.tarefas.v1";
+const PRIORIDADE_KEY = "injoy.camareiras.prioridade.v1";
+
+type PrioridadeEntry = {
+  key: string;
+  unidade: Unidade;
+  quarto: string;
+  motivo: string;
+  criadoEm: string;
+};
+
+function loadPrioridade(): PrioridadeEntry[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(window.localStorage.getItem(PRIORIDADE_KEY) || "[]"); } catch { return []; }
+}
+function savePrioridade(list: PrioridadeEntry[]) {
+  window.localStorage.setItem(PRIORIDADE_KEY, JSON.stringify(list));
+  window.dispatchEvent(new CustomEvent("injoy:prioridade-changed"));
+}
 
 function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
@@ -81,25 +99,50 @@ function CamareirasPage() {
   const [filtro, setFiltro] = useState<"Todos" | LimpezaStatus>("Todos");
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [reportar, setReportar] = useState<Tarefa | null>(null);
+  const [prioridade, setPrioridade] = useState<PrioridadeEntry[]>(() => loadPrioridade());
 
   useEffect(() => {
-    try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas));
-    } catch {
-      /* ignore quota */
-    }
+    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas)); } catch { /* ignore */ }
   }, [tarefas]);
+
+  useEffect(() => {
+    const refresh = () => setPrioridade(loadPrioridade());
+    window.addEventListener("injoy:prioridade-changed", refresh);
+    window.addEventListener("storage", refresh);
+    return () => {
+      window.removeEventListener("injoy:prioridade-changed", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const ehPrioridade = (t: Tarefa) =>
+    prioridade.find((p) => p.unidade === t.unidade && p.quarto === t.quarto);
 
   const visiveis = useMemo(
     () =>
       tarefas
         .filter((t) => t.unidade === unidadeAtiva)
-        .filter((t) => filtro === "Todos" || t.status === filtro),
-    [tarefas, unidadeAtiva, filtro],
+        .filter((t) => filtro === "Todos" || t.status === filtro)
+        .sort((a, b) => {
+          const pa = ehPrioridade(a) ? 0 : 1;
+          const pb = ehPrioridade(b) ? 0 : 1;
+          return pa - pb;
+        }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [tarefas, unidadeAtiva, filtro, prioridade],
   );
 
-  const alterar = (id: string, novo: LimpezaStatus) =>
+  const alterar = (id: string, novo: LimpezaStatus) => {
     setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, status: novo } : t)));
+    if (novo === "Concluído") {
+      const t = tarefas.find((x) => x.id === id);
+      if (t) {
+        const pri = loadPrioridade().filter((p) => !(p.unidade === t.unidade && p.quarto === t.quarto));
+        savePrioridade(pri);
+        setPrioridade(pri);
+      }
+    }
+  };
 
   if (reportar) {
     return (
@@ -173,6 +216,19 @@ function CamareirasPage() {
         })}
       </div>
 
+      {/* Banner ALTA PRIORIDADE — vistoria reprovada */}
+      {prioridade.filter((p) => p.unidade === unidadeAtiva).length > 0 && (
+        <div className="rounded-xl border-2 border-red-500 bg-red-600 text-white p-4 shadow-md animate-pulse">
+          <div className="flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
+            <AlertTriangle className="h-5 w-5" />
+            {prioridade.filter((p) => p.unidade === unidadeAtiva).length} quarto(s) com ALTA PRIORIDADE
+          </div>
+          <p className="text-xs text-red-100 mt-1">
+            Vistoria de check-in reprovada pela recepção — refazer imediatamente.
+          </p>
+        </div>
+      )}
+
       {/* Cards */}
       <div className="space-y-3">
         {visiveis.length === 0 && (
@@ -180,11 +236,24 @@ function CamareirasPage() {
             Nenhum quarto neste filtro.
           </div>
         )}
-        {visiveis.map((t) => (
+        {visiveis.map((t) => {
+          const prio = ehPrioridade(t);
+          return (
           <div
             key={t.id}
-            className="rounded-xl border border-border bg-card shadow-sm overflow-hidden"
+            className={cn(
+              "rounded-xl border bg-card shadow-sm overflow-hidden transition-all",
+              prio
+                ? "border-2 border-red-500 ring-2 ring-red-500/30 shadow-red-200"
+                : "border-border",
+            )}
           >
+            {prio && (
+              <div className="bg-red-600 text-white px-4 py-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider animate-pulse">
+                <AlertTriangle className="h-4 w-4" />
+                Alta prioridade — vistoria reprovada
+              </div>
+            )}
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -192,6 +261,11 @@ function CamareirasPage() {
                   <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
                     INJOY {t.unidade}
                   </div>
+                  {prio && (
+                    <div className="mt-1 text-[11px] text-red-700 dark:text-red-300 font-semibold">
+                      Motivo: {prio.motivo}
+                    </div>
+                  )}
                 </div>
                 <span
                   className={cn(
@@ -204,6 +278,7 @@ function CamareirasPage() {
                   {t.status}
                 </span>
               </div>
+
 
               <div className="mt-4 flex flex-col sm:flex-row gap-2 border-t border-border pt-3">
                 {!podeCriar ? null : t.status === "Pendente" ? (
@@ -240,7 +315,8 @@ function CamareirasPage() {
               </div>
             </div>
           </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
