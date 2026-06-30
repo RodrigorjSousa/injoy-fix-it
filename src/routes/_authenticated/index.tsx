@@ -1,5 +1,6 @@
 import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+
 import { toast } from "sonner";
 import {
   Snowflake,
@@ -59,22 +60,40 @@ function NovoChamado() {
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(null);
+  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
 
   // Apenas gestores, recepção e camareiras abrem chamados
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const responsavel = useMemo(
-    () => (categoria ? funcionarios.find((f) => f.categorias.includes(categoria)) : undefined),
+  const tecnicosDaCategoria = useMemo(
+    () => (categoria ? funcionarios.filter((f) => f.categorias.includes(categoria)) : []),
     [categoria, funcionarios],
   );
+
+  // Auto-seleciona se houver apenas 1 técnico; reseta se mudar categoria.
+  useEffect(() => {
+    if (tecnicosDaCategoria.length === 1) {
+      setTecnicoId(tecnicosDaCategoria[0].id);
+    } else {
+      setTecnicoId(null);
+    }
+  }, [categoria, tecnicosDaCategoria]);
+
+  const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
+  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
   const quartoOk = !precisaQuarto || !!quarto;
   const podeEnviar =
-    !!unidade && quartoOk && !!categoria && descricao.trim().length > 3 && !criar.isPending;
+    !!unidade &&
+    quartoOk &&
+    !!categoria &&
+    !precisaEscolherTecnico &&
+    descricao.trim().length > 3 &&
+    !criar.isPending;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
@@ -101,6 +120,7 @@ function NovoChamado() {
       },
     );
   };
+
 
   return (
     <div className="space-y-8">
@@ -223,10 +243,46 @@ function NovoChamado() {
         />
       </section>
 
-      {categoria && (
+      {categoria && tecnicosDaCategoria.length >= 2 && (
+        <section className="space-y-3">
+          <StepLabel
+            n={precisaQuarto ? 5 : 4}
+            title="Selecione o técnico"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {tecnicosDaCategoria.map((t) => {
+              const active = tecnicoId === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTecnicoId(t.id)}
+                  className={cn(
+                    "rounded-xl border bg-card p-3 text-left transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                  )}
+                >
+                  <div className="font-semibold truncate">{t.nome}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {t.categorias.join(" · ")}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {precisaEscolherTecnico && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              Escolha o técnico que deve atender este chamado.
+            </p>
+          )}
+        </section>
+      )}
+
+      {categoria && tecnicosDaCategoria.length < 2 && (
         <Card className="p-4 flex items-center justify-between gap-3 bg-accent/20 border-accent/40">
           <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">Responsável sugerido</div>
+            <div className="text-xs text-muted-foreground">Responsável</div>
             <div className="font-semibold truncate">
               {responsavel ? responsavel.nome : "Nenhum técnico cadastrado para esta categoria"}
             </div>
@@ -238,6 +294,7 @@ function NovoChamado() {
           )}
         </Card>
       )}
+
 
       <div className="sticky bottom-20 lg:bottom-6 lg:static z-10">
         <Button

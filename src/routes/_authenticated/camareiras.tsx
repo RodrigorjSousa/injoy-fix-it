@@ -261,6 +261,7 @@ function ReportarDefeitoForm({
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const [catLabel, setCatLabel] = useState<string>("");
+  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
   const [descricao, setDescricao] = useState("");
   const [foto, setFoto] = useState<string | null>(null);
@@ -268,24 +269,31 @@ function ReportarDefeitoForm({
   const [tecnicoAcionado, setTecnicoAcionado] = useState<string | null>(null);
   const [categoriaAcionada, setCategoriaAcionada] = useState<string>("");
 
-  const CATEGORIAS_RODRIGO = new Set(["Elétrica", "Ar Condicionado", "Outros"]);
+  const catSelecionada = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel);
+  const tecnicosDaCategoria = catSelecionada
+    ? funcionarios.filter((f) => f.categorias.includes(catSelecionada.backend))
+    : [];
 
-  const podeEnviar = !!catLabel && !criar.isPending;
+  // Auto-seleciona se houver apenas 1 técnico; reseta quando muda a categoria.
+  useEffect(() => {
+    if (tecnicosDaCategoria.length === 1) {
+      setTecnicoId(tecnicosDaCategoria[0].id);
+    } else {
+      setTecnicoId(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catLabel, funcionarios.length]);
+
+  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
+  const podeEnviar = !!catLabel && !precisaEscolherTecnico && !criar.isPending;
 
   const enviar = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!podeEnviar) return;
-    const cat = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel)!;
+    if (!podeEnviar || !catSelecionada) return;
 
-    // Atribuição automática por categoria
-    const rodrigo = funcionarios.find((f) =>
-      f.nome.toLowerCase().includes("rodrigo sousa"),
-    );
-    const ehRodrigo = CATEGORIAS_RODRIGO.has(catLabel);
-    const responsavelId = ehRodrigo && rodrigo ? rodrigo.id : null;
-    const tecnicoNome = ehRodrigo
-      ? "Rodrigo Sousa"
-      : "Pendente de Atribuição";
+    const tecnicoEscolhido = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
+    const responsavelId = tecnicoEscolhido?.id ?? null;
+    const tecnicoNome = tecnicoEscolhido?.nome ?? "Pendente de Atribuição";
 
     const prefixoUrg =
       urgencia === "Urgente"
@@ -301,7 +309,7 @@ function ReportarDefeitoForm({
     criar.mutate(
       {
         unidade: tarefa.unidade,
-        categoria: cat.backend,
+        categoria: catSelecionada.backend,
         descricao: descricaoFinal,
         responsavelId,
       },
@@ -359,6 +367,7 @@ function ReportarDefeitoForm({
       },
     );
   };
+
 
   const onFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -440,6 +449,45 @@ function ReportarDefeitoForm({
             })}
           </div>
         </div>
+
+        {/* Seleção de técnico (apenas se houver 2+ cadastrados na categoria) */}
+        {catLabel && tecnicosDaCategoria.length >= 2 && (
+          <div>
+            <label className="block text-sm font-bold mb-2">
+              Qual técnico vai atender?
+            </label>
+            <div className="grid grid-cols-1 gap-2">
+              {tecnicosDaCategoria.map((t) => {
+                const active = tecnicoId === t.id;
+                return (
+                  <button
+                    type="button"
+                    key={t.id}
+                    onClick={() => setTecnicoId(t.id)}
+                    className={cn(
+                      "py-3 px-3 rounded-xl border text-left transition-all",
+                      active
+                        ? "bg-red-50 dark:bg-red-950/30 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500 font-bold"
+                        : "bg-card border-border text-foreground/80 hover:border-primary/40 font-semibold",
+                    )}
+                  >
+                    <div className="text-sm">{t.nome}</div>
+                    <div className="text-[11px] text-muted-foreground font-normal">
+                      {t.categorias.join(" · ")}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            {precisaEscolherTecnico && (
+              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
+                Escolha o técnico que deve atender este chamado.
+              </p>
+            )}
+          </div>
+        )}
+
+
 
         {/* Urgência */}
         <div>
