@@ -105,7 +105,7 @@ function VistoriaPage() {
       id: crypto.randomUUID(),
       unidade,
       quarto,
-      responsavel: me?.profile?.nome || me?.email || "Recepção",
+      responsavel: me?.funcionario?.nome || me?.email || "Recepção",
       data: new Date().toISOString(),
       itens,
       observacoes: obs,
