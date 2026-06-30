@@ -38,6 +38,24 @@ const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
 };
 
 const STORAGE_KEY = "injoy.camareiras.tarefas.v1";
+const PRIORIDADE_KEY = "injoy.camareiras.prioridade.v1";
+
+type PrioridadeEntry = {
+  key: string;
+  unidade: Unidade;
+  quarto: string;
+  motivo: string;
+  criadoEm: string;
+};
+
+function loadPrioridade(): PrioridadeEntry[] {
+  if (typeof window === "undefined") return [];
+  try { return JSON.parse(window.localStorage.getItem(PRIORIDADE_KEY) || "[]"); } catch { return []; }
+}
+function savePrioridade(list: PrioridadeEntry[]) {
+  window.localStorage.setItem(PRIORIDADE_KEY, JSON.stringify(list));
+  window.dispatchEvent(new CustomEvent("injoy:prioridade-changed"));
+}
 
 function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
