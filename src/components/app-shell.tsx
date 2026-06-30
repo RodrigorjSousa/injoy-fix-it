@@ -125,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : "grid-cols-7")}>
+        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : nav.length === 7 ? "grid-cols-7" : "grid-cols-8")}>
           {nav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
