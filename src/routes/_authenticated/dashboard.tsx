@@ -21,17 +21,18 @@ function DashboardPage() {
 
   const manut = useMemo(() => {
     const abertos = chamados.filter((c) => c.status === "Aberto").length;
-    const andamento = chamados.filter((c) => c.status === "Em andamento").length;
+    const andamento = chamados.filter((c) => c.status === "Em Andamento").length;
     const concluidos = chamados.filter((c) => c.status === "Concluído").length;
     return { abertos, andamento, concluidos, total: chamados.length };
   }, [chamados]);
 
   const camareiras = useMemo(() => {
-    const cams = chamados.filter((c) =>
-      (c.descricao || "").toLowerCase().includes("camareira") ||
-      (c.descricao || "").toLowerCase().includes("housekeeping")
-    );
-    return { total: cams.length, urgentes: cams.filter((c) => c.urgente).length };
+    const cams = chamados.filter((c) => {
+      const d = (c.descricao || "").toLowerCase();
+      return d.includes("camareira") || d.includes("housekeeping") || d.includes("quarto");
+    });
+    const urgentes = cams.filter((c) => /urgente|bloqueio|bloquear/i.test(c.descricao || "")).length;
+    return { total: cams.length, urgentes };
   }, [chamados]);
 
   if (!isFull) {
