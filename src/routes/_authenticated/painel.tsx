@@ -39,6 +39,10 @@ import {
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/painel")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    categoria: typeof s.categoria === "string" ? (s.categoria as string) : undefined,
+    tipo: typeof s.tipo === "string" ? (s.tipo as string) : undefined,
+  }),
   component: Painel,
 });
 
@@ -49,12 +53,17 @@ const COLUNAS: { status: Status; label: string; tone: string }[] = [
 ];
 
 function Painel() {
+  const search = Route.useSearch();
   const { data: me } = useMe();
   const { data: chamados = [], isLoading } = useChamados();
   const { data: funcionarios = [] } = useFuncionarios();
   const excluir = useExcluirChamado();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
-  const [categoria, setCategoria] = useState<Categoria | "todas">("todas");
+  const [categoria, setCategoria] = useState<Categoria | "todas">(
+    (CATEGORIAS as string[]).includes(search.categoria ?? "")
+      ? (search.categoria as Categoria)
+      : "todas",
+  );
 
   const filtrados = useMemo(() => {
     return chamados.filter(
