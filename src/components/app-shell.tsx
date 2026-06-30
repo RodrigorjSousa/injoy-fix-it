@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
