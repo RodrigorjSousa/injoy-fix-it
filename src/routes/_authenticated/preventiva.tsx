@@ -57,14 +57,20 @@ function Preventiva() {
   const { data: ativos = [], isLoading } = useAtivos();
   const registrar = useRegistrarLimpeza();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "limpos" | "sujos">("todos");
   const [ativoSelecionado, setAtivoSelecionado] = useState<AtivoAr | null>(null);
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [obs, setObs] = useState("");
   const [tecnico, setTecnico] = useState("");
 
-  const filtrados = ativos.filter((a) => unidade === "todas" || a.unidade === unidade);
-  const sujos = filtrados.filter((a) => !isAtivoLimpo(a)).length;
-  const limpos = filtrados.length - sujos;
+  const porUnidade = ativos.filter((a) => unidade === "todas" || a.unidade === unidade);
+  const sujos = porUnidade.filter((a) => !isAtivoLimpo(a)).length;
+  const limpos = porUnidade.length - sujos;
+  const filtrados = porUnidade.filter((a) => {
+    if (filtroStatus === "limpos") return isAtivoLimpo(a);
+    if (filtroStatus === "sujos") return !isAtivoLimpo(a);
+    return true;
+  });
 
   const totalCheck = PMOC_ITENS.length;
   const marcados = useMemo(() => Object.values(checks).filter(Boolean).length, [checks]);
