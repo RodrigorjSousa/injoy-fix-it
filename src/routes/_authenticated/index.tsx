@@ -243,10 +243,46 @@ function NovoChamado() {
         />
       </section>
 
-      {categoria && (
+      {categoria && tecnicosDaCategoria.length >= 2 && (
+        <section className="space-y-3">
+          <StepLabel
+            n={precisaQuarto ? 5 : 4}
+            title="Selecione o técnico"
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {tecnicosDaCategoria.map((t) => {
+              const active = tecnicoId === t.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setTecnicoId(t.id)}
+                  className={cn(
+                    "rounded-xl border bg-card p-3 text-left transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                  )}
+                >
+                  <div className="font-semibold truncate">{t.nome}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    {t.categorias.join(" · ")}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {precisaEscolherTecnico && (
+            <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
+              Escolha o técnico que deve atender este chamado.
+            </p>
+          )}
+        </section>
+      )}
+
+      {categoria && tecnicosDaCategoria.length < 2 && (
         <Card className="p-4 flex items-center justify-between gap-3 bg-accent/20 border-accent/40">
           <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">Responsável sugerido</div>
+            <div className="text-xs text-muted-foreground">Responsável</div>
             <div className="font-semibold truncate">
               {responsavel ? responsavel.nome : "Nenhum técnico cadastrado para esta categoria"}
             </div>
@@ -258,6 +294,7 @@ function NovoChamado() {
           )}
         </Card>
       )}
+
 
       <div className="sticky bottom-20 lg:bottom-6 lg:static z-10">
         <Button
