@@ -6,22 +6,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 
-type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; show?: (me: ReturnType<typeof useMe>["data"]) => boolean };
-const podeCriar = (me: ReturnType<typeof useMe>["data"]) =>
-  !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
-const ehStaff = (me: ReturnType<typeof useMe>["data"]) => !!me && (me.isGestor || me.isAdmin);
-const podeRecepcao = (me: ReturnType<typeof useMe>["data"]) =>
-  !!me && (me.isGestor || me.isAdmin || me.isRecepcao);
-const podeCamareira = (me: ReturnType<typeof useMe>["data"]) =>
-  !!me && (me.isGestor || me.isAdmin || me.isCamareira);
+type Me = ReturnType<typeof useMe>["data"];
+type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; show?: (me: Me) => boolean };
+
+const isFullAccess = (me: Me) => !!me && (me.isGestor || me.isAdmin);
+const isTecnicoAC = (me: Me) =>
+  !!me && me.isFuncionario && !!me.funcionario?.categorias?.includes("Ar Condicionado");
+
+const podeCriar = (me: Me) =>
+  isFullAccess(me) || !!me?.isRecepcao || !!me?.isCamareira;
+// Painel: gestor/admin, técnicos (veem seus chamados) e camareira (acompanhar)
+const podePainel = (me: Me) =>
+  isFullAccess(me) || !!me?.isFuncionario || !!me?.isCamareira;
+const podeRecepcao = (me: Me) => isFullAccess(me) || !!me?.isRecepcao;
+const podeCamareira = (me: Me) => isFullAccess(me) || !!me?.isCamareira;
+const podePreventiva = (me: Me) => isFullAccess(me) || isTecnicoAC(me);
+
 const ALL_NAV: NavItem[] = [
   { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
-  { to: "/painel", label: "Painel", icon: LayoutGrid },
+  { to: "/painel", label: "Painel", icon: LayoutGrid, show: podePainel },
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
-  { to: "/preventiva", label: "Preventiva AC", icon: Snowflake },
+  { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
   { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, show: ehStaff },
+  { to: "/configuracoes", label: "Configurações", icon: Settings, show: isFullAccess },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
