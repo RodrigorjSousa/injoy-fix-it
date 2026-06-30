@@ -23,7 +23,6 @@ const podeCamareira = (me: Me) => isFullAccess(me) || !!me?.isCamareira;
 const podePreventiva = (me: Me) => isFullAccess(me) || isTecnicoAC(me);
 
 const ALL_NAV: NavItem[] = [
-  { to: "/", label: "Novo Chamado", icon: PlusCircle, exact: true, show: podeCriar },
   { to: "/servicos", label: "Serviços", icon: Wrench, show: podePainel },
   { to: "/painel", label: "Painel", icon: LayoutGrid, show: podePainel },
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
