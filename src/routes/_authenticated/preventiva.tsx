@@ -123,6 +123,8 @@ function Preventiva() {
           label="Total"
           value={porUnidade.length}
           tone="bg-primary/10 text-primary"
+          border="border-2 border-primary/60"
+          activeBorder="border-primary"
           active={filtroStatus === "todos"}
           onClick={() => setFiltroStatus("todos")}
         />
@@ -130,6 +132,8 @@ function Preventiva() {
           label="Em dia"
           value={limpos}
           tone="bg-success/15 text-success"
+          border="border-2 border-success/60"
+          activeBorder="border-success"
           active={filtroStatus === "limpos"}
           onClick={() => setFiltroStatus("limpos")}
         />
@@ -137,6 +141,8 @@ function Preventiva() {
           label="Requer limpeza"
           value={sujos}
           tone="bg-destructive/15 text-destructive"
+          border="border-2 border-destructive/60"
+          activeBorder="border-destructive"
           active={filtroStatus === "sujos"}
           onClick={() => setFiltroStatus("sujos")}
         />
@@ -348,12 +354,16 @@ function Stat({
   label,
   value,
   tone,
+  border,
+  activeBorder,
   active,
   onClick,
 }: {
   label: string;
   value: number;
   tone: string;
+  border?: string;
+  activeBorder?: string;
   active?: boolean;
   onClick?: () => void;
 }) {
@@ -369,7 +379,9 @@ function Stat({
       <Card
         className={cn(
           "p-4 h-full",
-          active && "ring-2 ring-primary border-primary/40 shadow-sm",
+          border,
+          active && activeBorder,
+          active && "shadow-md",
         )}
       >
         <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
