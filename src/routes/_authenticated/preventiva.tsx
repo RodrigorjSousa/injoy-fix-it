@@ -57,14 +57,20 @@ function Preventiva() {
   const { data: ativos = [], isLoading } = useAtivos();
   const registrar = useRegistrarLimpeza();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
+  const [filtroStatus, setFiltroStatus] = useState<"todos" | "limpos" | "sujos">("todos");
   const [ativoSelecionado, setAtivoSelecionado] = useState<AtivoAr | null>(null);
   const [checks, setChecks] = useState<Record<string, boolean>>({});
   const [obs, setObs] = useState("");
   const [tecnico, setTecnico] = useState("");
 
-  const filtrados = ativos.filter((a) => unidade === "todas" || a.unidade === unidade);
-  const sujos = filtrados.filter((a) => !isAtivoLimpo(a)).length;
-  const limpos = filtrados.length - sujos;
+  const porUnidade = ativos.filter((a) => unidade === "todas" || a.unidade === unidade);
+  const sujos = porUnidade.filter((a) => !isAtivoLimpo(a)).length;
+  const limpos = porUnidade.length - sujos;
+  const filtrados = porUnidade.filter((a) => {
+    if (filtroStatus === "limpos") return isAtivoLimpo(a);
+    if (filtroStatus === "sujos") return !isAtivoLimpo(a);
+    return true;
+  });
 
   const totalCheck = PMOC_ITENS.length;
   const marcados = useMemo(() => Object.values(checks).filter(Boolean).length, [checks]);
@@ -113,10 +119,34 @@ function Preventiva() {
       </header>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-        <Stat label="Total" value={filtrados.length} tone="bg-primary/10 text-primary" />
-        <Stat label="Em dia" value={limpos} tone="bg-success/15 text-success" />
-        <Stat label="Requer limpeza" value={sujos} tone="bg-destructive/15 text-destructive" />
+        <Stat
+          label="Total"
+          value={porUnidade.length}
+          tone="bg-primary/10 text-primary"
+          active={filtroStatus === "todos"}
+          onClick={() => setFiltroStatus("todos")}
+        />
+        <Stat
+          label="Em dia"
+          value={limpos}
+          tone="bg-success/15 text-success"
+          active={filtroStatus === "limpos"}
+          onClick={() => setFiltroStatus("limpos")}
+        />
+        <Stat
+          label="Requer limpeza"
+          value={sujos}
+          tone="bg-destructive/15 text-destructive"
+          active={filtroStatus === "sujos"}
+          onClick={() => setFiltroStatus("sujos")}
+        />
       </div>
+
+      {filtrados.length === 0 && (
+        <Card className="p-8 text-center text-sm text-muted-foreground">
+          Nenhum aparelho neste filtro.
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtrados.map((a) => {
@@ -314,13 +344,39 @@ function Preventiva() {
   );
 }
 
-function Stat({ label, value, tone }: { label: string; value: number; tone: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+  active,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  tone: string;
+  active?: boolean;
+  onClick?: () => void;
+}) {
   return (
-    <Card className="p-4">
-      <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
-        {label}
-      </div>
-      <div className="text-3xl font-bold tracking-tight">{value}</div>
-    </Card>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "text-left transition-all",
+        onClick && "hover:-translate-y-0.5 hover:shadow-md focus:outline-none focus-visible:ring-2 focus-visible:ring-ring rounded-xl",
+      )}
+    >
+      <Card
+        className={cn(
+          "p-4 h-full",
+          active && "ring-2 ring-primary border-primary/40 shadow-sm",
+        )}
+      >
+        <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
+          {label}
+        </div>
+        <div className="text-3xl font-bold tracking-tight">{value}</div>
+      </Card>
+    </button>
   );
 }
