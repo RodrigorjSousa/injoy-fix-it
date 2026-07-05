@@ -161,94 +161,112 @@ function Servicos() {
           const tecnicos = tecnicosDe(funcionarios, s.categoria);
           const piscando = abertos > 0;
           return (
-            <Link key={s.key} to={s.to} search={s.search} className="group">
-              <Card
-                className={cn(
-                  "relative overflow-hidden p-5 h-full border bg-gradient-to-br transition-all hover:shadow-lg hover:-translate-y-0.5",
-                  s.tone,
+            <Card
+              key={s.key}
+              className={cn(
+                "group relative overflow-hidden p-5 h-full flex flex-col border bg-gradient-to-br transition-all hover:shadow-lg hover:-translate-y-0.5",
+                s.tone,
+              )}
+            >
+              {/* Indicador de chamados */}
+              <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                {piscando && (
+                  <span className="relative flex h-3 w-3" aria-label={`${abertos} chamados abertos`}>
+                    <span
+                      className={cn(
+                        "absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping",
+                        s.dot,
+                      )}
+                    />
+                    <span className={cn("relative inline-flex h-3 w-3 rounded-full", s.dot)} />
+                  </span>
                 )}
-              >
-                {/* Indicador de chamados */}
-                <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                  {piscando && (
-                    <span className="relative flex h-3 w-3" aria-label={`${abertos} chamados abertos`}>
-                      <span
-                        className={cn(
-                          "absolute inline-flex h-full w-full rounded-full opacity-75 animate-ping",
-                          s.dot,
-                        )}
-                      />
-                      <span className={cn("relative inline-flex h-3 w-3 rounded-full", s.dot)} />
+                {piscando ? (
+                  <Badge className="bg-foreground text-background rounded-full text-[10px] px-2 h-5">
+                    {abertos}
+                  </Badge>
+                ) : (
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
+                    sem chamados
+                  </span>
+                )}
+              </div>
+
+              <div className="flex items-start justify-between gap-3">
+                <div className="h-12 w-12 rounded-xl grid place-items-center bg-card shadow-sm border">
+                  <Icon className="h-6 w-6" />
+                </div>
+                {s.emergencia && (
+                  <Badge className="bg-red-600 hover:bg-red-600 text-white rounded-full text-[10px] uppercase tracking-wide mt-6">
+                    Urgente
+                  </Badge>
+                )}
+              </div>
+
+              <div className="mt-4">
+                <div className="flex items-baseline gap-2">
+                  <h3 className="text-lg font-semibold text-foreground">
+                    {s.label}
+                  </h3>
+                  {s.sub && (
+                    <span className="text-xs font-medium opacity-80">
+                      • {s.sub}
                     </span>
                   )}
-                  {piscando ? (
-                    <Badge className="bg-foreground text-background rounded-full text-[10px] px-2 h-5">
-                      {abertos}
-                    </Badge>
-                  ) : (
-                    <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                      <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                      sem chamados
-                    </span>
-                  )}
                 </div>
+                <p className="text-sm text-muted-foreground mt-1">{s.desc}</p>
+              </div>
 
-                <div className="flex items-start justify-between gap-3">
-                  <div className="h-12 w-12 rounded-xl grid place-items-center bg-card shadow-sm border">
-                    <Icon className="h-6 w-6" />
+              {/* Técnicos responsáveis */}
+              <div className="mt-3 pt-3 border-t border-border/50">
+                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                  <Users className="h-3 w-3" />
+                  {tecnicos.length > 1 ? "Técnicos" : "Técnico"}
+                </div>
+                {tecnicos.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">
+                    Nenhum técnico cadastrado
+                  </p>
+                ) : (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tecnicos.map((t) => (
+                      <Badge
+                        key={t.id}
+                        variant="secondary"
+                        className="rounded-full text-xs font-medium"
+                      >
+                        {t.nome}
+                      </Badge>
+                    ))}
                   </div>
-                  {s.emergencia && (
-                    <Badge className="bg-red-600 hover:bg-red-600 text-white rounded-full text-[10px] uppercase tracking-wide mt-6">
-                      Urgente
-                    </Badge>
-                  )}
-                </div>
+                )}
+              </div>
 
-                <div className="mt-4">
-                  <div className="flex items-baseline gap-2">
-                    <h3 className="text-lg font-semibold text-foreground">
-                      {s.label}
-                    </h3>
-                    {s.sub && (
-                      <span className="text-xs font-medium opacity-80">
-                        • {s.sub}
-                      </span>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">{s.desc}</p>
-                </div>
-
-                {/* Técnicos responsáveis */}
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    <Users className="h-3 w-3" />
-                    {tecnicos.length > 1 ? "Técnicos" : "Técnico"}
-                  </div>
-                  {tecnicos.length === 0 ? (
-                    <p className="text-sm text-muted-foreground italic">
-                      Nenhum técnico cadastrado
-                    </p>
-                  ) : (
-                    <div className="flex flex-wrap gap-1.5">
-                      {tecnicos.map((t) => (
-                        <Badge
-                          key={t.id}
-                          variant="secondary"
-                          className="rounded-full text-xs font-medium"
-                        >
-                          {t.nome}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                <div className="mt-4 flex items-center justify-end text-xs font-medium opacity-80 group-hover:opacity-100">
+              <div className="mt-auto pt-4 flex flex-col gap-2">
+                <Link
+                  to={s.to}
+                  search={s.search}
+                  className="flex items-center justify-end text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
+                >
                   Ver chamados
-                  <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
-                </div>
-              </Card>
-            </Link>
+                  <ChevronRight className="h-4 w-4 ml-1 transition-transform hover:translate-x-0.5" />
+                </Link>
+                <Button
+                  asChild
+                  size="sm"
+                  className={cn(
+                    "w-full font-semibold shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 transition-colors",
+                    s.btn,
+                  )}
+                >
+                  <Link to="/" search={{ categoria: s.categoria as never }}>
+                    <PlusCircle className="h-4 w-4 mr-1.5" />
+                    Abrir chamado
+                  </Link>
+                </Button>
+              </div>
+            </Card>
           );
         })}
       </div>
