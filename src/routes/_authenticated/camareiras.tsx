@@ -22,11 +22,31 @@ export const Route = createFileRoute("/_authenticated/camareiras")({
 });
 
 type LimpezaStatus = "Pendente" | "Em Andamento" | "Concluído";
+type ServicoTipo =
+  | "GERAL CHECK-OUT"
+  | "GERAL CHECK-IN"
+  | "VERIFICAÇÃO"
+  | "VERIFICAÇÃO CHECK-IN";
+const SERVICO_TIPOS: ServicoTipo[] = [
+  "GERAL CHECK-OUT",
+  "GERAL CHECK-IN",
+  "VERIFICAÇÃO",
+  "VERIFICAÇÃO CHECK-IN",
+];
+const SERVICO_DESCRICAO: Record<ServicoTipo, string> = {
+  "GERAL CHECK-OUT": "Limpeza completa do quarto após a saída do hóspede.",
+  "GERAL CHECK-IN":
+    "Limpeza completa do quarto para a entrada de um novo hóspede no mesmo dia.",
+  "VERIFICAÇÃO": "Inspeção do quarto vazio que já passou por limpeza geral.",
+  "VERIFICAÇÃO CHECK-IN":
+    "Inspeção do quarto vazio para a entrada de um novo hóspede no mesmo dia.",
+};
 type Tarefa = {
   id: string;
   unidade: Unidade;
   quarto: string;
   status: LimpezaStatus;
+  servico?: ServicoTipo;
 };
 
 const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
