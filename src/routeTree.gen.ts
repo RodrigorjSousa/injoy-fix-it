@@ -20,6 +20,7 @@ import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
+import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
@@ -80,6 +81,11 @@ const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
   path: '/gestao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
+  id: '/escala',
+  path: '/escala',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
@@ -114,6 +120,7 @@ export interface FileRoutesByFullPath {
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
@@ -129,6 +136,7 @@ export interface FileRoutesByTo {
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
@@ -148,6 +156,7 @@ export interface FileRoutesById {
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
+  '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
@@ -168,6 +177,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/configuracoes'
     | '/dashboard'
+    | '/escala'
     | '/gestao'
     | '/painel'
     | '/preventiva'
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/chat'
     | '/configuracoes'
     | '/dashboard'
+    | '/escala'
     | '/gestao'
     | '/painel'
     | '/preventiva'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/escala'
     | '/_authenticated/gestao'
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
@@ -297,6 +309,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/escala': {
+      id: '/_authenticated/escala'
+      path: '/escala'
+      fullPath: '/escala'
+      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/dashboard': {
       id: '/_authenticated/dashboard'
       path: '/dashboard'
@@ -340,6 +359,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
+  AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
@@ -355,6 +375,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
+  AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
