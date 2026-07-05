@@ -28,6 +28,11 @@ import {
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    categoria: (typeof s.categoria === "string" ? (s.categoria as Categoria) : undefined) as
+      | Categoria
+      | undefined,
+  }),
   component: NovoChamado,
 });
 
@@ -57,11 +62,20 @@ function NovoChamado() {
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const criar = useCriarChamado();
+  const { categoria: categoriaFromUrl } = Route.useSearch();
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
-  const [categoria, setCategoria] = useState<Categoria | null>(null);
+  const [categoria, setCategoria] = useState<Categoria | null>(categoriaFromUrl ?? null);
   const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
+
+  // Sync when navigating to /?categoria=...
+  useEffect(() => {
+    if (categoriaFromUrl && categoriaFromUrl !== categoria) {
+      setCategoria(categoriaFromUrl);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categoriaFromUrl]);
 
   // Apenas gestores, recepção e camareiras abrem chamados
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
