@@ -135,13 +135,23 @@ function GestaoPage() {
               </div>
 
               <div className="mt-auto pt-4 flex items-center justify-end">
-                <button
-                  type="button"
-                  className="flex items-center text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
-                >
-                  Ver chamados
-                  <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
-                </button>
+                {c.key === "escala" ? (
+                  <Link
+                    to="/escala"
+                    className="flex items-center text-xs font-medium opacity-90 hover:opacity-100 transition-opacity"
+                  >
+                    Abrir escala
+                    <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                ) : (
+                  <button
+                    type="button"
+                    className="flex items-center text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
+                  >
+                    Ver chamados
+                    <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
+                  </button>
+                )}
               </div>
             </Card>
           );
