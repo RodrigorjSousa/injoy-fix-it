@@ -47,7 +47,10 @@ export interface Chamado {
   fotoAntes: string | null;
   fotoDepois: string | null;
   criadoEm: string;
+  criadoPor: string | null;
+  criadoPorNome: string | null;
 }
+
 
 export interface AtivoAr {
   id: string;
@@ -77,6 +80,7 @@ type ChamadoRow = {
   responsavel_id: string | null;
   foto_antes: string | null;
   foto_depois: string | null;
+  criado_por: string | null;
   created_at: string;
 };
 type AtivoRow = {
@@ -96,7 +100,7 @@ const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
   categorias: (r.categorias ?? []) as Categoria[],
   userId: r.user_id,
 });
-const mapChamado = (r: ChamadoRow): Chamado => ({
+const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado => ({
   id: r.id,
   unidade: r.unidade,
   categoria: r.categoria as Categoria,
@@ -106,7 +110,10 @@ const mapChamado = (r: ChamadoRow): Chamado => ({
   fotoAntes: r.foto_antes,
   fotoDepois: r.foto_depois,
   criadoEm: r.created_at,
+  criadoPor: r.criado_por,
+  criadoPorNome: nomeCriador,
 });
+
 const mapAtivo = (r: AtivoRow): AtivoAr => ({
   id: r.id,
   unidade: r.unidade,
@@ -140,11 +147,18 @@ export function useChamados() {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []).map((r) => mapChamado(r as ChamadoRow));
+      const rows = (data ?? []) as ChamadoRow[];
+      const ids = Array.from(new Set(rows.map((r) => r.criado_por).filter((v): v is string => !!v)));
+      const nomes = new Map<string, string>();
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles").select("id, nome").in("id", ids);
+        (profs ?? []).forEach((p) => nomes.set(p.id, p.nome ?? ""));
+      }
+      return rows.map((r) => mapChamado(r, r.criado_por ? nomes.get(r.criado_por) ?? null : null));
     },
   });
 }
@@ -156,15 +170,27 @@ export function useChamado(id: string) {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
         )
         .eq("id", id)
         .maybeSingle();
       if (error) throw error;
-      return data ? mapChamado(data as ChamadoRow) : null;
+      if (!data) return null;
+      const row = data as ChamadoRow;
+      let nome: string | null = null;
+      if (row.criado_por) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("nome")
+          .eq("id", row.criado_por)
+          .maybeSingle();
+        nome = prof?.nome ?? null;
+      }
+      return mapChamado(row, nome);
     },
   });
 }
+
 
 export function useAtivos() {
   return useQuery({

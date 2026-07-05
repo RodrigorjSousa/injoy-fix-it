@@ -91,6 +91,7 @@ function ChamadoDetalhe() {
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight leading-tight">{chamado.descricao}</h1>
         <p className="text-sm text-muted-foreground">
           Responsável: <span className="font-medium text-foreground">{responsavel?.nome ?? "—"}</span> ·
+          Aberto por <span className="font-medium text-foreground">{chamado.criadoPorNome ?? "—"}</span> ·
           Aberto em {new Date(chamado.criadoEm).toLocaleString("pt-BR")}
         </p>
       </header>
