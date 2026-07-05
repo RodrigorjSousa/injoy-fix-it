@@ -10,6 +10,8 @@ import {
   Send,
   MessageSquare,
   Building2,
+  Info,
+  X,
 } from "lucide-react";
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,11 +22,31 @@ export const Route = createFileRoute("/_authenticated/camareiras")({
 });
 
 type LimpezaStatus = "Pendente" | "Em Andamento" | "Concluído";
+type ServicoTipo =
+  | "GERAL CHECK-OUT"
+  | "GERAL CHECK-IN"
+  | "VERIFICAÇÃO"
+  | "VERIFICAÇÃO CHECK-IN";
+const SERVICO_TIPOS: ServicoTipo[] = [
+  "GERAL CHECK-OUT",
+  "GERAL CHECK-IN",
+  "VERIFICAÇÃO",
+  "VERIFICAÇÃO CHECK-IN",
+];
+const SERVICO_DESCRICAO: Record<ServicoTipo, string> = {
+  "GERAL CHECK-OUT": "Limpeza completa do quarto após a saída do hóspede.",
+  "GERAL CHECK-IN":
+    "Limpeza completa do quarto para a entrada de um novo hóspede no mesmo dia.",
+  "VERIFICAÇÃO": "Inspeção do quarto vazio que já passou por limpeza geral.",
+  "VERIFICAÇÃO CHECK-IN":
+    "Inspeção do quarto vazio para a entrada de um novo hóspede no mesmo dia.",
+};
 type Tarefa = {
   id: string;
   unidade: Unidade;
   quarto: string;
   status: LimpezaStatus;
+  servico?: ServicoTipo;
 };
 
 const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
@@ -61,7 +83,7 @@ function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
   (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
     QUARTOS_POR_UNIDADE[u].forEach((q) => {
-      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente" });
+      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente", servico: "GERAL CHECK-OUT" });
     });
   });
   return arr;
@@ -100,6 +122,7 @@ function CamareirasPage() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [reportar, setReportar] = useState<Tarefa | null>(null);
   const [prioridade, setPrioridade] = useState<PrioridadeEntry[]>(() => loadPrioridade());
+  const [legendaOpen, setLegendaOpen] = useState(false);
 
   useEffect(() => {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas)); } catch { /* ignore */ }
@@ -142,6 +165,18 @@ function CamareirasPage() {
         setPrioridade(pri);
       }
     }
+  };
+
+  const cicloServico = (id: string) => {
+    setTarefas((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const atual = t.servico ?? "GERAL CHECK-OUT";
+        const idx = SERVICO_TIPOS.indexOf(atual);
+        const prox = SERVICO_TIPOS[(idx + 1) % SERVICO_TIPOS.length];
+        return { ...t, servico: prox };
+      }),
+    );
   };
 
   if (reportar) {
@@ -267,12 +302,39 @@ function CamareirasPage() {
                     </div>
                   )}
                 </div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLegendaOpen(true)}
+                    aria-label="Legenda dos tipos de serviço"
+                    className="h-6 w-6 grid place-items-center rounded-full border border-border bg-background text-muted-foreground hover:text-primary hover:border-primary/40 transition"
+                    title="Ver legenda dos serviços"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => podeCriar && cicloServico(t.id)}
+                    disabled={!podeCriar}
+                    title={
+                      SERVICO_DESCRICAO[t.servico ?? "GERAL CHECK-OUT"] +
+                      (podeCriar ? " (clique para alternar)" : "")
+                    }
+                    className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-80 disabled:cursor-default transition"
+                  >
+                    {t.servico ?? "GERAL CHECK-OUT"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+                <span className="text-muted-foreground">Status:</span>
                 <span
                   className={cn(
-                    "shrink-0 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm",
-                    t.status === "Pendente" && "bg-red-600 text-white",
-                    t.status === "Em Andamento" && "bg-[#0b2545] text-white",
-                    t.status === "Concluído" && "bg-emerald-600 text-white",
+                    "px-2 py-0.5 rounded",
+                    t.status === "Pendente" && "bg-red-100 text-red-700",
+                    t.status === "Em Andamento" && "bg-[#0b2545]/10 text-[#0b2545]",
+                    t.status === "Concluído" && "bg-emerald-100 text-emerald-700",
                   )}
                 >
                   {t.status}
@@ -318,6 +380,44 @@ function CamareirasPage() {
           );
         })}
       </div>
+
+      {legendaOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4"
+          onClick={() => setLegendaOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <div className="font-semibold text-sm">Legenda dos tipos de serviço</div>
+              </div>
+              <button
+                onClick={() => setLegendaOpen(false)}
+                aria-label="Fechar legenda"
+                className="p-1 rounded hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="p-4 space-y-3">
+              {SERVICO_TIPOS.map((tipo) => (
+                <li key={tipo} className="flex flex-col gap-1">
+                  <span className="self-start text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-600 text-white">
+                    {tipo}
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {SERVICO_DESCRICAO[tipo]}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
