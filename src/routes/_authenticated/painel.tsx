@@ -175,8 +175,11 @@ function Painel() {
                       <span>{c.categoria}</span>
                     </div>
                     <div className="font-medium truncate">{c.descricao}</div>
-                    <div className="text-xs text-muted-foreground mt-1 flex items-center gap-2">
-                      <User2 className="h-3 w-3" />{nomePor(c.responsavelId)}
+                    <div className="text-xs text-muted-foreground mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5">
+                      <span className="flex items-center gap-1"><User2 className="h-3 w-3" />Resp.: {nomePor(c.responsavelId)}</span>
+                      {c.criadoPorNome && (
+                        <span className="flex items-center gap-1">Aberto por: <span className="font-medium text-foreground">{c.criadoPorNome}</span></span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
