@@ -1,5 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, Settings, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +8,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 
 type Me = ReturnType<typeof useMe>["data"];
-type NavItem = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean; show?: (me: Me) => boolean };
+type NavChild = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
+type NavItem = {
+  to?: string;
+  label: string;
+  icon: typeof PlusCircle;
+  exact?: boolean;
+  show?: (me: Me) => boolean;
+  children?: NavChild[];
+};
 
 const isFullAccess = (me: Me) => !!me && (me.isGestor || me.isAdmin);
 const isTecnicoAC = (me: Me) =>
@@ -23,14 +32,21 @@ const podeCamareira = (me: Me) => isFullAccess(me) || !!me?.isCamareira;
 const podePreventiva = (me: Me) => isFullAccess(me) || isTecnicoAC(me);
 
 const ALL_NAV: NavItem[] = [
-  { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard, show: isFullAccess },
   { to: "/servicos", label: "Serviços", icon: Wrench, show: podePainel },
   { to: "/painel", label: "Painel", icon: LayoutGrid, show: podePainel },
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
   { to: "/chat", label: "Chat", icon: MessageSquare },
-  { to: "/configuracoes", label: "Configurações", icon: Settings, show: isFullAccess },
+  {
+    label: "ADMINISTRADOR",
+    icon: ShieldCheck,
+    show: isFullAccess,
+    children: [
+      { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
+      { to: "/configuracoes", label: "Configurações", icon: PlusCircle },
+    ],
+  },
 ];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -43,6 +59,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
+
+  const groupActive = (item: NavItem) =>
+    !!item.children?.some((c) => isActive(c.to, c.exact));
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
+  const isGroupOpen = (item: NavItem) =>
+    openGroups[item.label] ?? groupActive(item);
+
+  const toggleGroup = (label: string, defaultOpen: boolean) =>
+    setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? defaultOpen) }));
+
+  // Flat list for mobile bottom nav (children promoted)
+  const mobileNav: NavChild[] = nav.flatMap((n) =>
+    n.children
+      ? n.children.map((c) => ({ ...c }))
+      : n.to
+      ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
+      : [],
+  );
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -65,14 +100,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div className="text-xs text-sidebar-foreground/70">INJOY Hotéis</div>
           </div>
         </div>
-        <nav className="flex-1 p-3 space-y-1">
+        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {nav.map((item) => {
-            const active = isActive(item.to, item.exact);
             const Icon = item.icon;
+            if (item.children) {
+              const gActive = groupActive(item);
+              const open = isGroupOpen(item);
+              return (
+                <div key={item.label}>
+                  <button
+                    type="button"
+                    onClick={() => toggleGroup(item.label, gActive)}
+                    className={cn(
+                      "w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
+                      gActive
+                        ? "text-sidebar-foreground"
+                        : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80",
+                    )}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate flex-1 text-left">{item.label}</span>
+                    <ChevronDown
+                      className={cn("h-4 w-4 shrink-0 transition-transform", open && "rotate-180")}
+                    />
+                  </button>
+                  {open && (
+                    <div className="mt-1 ml-3 pl-3 border-l border-sidebar-border space-y-1">
+                      {item.children.map((c) => {
+                        const active = isActive(c.to, c.exact);
+                        const CIcon = c.icon;
+                        return (
+                          <Link
+                            key={c.to}
+                            to={c.to}
+                            className={cn(
+                              "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                              active
+                                ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
+                                : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80",
+                            )}
+                          >
+                            <CIcon className="h-4 w-4 shrink-0" />
+                            <span className="truncate">{c.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            }
+            const active = isActive(item.to!, item.exact);
             return (
               <Link
                 key={item.to}
-                to={item.to}
+                to={item.to!}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active
@@ -125,8 +207,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className={cn("grid", nav.length <= 2 ? "grid-cols-2" : nav.length === 3 ? "grid-cols-3" : nav.length === 4 ? "grid-cols-4" : nav.length === 5 ? "grid-cols-5" : nav.length === 6 ? "grid-cols-6" : nav.length === 7 ? "grid-cols-7" : "grid-cols-8")}>
-          {nav.map((item) => {
+        <div className={cn("grid", mobileNav.length <= 2 ? "grid-cols-2" : mobileNav.length === 3 ? "grid-cols-3" : mobileNav.length === 4 ? "grid-cols-4" : mobileNav.length === 5 ? "grid-cols-5" : mobileNav.length === 6 ? "grid-cols-6" : mobileNav.length === 7 ? "grid-cols-7" : "grid-cols-8")}>
+          {mobileNav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
             return (
