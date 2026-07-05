@@ -47,7 +47,10 @@ export interface Chamado {
   fotoAntes: string | null;
   fotoDepois: string | null;
   criadoEm: string;
+  criadoPor: string | null;
+  criadoPorNome: string | null;
 }
+
 
 export interface AtivoAr {
   id: string;
