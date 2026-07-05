@@ -233,6 +233,11 @@ function ChamadoCard({
           <span className="flex items-center gap-1"><MapPin className="h-3 w-3" />{c.unidade}</span>
           <span className="truncate max-w-[140px]">{responsavel}</span>
         </div>
+        {c.criadoPorNome && (
+          <div className="mt-1 text-[11px] text-muted-foreground truncate">
+            Aberto por <span className="font-medium text-foreground">{c.criadoPorNome}</span>
+          </div>
+        )}
       </Link>
       {canDelete && (
         <div className="absolute top-1.5 right-1.5">
