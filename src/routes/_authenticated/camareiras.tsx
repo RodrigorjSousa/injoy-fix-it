@@ -302,12 +302,39 @@ function CamareirasPage() {
                     </div>
                   )}
                 </div>
+                <div className="shrink-0 flex items-center gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setLegendaOpen(true)}
+                    aria-label="Legenda dos tipos de serviço"
+                    className="h-6 w-6 grid place-items-center rounded-full border border-border bg-background text-muted-foreground hover:text-primary hover:border-primary/40 transition"
+                    title="Ver legenda dos serviços"
+                  >
+                    <Info className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => podeCriar && cicloServico(t.id)}
+                    disabled={!podeCriar}
+                    title={
+                      SERVICO_DESCRICAO[t.servico ?? "GERAL CHECK-OUT"] +
+                      (podeCriar ? " (clique para alternar)" : "")
+                    }
+                    className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-80 disabled:cursor-default transition"
+                  >
+                    {t.servico ?? "GERAL CHECK-OUT"}
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
+                <span className="text-muted-foreground">Status:</span>
                 <span
                   className={cn(
-                    "shrink-0 text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm",
-                    t.status === "Pendente" && "bg-red-600 text-white",
-                    t.status === "Em Andamento" && "bg-[#0b2545] text-white",
-                    t.status === "Concluído" && "bg-emerald-600 text-white",
+                    "px-2 py-0.5 rounded",
+                    t.status === "Pendente" && "bg-red-100 text-red-700",
+                    t.status === "Em Andamento" && "bg-[#0b2545]/10 text-[#0b2545]",
+                    t.status === "Concluído" && "bg-emerald-100 text-emerald-700",
                   )}
                 >
                   {t.status}
