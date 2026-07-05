@@ -167,6 +167,18 @@ function CamareirasPage() {
     }
   };
 
+  const cicloServico = (id: string) => {
+    setTarefas((prev) =>
+      prev.map((t) => {
+        if (t.id !== id) return t;
+        const atual = t.servico ?? "GERAL CHECK-OUT";
+        const idx = SERVICO_TIPOS.indexOf(atual);
+        const prox = SERVICO_TIPOS[(idx + 1) % SERVICO_TIPOS.length];
+        return { ...t, servico: prox };
+      }),
+    );
+  };
+
   if (reportar) {
     return (
       <ReportarDefeitoForm
