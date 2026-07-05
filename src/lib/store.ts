@@ -80,6 +80,7 @@ type ChamadoRow = {
   responsavel_id: string | null;
   foto_antes: string | null;
   foto_depois: string | null;
+  criado_por: string | null;
   created_at: string;
 };
 type AtivoRow = {
@@ -99,7 +100,7 @@ const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
   categorias: (r.categorias ?? []) as Categoria[],
   userId: r.user_id,
 });
-const mapChamado = (r: ChamadoRow): Chamado => ({
+const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado => ({
   id: r.id,
   unidade: r.unidade,
   categoria: r.categoria as Categoria,
@@ -109,7 +110,10 @@ const mapChamado = (r: ChamadoRow): Chamado => ({
   fotoAntes: r.foto_antes,
   fotoDepois: r.foto_depois,
   criadoEm: r.created_at,
+  criadoPor: r.criado_por,
+  criadoPorNome: nomeCriador,
 });
+
 const mapAtivo = (r: AtivoRow): AtivoAr => ({
   id: r.id,
   unidade: r.unidade,
