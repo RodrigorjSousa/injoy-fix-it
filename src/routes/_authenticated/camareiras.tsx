@@ -380,6 +380,44 @@ function CamareirasPage() {
           );
         })}
       </div>
+
+      {legendaOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4"
+          onClick={() => setLegendaOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
+              <div className="flex items-center gap-2">
+                <Info className="h-4 w-4 text-primary" />
+                <div className="font-semibold text-sm">Legenda dos tipos de serviço</div>
+              </div>
+              <button
+                onClick={() => setLegendaOpen(false)}
+                aria-label="Fechar legenda"
+                className="p-1 rounded hover:bg-muted"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <ul className="p-4 space-y-3">
+              {SERVICO_TIPOS.map((tipo) => (
+                <li key={tipo} className="flex flex-col gap-1">
+                  <span className="self-start text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-600 text-white">
+                    {tipo}
+                  </span>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    {SERVICO_DESCRICAO[tipo]}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
