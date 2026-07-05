@@ -44,7 +44,8 @@ const ALL_NAV: NavItem[] = [
     show: isFullAccess,
     children: [
       { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
-      { to: "/configuracoes", label: "Configurações", icon: PlusCircle },
+      { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
+      { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
     ],
   },
 ];
