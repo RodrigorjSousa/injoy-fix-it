@@ -28,6 +28,11 @@ import {
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/")({
+  validateSearch: (s: Record<string, unknown>) => ({
+    categoria: (typeof s.categoria === "string" ? (s.categoria as Categoria) : undefined) as
+      | Categoria
+      | undefined,
+  }),
   component: NovoChamado,
 });
 
