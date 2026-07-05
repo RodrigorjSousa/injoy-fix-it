@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Zap,
   Snowflake,
@@ -11,6 +12,7 @@ import {
   Wrench,
   ChevronRight,
   Users,
+  PlusCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChamados, useFuncionarios, type Chamado, type Funcionario } from "@/lib/store";
