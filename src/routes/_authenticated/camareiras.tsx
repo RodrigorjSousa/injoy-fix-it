@@ -122,6 +122,7 @@ function CamareirasPage() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [reportar, setReportar] = useState<Tarefa | null>(null);
   const [prioridade, setPrioridade] = useState<PrioridadeEntry[]>(() => loadPrioridade());
+  const [legendaOpen, setLegendaOpen] = useState(false);
 
   useEffect(() => {
     try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas)); } catch { /* ignore */ }
