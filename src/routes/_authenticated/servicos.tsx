@@ -31,6 +31,7 @@ type Servico = {
   search: Record<string, string>;
   tone: string;
   dot: string;
+  btn: string;
   categoria: string;
   emergencia?: boolean;
 };
@@ -45,6 +46,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Elétrica" },
     tone: "from-amber-500/15 to-amber-500/0 text-amber-600 border-amber-500/30",
     dot: "bg-amber-500",
+    btn: "bg-amber-500 hover:bg-amber-600 focus-visible:ring-amber-500 active:bg-amber-700 text-white",
     categoria: "Elétrica",
   },
   {
@@ -57,6 +59,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Ar condicionado", tipo: "corretiva" },
     tone: "from-sky-500/15 to-sky-500/0 text-sky-600 border-sky-500/30",
     dot: "bg-sky-500",
+    btn: "bg-sky-500 hover:bg-sky-600 focus-visible:ring-sky-500 active:bg-sky-700 text-white",
     categoria: "Ar condicionado",
   },
   {
@@ -69,6 +72,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Ar condicionado", tipo: "emergencia" },
     tone: "from-red-600/15 to-red-600/0 text-red-600 border-red-600/40",
     dot: "bg-red-600",
+    btn: "bg-red-600 hover:bg-red-700 focus-visible:ring-red-600 active:bg-red-800 text-white",
     categoria: "Ar condicionado",
     emergencia: true,
   },
@@ -81,6 +85,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Hidráulica" },
     tone: "from-blue-500/15 to-blue-500/0 text-blue-600 border-blue-500/30",
     dot: "bg-blue-500",
+    btn: "bg-blue-500 hover:bg-blue-600 focus-visible:ring-blue-500 active:bg-blue-700 text-white",
     categoria: "Hidráulica",
   },
   {
@@ -92,6 +97,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Pintura" },
     tone: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 border-emerald-500/30",
     dot: "bg-emerald-500",
+    btn: "bg-emerald-500 hover:bg-emerald-600 focus-visible:ring-emerald-500 active:bg-emerald-700 text-white",
     categoria: "Pintura",
   },
   {
@@ -103,6 +109,7 @@ const SERVICOS: Servico[] = [
     search: { categoria: "Marcenaria" },
     tone: "from-orange-600/15 to-orange-600/0 text-orange-700 border-orange-600/30",
     dot: "bg-orange-600",
+    btn: "bg-orange-600 hover:bg-orange-700 focus-visible:ring-orange-600 active:bg-orange-800 text-white",
     categoria: "Marcenaria",
   },
 ];
