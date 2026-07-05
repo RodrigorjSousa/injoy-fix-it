@@ -83,7 +83,7 @@ function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
   (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
     QUARTOS_POR_UNIDADE[u].forEach((q) => {
-      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente" });
+      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente", servico: "GERAL CHECK-OUT" });
     });
   });
   return arr;
