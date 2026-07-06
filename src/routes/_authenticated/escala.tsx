@@ -1218,7 +1218,7 @@ function CamareirasTab({
 }
 
 function UnidadeCalendario({
-  titulo, unidade, year, month, escala, onEdit, onAdd,
+  titulo, unidade, year, month, escala, onEdit, onAdd, onDayDrop,
 }: {
   titulo: string;
   unidade: UnidadeCam;
@@ -1227,6 +1227,7 @@ function UnidadeCalendario({
   escala: Record<string, { titular: DiaCam; extras: { nome: string; tipo: CamTipo }[] }>;
   onEdit: (date: string, current: DiaCam) => void;
   onAdd: (date: string) => void;
+  onDayDrop?: (key: string, e: React.DragEvent) => void;
 }) {
   const tone = unidade === "ipanema"
     ? "from-rose-500/10 to-transparent border-rose-500/30"
@@ -1240,13 +1241,18 @@ function UnidadeCalendario({
       <CalendarGrid
         year={year}
         month={month}
+        onDayDrop={onDayDrop}
         renderDay={(_d, k) => {
           const dia = escala[k];
           if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
+          const makeDrag = () => (e: React.DragEvent) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("application/json", JSON.stringify({ kind: "cam", unidade, date: k }));
+          };
           return (
             <>
               {dia.titular ? (
-                <CamRow cam={dia.titular} onEdit={() => onEdit(k, dia.titular)} />
+                <CamRow cam={dia.titular} onEdit={() => onEdit(k, dia.titular)} onDragStart={makeDrag()} />
               ) : (
                 <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/40 px-1.5 py-1 text-[11px] font-medium text-muted-foreground">
                   Folga
