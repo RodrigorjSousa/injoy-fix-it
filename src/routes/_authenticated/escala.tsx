@@ -1365,6 +1365,13 @@ function CamareirasTab({
           )}
         </DialogContent>
       </Dialog>
+
+      <ConfirmDropDialog
+        open={!!pendingCamDrop}
+        onOpenChange={(v) => !v && setPendingCamDrop(null)}
+        onSwap={applyCamSwap}
+        onRecalc={applyCamRecalc}
+      />
     </div>
   );
 }
