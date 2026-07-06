@@ -1134,6 +1134,36 @@ function CamareirasTab({
     setAddingFree(null);
   };
 
+  const handleCamDrop = (unidade: UnidadeCam) => (dstDate: string, e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+    let payload: { kind: string; unidade: UnidadeCam; date: string } | null = null;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (!payload || payload.kind !== "cam") return;
+    if (payload.unidade !== unidade) {
+      toast.error("Não é possível mover entre unidades diferentes");
+      return;
+    }
+    const srcDate = payload.date;
+    if (srcDate === dstDate) return;
+    setEscala((prev) => {
+      const uni = prev[unidade];
+      const src = uni[srcDate] ?? { titular: null, extras: [] };
+      const dst = uni[dstDate] ?? { titular: null, extras: [] };
+      if (!src.titular) return prev;
+      return {
+        ...prev,
+        [unidade]: {
+          ...uni,
+          [srcDate]: { ...src, titular: dst.titular },
+          [dstDate]: { ...dst, titular: src.titular },
+        },
+      };
+    });
+    toast.success("Camareira movida", { description: "Troca aplicada entre os dias." });
+  };
+
+
   const editingUnidade = editing?.unidade;
   const editingOptions = editingUnidade
     ? byUnidade(editingUnidade).map((f) => ({ nome: f.nome, tipo: contratoToCam(f.tipo) }))
