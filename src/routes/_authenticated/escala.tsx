@@ -13,11 +13,13 @@ import {
   Moon,
   Wrench,
   BedDouble,
-  X,
+  Users,
+  Trash2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import {
   Tabs,
   TabsContent,
@@ -58,12 +60,87 @@ export const Route = createFileRoute("/_authenticated/escala")({
   component: EscalaPage,
 });
 
-// ---------- Data ----------
-const RECEPCAO_MANHA = ["Mayara Fagundes", "Júlia Cristine"];
-const RECEPCAO_NOITE = ["Lucivaldo", "Mathaus Ramos"];
+/* ============================================================
+   Equipe dinâmica (CRUD) — persistida em localStorage
+   ============================================================ */
+export type Setor = "manutencao" | "recepcao" | "camareiras";
+export type UnidadeEq = "ipanema" | "botafogo" | "todas";
+export type TipoContrato = "Fixo" | "Freelance";
+export type TurnoRec = "manha" | "noite";
 
-const MANUTENCAO_FIXO = "CRISTIANO";
+export interface Funcionario {
+  id: string;
+  nome: string;
+  setor: Setor;
+  unidade: UnidadeEq;
+  tipo: TipoContrato;
+  turno?: TurnoRec; // apenas recepção
+}
 
+const STORAGE_KEY = "injoy.escala.equipe.v1";
+
+const SEED: Funcionario[] = [
+  // Manutenção
+  { id: "m-cristiano", nome: "CRISTIANO", setor: "manutencao", unidade: "todas", tipo: "Fixo" },
+  // Recepção — Manhã
+  { id: "r-mayara", nome: "Mayara Fagundes", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "manha" },
+  { id: "r-julia", nome: "Júlia Cristine", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "manha" },
+  // Recepção — Noite
+  { id: "r-lucivaldo", nome: "Lucivaldo", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "noite" },
+  { id: "r-mathaus", nome: "Mathaus Ramos", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "noite" },
+  // Camareiras — Ipanema
+  { id: "c-maria", nome: "MARIA", setor: "camareiras", unidade: "ipanema", tipo: "Fixo" },
+  { id: "c-cristina", nome: "CRISTINA", setor: "camareiras", unidade: "ipanema", tipo: "Freelance" },
+  // Camareiras — Botafogo
+  { id: "c-gleidiane", nome: "GLEIDIANE MENDES", setor: "camareiras", unidade: "botafogo", tipo: "Fixo" },
+  { id: "c-raquel", nome: "RAQUEL", setor: "camareiras", unidade: "botafogo", tipo: "Fixo" },
+  { id: "c-luciene", nome: "LUCIENE CERQUEIRA", setor: "camareiras", unidade: "botafogo", tipo: "Freelance" },
+];
+
+function loadEquipe(): Funcionario[] {
+  if (typeof window === "undefined") return SEED;
+  try {
+    const raw = window.localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(SEED));
+      return SEED;
+    }
+    return JSON.parse(raw) as Funcionario[];
+  } catch {
+    return SEED;
+  }
+}
+function saveEquipe(list: Funcionario[]) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+}
+
+function useEquipe() {
+  const [equipe, setEquipe] = useState<Funcionario[]>(SEED);
+  useEffect(() => {
+    setEquipe(loadEquipe());
+  }, []);
+  const persist = (list: Funcionario[]) => {
+    setEquipe(list);
+    saveEquipe(list);
+  };
+  const upsert = (f: Funcionario) => {
+    const exists = equipe.some((e) => e.id === f.id);
+    persist(exists ? equipe.map((e) => (e.id === f.id ? f : e)) : [...equipe, f]);
+  };
+  const remove = (id: string) => persist(equipe.filter((e) => e.id !== id));
+  return { equipe, upsert, remove };
+}
+
+const SETOR_LABEL: Record<Setor, string> = {
+  manutencao: "Manutenção",
+  recepcao: "Recepção",
+  camareiras: "Camareiras",
+};
+
+/* ============================================================
+   Shared helpers
+   ============================================================ */
 type Turno = "manha" | "noite";
 type Escala = Record<string, { manha: string; noite: string }>;
 
@@ -79,12 +156,16 @@ function keyOf(y: number, m: number, d: number) {
   return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
-// ---------- Page ----------
+/* ============================================================
+   Page
+   ============================================================ */
 function EscalaPage() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth());
+  const [manageOpen, setManageOpen] = useState(false);
 
+  const { equipe, upsert, remove } = useEquipe();
   const label = `${MONTHS[month]} / ${year}`;
 
   return (
@@ -116,7 +197,14 @@ function EscalaPage() {
           >
             <FileDown className="h-4 w-4" /> Exportar PDF
           </Button>
-          <WhatsAppButton mesLabel={label} />
+          <WhatsAppButton mesLabel={label} equipe={equipe} />
+          <Button
+            variant="outline"
+            className="gap-2 border-primary/30 text-primary hover:bg-primary/5"
+            onClick={() => setManageOpen(true)}
+          >
+            <Users className="h-4 w-4" /> Gerenciar Equipe
+          </Button>
         </div>
 
         <Tabs defaultValue="recepcao" className="mt-6">
@@ -127,79 +215,318 @@ function EscalaPage() {
           </TabsList>
 
           <TabsContent value="manutencao" className="mt-5">
-            <ManutencaoTab
-              year={year}
-              month={month}
-              setYear={setYear}
-              setMonth={setMonth}
-            />
+            <ManutencaoTab year={year} month={month} setYear={setYear} setMonth={setMonth} equipe={equipe} />
           </TabsContent>
 
           <TabsContent value="recepcao" className="mt-5">
-            <RecepcaoTab
-              year={year}
-              month={month}
-              setYear={setYear}
-              setMonth={setMonth}
-            />
+            <RecepcaoTab year={year} month={month} setYear={setYear} setMonth={setMonth} equipe={equipe} />
           </TabsContent>
 
           <TabsContent value="camareiras" className="mt-5">
-            <CamareirasTab
-              year={year}
-              month={month}
-              setYear={setYear}
-              setMonth={setMonth}
-            />
+            <CamareirasTab year={year} month={month} setYear={setYear} setMonth={setMonth} equipe={equipe} />
           </TabsContent>
         </Tabs>
       </Card>
+
+      <ManageTeamDialog
+        open={manageOpen}
+        onOpenChange={setManageOpen}
+        equipe={equipe}
+        onUpsert={upsert}
+        onRemove={remove}
+      />
     </div>
   );
 }
 
-// ---------- Shared: month switcher ----------
-function MonthSwitcher({
-  year,
-  month,
-  setYear,
-  setMonth,
+/* ============================================================
+   Manage Team Dialog (CRUD)
+   ============================================================ */
+function ManageTeamDialog({
+  open,
+  onOpenChange,
+  equipe,
+  onUpsert,
+  onRemove,
 }: {
-  year: number;
-  month: number;
-  setYear: (v: number) => void;
-  setMonth: (v: number) => void;
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  equipe: Funcionario[];
+  onUpsert: (f: Funcionario) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [editing, setEditing] = useState<Funcionario | null>(null);
+  const [formOpen, setFormOpen] = useState(false);
+
+  const grouped = useMemo(() => {
+    const g: Record<Setor, Funcionario[]> = { manutencao: [], recepcao: [], camareiras: [] };
+    equipe.forEach((f) => g[f.setor].push(f));
+    return g;
+  }, [equipe]);
+
+  const openNew = () => {
+    setEditing(null);
+    setFormOpen(true);
+  };
+  const openEdit = (f: Funcionario) => {
+    setEditing(f);
+    setFormOpen(true);
+  };
+
+  return (
+    <>
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Users className="h-5 w-5" /> Gerenciar Equipe
+            </DialogTitle>
+            <DialogDescription>
+              Cadastre, edite ou remova funcionários. As escalas automáticas usam esta lista.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="flex justify-end">
+            <Button onClick={openNew} className="gap-2">
+              <Plus className="h-4 w-4" /> Adicionar Funcionário
+            </Button>
+          </div>
+
+          <div className="space-y-5 mt-2">
+            {(Object.keys(grouped) as Setor[]).map((setor) => (
+              <section key={setor} className="space-y-2">
+                <h4 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                  {setor === "manutencao" && <Wrench className="h-4 w-4" />}
+                  {setor === "recepcao" && <Sun className="h-4 w-4" />}
+                  {setor === "camareiras" && <BedDouble className="h-4 w-4" />}
+                  {SETOR_LABEL[setor]}
+                  <span className="text-xs font-normal text-muted-foreground/70">
+                    ({grouped[setor].length})
+                  </span>
+                </h4>
+                {grouped[setor].length === 0 ? (
+                  <p className="text-xs text-muted-foreground italic px-3 py-2 rounded-md border border-dashed">
+                    Nenhum funcionário cadastrado neste setor.
+                  </p>
+                ) : (
+                  <ul className="space-y-2">
+                    {grouped[setor].map((f) => (
+                      <li
+                        key={f.id}
+                        className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card px-3 py-2"
+                      >
+                        <div className="flex min-w-0 items-center gap-2 flex-wrap">
+                          <div className="h-8 w-8 shrink-0 rounded-full bg-muted grid place-items-center text-xs font-semibold text-muted-foreground">
+                            {f.nome.charAt(0)}
+                          </div>
+                          <span className="truncate text-sm font-medium">{f.nome}</span>
+                          <Badge
+                            className={cn(
+                              "text-[10px]",
+                              f.tipo === "Fixo"
+                                ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                                : "bg-amber-100 text-amber-800 hover:bg-amber-100",
+                            )}
+                          >
+                            {f.tipo}
+                          </Badge>
+                          <Badge variant="outline" className="text-[10px] capitalize">
+                            {f.unidade}
+                          </Badge>
+                          {f.turno && (
+                            <Badge variant="outline" className="text-[10px] capitalize gap-1">
+                              {f.turno === "manha" ? <Sun className="h-3 w-3" /> : <Moon className="h-3 w-3" />}
+                              {f.turno === "manha" ? "Manhã" : "Noite"}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => openEdit(f)}
+                            aria-label="Editar"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-rose-600 hover:text-rose-700 hover:bg-rose-50"
+                            onClick={() => {
+                              onRemove(f.id);
+                              toast.success(`${f.nome} removido(a)`);
+                            }}
+                            aria-label="Remover"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            ))}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <FuncionarioFormDialog
+        open={formOpen}
+        onOpenChange={setFormOpen}
+        initial={editing}
+        onSave={(f) => {
+          onUpsert(f);
+          toast.success(editing ? "Funcionário atualizado" : "Funcionário adicionado", {
+            description: f.nome,
+          });
+          setFormOpen(false);
+        }}
+      />
+    </>
+  );
+}
+
+function FuncionarioFormDialog({
+  open,
+  onOpenChange,
+  initial,
+  onSave,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  initial: Funcionario | null;
+  onSave: (f: Funcionario) => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [setor, setSetor] = useState<Setor>("recepcao");
+  const [unidade, setUnidade] = useState<UnidadeEq>("todas");
+  const [tipo, setTipo] = useState<TipoContrato>("Fixo");
+  const [turno, setTurno] = useState<TurnoRec>("manha");
+
+  useEffect(() => {
+    if (open) {
+      setNome(initial?.nome ?? "");
+      setSetor(initial?.setor ?? "recepcao");
+      setUnidade(initial?.unidade ?? "todas");
+      setTipo(initial?.tipo ?? "Fixo");
+      setTurno(initial?.turno ?? "manha");
+    }
+  }, [open, initial]);
+
+  const submit = () => {
+    if (!nome.trim()) {
+      toast.error("Informe o nome do funcionário");
+      return;
+    }
+    const f: Funcionario = {
+      id: initial?.id ?? `f-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      nome: nome.trim(),
+      setor,
+      unidade,
+      tipo,
+      ...(setor === "recepcao" ? { turno } : {}),
+    };
+    onSave(f);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>{initial ? "Editar funcionário" : "Adicionar funcionário"}</DialogTitle>
+          <DialogDescription>
+            Dados usados na geração automática de escala.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Nome</Label>
+            <Input value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome completo" />
+          </div>
+          <div className="space-y-2">
+            <Label>Setor</Label>
+            <Select value={setor} onValueChange={(v) => setSetor(v as Setor)}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="manutencao">Manutenção</SelectItem>
+                <SelectItem value="recepcao">Recepção</SelectItem>
+                <SelectItem value="camareiras">Camareiras</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-2">
+              <Label>Unidade</Label>
+              <Select value={unidade} onValueChange={(v) => setUnidade(v as UnidadeEq)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ipanema">Ipanema</SelectItem>
+                  <SelectItem value="botafogo">Botafogo</SelectItem>
+                  <SelectItem value="todas">Todas</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Tipo de contrato</Label>
+              <Select value={tipo} onValueChange={(v) => setTipo(v as TipoContrato)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Fixo">Fixo</SelectItem>
+                  <SelectItem value="Freelance">Freelance</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          {setor === "recepcao" && (
+            <div className="space-y-2">
+              <Label>Turno</Label>
+              <Select value={turno} onValueChange={(v) => setTurno(v as TurnoRec)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manha">Manhã</SelectItem>
+                  <SelectItem value="noite">Noite</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={submit}>Salvar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/* ============================================================
+   Month switcher & calendar grid
+   ============================================================ */
+function MonthSwitcher({
+  year, month, setYear, setMonth,
+}: {
+  year: number; month: number; setYear: (v: number) => void; setMonth: (v: number) => void;
 }) {
   const changeMonth = (delta: number) => {
     let m = month + delta;
     let y = year;
     if (m < 0) { m = 11; y--; }
     if (m > 11) { m = 0; y++; }
-    setMonth(m);
-    setYear(y);
+    setMonth(m); setYear(y);
   };
   return (
     <div className="flex items-center gap-2">
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => changeMonth(-1)}
-        aria-label="Mês anterior"
-      >
+      <Button variant="outline" size="icon" onClick={() => changeMonth(-1)} aria-label="Mês anterior">
         <ChevronLeft className="h-4 w-4" />
       </Button>
       <div className="inline-flex items-center gap-2 rounded-lg border bg-muted/40 px-3 py-1.5 text-sm font-medium">
         <CalendarDays className="h-4 w-4 text-muted-foreground" />
-        <span className="truncate">
-          {MONTHS[month]} / {year}
-        </span>
+        <span className="truncate">{MONTHS[month]} / {year}</span>
       </div>
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => changeMonth(1)}
-        aria-label="Próximo mês"
-      >
+      <Button variant="outline" size="icon" onClick={() => changeMonth(1)} aria-label="Próximo mês">
         <ChevronRight className="h-4 w-4" />
       </Button>
     </div>
@@ -207,13 +534,9 @@ function MonthSwitcher({
 }
 
 function CalendarGrid({
-  year,
-  month,
-  renderDay,
+  year, month, renderDay,
 }: {
-  year: number;
-  month: number;
-  renderDay: (day: number, key: string) => React.ReactNode;
+  year: number; month: number; renderDay: (day: number, key: string) => React.ReactNode;
 }) {
   const totalDays = daysInMonth(year, month);
   const firstDow = new Date(year, month, 1).getDay();
@@ -225,30 +548,16 @@ function CalendarGrid({
     <div className="rounded-xl border overflow-hidden">
       <div className="grid grid-cols-7 bg-muted/50 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
         {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((d) => (
-          <div key={d} className="px-2 py-2 text-center">
-            {d}
-          </div>
+          <div key={d} className="px-2 py-2 text-center">{d}</div>
         ))}
       </div>
       <div className="grid grid-cols-7">
         {cells.map((d, i) => {
-          if (d === null) {
-            return (
-              <div
-                key={i}
-                className="min-h-[110px] bg-muted/20 border-t border-l"
-              />
-            );
-          }
+          if (d === null) return <div key={i} className="min-h-[110px] bg-muted/20 border-t border-l" />;
           const k = keyOf(year, month, d);
           return (
-            <div
-              key={i}
-              className="min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs"
-            >
-              <div className="text-[11px] font-semibold text-muted-foreground">
-                {String(d).padStart(2, "0")}
-              </div>
+            <div key={i} className="min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs">
+              <div className="text-[11px] font-semibold text-muted-foreground">{String(d).padStart(2, "0")}</div>
               {renderDay(d, k)}
             </div>
           );
@@ -258,42 +567,44 @@ function CalendarGrid({
   );
 }
 
-// ---------- WhatsApp ----------
-function WhatsAppButton({ mesLabel }: { mesLabel: string }) {
+/* ============================================================
+   WhatsApp
+   ============================================================ */
+function WhatsAppButton({ mesLabel, equipe }: { mesLabel: string; equipe: Funcionario[] }) {
   const [open, setOpen] = useState(false);
-  const preview = useMemo(
-    () =>
+  const preview = useMemo(() => {
+    const manut = equipe.filter((f) => f.setor === "manutencao").map((f) => f.nome).join(", ") || "—";
+    const recManha = equipe.filter((f) => f.setor === "recepcao" && f.turno === "manha").map((f) => f.nome).join(" / ") || "—";
+    const recNoite = equipe.filter((f) => f.setor === "recepcao" && f.turno === "noite").map((f) => f.nome).join(" / ") || "—";
+    const camIpa = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "ipanema")
+      .map((f) => `${f.nome} (${f.tipo})`).join(", ") || "—";
+    const camBot = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "botafogo")
+      .map((f) => `${f.nome} (${f.tipo})`).join(", ") || "—";
+    return (
       `*Escala INJOY — ${mesLabel}*\n\n` +
-      `🔧 *Manutenção*\n- CRISTIANO (escala 6x1)\n\n` +
-      `🛎️ *Recepção*\n- Manhã: Mayara / Júlia (alternado)\n- Noite: Lucivaldo / Mathaus (alternado)\n\n` +
-      `🛏️ *Camareiras*\n- Ipanema: MARIA (Fixa 6x1), CRISTINA (Freelance)\n- Botafogo: GLEIDIANE / RAQUEL (12x24 alternado), LUCIENE (Freelance)\n\n` +
-      `_Enviado automaticamente pelo painel INJOY._`,
-    [mesLabel],
-  );
+      `🔧 *Manutenção*\n- ${manut} (escala 6x1)\n\n` +
+      `🛎️ *Recepção*\n- Manhã: ${recManha} (alternado)\n- Noite: ${recNoite} (alternado)\n\n` +
+      `🛏️ *Camareiras*\n- Ipanema: ${camIpa}\n- Botafogo: ${camBot}\n\n` +
+      `_Enviado automaticamente pelo painel INJOY._`
+    );
+  }, [mesLabel, equipe]);
 
   return (
     <>
-      <Button
-        className="gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white"
-        onClick={() => setOpen(true)}
-      >
+      <Button className="gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white" onClick={() => setOpen(true)}>
         <MessageCircle className="h-4 w-4" /> Enviar via WhatsApp
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Prévia do envio — WhatsApp</DialogTitle>
-            <DialogDescription>
-              Confira a mensagem antes de compartilhar com a equipe.
-            </DialogDescription>
+            <DialogDescription>Confira a mensagem antes de compartilhar com a equipe.</DialogDescription>
           </DialogHeader>
           <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-4 text-sm leading-relaxed font-sans max-h-80 overflow-auto">
             {preview}
           </pre>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
             <Button
               className="bg-[#25D366] hover:bg-[#1ebe57] text-white gap-2"
               onClick={() => {
@@ -311,47 +622,47 @@ function WhatsAppButton({ mesLabel }: { mesLabel: string }) {
   );
 }
 
-// ---------- Manutenção Tab (6x1) ----------
+/* ============================================================
+   Manutenção Tab (6x1)
+   ============================================================ */
 type DiaManut = { status: "trabalho" | "folga" | "falta"; nome: string; motivo?: string };
 type EscalaManut = Record<string, DiaManut>;
 
 function ManutencaoTab({
-  year,
-  month,
-  setYear,
-  setMonth,
+  year, month, setYear, setMonth, equipe,
 }: {
-  year: number;
-  month: number;
-  setYear: (v: number) => void;
-  setMonth: (v: number) => void;
+  year: number; month: number; setYear: (v: number) => void; setMonth: (v: number) => void; equipe: Funcionario[];
 }) {
+  const manutList = equipe.filter((f) => f.setor === "manutencao");
+  const substitutos = manutList.map((f) => f.nome);
+  const titular = manutList[0]?.nome ?? null;
+
   const [escala, setEscala] = useState<EscalaManut>({});
   const [editing, setEditing] = useState<{ date: string; dia: DiaManut } | null>(null);
 
   const gerar = () => {
+    if (!titular) {
+      toast.error("Cadastre ao menos um funcionário na Manutenção");
+      return;
+    }
     const totalDays = daysInMonth(year, month);
     const next: EscalaManut = {};
-    // 6x1: work 6 days, off 1, restart. Start cycle at day 1.
     for (let d = 1; d <= totalDays; d++) {
       const idx = (d - 1) % 7;
       next[keyOf(year, month, d)] = {
         status: idx === 6 ? "folga" : "trabalho",
-        nome: MANUTENCAO_FIXO,
+        nome: titular,
       };
     }
     setEscala(next);
     toast.success("Escala automática gerada", {
-      description: `${MANUTENCAO_FIXO} — 6x1 em ${MONTHS[month]}/${year}.`,
+      description: `${titular} — 6x1 em ${MONTHS[month]}/${year}.`,
     });
   };
 
   const salvar = (patch: Partial<DiaManut>) => {
     if (!editing) return;
-    setEscala((prev) => ({
-      ...prev,
-      [editing.date]: { ...editing.dia, ...patch },
-    }));
+    setEscala((prev) => ({ ...prev, [editing.date]: { ...editing.dia, ...patch } }));
     toast.success("Plantão atualizado");
     setEditing(null);
   };
@@ -359,17 +670,16 @@ function ManutencaoTab({
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthSwitcher
-          year={year}
-          month={month}
-          setYear={setYear}
-          setMonth={setMonth}
-        />
+        <MonthSwitcher year={year} month={month} setYear={setYear} setMonth={setMonth} />
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 gap-1">
-            <Wrench className="h-3 w-3" /> {MANUTENCAO_FIXO} — 6x1
-          </Badge>
-          <Button onClick={gerar} className="gap-2">
+          {titular ? (
+            <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100 gap-1">
+              <Wrench className="h-3 w-3" /> {titular} — 6x1
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="text-muted-foreground">Sem funcionário cadastrado</Badge>
+          )}
+          <Button onClick={gerar} className="gap-2" disabled={!titular}>
             <Sparkles className="h-4 w-4" /> Gerar Escala Automática
           </Button>
         </div>
@@ -380,10 +690,7 @@ function ManutencaoTab({
         month={month}
         renderDay={(_d, k) => {
           const dia = escala[k];
-          if (!dia)
-            return (
-              <span className="text-[11px] italic text-muted-foreground/70">—</span>
-            );
+          if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
           if (dia.status === "folga")
             return (
               <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/40 px-1.5 py-2 text-[11px] font-medium text-muted-foreground">
@@ -395,21 +702,12 @@ function ManutencaoTab({
             <div
               className={cn(
                 "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors",
-                isFalta
-                  ? "bg-rose-50 border-rose-200"
-                  : "bg-emerald-50 border-emerald-200",
+                isFalta ? "bg-rose-50 border-rose-200" : "bg-emerald-50 border-emerald-200",
               )}
             >
               <div className="flex min-w-0 items-center gap-1">
-                <Wrench
-                  className={cn(
-                    "h-3 w-3",
-                    isFalta ? "text-rose-600" : "text-emerald-600",
-                  )}
-                />
-                <span className="truncate text-[11px] font-medium">
-                  {isFalta ? "Falta" : dia.nome}
-                </span>
+                <Wrench className={cn("h-3 w-3", isFalta ? "text-rose-600" : "text-emerald-600")} />
+                <span className="truncate text-[11px] font-medium">{isFalta ? "Falta" : dia.nome}</span>
               </div>
               <button
                 type="button"
@@ -428,6 +726,7 @@ function ManutencaoTab({
         open={!!editing}
         onOpenChange={(v) => !v && setEditing(null)}
         data={editing}
+        substitutos={substitutos}
         onSave={salvar}
       />
     </div>
@@ -435,34 +734,29 @@ function ManutencaoTab({
 }
 
 function EditManutDialog({
-  open,
-  onOpenChange,
-  data,
-  onSave,
+  open, onOpenChange, data, substitutos, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   data: { date: string; dia: DiaManut } | null;
+  substitutos: string[];
   onSave: (patch: Partial<DiaManut>) => void;
 }) {
   const [status, setStatus] = useState<DiaManut["status"]>("trabalho");
   const [motivo, setMotivo] = useState("");
+  const [nome, setNome] = useState("");
 
   useEffect(() => {
     if (data) {
       setStatus(data.dia.status);
       setMotivo(data.dia.motivo ?? "");
+      setNome(data.dia.nome);
     }
   }, [data]);
 
   if (!data) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent />
-      </Dialog>
-    );
+    return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent /></Dialog>;
   }
-
   const [y, m, d] = data.date.split("-");
   const dataFmt = `${d}/${m}/${y}`;
 
@@ -471,9 +765,7 @@ function EditManutDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar dia — Manutenção</DialogTitle>
-          <DialogDescription>
-            Registre faltas ou altere o dia de folga de {MANUTENCAO_FIXO}.
-          </DialogDescription>
+          <DialogDescription>Registre faltas, folgas ou substituto.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <Badge variant="secondary" className="text-sm">
@@ -481,13 +773,8 @@ function EditManutDialog({
           </Badge>
           <div className="space-y-2">
             <Label>Situação do dia</Label>
-            <Select
-              value={status}
-              onValueChange={(v) => setStatus(v as DiaManut["status"])}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
+            <Select value={status} onValueChange={(v) => setStatus(v as DiaManut["status"])}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="trabalho">Trabalho</SelectItem>
                 <SelectItem value="folga">Folga</SelectItem>
@@ -495,54 +782,57 @@ function EditManutDialog({
               </SelectContent>
             </Select>
           </div>
+          {status === "trabalho" && substitutos.length > 1 && (
+            <div className="space-y-2">
+              <Label>Funcionário</Label>
+              <Select value={nome} onValueChange={setNome}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {substitutos.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
           <div className="space-y-2">
             <Label>Observação (opcional)</Label>
-            <Textarea
-              rows={3}
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              placeholder="Ex.: atestado, troca de folga..."
-            />
+            <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: atestado, troca de folga..." />
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={() => onSave({ status, motivo })}>Salvar</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onSave({ status, motivo, nome })}>Salvar</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ---------- Recepção Tab ----------
+/* ============================================================
+   Recepção Tab
+   ============================================================ */
 function RecepcaoTab({
-  year,
-  month,
-  setYear,
-  setMonth,
+  year, month, setYear, setMonth, equipe,
 }: {
-  year: number;
-  month: number;
-  setYear: (v: number) => void;
-  setMonth: (v: number) => void;
+  year: number; month: number; setYear: (v: number) => void; setMonth: (v: number) => void; equipe: Funcionario[];
 }) {
-  const [escala, setEscala] = useState<Escala>({});
-  const [editing, setEditing] = useState<
-    | { date: string; turno: Turno; current: string }
-    | null
-  >(null);
+  const manhaList = equipe.filter((f) => f.setor === "recepcao" && f.turno === "manha").map((f) => f.nome);
+  const noiteList = equipe.filter((f) => f.setor === "recepcao" && f.turno === "noite").map((f) => f.nome);
 
-  const totalDays = daysInMonth(year, month);
+  const [escala, setEscala] = useState<Escala>({});
+  const [editing, setEditing] = useState<{ date: string; turno: Turno; current: string } | null>(null);
 
   const gerar = () => {
+    if (manhaList.length < 1 || noiteList.length < 1) {
+      toast.error("Cadastre funcionários de manhã e noite na Recepção");
+      return;
+    }
+    const totalDays = daysInMonth(year, month);
     const next: Escala = {};
     for (let d = 1; d <= totalDays; d++) {
       const k = keyOf(year, month, d);
       next[k] = {
-        manha: RECEPCAO_MANHA[(d - 1) % 2],
-        noite: RECEPCAO_NOITE[(d - 1) % 2],
+        manha: manhaList[(d - 1) % manhaList.length],
+        noite: noiteList[(d - 1) % noiteList.length],
       };
     }
     setEscala(next);
@@ -560,27 +850,20 @@ function RecepcaoTab({
         [editing.turno]: nome,
       },
     }));
-    toast.success("Plantão atualizado", {
-      description: motivo ? `Motivo: ${motivo}` : undefined,
-    });
+    toast.success("Plantão atualizado", { description: motivo || undefined });
     setEditing(null);
   };
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthSwitcher
-          year={year}
-          month={month}
-          setYear={setYear}
-          setMonth={setMonth}
-        />
+        <MonthSwitcher year={year} month={month} setYear={setYear} setMonth={setMonth} />
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100 gap-1">
-            <Sun className="h-3 w-3" /> Manhã
+            <Sun className="h-3 w-3" /> Manhã ({manhaList.length})
           </Badge>
           <Badge className="bg-indigo-100 text-indigo-800 hover:bg-indigo-100 gap-1">
-            <Moon className="h-3 w-3" /> Noite
+            <Moon className="h-3 w-3" /> Noite ({noiteList.length})
           </Badge>
           <Button onClick={gerar} className="gap-2">
             <Sparkles className="h-4 w-4" /> Gerar Escala Automática
@@ -593,26 +876,19 @@ function RecepcaoTab({
         month={month}
         renderDay={(_d, k) => {
           const dia = escala[k];
-          if (!dia)
-            return (
-              <span className="text-[11px] italic text-muted-foreground/70">—</span>
-            );
+          if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
           return (
             <>
               <PlantaoRow
                 icon={<Sun className="h-3 w-3 text-amber-600" />}
                 nome={dia.manha}
-                onEdit={() =>
-                  setEditing({ date: k, turno: "manha", current: dia.manha })
-                }
+                onEdit={() => setEditing({ date: k, turno: "manha", current: dia.manha })}
                 tone="bg-amber-50 border-amber-200"
               />
               <PlantaoRow
                 icon={<Moon className="h-3 w-3 text-indigo-600" />}
                 nome={dia.noite}
-                onEdit={() =>
-                  setEditing({ date: k, turno: "noite", current: dia.noite })
-                }
+                onEdit={() => setEditing({ date: k, turno: "noite", current: dia.noite })}
                 tone="bg-indigo-50 border-indigo-200"
               />
             </>
@@ -624,7 +900,7 @@ function RecepcaoTab({
         open={!!editing}
         onOpenChange={(v) => !v && setEditing(null)}
         data={editing}
-        options={editing?.turno === "manha" ? RECEPCAO_MANHA : RECEPCAO_NOITE}
+        options={editing?.turno === "manha" ? manhaList : noiteList}
         onSave={salvarEdicao}
       />
     </div>
@@ -632,23 +908,12 @@ function RecepcaoTab({
 }
 
 function PlantaoRow({
-  icon,
-  nome,
-  onEdit,
-  tone,
+  icon, nome, onEdit, tone,
 }: {
-  icon: React.ReactNode;
-  nome: string;
-  onEdit: () => void;
-  tone: string;
+  icon: React.ReactNode; nome: string; onEdit: () => void; tone: string;
 }) {
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors",
-        tone,
-      )}
-    >
+    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
       <div className="flex min-w-0 items-center gap-1">
         {icon}
         <span className="truncate text-[11px] font-medium">{nome}</span>
@@ -666,11 +931,7 @@ function PlantaoRow({
 }
 
 function EditPlantaoDialog({
-  open,
-  onOpenChange,
-  data,
-  options,
-  onSave,
+  open, onOpenChange, data, options, onSave,
 }: {
   open: boolean;
   onOpenChange: (v: boolean) => void;
@@ -682,20 +943,12 @@ function EditPlantaoDialog({
   const [motivo, setMotivo] = useState("");
 
   useEffect(() => {
-    if (data) {
-      setNome(data.current);
-      setMotivo("");
-    }
+    if (data) { setNome(data.current); setMotivo(""); }
   }, [data]);
 
   if (!data) {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent />
-      </Dialog>
-    );
+    return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent /></Dialog>;
   }
-
   const [y, m, d] = data.date.split("-");
   const dataFmt = `${d}/${m}/${y}`;
   const turnoLabel = data.turno === "manha" ? "Manhã" : "Noite";
@@ -705,9 +958,7 @@ function EditPlantaoDialog({
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar plantão</DialogTitle>
-          <DialogDescription>
-            Selecione um substituto para a data e turno abaixo.
-          </DialogDescription>
+          <DialogDescription>Selecione um substituto para a data e turno abaixo.</DialogDescription>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-wrap gap-2">
@@ -722,11 +973,7 @@ function EditPlantaoDialog({
                   : "bg-indigo-100 text-indigo-800 hover:bg-indigo-100",
               )}
             >
-              {data.turno === "manha" ? (
-                <Sun className="h-3 w-3 mr-1" />
-              ) : (
-                <Moon className="h-3 w-3 mr-1" />
-              )}
+              {data.turno === "manha" ? <Sun className="h-3 w-3 mr-1" /> : <Moon className="h-3 w-3 mr-1" />}
               {turnoLabel}
             </Badge>
           </div>
@@ -734,15 +981,11 @@ function EditPlantaoDialog({
           <div className="space-y-2">
             <Label>Funcionário</Label>
             <Select value={nome} onValueChange={setNome}>
-              <SelectTrigger>
-                <SelectValue placeholder="Selecionar" />
-              </SelectTrigger>
+              <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
               <SelectContent>
-                {options.map((o) => (
-                  <SelectItem key={o} value={o}>
-                    {o}
-                  </SelectItem>
-                ))}
+                {options.length === 0 ? (
+                  <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhum funcionário disponível</div>
+                ) : options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
               </SelectContent>
             </Select>
           </div>
@@ -758,83 +1001,63 @@ function EditPlantaoDialog({
           </div>
         </div>
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancelar
-          </Button>
-          <Button onClick={() => onSave(nome, motivo)} disabled={!nome}>
-            Salvar alteração
-          </Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button onClick={() => onSave(nome, motivo)} disabled={!nome}>Salvar alteração</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
   );
 }
 
-// ---------- Camareiras Tab ----------
+/* ============================================================
+   Camareiras Tab
+   ============================================================ */
 type CamTipo = "Fixa" | "Freelance";
-type Camareira = { nome: string; tipo: CamTipo };
-type Unidade = "ipanema" | "botafogo";
-
-const IPANEMA_FIXAS = ["MARIA"];
-const IPANEMA_FREE = ["CRISTINA"];
-const BOTAFOGO_FIXAS = ["GLEIDIANE MENDES", "RAQUEL"];
-const BOTAFOGO_FREE = ["LUCIENE CERQUEIRA"];
-
-const IPANEMA: Camareira[] = [
-  { nome: "MARIA", tipo: "Fixa" },
-  { nome: "CRISTINA", tipo: "Freelance" },
-];
-const BOTAFOGO: Camareira[] = [
-  { nome: "GLEIDIANE MENDES", tipo: "Fixa" },
-  { nome: "RAQUEL", tipo: "Fixa" },
-  { nome: "LUCIENE CERQUEIRA", tipo: "Freelance" },
-];
-
+type UnidadeCam = "ipanema" | "botafogo";
 type DiaCam = { nome: string; tipo: CamTipo } | null;
 type EscalaCam = Record<
-  Unidade,
+  UnidadeCam,
   Record<string, { titular: DiaCam; extras: { nome: string; tipo: CamTipo }[] }>
 >;
 
+const contratoToCam = (t: TipoContrato): CamTipo => (t === "Fixo" ? "Fixa" : "Freelance");
+
 function CamareirasTab({
-  year,
-  month,
-  setYear,
-  setMonth,
+  year, month, setYear, setMonth, equipe,
 }: {
-  year: number;
-  month: number;
-  setYear: (v: number) => void;
-  setMonth: (v: number) => void;
+  year: number; month: number; setYear: (v: number) => void; setMonth: (v: number) => void; equipe: Funcionario[];
 }) {
+  const camAll = equipe.filter((f) => f.setor === "camareiras");
+  const byUnidade = (u: UnidadeCam) => camAll.filter((f) => f.unidade === u);
+  const fixasOf = (u: UnidadeCam) => byUnidade(u).filter((f) => f.tipo === "Fixo");
+  const freeOf = (u: UnidadeCam) => byUnidade(u).filter((f) => f.tipo === "Freelance");
+
   const [escala, setEscala] = useState<EscalaCam>({ ipanema: {}, botafogo: {} });
-  const [editing, setEditing] = useState<
-    | { unidade: Unidade; date: string; current: DiaCam }
-    | null
-  >(null);
-  const [addingFree, setAddingFree] = useState<
-    | { unidade: Unidade; date: string }
-    | null
-  >(null);
+  const [editing, setEditing] = useState<{ unidade: UnidadeCam; date: string; current: DiaCam } | null>(null);
+  const [addingFree, setAddingFree] = useState<{ unidade: UnidadeCam; date: string } | null>(null);
 
   const gerar = () => {
+    const ipaFixas = fixasOf("ipanema");
+    const botFixas = fixasOf("botafogo");
+    if (ipaFixas.length === 0 && botFixas.length === 0) {
+      toast.error("Cadastre camareiras fixas para gerar a escala");
+      return;
+    }
     const totalDays = daysInMonth(year, month);
     const next: EscalaCam = { ipanema: {}, botafogo: {} };
     for (let d = 1; d <= totalDays; d++) {
       const k = keyOf(year, month, d);
-      // Ipanema: MARIA 6x1
+      // Ipanema: primeira fixa em 6x1
+      const ipaTit = ipaFixas[0];
       const idx6x1 = (d - 1) % 7;
       next.ipanema[k] = {
-        titular:
-          idx6x1 === 6 ? null : { nome: "MARIA", tipo: "Fixa" },
+        titular: ipaTit && idx6x1 !== 6 ? { nome: ipaTit.nome, tipo: "Fixa" } : null,
         extras: [],
       };
-      // Botafogo: GLEIDIANE / RAQUEL alternado
+      // Botafogo: alternância diária entre fixas
+      const botTit = botFixas.length > 0 ? botFixas[(d - 1) % botFixas.length] : null;
       next.botafogo[k] = {
-        titular: {
-          nome: BOTAFOGO_FIXAS[(d - 1) % 2],
-          tipo: "Fixa",
-        },
+        titular: botTit ? { nome: botTit.nome, tipo: "Fixa" } : null,
         extras: [],
       };
     }
@@ -844,22 +1067,17 @@ function CamareirasTab({
     });
   };
 
-  const salvarEdicao = (nome: string, tipo: CamTipo, motivo: string) => {
+  const salvarEdicao = (unidade: UnidadeCam, nome: string, tipo: CamTipo, motivo: string) => {
     if (!editing) return;
     setEscala((prev) => {
-      const uni = prev[editing.unidade];
+      const uni = prev[unidade];
       const cur = uni[editing.date] ?? { titular: null, extras: [] };
       return {
         ...prev,
-        [editing.unidade]: {
-          ...uni,
-          [editing.date]: { ...cur, titular: { nome, tipo } },
-        },
+        [unidade]: { ...uni, [editing.date]: { ...cur, titular: { nome, tipo } } },
       };
     });
-    toast.success("Camareira atualizada", {
-      description: motivo || undefined,
-    });
+    toast.success("Camareira atualizada", { description: motivo || undefined });
     setEditing(null);
   };
 
@@ -872,57 +1090,36 @@ function CamareirasTab({
         ...prev,
         [addingFree.unidade]: {
           ...uni,
-          [addingFree.date]: {
-            ...cur,
-            extras: [...cur.extras, { nome, tipo: "Freelance" }],
-          },
+          [addingFree.date]: { ...cur, extras: [...cur.extras, { nome, tipo: "Freelance" }] },
         },
       };
     });
-    toast.success("Plantão de freelancer adicionado", {
-      description: nome,
-    });
+    toast.success("Plantão de freelancer adicionado", { description: nome });
     setAddingFree(null);
   };
 
-  const editingOptions =
-    editing?.unidade === "ipanema"
-      ? [...IPANEMA_FIXAS, ...IPANEMA_FREE]
-      : [...BOTAFOGO_FIXAS, ...BOTAFOGO_FREE];
-  const editingTipo = (nome: string): CamTipo => {
-    const free =
-      editing?.unidade === "ipanema" ? IPANEMA_FREE : BOTAFOGO_FREE;
-    return free.includes(nome) ? "Freelance" : "Fixa";
-  };
-  const addingOptions =
-    addingFree?.unidade === "ipanema" ? IPANEMA_FREE : BOTAFOGO_FREE;
+  const editingUnidade = editing?.unidade;
+  const editingOptions = editingUnidade
+    ? byUnidade(editingUnidade).map((f) => ({ nome: f.nome, tipo: contratoToCam(f.tipo) }))
+    : [];
+  const addingOptions = addingFree ? freeOf(addingFree.unidade).map((f) => f.nome) : [];
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <MonthSwitcher
-          year={year}
-          month={month}
-          setYear={setYear}
-          setMonth={setMonth}
-        />
+        <MonthSwitcher year={year} month={month} setYear={setYear} setMonth={setMonth} />
         <div className="flex flex-wrap items-center gap-2">
-          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
-            Fixa
-          </Badge>
-          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
-            Freelance
-          </Badge>
+          <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">Fixa</Badge>
+          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">Freelance</Badge>
           <Button onClick={gerar} className="gap-2">
             <Sparkles className="h-4 w-4" /> Gerar Escala Automática
           </Button>
         </div>
       </div>
 
-      {/* Team legend */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <UnidadeColuna titulo="Unidade Ipanema" camareiras={IPANEMA} cor="from-rose-500/15 to-rose-500/0 border-rose-500/30" />
-        <UnidadeColuna titulo="Unidade Botafogo" camareiras={BOTAFOGO} cor="from-sky-500/15 to-sky-500/0 border-sky-500/30" />
+        <UnidadeColuna titulo="Unidade Ipanema" camareiras={byUnidade("ipanema")} cor="from-rose-500/15 to-rose-500/0 border-rose-500/30" />
+        <UnidadeColuna titulo="Unidade Botafogo" camareiras={byUnidade("botafogo")} cor="from-sky-500/15 to-sky-500/0 border-sky-500/30" />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -946,42 +1143,29 @@ function CamareirasTab({
         />
       </div>
 
-      {/* Edit dialog */}
-      <Dialog
-        open={!!editing}
-        onOpenChange={(v) => !v && setEditing(null)}
-      >
+      <Dialog open={!!editing} onOpenChange={(v) => !v && setEditing(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar camareira</DialogTitle>
-            <DialogDescription>
-              Substitua a titular do dia (ex.: falta, imprevisto).
-            </DialogDescription>
+            <DialogDescription>Substitua a titular do dia (ex.: falta, imprevisto).</DialogDescription>
           </DialogHeader>
           {editing && (
             <EditCamForm
               date={editing.date}
               current={editing.current}
               options={editingOptions}
-              getTipo={editingTipo}
               onCancel={() => setEditing(null)}
-              onSave={salvarEdicao}
+              onSave={(nome, tipo, motivo) => salvarEdicao(editing.unidade, nome, tipo, motivo)}
             />
           )}
         </DialogContent>
       </Dialog>
 
-      {/* Add freelancer dialog */}
-      <Dialog
-        open={!!addingFree}
-        onOpenChange={(v) => !v && setAddingFree(null)}
-      >
+      <Dialog open={!!addingFree} onOpenChange={(v) => !v && setAddingFree(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Adicionar plantão</DialogTitle>
-            <DialogDescription>
-              Aloque uma freelancer para cobrir o dia.
-            </DialogDescription>
+            <DialogDescription>Aloque uma freelancer para cobrir o dia.</DialogDescription>
           </DialogHeader>
           {addingFree && (
             <AddFreeForm
@@ -998,61 +1182,42 @@ function CamareirasTab({
 }
 
 function UnidadeCalendario({
-  titulo,
-  unidade,
-  year,
-  month,
-  escala,
-  onEdit,
-  onAdd,
+  titulo, unidade, year, month, escala, onEdit, onAdd,
 }: {
   titulo: string;
-  unidade: Unidade;
+  unidade: UnidadeCam;
   year: number;
   month: number;
   escala: Record<string, { titular: DiaCam; extras: { nome: string; tipo: CamTipo }[] }>;
   onEdit: (date: string, current: DiaCam) => void;
   onAdd: (date: string) => void;
 }) {
-  const tone =
-    unidade === "ipanema"
-      ? "from-rose-500/10 to-transparent border-rose-500/30"
-      : "from-sky-500/10 to-transparent border-sky-500/30";
+  const tone = unidade === "ipanema"
+    ? "from-rose-500/10 to-transparent border-rose-500/30"
+    : "from-sky-500/10 to-transparent border-sky-500/30";
   return (
     <Card className={cn("p-3 bg-gradient-to-br border", tone)}>
       <div className="mb-3 flex items-center gap-2">
         <BedDouble className="h-4 w-4 text-muted-foreground" />
-        <h3 className="text-sm font-semibold uppercase tracking-wide">
-          {titulo}
-        </h3>
+        <h3 className="text-sm font-semibold uppercase tracking-wide">{titulo}</h3>
       </div>
       <CalendarGrid
         year={year}
         month={month}
         renderDay={(_d, k) => {
           const dia = escala[k];
-          if (!dia)
-            return (
-              <span className="text-[11px] italic text-muted-foreground/70">—</span>
-            );
+          if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
           return (
             <>
               {dia.titular ? (
-                <CamRow
-                  cam={dia.titular}
-                  onEdit={() => onEdit(k, dia.titular)}
-                />
+                <CamRow cam={dia.titular} onEdit={() => onEdit(k, dia.titular)} />
               ) : (
                 <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/40 px-1.5 py-1 text-[11px] font-medium text-muted-foreground">
                   Folga
                 </div>
               )}
               {dia.extras.map((e, i) => (
-                <CamRow
-                  key={`${e.nome}-${i}`}
-                  cam={e}
-                  onEdit={() => onEdit(k, e)}
-                />
+                <CamRow key={`${e.nome}-${i}`} cam={e} onEdit={() => onEdit(k, e)} />
               ))}
               <button
                 type="button"
@@ -1069,24 +1234,10 @@ function UnidadeCalendario({
   );
 }
 
-function CamRow({
-  cam,
-  onEdit,
-}: {
-  cam: { nome: string; tipo: CamTipo };
-  onEdit: () => void;
-}) {
-  const tone =
-    cam.tipo === "Fixa"
-      ? "bg-emerald-50 border-emerald-200"
-      : "bg-amber-50 border-amber-200";
+function CamRow({ cam, onEdit }: { cam: { nome: string; tipo: CamTipo }; onEdit: () => void }) {
+  const tone = cam.tipo === "Fixa" ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200";
   return (
-    <div
-      className={cn(
-        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors",
-        tone,
-      )}
-    >
+    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
       <div className="flex min-w-0 items-center gap-1">
         <span className="truncate text-[11px] font-medium">{cam.nome}</span>
         <Badge
@@ -1113,23 +1264,18 @@ function CamRow({
 }
 
 function EditCamForm({
-  date,
-  current,
-  options,
-  getTipo,
-  onCancel,
-  onSave,
+  date, current, options, onCancel, onSave,
 }: {
   date: string;
   current: DiaCam;
-  options: string[];
-  getTipo: (nome: string) => CamTipo;
+  options: { nome: string; tipo: CamTipo }[];
   onCancel: () => void;
   onSave: (nome: string, tipo: CamTipo, motivo: string) => void;
 }) {
   const [nome, setNome] = useState(current?.nome ?? "");
   const [motivo, setMotivo] = useState("");
   const [y, m, d] = date.split("-");
+  const getTipo = (n: string): CamTipo => options.find((o) => o.nome === n)?.tipo ?? "Fixa";
   return (
     <>
       <div className="space-y-4">
@@ -1139,48 +1285,31 @@ function EditCamForm({
         <div className="space-y-2">
           <Label>Camareira</Label>
           <Select value={nome} onValueChange={setNome}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
             <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {o} — {getTipo(o)}
-                </SelectItem>
+              {options.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma disponível</div>
+              ) : options.map((o) => (
+                <SelectItem key={o.nome} value={o.nome}>{o.nome} — {o.tipo}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="space-y-2">
           <Label>Motivo (opcional)</Label>
-          <Textarea
-            rows={3}
-            value={motivo}
-            onChange={(e) => setMotivo(e.target.value)}
-            placeholder="Ex.: falta da titular, cobertura..."
-          />
+          <Textarea rows={3} value={motivo} onChange={(e) => setMotivo(e.target.value)} placeholder="Ex.: falta da titular, cobertura..." />
         </div>
       </div>
       <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button
-          disabled={!nome}
-          onClick={() => onSave(nome, getTipo(nome), motivo)}
-        >
-          Salvar
-        </Button>
+        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button disabled={!nome} onClick={() => onSave(nome, getTipo(nome), motivo)}>Salvar</Button>
       </DialogFooter>
     </>
   );
 }
 
 function AddFreeForm({
-  date,
-  options,
-  onCancel,
-  onSave,
+  date, options, onCancel, onSave,
 }: {
   date: string;
   options: string[];
@@ -1198,73 +1327,57 @@ function AddFreeForm({
         <div className="space-y-2">
           <Label>Freelancer</Label>
           <Select value={nome} onValueChange={setNome}>
-            <SelectTrigger>
-              <SelectValue placeholder="Selecionar" />
-            </SelectTrigger>
+            <SelectTrigger><SelectValue placeholder="Selecionar" /></SelectTrigger>
             <SelectContent>
-              {options.map((o) => (
-                <SelectItem key={o} value={o}>
-                  {o}
-                </SelectItem>
-              ))}
+              {options.length === 0 ? (
+                <div className="px-2 py-1.5 text-xs text-muted-foreground">Nenhuma freelancer cadastrada</div>
+              ) : options.map((o) => <SelectItem key={o} value={o}>{o}</SelectItem>)}
             </SelectContent>
           </Select>
         </div>
       </div>
       <DialogFooter className="mt-4">
-        <Button variant="outline" onClick={onCancel}>
-          Cancelar
-        </Button>
-        <Button disabled={!nome} onClick={() => onSave(nome)}>
-          Adicionar
-        </Button>
+        <Button variant="outline" onClick={onCancel}>Cancelar</Button>
+        <Button disabled={!nome} onClick={() => onSave(nome)}>Adicionar</Button>
       </DialogFooter>
     </>
   );
 }
 
 function UnidadeColuna({
-  titulo,
-  cor,
-  camareiras,
+  titulo, cor, camareiras,
 }: {
-  titulo: string;
-  cor: string;
-  camareiras: Camareira[];
+  titulo: string; cor: string; camareiras: Funcionario[];
 }) {
   return (
     <Card className={cn("p-4 bg-gradient-to-br border", cor)}>
-      <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground mb-3">
-        {titulo}
-      </h3>
-      <ul className="space-y-2">
-        {camareiras.map((c) => (
-          <li
-            key={c.nome}
-            className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card/80 px-3 py-2"
-          >
-            <div className="flex min-w-0 items-center gap-2">
-              <div className="h-8 w-8 shrink-0 rounded-full bg-muted grid place-items-center text-xs font-semibold text-muted-foreground">
-                {c.nome.charAt(0)}
+      <h3 className="text-sm font-semibold uppercase tracking-wide text-foreground mb-3">{titulo}</h3>
+      {camareiras.length === 0 ? (
+        <p className="text-xs text-muted-foreground italic">Nenhuma camareira cadastrada.</p>
+      ) : (
+        <ul className="space-y-2">
+          {camareiras.map((c) => (
+            <li key={c.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card/80 px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <div className="h-8 w-8 shrink-0 rounded-full bg-muted grid place-items-center text-xs font-semibold text-muted-foreground">
+                  {c.nome.charAt(0)}
+                </div>
+                <span className="truncate text-sm font-medium">{c.nome}</span>
+                <Badge
+                  className={cn(
+                    "text-[10px]",
+                    c.tipo === "Fixo"
+                      ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
+                      : "bg-amber-100 text-amber-800 hover:bg-amber-100",
+                  )}
+                >
+                  {c.tipo === "Fixo" ? "Fixa" : "Freelance"}
+                </Badge>
               </div>
-              <span className="truncate text-sm font-medium">{c.nome}</span>
-              <Badge
-                className={cn(
-                  "text-[10px]",
-                  c.tipo === "Fixa"
-                    ? "bg-emerald-100 text-emerald-800 hover:bg-emerald-100"
-                    : "bg-amber-100 text-amber-800 hover:bg-amber-100",
-                )}
-              >
-                {c.tipo}
-              </Badge>
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </Card>
   );
 }
-
-// unused import guard
-void X;
