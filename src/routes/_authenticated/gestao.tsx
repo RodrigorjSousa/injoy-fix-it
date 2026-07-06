@@ -86,7 +86,7 @@ const CARDS: GestaoCard[] = [
 ];
 
 function GestaoPage() {
-  return (
+  const [escalaSeg, setEscalaSeg] = useState<EscalaSegment>("recepcao");
     <div className="space-y-6">
       <header>
         <Badge variant="secondary" className="mb-3 rounded-full">
