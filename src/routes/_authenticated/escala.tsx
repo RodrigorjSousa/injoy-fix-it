@@ -879,30 +879,67 @@ function RecepcaoTab({
     setEditing(null);
   };
 
+  const [pendingDrop, setPendingDrop] = useState<
+    { srcDate: string; dstDate: string; turno: Turno } | null
+  >(null);
+
   const handleDayDrop = (dstDate: string, e: React.DragEvent) => {
     const raw = e.dataTransfer.getData("application/json");
     if (!raw) return;
     let payload: { kind: string; date: string; turno: Turno } | null = null;
     try { payload = JSON.parse(raw); } catch { return; }
     if (!payload || payload.kind !== "rec") return;
-    const { date: srcDate, turno } = payload;
-    if (srcDate === dstDate) return;
+    if (payload.date === dstDate) return;
+    setPendingDrop({ srcDate: payload.date, dstDate, turno: payload.turno });
+  };
+
+  const applySwap = () => {
+    if (!pendingDrop) return;
+    const { srcDate, dstDate, turno } = pendingDrop;
     setEscala((prev) => {
       const src = prev[srcDate] ?? { manha: "", noite: "" };
       const dst = prev[dstDate] ?? { manha: "", noite: "" };
       const srcName = src[turno];
-      const dstName = dst[turno];
       if (!srcName) return prev;
       return {
         ...prev,
-        [srcDate]: { ...src, [turno]: dstName },
+        [srcDate]: { ...src, [turno]: dst[turno] },
         [dstDate]: { ...dst, [turno]: srcName },
       };
     });
     toast.success("Plantão movido", {
-      description: `Turno da ${turno === "manha" ? "manhã" : "noite"} — troca aplicada.`,
+      description: `Turno da ${pendingDrop.turno === "manha" ? "manhã" : "noite"} — troca aplicada.`,
     });
+    setPendingDrop(null);
   };
+
+  const applyRecalc = () => {
+    if (!pendingDrop) return;
+    const { srcDate, dstDate, turno } = pendingDrop;
+    const list = turno === "manha" ? manhaList : noiteList;
+    setEscala((prev) => {
+      const src = prev[srcDate] ?? { manha: "", noite: "" };
+      const srcName = src[turno];
+      if (!srcName) return prev;
+      const otherName = list.find((n) => n !== srcName) ?? srcName;
+      const dstDay = parseInt(dstDate.slice(-2), 10);
+      const totalDays = daysInMonth(year, month);
+      const next = { ...prev };
+      for (let d = dstDay; d <= totalDays; d++) {
+        const k = keyOf(year, month, d);
+        const offset = d - dstDay;
+        const name = offset % 2 === 0 ? srcName : otherName;
+        const cur = next[k] ?? { manha: "", noite: "" };
+        next[k] = { ...cur, [turno]: name };
+      }
+      return next;
+    });
+    toast.success("Escala recalculada", {
+      description: `Regra dia sim, dia não aplicada a partir de ${dstDate.slice(-2)} até o fim do mês.`,
+    });
+    setPendingDrop(null);
+  };
+
 
   return (
     <div className="space-y-4">
