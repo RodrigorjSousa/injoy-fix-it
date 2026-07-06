@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,9 +11,15 @@ import {
   Building2,
   TrendingUp,
   ChevronRight,
-  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type EscalaSegment = "manutencao" | "recepcao" | "camareiras";
+const ESCALA_SEGMENTS: { key: EscalaSegment; label: string }[] = [
+  { key: "manutencao", label: "Manutenção" },
+  { key: "recepcao", label: "Recepção" },
+  { key: "camareiras", label: "Camareiras" },
+];
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   head: () => ({
