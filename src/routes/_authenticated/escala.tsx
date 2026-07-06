@@ -1209,6 +1209,10 @@ function CamareirasTab({
     setAddingFree(null);
   };
 
+  const [pendingCamDrop, setPendingCamDrop] = useState<
+    { unidade: UnidadeCam; srcDate: string; dstDate: string } | null
+  >(null);
+
   const handleCamDrop = (unidade: UnidadeCam) => (dstDate: string, e: React.DragEvent) => {
     const raw = e.dataTransfer.getData("application/json");
     if (!raw) return;
@@ -1219,8 +1223,13 @@ function CamareirasTab({
       toast.error("Não é possível mover entre unidades diferentes");
       return;
     }
-    const srcDate = payload.date;
-    if (srcDate === dstDate) return;
+    if (payload.date === dstDate) return;
+    setPendingCamDrop({ unidade, srcDate: payload.date, dstDate });
+  };
+
+  const applyCamSwap = () => {
+    if (!pendingCamDrop) return;
+    const { unidade, srcDate, dstDate } = pendingCamDrop;
     setEscala((prev) => {
       const uni = prev[unidade];
       const src = uni[srcDate] ?? { titular: null, extras: [] };
@@ -1236,7 +1245,43 @@ function CamareirasTab({
       };
     });
     toast.success("Camareira movida", { description: "Troca aplicada entre os dias." });
+    setPendingCamDrop(null);
   };
+
+  const applyCamRecalc = () => {
+    if (!pendingCamDrop) return;
+    const { unidade, srcDate, dstDate } = pendingCamDrop;
+    const fixas = fixasOf(unidade);
+    setEscala((prev) => {
+      const uni = prev[unidade];
+      const src = uni[srcDate] ?? { titular: null, extras: [] };
+      if (!src.titular) return prev;
+      const srcName = src.titular.nome;
+      const srcTipo = src.titular.tipo;
+      const otherFixa = fixas.find((f) => f.nome !== srcName);
+      const otherName = otherFixa?.nome ?? srcName;
+      const dstDay = parseInt(dstDate.slice(-2), 10);
+      const totalDays = daysInMonth(year, month);
+      const nextUni = { ...uni };
+      for (let d = dstDay; d <= totalDays; d++) {
+        const k = keyOf(year, month, d);
+        const offset = d - dstDay;
+        const cur = nextUni[k] ?? { titular: null, extras: [] };
+        const titular: DiaCam =
+          offset % 2 === 0
+            ? { nome: srcName, tipo: srcTipo }
+            : { nome: otherName, tipo: "Fixa" };
+        nextUni[k] = { ...cur, titular };
+      }
+      return { ...prev, [unidade]: nextUni };
+    });
+    toast.success("Escala recalculada", {
+      description: `Regra dia sim, dia não aplicada em ${unidade === "ipanema" ? "Ipanema" : "Botafogo"} até o fim do mês.`,
+    });
+    setPendingCamDrop(null);
+  };
+
+
 
 
   const editingUnidade = editing?.unidade;
