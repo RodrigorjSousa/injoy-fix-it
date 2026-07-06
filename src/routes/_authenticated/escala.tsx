@@ -997,6 +997,13 @@ function RecepcaoTab({
         options={editing?.turno === "manha" ? manhaList : noiteList}
         onSave={salvarEdicao}
       />
+
+      <ConfirmDropDialog
+        open={!!pendingDrop}
+        onOpenChange={(v) => !v && setPendingDrop(null)}
+        onSwap={applySwap}
+        onRecalc={applyRecalc}
+      />
     </div>
   );
 }
