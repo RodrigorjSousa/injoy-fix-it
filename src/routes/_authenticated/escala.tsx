@@ -1270,10 +1270,25 @@ function UnidadeCalendario({
   );
 }
 
-function CamRow({ cam, onEdit }: { cam: { nome: string; tipo: CamTipo }; onEdit: () => void }) {
+function CamRow({
+  cam, onEdit, onDragStart,
+}: {
+  cam: { nome: string; tipo: CamTipo };
+  onEdit: () => void;
+  onDragStart?: (e: React.DragEvent) => void;
+}) {
   const tone = cam.tipo === "Fixa" ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200";
+  const draggable = !!onDragStart;
   return (
-    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-all",
+        tone,
+        draggable && "cursor-grab active:cursor-grabbing hover:shadow-sm hover:-translate-y-[1px]",
+      )}
+      draggable={draggable}
+      onDragStart={onDragStart}
+    >
       <div className="flex min-w-0 items-center gap-1">
         <span className="truncate text-[11px] font-medium">{cam.nome}</span>
         <Badge
