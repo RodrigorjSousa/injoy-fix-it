@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -10,9 +11,15 @@ import {
   Building2,
   TrendingUp,
   ChevronRight,
-  UserCog,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+type EscalaSegment = "manutencao" | "recepcao" | "camareiras";
+const ESCALA_SEGMENTS: { key: EscalaSegment; label: string }[] = [
+  { key: "manutencao", label: "Manutenção" },
+  { key: "recepcao", label: "Recepção" },
+  { key: "camareiras", label: "Camareiras" },
+];
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   head: () => ({
@@ -79,6 +86,7 @@ const CARDS: GestaoCard[] = [
 ];
 
 function GestaoPage() {
+  const [escalaSeg, setEscalaSeg] = useState<EscalaSegment>("recepcao");
   return (
     <div className="space-y-6">
       <header>
@@ -124,15 +132,36 @@ function GestaoPage() {
                 <p className="text-sm text-muted-foreground mt-1">{c.desc}</p>
               </div>
 
-              <div className="mt-3 pt-3 border-t border-border/50">
-                <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                  <UserCog className="h-3 w-3" />
-                  Técnico
+              {c.key === "escala" && (
+                <div className="mt-3 pt-3 border-t border-border/50">
+                  <div
+                    role="tablist"
+                    aria-label="Categoria da escala"
+                    className="inline-flex w-full flex-wrap gap-1 rounded-full bg-muted/60 p-1"
+                  >
+                    {ESCALA_SEGMENTS.map((s) => {
+                      const active = escalaSeg === s.key;
+                      return (
+                        <button
+                          key={s.key}
+                          type="button"
+                          role="tab"
+                          aria-selected={active}
+                          onClick={() => setEscalaSeg(s.key)}
+                          className={cn(
+                            "flex-1 min-w-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
+                            active
+                              ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5"
+                              : "text-slate-600 hover:text-slate-800",
+                          )}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
-                <p className="text-sm text-muted-foreground italic">
-                  Nenhum técnico cadastrado
-                </p>
-              </div>
+              )}
 
               <div className="mt-auto pt-4 flex items-center justify-end">
                 {c.key === "escala" ? (
