@@ -1197,6 +1197,7 @@ function CamareirasTab({
           escala={escala.ipanema}
           onEdit={(date, current) => setEditing({ unidade: "ipanema", date, current })}
           onAdd={(date) => setAddingFree({ unidade: "ipanema", date })}
+          onDayDrop={handleCamDrop("ipanema")}
         />
         <UnidadeCalendario
           titulo="Botafogo"
@@ -1206,6 +1207,7 @@ function CamareirasTab({
           escala={escala.botafogo}
           onEdit={(date, current) => setEditing({ unidade: "botafogo", date, current })}
           onAdd={(date) => setAddingFree({ unidade: "botafogo", date })}
+          onDayDrop={handleCamDrop("botafogo")}
         />
       </div>
 
