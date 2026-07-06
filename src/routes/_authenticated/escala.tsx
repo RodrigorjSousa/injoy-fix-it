@@ -934,12 +934,22 @@ function RecepcaoTab({
 }
 
 function PlantaoRow({
-  icon, nome, onEdit, tone,
+  icon, nome, onEdit, tone, onDragStart,
 }: {
   icon: React.ReactNode; nome: string; onEdit: () => void; tone: string;
+  onDragStart?: (e: React.DragEvent) => void;
 }) {
+  const draggable = !!onDragStart && !!nome;
   return (
-    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-all",
+        tone,
+        draggable && "cursor-grab active:cursor-grabbing hover:shadow-sm hover:-translate-y-[1px]",
+      )}
+      draggable={draggable}
+      onDragStart={onDragStart}
+    >
       <div className="flex min-w-0 items-center gap-1">
         {icon}
         <span className="truncate text-[11px] font-medium">{nome}</span>
