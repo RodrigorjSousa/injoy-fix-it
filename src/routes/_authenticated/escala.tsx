@@ -534,9 +534,10 @@ function MonthSwitcher({
 }
 
 function CalendarGrid({
-  year, month, renderDay,
+  year, month, renderDay, onDayDrop,
 }: {
   year: number; month: number; renderDay: (day: number, key: string) => React.ReactNode;
+  onDayDrop?: (key: string, e: React.DragEvent) => void;
 }) {
   const totalDays = daysInMonth(year, month);
   const firstDow = new Date(year, month, 1).getDay();
@@ -544,6 +545,7 @@ function CalendarGrid({
     ...Array(firstDow).fill(null),
     ...Array.from({ length: totalDays }, (_, i) => i + 1),
   ];
+  const [dragOver, setDragOver] = useState<string | null>(null);
   return (
     <div className="rounded-xl border overflow-hidden">
       <div className="grid grid-cols-7 bg-muted/50 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -555,8 +557,18 @@ function CalendarGrid({
         {cells.map((d, i) => {
           if (d === null) return <div key={i} className="min-h-[110px] bg-muted/20 border-t border-l" />;
           const k = keyOf(year, month, d);
+          const isOver = dragOver === k;
           return (
-            <div key={i} className="min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs">
+            <div
+              key={i}
+              className={cn(
+                "min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs transition-colors",
+                isOver && "bg-primary/10 ring-2 ring-inset ring-primary/40",
+              )}
+              onDragOver={onDayDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(k); } : undefined}
+              onDragLeave={onDayDrop ? () => setDragOver((cur) => (cur === k ? null : cur)) : undefined}
+              onDrop={onDayDrop ? (e) => { e.preventDefault(); setDragOver(null); onDayDrop(k, e); } : undefined}
+            >
               <div className="text-[11px] font-semibold text-muted-foreground">{String(d).padStart(2, "0")}</div>
               {renderDay(d, k)}
             </div>
