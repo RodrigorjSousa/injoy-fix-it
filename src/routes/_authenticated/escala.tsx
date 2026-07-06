@@ -534,9 +534,10 @@ function MonthSwitcher({
 }
 
 function CalendarGrid({
-  year, month, renderDay,
+  year, month, renderDay, onDayDrop,
 }: {
   year: number; month: number; renderDay: (day: number, key: string) => React.ReactNode;
+  onDayDrop?: (key: string, e: React.DragEvent) => void;
 }) {
   const totalDays = daysInMonth(year, month);
   const firstDow = new Date(year, month, 1).getDay();
@@ -544,6 +545,7 @@ function CalendarGrid({
     ...Array(firstDow).fill(null),
     ...Array.from({ length: totalDays }, (_, i) => i + 1),
   ];
+  const [dragOver, setDragOver] = useState<string | null>(null);
   return (
     <div className="rounded-xl border overflow-hidden">
       <div className="grid grid-cols-7 bg-muted/50 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
@@ -555,8 +557,18 @@ function CalendarGrid({
         {cells.map((d, i) => {
           if (d === null) return <div key={i} className="min-h-[110px] bg-muted/20 border-t border-l" />;
           const k = keyOf(year, month, d);
+          const isOver = dragOver === k;
           return (
-            <div key={i} className="min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs">
+            <div
+              key={i}
+              className={cn(
+                "min-h-[110px] border-t border-l p-2 flex flex-col gap-1.5 text-xs transition-colors",
+                isOver && "bg-primary/10 ring-2 ring-inset ring-primary/40",
+              )}
+              onDragOver={onDayDrop ? (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOver(k); } : undefined}
+              onDragLeave={onDayDrop ? () => setDragOver((cur) => (cur === k ? null : cur)) : undefined}
+              onDrop={onDayDrop ? (e) => { e.preventDefault(); setDragOver(null); onDayDrop(k, e); } : undefined}
+            >
               <div className="text-[11px] font-semibold text-muted-foreground">{String(d).padStart(2, "0")}</div>
               {renderDay(d, k)}
             </div>
@@ -836,6 +848,31 @@ function RecepcaoTab({
     setEditing(null);
   };
 
+  const handleDayDrop = (dstDate: string, e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+    let payload: { kind: string; date: string; turno: Turno } | null = null;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (!payload || payload.kind !== "rec") return;
+    const { date: srcDate, turno } = payload;
+    if (srcDate === dstDate) return;
+    setEscala((prev) => {
+      const src = prev[srcDate] ?? { manha: "", noite: "" };
+      const dst = prev[dstDate] ?? { manha: "", noite: "" };
+      const srcName = src[turno];
+      const dstName = dst[turno];
+      if (!srcName) return prev;
+      return {
+        ...prev,
+        [srcDate]: { ...src, [turno]: dstName },
+        [dstDate]: { ...dst, [turno]: srcName },
+      };
+    });
+    toast.success("Plantão movido", {
+      description: `Turno da ${turno === "manha" ? "manhã" : "noite"} — troca aplicada.`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -856,9 +893,14 @@ function RecepcaoTab({
       <CalendarGrid
         year={year}
         month={month}
+        onDayDrop={handleDayDrop}
         renderDay={(_d, k) => {
           const dia = escala[k];
           if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
+          const makeDrag = (turno: Turno) => (e: React.DragEvent) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("application/json", JSON.stringify({ kind: "rec", date: k, turno }));
+          };
           return (
             <>
               <PlantaoRow
@@ -866,12 +908,14 @@ function RecepcaoTab({
                 nome={dia.manha}
                 onEdit={() => setEditing({ date: k, turno: "manha", current: dia.manha })}
                 tone="bg-amber-50 border-amber-200"
+                onDragStart={dia.manha ? makeDrag("manha") : undefined}
               />
               <PlantaoRow
                 icon={<Moon className="h-3 w-3 text-indigo-600" />}
                 nome={dia.noite}
                 onEdit={() => setEditing({ date: k, turno: "noite", current: dia.noite })}
                 tone="bg-indigo-50 border-indigo-200"
+                onDragStart={dia.noite ? makeDrag("noite") : undefined}
               />
             </>
           );
@@ -890,12 +934,22 @@ function RecepcaoTab({
 }
 
 function PlantaoRow({
-  icon, nome, onEdit, tone,
+  icon, nome, onEdit, tone, onDragStart,
 }: {
   icon: React.ReactNode; nome: string; onEdit: () => void; tone: string;
+  onDragStart?: (e: React.DragEvent) => void;
 }) {
+  const draggable = !!onDragStart && !!nome;
   return (
-    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-all",
+        tone,
+        draggable && "cursor-grab active:cursor-grabbing hover:shadow-sm hover:-translate-y-[1px]",
+      )}
+      draggable={draggable}
+      onDragStart={onDragStart}
+    >
       <div className="flex min-w-0 items-center gap-1">
         {icon}
         <span className="truncate text-[11px] font-medium">{nome}</span>
@@ -1080,6 +1134,36 @@ function CamareirasTab({
     setAddingFree(null);
   };
 
+  const handleCamDrop = (unidade: UnidadeCam) => (dstDate: string, e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+    let payload: { kind: string; unidade: UnidadeCam; date: string } | null = null;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (!payload || payload.kind !== "cam") return;
+    if (payload.unidade !== unidade) {
+      toast.error("Não é possível mover entre unidades diferentes");
+      return;
+    }
+    const srcDate = payload.date;
+    if (srcDate === dstDate) return;
+    setEscala((prev) => {
+      const uni = prev[unidade];
+      const src = uni[srcDate] ?? { titular: null, extras: [] };
+      const dst = uni[dstDate] ?? { titular: null, extras: [] };
+      if (!src.titular) return prev;
+      return {
+        ...prev,
+        [unidade]: {
+          ...uni,
+          [srcDate]: { ...src, titular: dst.titular },
+          [dstDate]: { ...dst, titular: src.titular },
+        },
+      };
+    });
+    toast.success("Camareira movida", { description: "Troca aplicada entre os dias." });
+  };
+
+
   const editingUnidade = editing?.unidade;
   const editingOptions = editingUnidade
     ? byUnidade(editingUnidade).map((f) => ({ nome: f.nome, tipo: contratoToCam(f.tipo) }))
@@ -1113,6 +1197,7 @@ function CamareirasTab({
           escala={escala.ipanema}
           onEdit={(date, current) => setEditing({ unidade: "ipanema", date, current })}
           onAdd={(date) => setAddingFree({ unidade: "ipanema", date })}
+          onDayDrop={handleCamDrop("ipanema")}
         />
         <UnidadeCalendario
           titulo="Botafogo"
@@ -1122,6 +1207,7 @@ function CamareirasTab({
           escala={escala.botafogo}
           onEdit={(date, current) => setEditing({ unidade: "botafogo", date, current })}
           onAdd={(date) => setAddingFree({ unidade: "botafogo", date })}
+          onDayDrop={handleCamDrop("botafogo")}
         />
       </div>
 
@@ -1164,7 +1250,7 @@ function CamareirasTab({
 }
 
 function UnidadeCalendario({
-  titulo, unidade, year, month, escala, onEdit, onAdd,
+  titulo, unidade, year, month, escala, onEdit, onAdd, onDayDrop,
 }: {
   titulo: string;
   unidade: UnidadeCam;
@@ -1173,6 +1259,7 @@ function UnidadeCalendario({
   escala: Record<string, { titular: DiaCam; extras: { nome: string; tipo: CamTipo }[] }>;
   onEdit: (date: string, current: DiaCam) => void;
   onAdd: (date: string) => void;
+  onDayDrop?: (key: string, e: React.DragEvent) => void;
 }) {
   const tone = unidade === "ipanema"
     ? "from-rose-500/10 to-transparent border-rose-500/30"
@@ -1186,13 +1273,18 @@ function UnidadeCalendario({
       <CalendarGrid
         year={year}
         month={month}
+        onDayDrop={onDayDrop}
         renderDay={(_d, k) => {
           const dia = escala[k];
           if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
+          const makeDrag = () => (e: React.DragEvent) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("application/json", JSON.stringify({ kind: "cam", unidade, date: k }));
+          };
           return (
             <>
               {dia.titular ? (
-                <CamRow cam={dia.titular} onEdit={() => onEdit(k, dia.titular)} />
+                <CamRow cam={dia.titular} onEdit={() => onEdit(k, dia.titular)} onDragStart={makeDrag()} />
               ) : (
                 <div className="flex items-center justify-center rounded-md border border-dashed bg-muted/40 px-1.5 py-1 text-[11px] font-medium text-muted-foreground">
                   Folga
@@ -1216,10 +1308,25 @@ function UnidadeCalendario({
   );
 }
 
-function CamRow({ cam, onEdit }: { cam: { nome: string; tipo: CamTipo }; onEdit: () => void }) {
+function CamRow({
+  cam, onEdit, onDragStart,
+}: {
+  cam: { nome: string; tipo: CamTipo };
+  onEdit: () => void;
+  onDragStart?: (e: React.DragEvent) => void;
+}) {
   const tone = cam.tipo === "Fixa" ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200";
+  const draggable = !!onDragStart;
   return (
-    <div className={cn("flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-colors", tone)}>
+    <div
+      className={cn(
+        "flex items-center justify-between gap-1 rounded-md border px-1.5 py-1 transition-all",
+        tone,
+        draggable && "cursor-grab active:cursor-grabbing hover:shadow-sm hover:-translate-y-[1px]",
+      )}
+      draggable={draggable}
+      onDragStart={onDragStart}
+    >
       <div className="flex min-w-0 items-center gap-1">
         <span className="truncate text-[11px] font-medium">{cam.nome}</span>
         <Badge
