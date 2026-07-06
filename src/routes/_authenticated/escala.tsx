@@ -804,6 +804,37 @@ function EditManutDialog({
 /* ============================================================
    Recepção Tab
    ============================================================ */
+function ConfirmDropDialog({
+  open, onOpenChange, onSwap, onRecalc,
+}: {
+  open: boolean;
+  onOpenChange: (v: boolean) => void;
+  onSwap: () => void;
+  onRecalc: () => void;
+}) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Como deseja aplicar esta alteração na escala?</DialogTitle>
+          <DialogDescription>
+            Escolha entre trocar apenas os dois dias envolvidos ou recalcular
+            o restante do mês, mantendo a regra de “dia sim, dia não”.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+          <Button variant="outline" onClick={onSwap}>
+            Trocar apenas estes dias
+          </Button>
+          <Button onClick={onRecalc}>
+            Recalcular o restante do mês
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 function RecepcaoTab({
   year, month, setYear, setMonth, equipe,
 }: {
