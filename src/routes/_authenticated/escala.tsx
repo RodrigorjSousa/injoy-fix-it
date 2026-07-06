@@ -848,6 +848,31 @@ function RecepcaoTab({
     setEditing(null);
   };
 
+  const handleDayDrop = (dstDate: string, e: React.DragEvent) => {
+    const raw = e.dataTransfer.getData("application/json");
+    if (!raw) return;
+    let payload: { kind: string; date: string; turno: Turno } | null = null;
+    try { payload = JSON.parse(raw); } catch { return; }
+    if (!payload || payload.kind !== "rec") return;
+    const { date: srcDate, turno } = payload;
+    if (srcDate === dstDate) return;
+    setEscala((prev) => {
+      const src = prev[srcDate] ?? { manha: "", noite: "" };
+      const dst = prev[dstDate] ?? { manha: "", noite: "" };
+      const srcName = src[turno];
+      const dstName = dst[turno];
+      if (!srcName) return prev;
+      return {
+        ...prev,
+        [srcDate]: { ...src, [turno]: dstName },
+        [dstDate]: { ...dst, [turno]: srcName },
+      };
+    });
+    toast.success("Plantão movido", {
+      description: `Turno da ${turno === "manha" ? "manhã" : "noite"} — troca aplicada.`,
+    });
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -868,9 +893,14 @@ function RecepcaoTab({
       <CalendarGrid
         year={year}
         month={month}
+        onDayDrop={handleDayDrop}
         renderDay={(_d, k) => {
           const dia = escala[k];
           if (!dia) return <span className="text-[11px] italic text-muted-foreground/70">—</span>;
+          const makeDrag = (turno: Turno) => (e: React.DragEvent) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("application/json", JSON.stringify({ kind: "rec", date: k, turno }));
+          };
           return (
             <>
               <PlantaoRow
@@ -878,12 +908,14 @@ function RecepcaoTab({
                 nome={dia.manha}
                 onEdit={() => setEditing({ date: k, turno: "manha", current: dia.manha })}
                 tone="bg-amber-50 border-amber-200"
+                onDragStart={dia.manha ? makeDrag("manha") : undefined}
               />
               <PlantaoRow
                 icon={<Moon className="h-3 w-3 text-indigo-600" />}
                 nome={dia.noite}
                 onEdit={() => setEditing({ date: k, turno: "noite", current: dia.noite })}
                 tone="bg-indigo-50 border-indigo-200"
+                onDragStart={dia.noite ? makeDrag("noite") : undefined}
               />
             </>
           );
