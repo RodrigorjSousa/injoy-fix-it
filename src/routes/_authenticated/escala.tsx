@@ -571,54 +571,40 @@ function CalendarGrid({
    WhatsApp
    ============================================================ */
 function WhatsAppButton({ mesLabel, equipe }: { mesLabel: string; equipe: Funcionario[] }) {
-  const [open, setOpen] = useState(false);
-  const preview = useMemo(() => {
-    const manut = equipe.filter((f) => f.setor === "manutencao").map((f) => f.nome).join(", ") || "—";
-    const recManha = equipe.filter((f) => f.setor === "recepcao" && f.turno === "manha").map((f) => f.nome).join(" / ") || "—";
-    const recNoite = equipe.filter((f) => f.setor === "recepcao" && f.turno === "noite").map((f) => f.nome).join(" / ") || "—";
-    const camIpa = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "ipanema")
-      .map((f) => `${f.nome} (${f.tipo})`).join(", ") || "—";
-    const camBot = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "botafogo")
-      .map((f) => `${f.nome} (${f.tipo})`).join(", ") || "—";
+  const buildMessage = () => {
+    const manut = equipe.filter((f) => f.setor === "manutencao");
+    const recManha = equipe.filter((f) => f.setor === "recepcao" && f.turno === "manha");
+    const recNoite = equipe.filter((f) => f.setor === "recepcao" && f.turno === "noite");
+    const camIpa = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "ipanema");
+    const camBot = equipe.filter((f) => f.setor === "camareiras" && f.unidade === "botafogo");
+
+    const fmt = (list: Funcionario[]) =>
+      list.length ? list.map((f) => `- ${f.nome} (${f.tipo})`).join("\n") : "- —";
+
     return (
       `*Escala INJOY — ${mesLabel}*\n\n` +
-      `🔧 *Manutenção*\n- ${manut} (escala 6x1)\n\n` +
-      `🛎️ *Recepção*\n- Manhã: ${recManha} (alternado)\n- Noite: ${recNoite} (alternado)\n\n` +
-      `🛏️ *Camareiras*\n- Ipanema: ${camIpa}\n- Botafogo: ${camBot}\n\n` +
+      `🔧 Manutenção (6x1):\n${fmt(manut)}\n\n` +
+      `🛎️ Recepção:\nManhã (alternado):\n${fmt(recManha)}\nNoite (alternado):\n${fmt(recNoite)}\n\n` +
+      `🛏️ Camareiras:\nIpanema:\n${fmt(camIpa)}\nBotafogo:\n${fmt(camBot)}\n\n` +
       `_Enviado automaticamente pelo painel INJOY._`
     );
-  }, [mesLabel, equipe]);
+  };
+
+  const handleWhatsAppShare = () => {
+    const texto = buildMessage();
+    const textoCodificado = encodeURIComponent(texto);
+    const url = `https://api.whatsapp.com/send?text=${textoCodificado}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   return (
-    <>
-      <Button className="gap-2 bg-[#25D366] hover:bg-[#1ebe57] text-white" onClick={() => setOpen(true)}>
-        <MessageCircle className="h-4 w-4" /> Enviar via WhatsApp
-      </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Prévia do envio — WhatsApp</DialogTitle>
-            <DialogDescription>Confira a mensagem antes de compartilhar com a equipe.</DialogDescription>
-          </DialogHeader>
-          <pre className="whitespace-pre-wrap rounded-lg border bg-muted/40 p-4 text-sm leading-relaxed font-sans max-h-80 overflow-auto">
-            {preview}
-          </pre>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setOpen(false)}>Cancelar</Button>
-            <Button
-              className="bg-[#25D366] hover:bg-[#1ebe57] text-white gap-2"
-              onClick={() => {
-                const url = `https://wa.me/?text=${encodeURIComponent(preview)}`;
-                window.open(url, "_blank");
-                setOpen(false);
-              }}
-            >
-              <MessageCircle className="h-4 w-4" /> Compartilhar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+    <button
+      type="button"
+      onClick={handleWhatsAppShare}
+      className="inline-flex items-center justify-center gap-2 rounded-md bg-[#25D366] px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-[#1ebe57] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#25D366] focus-visible:ring-offset-2"
+    >
+      <MessageCircle className="h-4 w-4" /> Enviar via WhatsApp
+    </button>
   );
 }
 
