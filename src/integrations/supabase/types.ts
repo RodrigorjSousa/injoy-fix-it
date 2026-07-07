@@ -130,6 +130,45 @@ export type Database = {
         }
         Relationships: []
       }
+      hotel_metrics: {
+        Row: {
+          clean_rooms: number
+          created_at: string
+          date: string
+          dirty_rooms: number
+          id: string
+          maintenance_rooms: number
+          occupancy_percentage: number
+          pending_balance: number
+          property: string
+          updated_at: string
+        }
+        Insert: {
+          clean_rooms?: number
+          created_at?: string
+          date: string
+          dirty_rooms?: number
+          id?: string
+          maintenance_rooms?: number
+          occupancy_percentage?: number
+          pending_balance?: number
+          property: string
+          updated_at?: string
+        }
+        Update: {
+          clean_rooms?: number
+          created_at?: string
+          date?: string
+          dirty_rooms?: number
+          id?: string
+          maintenance_rooms?: number
+          occupancy_percentage?: number
+          pending_balance?: number
+          property?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       housekeeping_tasks: {
         Row: {
           created_at: string
