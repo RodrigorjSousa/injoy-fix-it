@@ -1,190 +1,173 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
-import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import {
-  BarChart3,
-  Users,
-  DollarSign,
-  CalendarClock,
-  Trophy,
-  Building2,
-  TrendingUp,
-  ChevronRight,
-} from "lucide-react";
-import { cn } from "@/lib/utils";
-
-type EscalaSegment = "manutencao" | "recepcao" | "camareiras";
-const ESCALA_SEGMENTS: { key: EscalaSegment; label: string }[] = [
-  { key: "manutencao", label: "Manutenção" },
-  { key: "recepcao", label: "Recepção" },
-  { key: "camareiras", label: "Camareiras" },
-];
+import { createFileRoute } from "@tanstack/react-router";
+import { ArrowUpRight, TrendingUp } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
-  head: () => ({
-    meta: [
-      { title: "Gestão — Manutenção INJOY" },
-      { name: "description", content: "Painel de gestão administrativa" },
-    ],
-  }),
-  component: GestaoPage,
+  component: DashboardGestao,
 });
 
-type GestaoCard = {
-  key: string;
-  label: string;
-  desc: string;
-  icon: typeof Users;
-  tone: string;
-  tecnico?: string | null;
+const dadosHotel = {
+  ocupacaoAtual: 78,
+  totalQuartos: 40,
+  quartosLimpos: 22,
+  quartosEmLimpeza: 6,
+  quartosSujos: 9,
+  quartosManutencao: 3,
+  faturamentoPendente: "R$ 2.450,00",
+  documentosFaltando: 4,
 };
 
-const CARDS: GestaoCard[] = [
-  {
-    key: "time",
-    label: "GESTÃO DO TIME INJOY",
-    desc: "Gerenciamento de equipes, desempenho e bem-estar dos colaboradores.",
-    icon: Users,
-    tone: "from-sky-500/15 to-sky-500/0 text-sky-600 border-sky-500/30",
-  },
-  {
-    key: "financeiro",
-    label: "FINANCEIRO",
-    desc: "Controle de receitas, despesas, fluxo de caixa e orçamentos.",
-    icon: DollarSign,
-    tone: "from-emerald-500/15 to-emerald-500/0 text-emerald-600 border-emerald-500/30",
-  },
-  {
-    key: "escala",
-    label: "ESCALA DOS FUNCIONÁRIOS",
-    desc: "Organização de horários, turnos e folgas da equipe.",
-    icon: CalendarClock,
-    tone: "from-amber-500/15 to-amber-500/0 text-amber-600 border-amber-500/30",
-  },
-  {
-    key: "bonificacao",
-    label: "BONIFICAÇÃO DOS FUNCIONÁRIOS",
-    desc: "Sistema de recompensas e incentivos por desempenho e metas alcançadas.",
-    icon: Trophy,
-    tone: "from-purple-500/15 to-purple-500/0 text-purple-600 border-purple-500/30",
-  },
-  {
-    key: "hotel",
-    label: "GESTÃO DO HOTEL",
-    desc: "Administração geral das operações do hotel, reservas e manutenção.",
-    icon: Building2,
-    tone: "from-blue-600/15 to-blue-600/0 text-blue-700 border-blue-600/30",
-  },
-  {
-    key: "desempenho",
-    label: "DESEMPENHO GERAL",
-    desc: "Análise de métricas, resultados e performance global da operação.",
-    icon: TrendingUp,
-    tone: "from-pink-500/15 to-pink-500/0 text-pink-600 border-pink-500/30",
-  },
+type Urgencia = "Urgente" | "Normal" | "Leve";
+type StatusChamado = "Aberto" | "Em Atendimento" | "Resolvido";
+
+interface ChamadoManut {
+  id: number;
+  quarto: string;
+  categoria: string;
+  urgencia: Urgencia;
+  tecnico: string;
+  status: StatusChamado;
+}
+
+const chamadosManutencaoAtivos: ChamadoManut[] = [
+  { id: 101, quarto: "102", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
+  { id: 102, quarto: "204", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
+  { id: 103, quarto: "105", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
+  { id: 104, quarto: "301", categoria: "Mobiliário", urgencia: "Leve", tecnico: "Marceneiro Terceirizado", status: "Resolvido" },
 ];
 
-function GestaoPage() {
-  const [escalaSeg, setEscalaSeg] = useState<EscalaSegment>("recepcao");
+function DashboardGestao() {
+  const ativos = chamadosManutencaoAtivos.filter((c) => c.status !== "Resolvido").length;
+
   return (
-    <div className="space-y-6">
-      <header>
-        <Badge variant="secondary" className="mb-3 rounded-full">
-          <BarChart3 className="h-3 w-3 mr-1" /> Gestão
-        </Badge>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          GESTÃO
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Painéis administrativos e ferramentas de gestão.
-        </p>
-      </header>
+    <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased pb-12">
+      <div className="bg-blue-950 text-white p-5 shadow-md sticky top-0 z-10">
+        <h1 className="text-xl font-bold tracking-tight">Injoy Fix-It</h1>
+        <p className="text-xs text-blue-300">Painel de Gestão e Indicadores</p>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {CARDS.map((c) => {
-          const Icon = c.icon;
-          return (
-            <Card
-              key={c.key}
-              className={cn(
-                "group relative overflow-hidden p-5 h-full flex flex-col border bg-gradient-to-br transition-all hover:shadow-lg hover:-translate-y-0.5",
-                c.tone,
-              )}
-            >
-              <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <span className="h-2 w-2 rounded-full bg-muted-foreground/40" />
-                  sem chamados
-                </span>
+      <div className="p-4 space-y-6">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex justify-between items-start mb-2">
+            <div>
+              <p className="text-sm font-semibold text-slate-500">Taxa de Ocupação Hoje</p>
+              <h2 className="text-3xl font-black text-slate-900">{dadosHotel.ocupacaoAtual}%</h2>
+            </div>
+            <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+              <TrendingUp size={22} />
+            </div>
+          </div>
+          <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mt-3">
+            <div
+              className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${dadosHotel.ocupacaoAtual}%` }}
+            />
+          </div>
+          <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            <ArrowUpRight size={14} /> {dadosHotel.totalQuartos - dadosHotel.quartosManutencao} quartos disponíveis para venda.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">A Receber no Balcão</p>
+              <p className="text-lg font-black text-red-600 mt-1">{dadosHotel.faturamentoPendente}</p>
+            </div>
+            <span className="text-[10px] text-slate-500 mt-3 block">Check-ins com pendência</span>
+          </div>
+
+          <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
+            <div>
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Docs Pendentes</p>
+              <p className="text-lg font-black text-amber-600 mt-1">{dadosHotel.documentosFaltando} Hóspedes</p>
+            </div>
+            <span className="text-[10px] text-slate-500 mt-3 block">Falta check-in online</span>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Status da Operação de Quartos</h3>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex items-center gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
+              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
+              <div>
+                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosLimpos}</p>
+                <p className="text-xs text-slate-500">Prontos / Limpos</p>
               </div>
+            </div>
 
-              <div className="flex items-start justify-between gap-3">
-                <div className="h-12 w-12 rounded-xl grid place-items-center bg-card shadow-sm border">
-                  <Icon className="h-6 w-6" />
+            <div className="flex items-center gap-3 bg-amber-50 p-3 rounded-xl border border-amber-100">
+              <div className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
+              <div>
+                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosEmLimpeza}</p>
+                <p className="text-xs text-slate-500">Em Faxina</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-red-50 p-3 rounded-xl border border-red-100">
+              <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
+              <div>
+                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosSujos}</p>
+                <p className="text-xs text-slate-500">Sujos (Check-out)</p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
+              <div className="w-2.5 h-2.5 bg-slate-500 rounded-full" />
+              <div>
+                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosManutencao}</p>
+                <p className="text-xs text-slate-500">Bloqueados OS</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Chamados de Manutenção Ativos</h3>
+            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-md font-bold">
+              {ativos} Ativos
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {chamadosManutencaoAtivos.map((chamado) => (
+              <div key={chamado.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="font-black text-slate-800 text-sm">Quarto {chamado.quarto}</span>
+                  <span
+                    className={`px-2 py-0.5 rounded-md font-bold ${
+                      chamado.urgencia === "Urgente" ? "bg-red-100 text-red-700" : "bg-slate-200 text-slate-600"
+                    }`}
+                  >
+                    {chamado.urgencia}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center text-slate-600">
+                  <p>
+                    Categoria: <span className="font-semibold text-slate-800">{chamado.categoria}</span>
+                  </p>
+                  <p>
+                    Status: <span className="font-semibold text-blue-600">{chamado.status}</span>
+                  </p>
+                </div>
+
+                <div className="pt-1.5 border-t border-slate-200 flex justify-between items-center">
+                  <span className="text-slate-400">Responsável Técnico:</span>
+                  <span
+                    className={`font-bold px-2 py-0.5 rounded ${
+                      chamado.tecnico === "Rodrigo Sousa" ? "bg-blue-100 text-blue-800" : "bg-slate-200 text-slate-700"
+                    }`}
+                  >
+                    🛠️ {chamado.tecnico}
+                  </span>
                 </div>
               </div>
-
-              <div className="mt-4">
-                <h3 className="text-lg font-semibold text-foreground leading-tight">
-                  {c.label}
-                </h3>
-                <p className="text-sm text-muted-foreground mt-1">{c.desc}</p>
-              </div>
-
-              {c.key === "escala" && (
-                <div className="mt-3 pt-3 border-t border-border/50">
-                  <div
-                    role="tablist"
-                    aria-label="Categoria da escala"
-                    className="inline-flex w-full flex-wrap gap-1 rounded-full bg-muted/60 p-1"
-                  >
-                    {ESCALA_SEGMENTS.map((s) => {
-                      const active = escalaSeg === s.key;
-                      return (
-                        <button
-                          key={s.key}
-                          type="button"
-                          role="tab"
-                          aria-selected={active}
-                          onClick={() => setEscalaSeg(s.key)}
-                          className={cn(
-                            "flex-1 min-w-0 rounded-full px-3 py-1.5 text-xs font-medium transition-all",
-                            active
-                              ? "bg-white text-slate-800 shadow-sm ring-1 ring-black/5"
-                              : "text-slate-600 hover:text-slate-800",
-                          )}
-                        >
-                          {s.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="mt-auto pt-4 flex items-center justify-end">
-                {c.key === "escala" ? (
-                  <Link
-                    to="/escala"
-                    className="flex items-center text-xs font-medium opacity-90 hover:opacity-100 transition-opacity"
-                  >
-                    Abrir escala
-                    <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
-                  </Link>
-                ) : (
-                  <button
-                    type="button"
-                    className="flex items-center text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
-                  >
-                    Ver chamados
-                    <ChevronRight className="h-4 w-4 ml-1 transition-transform group-hover:translate-x-0.5" />
-                  </button>
-                )}
-              </div>
-            </Card>
-          );
-        })}
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
