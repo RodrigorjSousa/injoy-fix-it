@@ -80,7 +80,10 @@ function DashboardGestao() {
       quartosLimpos: live.clean_rooms,
       quartosSujos: live.dirty_rooms,
       quartosManutencao: live.maintenance_rooms,
+      quartosEmLimpeza: live.dirty_rooms,
       faturamentoPendente: `R$ ${Number(live.pending_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      totalQuartos: (live.available_rooms ?? base.totalQuartos) + (live.clean_rooms || 0) + (live.dirty_rooms || 0) + (live.maintenance_rooms || 0),
+      documentosFaltando: live.pending_docs_count ?? base.documentosFaltando,
     };
   }, [unidadeAtiva, live]);
 
@@ -146,7 +149,7 @@ function DashboardGestao() {
             />
           </div>
           <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <ArrowUpRight size={14} /> {dadosHotel.totalQuartos - dadosHotel.quartosManutencao} quartos disponíveis para venda.
+            <ArrowUpRight size={14} /> {live?.available_rooms ?? (dadosHotel.totalQuartos - dadosHotel.quartosManutencao)} quartos disponíveis para venda.
           </p>
         </div>
 

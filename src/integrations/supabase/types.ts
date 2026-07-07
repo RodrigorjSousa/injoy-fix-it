@@ -132,6 +132,7 @@ export type Database = {
       }
       hotel_metrics: {
         Row: {
+          available_rooms: number | null
           clean_rooms: number
           created_at: string
           date: string
@@ -140,10 +141,12 @@ export type Database = {
           maintenance_rooms: number
           occupancy_percentage: number
           pending_balance: number
+          pending_docs_count: number | null
           property: string
           updated_at: string
         }
         Insert: {
+          available_rooms?: number | null
           clean_rooms?: number
           created_at?: string
           date: string
@@ -152,10 +155,12 @@ export type Database = {
           maintenance_rooms?: number
           occupancy_percentage?: number
           pending_balance?: number
+          pending_docs_count?: number | null
           property: string
           updated_at?: string
         }
         Update: {
+          available_rooms?: number | null
           clean_rooms?: number
           created_at?: string
           date?: string
@@ -164,6 +169,7 @@ export type Database = {
           maintenance_rooms?: number
           occupancy_percentage?: number
           pending_balance?: number
+          pending_docs_count?: number | null
           property?: string
           updated_at?: string
         }
@@ -261,6 +267,36 @@ export type Database = {
           created_at?: string
           id?: string
           nome?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      room_housekeeping: {
+        Row: {
+          condition: string | null
+          id: string
+          property: string
+          room_number: string
+          room_type: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          condition?: string | null
+          id?: string
+          property: string
+          room_number: string
+          room_type?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          condition?: string | null
+          id?: string
+          property?: string
+          room_number?: string
+          room_type?: string | null
+          status?: string | null
           updated_at?: string
         }
         Relationships: []
