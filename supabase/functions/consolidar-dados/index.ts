@@ -45,40 +45,6 @@ serve(async (req) => {
       buscarDadosUnidade('Ipanema', Deno.env.get('CLOUDBEDS_API_KEY_IPANEMA')),
       buscarDadosUnidade('Botafogo', Deno.env.get('CLOUDBEDS_API_KEY_BOTAFOGO')),
     ])
-    const detalhesRaw = await detalhesRes.text()
-    const statusRaw = await statusQuartosRes.text()
-    console.log(`[${nomeUnidade}] getHotelDetails (${detalhesRes.status}):`, detalhesRaw)
-    console.log(`[${nomeUnidade}] getRoomsStatus (${statusQuartosRes.status}):`, statusRaw)
-    const detalhes = JSON.parse(detalhesRaw)
-    const statusQuartos = JSON.parse(statusRaw)
-    return { detalhes, statusQuartos }
-  } catch (err) {
-    console.error(`[${nomeUnidade}] Erro nas chamadas de API:`, (err as Error).message)
-    return null
-  }
-}
-
-serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
-
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-
-    const [dadosIpanema, dadosBotafogo] = await Promise.all([
-      buscarDadosUnidade(
-        'Ipanema',
-        Deno.env.get('CLOUDBEDS_CLIENT_ID_IPANEMA'),
-        Deno.env.get('CLOUDBEDS_CLIENT_SECRET_IPANEMA'),
-      ),
-      buscarDadosUnidade(
-        'Botafogo',
-        Deno.env.get('CLOUDBEDS_CLIENT_ID_BOTAFOGO'),
-        Deno.env.get('CLOUDBEDS_CLIENT_SECRET_BOTAFOGO'),
-      ),
-    ])
 
     const metricas = {
       Ipanema: { ocupacao: 0, limpos: 0, sujos: 0, manutencao: 0, aReceber: 0 },
