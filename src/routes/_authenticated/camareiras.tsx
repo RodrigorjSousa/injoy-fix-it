@@ -371,6 +371,25 @@ function CamareirasPage() {
                 </span>
               </div>
 
+              {(t.quantidadePessoas || t.dataSaida) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {t.quantidadePessoas != null && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      Hóspedes: {t.quantidadePessoas} {t.quantidadePessoas > 1 ? "pessoas" : "pessoa"}
+                    </span>
+                  )}
+                  {t.dataSaida && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                      Saída: {t.dataSaida}
+                    </span>
+                  )}
+                </div>
+              )}
+
+
+
 
               <div className="mt-4 flex flex-col sm:flex-row gap-2 border-t border-border pt-3">
                 {!podeCriar ? null : t.status === "Pendente" ? (
