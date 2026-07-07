@@ -160,11 +160,12 @@ function RecepcaoPage() {
           <p className="text-xs text-slate-400">Painel de Controle da Recepção</p>
         </div>
         <button
-          onClick={() => toast.info("Sincronizando com Cloudbeds...")}
-          className="p-2 bg-slate-800 rounded-lg active:bg-slate-700 text-slate-300"
+          onClick={sincronizar}
+          disabled={syncing}
+          className="p-2 bg-slate-800 rounded-lg active:bg-slate-700 text-slate-300 disabled:opacity-60"
           aria-label="Sincronizar"
         >
-          <RefreshCw size={18} />
+          <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
         </button>
       </div>
 
