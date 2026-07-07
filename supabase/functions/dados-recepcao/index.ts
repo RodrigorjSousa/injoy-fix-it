@@ -37,7 +37,7 @@ serve(async (req) => {
 
     const [reservasJson, hkJson] = await Promise.all([
       cb(
-        `/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}&includeGuestsDetails=true&includeAllRooms=true&resultsFrom=0&resultsTo=100`,
+        `/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}&includeGuestsDetails=true`,
         apiKey,
       ),
       cb(`/getHousekeepingStatus`, apiKey),
