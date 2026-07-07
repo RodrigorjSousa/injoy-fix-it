@@ -43,71 +43,118 @@ serve(async (req) => {
       cb(`/getHousekeepingStatus`, apiKey),
     ])
 
-
-
-    // Map de status de limpeza por número de quarto
-    const limpezaPorQuarto: Record<string, 'Limpo' | 'Sujo' | 'Em Limpeza'> = {}
+    // Mapa de todos os quartos físicos a partir do housekeeping
+    type HKRoom = {
+      quarto: string
+      tipoQuarto: string
+      statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza'
+      bloqueado: boolean
+    }
+    const quartosFisicos: Record<string, HKRoom> = {}
     const hkList = hkJson?.data ?? []
     if (Array.isArray(hkList)) {
       for (const room of hkList) {
         const num = String(room.roomName ?? room.roomNumber ?? '').trim()
         if (!num) continue
         const cond = String(room.roomCondition ?? '').toLowerCase()
-        if (cond === 'clean' || cond === 'inspected') limpezaPorQuarto[num] = 'Limpo'
-        else if (cond === 'dirty') limpezaPorQuarto[num] = 'Sujo'
-        else limpezaPorQuarto[num] = 'Em Limpeza'
+        let statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza' = 'Em Limpeza'
+        if (cond === 'clean' || cond === 'inspected') statusLimpeza = 'Limpo'
+        else if (cond === 'dirty') statusLimpeza = 'Sujo'
+        const bloqueado =
+          room.roomBlocked === true ||
+          room.roomBlocked === 'true' ||
+          room.roomBlocked === 1 ||
+          String(room.roomBlocked ?? '').toLowerCase() === 'yes' ||
+          String(room.roomOutOfService ?? '').toLowerCase() === 'yes'
+        quartosFisicos[num] = {
+          quarto: num,
+          tipoQuarto: room.roomTypeName || room.roomType || 'Standard',
+          statusLimpeza,
+          bloqueado,
+        }
       }
     }
 
-    if (!reservasJson?.success) {
-      console.error(`[dados-recepcao] Cloudbeds ${propriedade}:`, reservasJson)
-      return new Response(JSON.stringify({ success: false, data: [] }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    // Reservas ativas do dia agrupadas por quarto
+    const reservasPorQuarto: Record<string, any> = {}
+    if (reservasJson?.success) {
+      const ativos = (reservasJson.data ?? []).filter((r: any) => {
+        const s = String(r.status ?? '').toLowerCase()
+        return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
       })
+
+      for (const res of ativos) {
+        const mainGuestId = res.guestID
+        const g = res.guestList?.[mainGuestId] ?? Object.values(res.guestList ?? {})[0] ?? {}
+        const assignedRooms: any[] = Array.isArray(g.rooms) ? g.rooms : []
+        const unassignedRooms: any[] = Array.isArray(g.unassignedRooms) ? g.unassignedRooms : []
+        const roomInfo = assignedRooms[0] ?? unassignedRooms[0] ?? {}
+        const quarto = String(
+          roomInfo.roomName ?? roomInfo.roomNumber ?? roomInfo.assignedRoomNumber ?? '',
+        ).trim()
+        if (!quarto) continue
+
+        const nome = `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim() ||
+          res.guestName || 'Hóspede'
+        const docFaltando = !g.guestDocumentNumber || !g.guestCountry
+        const pax = parseInt(res.adults || 1, 10) + parseInt(res.children || 0, 10)
+        const saidaISO = res.endDate || roomInfo.roomCheckOut
+        const status = String(res.status ?? '').toLowerCase()
+
+        const registro = {
+          id: res.reservationID ?? res.reservationId,
+          tipoQuartoReserva: roomInfo.roomTypeName || '',
+          hospede: nome,
+          pax,
+          chegadaHora: res.estimatedArrivalTime || '14:00',
+          dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
+          pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
+          docPendente: docFaltando,
+          statusCheckin: status === 'checked_in' ? 'Realizado' : 'Aguardando',
+          checkedIn: status === 'checked_in',
+        }
+
+        // Se houver mais de uma reserva no mesmo quarto, prioriza a que já fez check-in
+        const existente = reservasPorQuarto[quarto]
+        if (!existente || (registro.checkedIn && !existente.checkedIn)) {
+          reservasPorQuarto[quarto] = registro
+        }
+      }
+    } else if (reservasJson) {
+      console.error(`[dados-recepcao] Cloudbeds reservas ${propriedade}:`, reservasJson)
     }
 
-    const ativos = (reservasJson.data ?? []).filter((r: any) => {
-      const s = String(r.status ?? '').toLowerCase()
-      return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
-    })
-
-    const listaFormatada = ativos.map((res: any) => {
-      const mainGuestId = res.guestID
-      const g = res.guestList?.[mainGuestId] ?? Object.values(res.guestList ?? {})[0] ?? {}
-      const assignedRooms: any[] = Array.isArray(g.rooms) ? g.rooms : []
-      const unassignedRooms: any[] = Array.isArray(g.unassignedRooms) ? g.unassignedRooms : []
-      const roomInfo = assignedRooms[0] ?? unassignedRooms[0] ?? {}
-      const quarto = String(
-        roomInfo.roomName ?? roomInfo.roomNumber ?? roomInfo.assignedRoomNumber ?? "S/Q",
-      )
-      const tipoQuarto = roomInfo.roomTypeName || "Não Alocado"
-
-      const nome = `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim() ||
-        res.guestName || "Hóspede"
-
-      const docFaltando = !g.guestDocumentNumber || !g.guestCountry
-      const pax = parseInt(res.adults || 1, 10) + parseInt(res.children || 0, 10)
-      const saidaISO = res.endDate || roomInfo.roomCheckOut
+    // Monta lista final: TODOS os quartos físicos, com dados da reserva quando existir
+    const listaFormatada = Object.values(quartosFisicos).map((hk) => {
+      const r = reservasPorQuarto[hk.quarto]
+      let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
+      if (hk.bloqueado) ocupacao = 'Bloqueado'
+      else if (r?.checkedIn) ocupacao = 'Ocupado'
 
       return {
-        id: res.reservationID ?? res.reservationId,
-        quarto,
-        tipoQuarto,
+        id: r?.id ?? `room-${propriedade}-${hk.quarto}`,
+        quarto: hk.quarto,
+        tipoQuarto: r?.tipoQuartoReserva || hk.tipoQuarto,
         unidade: propriedade,
-        hospede: nome,
-        pax,
-        chegadaHora: res.estimatedArrivalTime || "14:00",
-        dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : "--/--/----",
-        pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
-        docPendente: docFaltando,
-        statusCheckin: String(res.status).toLowerCase() === 'checked_in' ? 'Realizado' : 'Aguardando',
-        statusLimpeza: limpezaPorQuarto[quarto] ?? 'Em Limpeza',
+        statusLimpeza: hk.statusLimpeza,
+        ocupacao,
+        hospede: r?.hospede ?? '',
+        pax: r?.pax ?? 0,
+        chegadaHora: r?.chegadaHora ?? '',
+        dataSaida: r?.dataSaida ?? '',
+        pagamentoPendente: r?.pagamentoPendente ?? false,
+        docPendente: r?.docPendente ?? false,
+        statusCheckin: r?.statusCheckin ?? 'Aguardando',
+        temReserva: Boolean(r),
       }
     })
 
-    return new Response(JSON.stringify({ success: true, data: listaFormatada }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
+    // Ordena por número do quarto
+    listaFormatada.sort((a, b) => {
+      const na = parseInt(a.quarto, 10)
+      const nb = parseInt(b.quarto, 10)
+      if (!isNaN(na) && !isNaN(nb)) return na - nb
+      return a.quarto.localeCompare(b.quarto)
     })
 
     return new Response(JSON.stringify({ success: true, data: listaFormatada }), {
