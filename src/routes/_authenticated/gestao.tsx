@@ -79,7 +79,7 @@ function DashboardGestao() {
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased pb-12">
       <div className="bg-blue-950 text-white p-5 shadow-md sticky top-0 z-10">
-        <h1 className="text-xl font-bold tracking-tight">Injoy Fix-It</h1>
+        <h1 className="text-xl font-bold tracking-tight">INJOY HOTÉIS</h1>
         <p className="text-xs text-blue-300">Painel de Gestão e Indicadores · INJOY {unidadeAtiva}</p>
       </div>
 
