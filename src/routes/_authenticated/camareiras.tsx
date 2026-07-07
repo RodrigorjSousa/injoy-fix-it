@@ -116,7 +116,17 @@ function loadTarefas(): Tarefa[] {
     if (!raw) return buildInitial();
     const parsed = JSON.parse(raw) as Tarefa[];
     if (!Array.isArray(parsed) || parsed.length === 0) return buildInitial();
-    return parsed;
+    // Enriquece registros antigos com os novos campos de reserva (mock)
+    const defaults = buildInitial();
+    return parsed.map((t) => {
+      if (t.quantidadePessoas && t.dataSaida) return t;
+      const d = defaults.find((x) => x.id === t.id);
+      return {
+        ...t,
+        quantidadePessoas: t.quantidadePessoas ?? d?.quantidadePessoas ?? 1,
+        dataSaida: t.dataSaida ?? d?.dataSaida ?? "",
+      };
+    });
   } catch {
     return buildInitial();
   }
