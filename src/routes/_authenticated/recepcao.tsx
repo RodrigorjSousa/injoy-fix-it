@@ -13,6 +13,7 @@ import {
 import { toast } from "sonner";
 import type { Unidade } from "@/lib/store";
 import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
+import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
