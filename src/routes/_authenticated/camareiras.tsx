@@ -49,6 +49,8 @@ type Tarefa = {
   quarto: string;
   status: LimpezaStatus;
   servico?: ServicoTipo;
+  quantidadePessoas?: number;
+  dataSaida?: string;
 };
 
 const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
