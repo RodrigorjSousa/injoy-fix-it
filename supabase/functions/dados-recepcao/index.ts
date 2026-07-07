@@ -43,8 +43,7 @@ serve(async (req) => {
       cb(`/getHousekeepingStatus`, apiKey),
     ])
 
-    console.log(`[dados-recepcao] ${propriedade} sample:`, JSON.stringify((reservasJson?.data ?? [])[0] ?? {}).slice(0, 1500))
-    void 0; //
+
 
     // Map de status de limpeza por número de quarto
     const limpezaPorQuarto: Record<string, 'Limpo' | 'Sujo' | 'Em Limpeza'> = {}
