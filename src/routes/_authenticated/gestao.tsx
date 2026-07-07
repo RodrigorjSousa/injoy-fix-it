@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, TrendingUp, Building2 } from "lucide-react";
+import { ArrowUpRight, TrendingUp, Building2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
 import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
+import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
@@ -68,7 +69,20 @@ const chamadosManutencaoAtivos: ChamadoManut[] = [
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
-  const dadosHotel = DADOS_POR_UNIDADE[unidadeAtiva];
+  const { metrics, syncing, sincronizar } = useHotelMetrics();
+  const live = metrics[unidadeAtiva];
+  const dadosHotel: DadosHotel = useMemo(() => {
+    const base = DADOS_POR_UNIDADE[unidadeAtiva];
+    if (!live) return base;
+    return {
+      ...base,
+      ocupacaoAtual: Math.round(Number(live.occupancy_percentage) || 0),
+      quartosLimpos: live.clean_rooms,
+      quartosSujos: live.dirty_rooms,
+      quartosManutencao: live.maintenance_rooms,
+      faturamentoPendente: `R$ ${Number(live.pending_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+    };
+  }, [unidadeAtiva, live]);
 
   const chamadosUnidade = useMemo(
     () => chamadosManutencaoAtivos.filter((c) => c.property === unidadeAtiva),
@@ -78,9 +92,19 @@ function DashboardGestao() {
 
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased pb-12">
-      <div className="bg-blue-950 text-white p-5 shadow-md sticky top-0 z-10">
-        <h1 className="text-xl font-bold tracking-tight">INJOY HOTÉIS</h1>
-        <p className="text-xs text-blue-300">Painel de Gestão e Indicadores · INJOY {unidadeAtiva}</p>
+      <div className="bg-blue-950 text-white p-5 shadow-md sticky top-0 z-10 flex justify-between items-center">
+        <div>
+          <h1 className="text-xl font-bold tracking-tight">INJOY HOTÉIS</h1>
+          <p className="text-xs text-blue-300">Painel de Gestão e Indicadores · INJOY {unidadeAtiva}</p>
+        </div>
+        <button
+          onClick={sincronizar}
+          disabled={syncing}
+          className="p-2 bg-blue-900/60 rounded-lg active:bg-blue-900 text-blue-100 disabled:opacity-60"
+          aria-label="Sincronizar com Cloudbeds"
+        >
+          <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
+        </button>
       </div>
 
       <div className="p-4 space-y-6">
