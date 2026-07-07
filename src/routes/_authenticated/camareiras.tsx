@@ -18,6 +18,7 @@ import {
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
   component: CamareirasPage,
