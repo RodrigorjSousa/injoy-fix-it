@@ -25,6 +25,7 @@ import { Route as AuthenticatedDashboardRouteImport } from './routes/_authentica
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
+import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 
 const AuthRoute = AuthRouteImport.update({
@@ -107,6 +108,12 @@ const AuthenticatedCamareirasRoute = AuthenticatedCamareirasRouteImport.update({
   path: '/camareiras',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const ApiPublicCloudbedsWebhookRoute =
+  ApiPublicCloudbedsWebhookRouteImport.update({
+    id: '/api/public/cloudbeds-webhook',
+    path: '/api/public/cloudbeds-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
   id: '/chamados/$id',
   path: '/chamados/$id',
@@ -130,6 +137,7 @@ export interface FileRoutesByFullPath {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
 }
 export interface FileRoutesByTo {
   '/camareiras': typeof AuthenticatedCamareirasRoute
@@ -147,6 +155,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -167,6 +176,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -187,6 +197,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
+    | '/api/public/cloudbeds-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/camareiras'
@@ -204,6 +215,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/chamados/$id'
+    | '/api/public/cloudbeds-webhook'
   id:
     | '__root__'
     | '/_authenticated'
@@ -223,11 +235,13 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/chamados/$id'
+    | '/api/public/cloudbeds-webhook'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -344,6 +358,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCamareirasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/cloudbeds-webhook': {
+      id: '/api/public/cloudbeds-webhook'
+      path: '/api/public/cloudbeds-webhook'
+      fullPath: '/api/public/cloudbeds-webhook'
+      preLoaderRoute: typeof ApiPublicCloudbedsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authenticated/chamados/$id': {
       id: '/_authenticated/chamados/$id'
       path: '/chamados/$id'
@@ -404,6 +425,7 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

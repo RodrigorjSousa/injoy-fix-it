@@ -130,6 +130,54 @@ export type Database = {
         }
         Relationships: []
       }
+      housekeeping_tasks: {
+        Row: {
+          created_at: string
+          data_saida: string | null
+          documento_pendente: boolean
+          hospede: string | null
+          id: string
+          pagamento_pendente: boolean
+          pax: number | null
+          quarto: string
+          raw_payload: Json | null
+          reservation_id: string | null
+          status_limpeza: string
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          data_saida?: string | null
+          documento_pendente?: boolean
+          hospede?: string | null
+          id?: string
+          pagamento_pendente?: boolean
+          pax?: number | null
+          quarto: string
+          raw_payload?: Json | null
+          reservation_id?: string | null
+          status_limpeza?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          data_saida?: string | null
+          documento_pendente?: boolean
+          hospede?: string | null
+          id?: string
+          pagamento_pendente?: boolean
+          pax?: number | null
+          quarto?: string
+          raw_payload?: Json | null
+          reservation_id?: string | null
+          status_limpeza?: string
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mensagens: {
         Row: {
           conteudo: string
