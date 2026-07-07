@@ -130,6 +130,8 @@ function RecepcaoPage() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>(quartosRecepcaoInicial);
+  const { syncing, sincronizar } = useHotelMetrics();
+
 
   const fazerCheckin = (id: number) => {
     setQuartos((prev) =>
