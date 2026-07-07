@@ -96,10 +96,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="h-11 w-11 rounded-xl bg-white shadow-sm overflow-hidden grid place-items-center">
             <img src={injoyLogo.url} alt="INJOY" className="h-9 w-9 object-contain" />
           </div>
-          <div className="min-w-0">
-            <div className="font-semibold tracking-tight">Manutenção</div>
-            <div className="text-xs text-sidebar-foreground/70">INJOY Hotéis</div>
-          </div>
+          <span className="text-xl font-bold tracking-wider text-sidebar-foreground">INJOY</span>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {nav.map((item) => {
