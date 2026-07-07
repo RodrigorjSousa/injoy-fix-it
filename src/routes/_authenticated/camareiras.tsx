@@ -85,9 +85,25 @@ function savePrioridade(list: PrioridadeEntry[]) {
 
 function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
+  const hoje = new Date();
   (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
-    QUARTOS_POR_UNIDADE[u].forEach((q) => {
-      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente", servico: "GERAL CHECK-OUT" });
+    QUARTOS_POR_UNIDADE[u].forEach((q, idx) => {
+      // Mock: alterna 1/2/3 pessoas e distribui datas de saída nos próximos dias
+      const pessoas = ((idx % 3) + 1);
+      const saida = new Date(hoje);
+      saida.setDate(hoje.getDate() + ((idx % 7) + 1));
+      const dd = String(saida.getDate()).padStart(2, "0");
+      const mm = String(saida.getMonth() + 1).padStart(2, "0");
+      const yyyy = saida.getFullYear();
+      arr.push({
+        id: `${u}-${q}`,
+        unidade: u,
+        quarto: q,
+        status: "Pendente",
+        servico: "GERAL CHECK-OUT",
+        quantidadePessoas: pessoas,
+        dataSaida: `${dd}/${mm}/${yyyy}`,
+      });
     });
   });
   return arr;
