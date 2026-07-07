@@ -2,9 +2,9 @@ import type { Unidade } from "@/lib/store";
 
 const IPANEMA: Record<string, string> = {
   "307": "Suíte Twin",
-  "001": "Estúdio Standard Twin",
+  "01": "Estúdio Standard Twin",
   "104": "Estúdio Triplo Standard",
-  "002": "Estúdio Triplo Standard",
+  "02": "Estúdio Triplo Standard",
   "103": "Loft Queen",
   "205": "Loft Queen",
   "309": "Loft Queen",
@@ -18,8 +18,8 @@ const IPANEMA: Record<string, string> = {
 const BOTAFOGO: Record<string, string> = {
   "107": "Suíte Standard Queen",
   "110": "Suíte Standard Queen",
-  "001": "Suíte Standard Twin",
-  "006": "Suíte Standard Twin",
+  "01": "Suíte Standard Twin",
+  "06": "Suíte Standard Twin",
   "118": "Suíte Standard Twin",
   "108": "Suíte Superior Queen",
   "109": "Suíte Superior Queen",
@@ -27,18 +27,22 @@ const BOTAFOGO: Record<string, string> = {
   "114": "Suíte Superior Queen",
   "111": "Suíte Superior Queen",
   "112": "Suíte Tripla",
-  "002": "Estúdio Standard",
-  "003": "Estúdio Standard",
+  "02": "Estúdio Standard",
+  "03": "Estúdio Standard",
   "115": "Estúdio Standard",
   "401": "Estúdio Superior",
-  "005": "Apartamento Superior",
+  "05": "Apartamento Superior",
   "117": "Apartamento Superior",
   "301": "Apartamento Deluxe",
   "501": "Apartamento Deluxe",
 };
 
+/**
+ * Retorna o número do quarto exatamente como está cadastrado no Cloudbeds,
+ * sem preenchimento de zeros à esquerda.
+ */
 export function padQuarto(num: string | number): string {
-  return String(num).padStart(3, "0");
+  return String(num).replace(/^0+(?=\d)/, "");
 }
 
 export function getTipoQuarto(unidade: Unidade, quarto: string | number): string {
