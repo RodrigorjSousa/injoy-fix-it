@@ -36,7 +36,10 @@ serve(async (req) => {
     const hoje = new Date().toISOString().split('T')[0]
 
     const [reservasJson, hkJson] = await Promise.all([
-      cb(`/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}`, apiKey),
+      cb(
+        `/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}&includeGuestsDetails=true&includeAllRooms=true&resultsFrom=0&resultsTo=100`,
+        apiKey,
+      ),
       cb(`/getHousekeepingStatus`, apiKey),
     ])
 
