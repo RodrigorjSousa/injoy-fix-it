@@ -199,7 +199,9 @@ function DashboardGestao() {
             {chamadosUnidade.map((chamado) => (
               <div key={chamado.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-black text-slate-800 text-sm">Quarto {chamado.quarto}</span>
+                  <span className="font-black text-slate-800 text-sm">
+                    Quarto {padQuarto(chamado.quarto)} - {getTipoQuarto(chamado.property, chamado.quarto)}
+                  </span>
                   <span
                     className={`px-2 py-0.5 rounded-md font-bold ${
                       chamado.urgencia === "Urgente" ? "bg-red-100 text-red-700" : "bg-slate-200 text-slate-600"
