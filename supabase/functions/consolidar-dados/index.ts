@@ -22,13 +22,42 @@ serve(async (req) => {
     const apiKeyIpanema = Deno.env.get("CLOUDBEDS_API_KEY_IPANEMA");
     const apiKeyBotafogo = Deno.env.get("CLOUDBEDS_API_KEY_BOTAFOGO");
 
+    console.log("[consolidar-dados] API keys presentes:", {
+      ipanema: apiKeyIpanema ? `${apiKeyIpanema.slice(0, 8)}...(${apiKeyIpanema.length})` : "MISSING",
+      botafogo: apiKeyBotafogo ? `${apiKeyBotafogo.slice(0, 8)}...(${apiKeyBotafogo.length})` : "MISSING",
+    });
+
+    async function fetchCloudbeds(unidade: string, apiKey: string | undefined) {
+      if (!apiKey) {
+        console.error(`[${unidade}] API key ausente nas variáveis de ambiente.`);
+        return null;
+      }
+      try {
+        const response = await fetch("https://api.cloudbeds.com/api/v1.1/getHotelStatus", {
+          headers: { Authorization: `Bearer ${apiKey}` },
+        });
+        const rawText = await response.text();
+        console.log(`[${unidade}] HTTP status:`, response.status);
+        console.log(`[${unidade}] Raw response:`, rawText);
+        try {
+          const parsed = JSON.parse(rawText);
+          if (!parsed?.success) {
+            console.error(`[${unidade}] Cloudbeds retornou success=false:`, JSON.stringify(parsed));
+          }
+          return parsed;
+        } catch (err) {
+          console.error(`[${unidade}] Falha ao parsear JSON:`, (err as Error).message);
+          return null;
+        }
+      } catch (err) {
+        console.error(`[${unidade}] Erro na requisição:`, (err as Error).message);
+        return null;
+      }
+    }
+
     const [resIpanema, resBotafogo] = await Promise.all([
-      fetch("https://api.cloudbeds.com/api/v1.1/getHotelStatus", {
-        headers: { Authorization: `Bearer ${apiKeyIpanema}` },
-      }).then((res) => res.json().catch(() => null)),
-      fetch("https://api.cloudbeds.com/api/v1.1/getHotelStatus", {
-        headers: { Authorization: `Bearer ${apiKeyBotafogo}` },
-      }).then((res) => res.json().catch(() => null)),
+      fetchCloudbeds("Ipanema", apiKeyIpanema),
+      fetchCloudbeds("Botafogo", apiKeyBotafogo),
     ]);
 
     const metricas: Record<string, {
