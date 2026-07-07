@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, TrendingUp, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
+import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
@@ -56,9 +57,9 @@ interface ChamadoManut {
 }
 
 const chamadosManutencaoAtivos: ChamadoManut[] = [
-  { id: 101, property: "Botafogo", quarto: "102", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
-  { id: 102, property: "Botafogo", quarto: "204", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
-  { id: 103, property: "Botafogo", quarto: "105", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
+  { id: 101, property: "Botafogo", quarto: "001", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
+  { id: 102, property: "Botafogo", quarto: "002", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
+  { id: 103, property: "Botafogo", quarto: "107", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
   { id: 104, property: "Botafogo", quarto: "301", categoria: "Mobiliário", urgencia: "Leve", tecnico: "Marceneiro Terceirizado", status: "Resolvido" },
   { id: 201, property: "Ipanema", quarto: "410", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
   { id: 202, property: "Ipanema", quarto: "205", categoria: "Elétrica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Em Atendimento" },
@@ -198,7 +199,9 @@ function DashboardGestao() {
             {chamadosUnidade.map((chamado) => (
               <div key={chamado.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
                 <div className="flex justify-between items-center">
-                  <span className="font-black text-slate-800 text-sm">Quarto {chamado.quarto}</span>
+                  <span className="font-black text-slate-800 text-sm">
+                    Quarto {padQuarto(chamado.quarto)} - {getTipoQuarto(chamado.property, chamado.quarto)}
+                  </span>
                   <span
                     className={`px-2 py-0.5 rounded-md font-bold ${
                       chamado.urgencia === "Urgente" ? "bg-red-100 text-red-700" : "bg-slate-200 text-slate-600"

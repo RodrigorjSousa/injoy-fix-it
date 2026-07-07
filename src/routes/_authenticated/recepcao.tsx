@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
+import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
@@ -41,8 +42,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 1,
     property: "Botafogo",
-    quarto: "102",
-    tipo: "Standard",
+    quarto: "001",
+    tipo: getTipoQuarto("Botafogo", "001"),
     statusLimpeza: "Pendente",
     hospede: "Carlos Silva",
     chegadaHora: "14:00",
@@ -55,8 +56,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 2,
     property: "Botafogo",
-    quarto: "204",
-    tipo: "Master Suíte",
+    quarto: "002",
+    tipo: getTipoQuarto("Botafogo", "002"),
     statusLimpeza: "Concluído",
     hospede: "Mariana Costa",
     chegadaHora: "11:30",
@@ -69,8 +70,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 3,
     property: "Botafogo",
-    quarto: "105",
-    tipo: "Standard",
+    quarto: "107",
+    tipo: getTipoQuarto("Botafogo", "107"),
     statusLimpeza: "Em Andamento",
     hospede: "Roberto Almeida",
     chegadaHora: "16:00",
@@ -83,8 +84,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 4,
     property: "Ipanema",
-    quarto: "301",
-    tipo: "Presidencial",
+    quarto: "307",
+    tipo: getTipoQuarto("Ipanema", "307"),
     statusLimpeza: "Concluído",
     hospede: "Ana Julia Souza",
     chegadaHora: "13:15",
@@ -98,7 +99,7 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
     id: 5,
     property: "Ipanema",
     quarto: "410",
-    tipo: "Deluxe Vista Mar",
+    tipo: getTipoQuarto("Ipanema", "410"),
     statusLimpeza: "Pendente",
     hospede: "Felipe Moraes",
     chegadaHora: "15:00",
@@ -112,7 +113,7 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
     id: 6,
     property: "Ipanema",
     quarto: "205",
-    tipo: "Standard",
+    tipo: getTipoQuarto("Ipanema", "205"),
     statusLimpeza: "Concluído",
     hospede: "Beatriz Lima",
     chegadaHora: "12:00",
@@ -206,9 +207,11 @@ function RecepcaoPage() {
           >
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
-                <span className="text-2xl font-black text-slate-800">Q. {q.quarto}</span>
+                <span className="text-2xl font-black text-slate-800">
+                  Quarto {padQuarto(q.quarto)} - {q.tipo}
+                </span>
                 <span className="text-xs text-slate-500 block">
-                  {q.tipo} · INJOY {q.property}
+                  INJOY {q.property}
                 </span>
               </div>
               <span
