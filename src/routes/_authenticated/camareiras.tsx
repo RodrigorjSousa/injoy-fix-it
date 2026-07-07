@@ -12,6 +12,8 @@ import {
   Building2,
   Info,
   X,
+  Users,
+  CalendarDays,
 } from "lucide-react";
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
