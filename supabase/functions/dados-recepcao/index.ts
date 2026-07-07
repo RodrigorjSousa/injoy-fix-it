@@ -67,23 +67,48 @@ serve(async (req) => {
       })
     }
 
-    const listaFormatada = (reservasJson.data ?? []).map((res: any) => {
-      const docFaltando = !res.guestDocumentNumber || !res.guestCountry
-      const quarto = res.assignedRoomNumber || "S/Q"
+    const ativos = (reservasJson.data ?? []).filter((r: any) => {
+      const s = String(r.status ?? '').toLowerCase()
+      return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
+    })
+
+    const listaFormatada = ativos.map((res: any) => {
+      const mainGuestId = res.guestID
+      const g = res.guestList?.[mainGuestId] ?? Object.values(res.guestList ?? {})[0] ?? {}
+      const assignedRooms: any[] = Array.isArray(g.rooms) ? g.rooms : []
+      const unassignedRooms: any[] = Array.isArray(g.unassignedRooms) ? g.unassignedRooms : []
+      const roomInfo = assignedRooms[0] ?? unassignedRooms[0] ?? {}
+      const quarto = String(
+        roomInfo.roomName ?? roomInfo.roomNumber ?? roomInfo.assignedRoomNumber ?? "S/Q",
+      )
+      const tipoQuarto = roomInfo.roomTypeName || "Não Alocado"
+
+      const nome = `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim() ||
+        res.guestName || "Hóspede"
+
+      const docFaltando = !g.guestDocumentNumber || !g.guestCountry
+      const pax = parseInt(res.adults || 1, 10) + parseInt(res.children || 0, 10)
+      const saidaISO = res.endDate || roomInfo.roomCheckOut
+
       return {
-        id: res.reservationId,
+        id: res.reservationID ?? res.reservationId,
         quarto,
-        tipoQuarto: res.roomTypeName || "Não Alocado",
+        tipoQuarto,
         unidade: propriedade,
-        hospede: `${res.guestFirstName ?? ''} ${res.guestLastName ?? ''}`.trim() || "Hóspede",
-        pax: parseInt(res.numberOfGuests || 1, 10),
+        hospede: nome,
+        pax,
         chegadaHora: res.estimatedArrivalTime || "14:00",
-        dataSaida: res.checkOutDate ? res.checkOutDate.split('-').reverse().join('/') : "--/--/----",
-        pagamentoPendente: parseFloat(res.balanceDue || 0) > 0,
+        dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : "--/--/----",
+        pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
         docPendente: docFaltando,
-        statusCheckin: res.status === 'checked_in' ? 'Realizado' : 'Aguardando',
+        statusCheckin: String(res.status).toLowerCase() === 'checked_in' ? 'Realizado' : 'Aguardando',
         statusLimpeza: limpezaPorQuarto[quarto] ?? 'Em Limpeza',
       }
+    })
+
+    return new Response(JSON.stringify({ success: true, data: listaFormatada }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
     })
 
     return new Response(JSON.stringify({ success: true, data: listaFormatada }), {
