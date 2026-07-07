@@ -185,8 +185,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
         <div className="min-w-0 flex-1">
-          <div className="font-semibold text-sm leading-tight">Manutenção INJOY</div>
-          <div className="text-[11px] text-muted-foreground leading-tight">Gestão predial</div>
+          <span className="text-lg font-bold tracking-wider">INJOY</span>
         </div>
         <button
           onClick={handleSignOut}
