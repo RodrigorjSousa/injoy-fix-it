@@ -14,6 +14,7 @@ import {
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
+import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
