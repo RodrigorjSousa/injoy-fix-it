@@ -149,7 +149,7 @@ function DashboardGestao() {
             />
           </div>
           <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <ArrowUpRight size={14} /> {dadosHotel.totalQuartos - dadosHotel.quartosManutencao} quartos disponíveis para venda.
+            <ArrowUpRight size={14} /> {live?.available_rooms ?? (dadosHotel.totalQuartos - dadosHotel.quartosManutencao)} quartos disponíveis para venda.
           </p>
         </div>
 
