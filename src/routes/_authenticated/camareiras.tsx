@@ -323,7 +323,9 @@ function CamareirasPage() {
             <div className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-2xl font-black tracking-tight">Q. {t.quarto}</div>
+                  <div className="text-lg sm:text-xl font-black tracking-tight leading-tight">
+                    Quarto {padQuarto(t.quarto)} - {getTipoQuarto(t.unidade, t.quarto)}
+                  </div>
                   <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
                     INJOY {t.unidade}
                   </div>
