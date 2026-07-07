@@ -1,816 +1,220 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
-import {
-  Play,
-  Check,
-  AlertTriangle,
-  Camera,
-  ArrowLeft,
-  Send,
-  MessageSquare,
-  Building2,
-  Info,
-  X,
-  Users,
-  CalendarDays,
-} from "lucide-react";
-import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
-import { supabase } from "@/integrations/supabase/client";
-import { cn } from "@/lib/utils";
-import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { Play, RotateCcw, AlertTriangle, Users, Calendar, Info } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
-  component: CamareirasPage,
+  component: PainelCamareiras,
 });
 
-type LimpezaStatus = "Pendente" | "Em Andamento" | "Concluído";
-type ServicoTipo =
-  | "GERAL CHECK-OUT"
-  | "GERAL CHECK-IN"
-  | "VERIFICAÇÃO"
-  | "VERIFICAÇÃO CHECK-IN";
-const SERVICO_TIPOS: ServicoTipo[] = [
-  "GERAL CHECK-OUT",
-  "GERAL CHECK-IN",
-  "VERIFICAÇÃO",
-  "VERIFICAÇÃO CHECK-IN",
-];
-const SERVICO_DESCRICAO: Record<ServicoTipo, string> = {
-  "GERAL CHECK-OUT": "Limpeza completa do quarto após a saída do hóspede.",
-  "GERAL CHECK-IN":
-    "Limpeza completa do quarto para a entrada de um novo hóspede no mesmo dia.",
-  "VERIFICAÇÃO": "Inspeção do quarto vazio que já passou por limpeza geral.",
-  "VERIFICAÇÃO CHECK-IN":
-    "Inspeção do quarto vazio para a entrada de um novo hóspede no mesmo dia.",
-};
-type Tarefa = {
-  id: string;
-  unidade: Unidade;
+type Status = "Pendente" | "Em Andamento" | "Concluído";
+type Quarto = {
+  id: number;
   quarto: string;
-  status: LimpezaStatus;
-  servico?: ServicoTipo;
-  quantidadePessoas?: number;
-  dataSaida?: string;
+  tipoQuarto: string;
+  unidade: "Botafogo" | "Ipanema";
+  tipoTarefa: string;
+  status: Status;
+  pax: number;
+  saida: string;
 };
 
-const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
-  Botafogo: [
-    "01","02","03","05","06","107","108","109","110","111",
-    "112","113","114","115","117","118","301","401","501",
-  ],
-  Ipanema: [
-    "01","02","103","104","205","206","307","308","309","410","411","412",
-  ],
-};
+// --- BANCO DE DADOS MOCK FIEL ÀS UNIDADES DO CLOUDBEDS ---
+const dadosQuartosCloudbeds: Quarto[] = [
+  // === UNIDADE: BOTAFOGO ===
+  { id: 1, quarto: "01", tipoQuarto: "Suíte Standard Twin", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Concluído", pax: 1, saida: "08/07/2026" },
+  { id: 2, quarto: "06", tipoQuarto: "Suíte Standard Twin", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "09/07/2026" },
+  { id: 3, quarto: "118", tipoQuarto: "Suíte Standard Twin", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "10/07/2026" },
+  { id: 4, quarto: "107", tipoQuarto: "Suíte Standard Queen", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 2, saida: "11/07/2026" },
+  { id: 5, quarto: "110", tipoQuarto: "Suíte Standard Queen", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Em Andamento", pax: 2, saida: "08/07/2026" },
+  { id: 6, quarto: "108", tipoQuarto: "Suíte Superior Queen", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 1, saida: "07/07/2026" },
+  { id: 7, quarto: "109", tipoQuarto: "Suíte Superior Queen", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "12/07/2026" },
+  { id: 8, quarto: "111", tipoQuarto: "Suíte Superior Queen", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Concluído", pax: 2, saida: "13/07/2026" },
+  { id: 9, quarto: "113", tipoQuarto: "Suíte Superior Queen", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 1, saida: "09/07/2026" },
+  { id: 10, quarto: "114", tipoQuarto: "Suíte Superior Queen", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Em Andamento", pax: 2, saida: "10/07/2026" },
+  { id: 11, quarto: "112", tipoQuarto: "Suíte Tripla", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 3, saida: "12/07/2026" },
+  { id: 12, quarto: "02", tipoQuarto: "Estúdio Standard", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "09/07/2026" },
+  { id: 13, quarto: "03", tipoQuarto: "Estúdio Standard", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "08/07/2026" },
+  { id: 14, quarto: "115", tipoQuarto: "Estúdio Standard", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 3, saida: "11/07/2026" },
+  { id: 15, quarto: "401", tipoQuarto: "Estúdio Superior", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Concluído", pax: 1, saida: "08/07/2026" },
+  { id: 16, quarto: "05", tipoQuarto: "Apartamento Superior", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Em Andamento", pax: 2, saida: "08/07/2026" },
+  { id: 17, quarto: "117", tipoQuarto: "Apartamento Superior", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 2, saida: "14/07/2026" },
+  { id: 18, quarto: "301", tipoQuarto: "Apartamento Deluxe", unidade: "Botafogo", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 4, saida: "14/07/2026" },
+  { id: 19, quarto: "501", tipoQuarto: "Apartamento Deluxe", unidade: "Botafogo", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 3, saida: "15/07/2026" },
 
-const STORAGE_KEY = "injoy.camareiras.tarefas.v1";
-const PRIORIDADE_KEY = "injoy.camareiras.prioridade.v1";
-
-type PrioridadeEntry = {
-  key: string;
-  unidade: Unidade;
-  quarto: string;
-  motivo: string;
-  criadoEm: string;
-};
-
-function loadPrioridade(): PrioridadeEntry[] {
-  if (typeof window === "undefined") return [];
-  try { return JSON.parse(window.localStorage.getItem(PRIORIDADE_KEY) || "[]"); } catch { return []; }
-}
-function savePrioridade(list: PrioridadeEntry[]) {
-  window.localStorage.setItem(PRIORIDADE_KEY, JSON.stringify(list));
-  window.dispatchEvent(new CustomEvent("injoy:prioridade-changed"));
-}
-
-function buildInitial(): Tarefa[] {
-  const arr: Tarefa[] = [];
-  const hoje = new Date();
-  (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
-    QUARTOS_POR_UNIDADE[u].forEach((q, idx) => {
-      // Mock: alterna 1/2/3 pessoas e distribui datas de saída nos próximos dias
-      const pessoas = ((idx % 3) + 1);
-      const saida = new Date(hoje);
-      saida.setDate(hoje.getDate() + ((idx % 7) + 1));
-      const dd = String(saida.getDate()).padStart(2, "0");
-      const mm = String(saida.getMonth() + 1).padStart(2, "0");
-      const yyyy = saida.getFullYear();
-      arr.push({
-        id: `${u}-${q}`,
-        unidade: u,
-        quarto: q,
-        status: "Pendente",
-        servico: "GERAL CHECK-OUT",
-        quantidadePessoas: pessoas,
-        dataSaida: `${dd}/${mm}/${yyyy}`,
-      });
-    });
-  });
-  return arr;
-}
-
-function loadTarefas(): Tarefa[] {
-  if (typeof window === "undefined") return buildInitial();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return buildInitial();
-    const parsed = JSON.parse(raw) as Tarefa[];
-    if (!Array.isArray(parsed) || parsed.length === 0) return buildInitial();
-    // Enriquece registros antigos com os novos campos de reserva (mock)
-    const defaults = buildInitial();
-    return parsed.map((t) => {
-      if (t.quantidadePessoas && t.dataSaida) return t;
-      const d = defaults.find((x) => x.id === t.id);
-      return {
-        ...t,
-        quantidadePessoas: t.quantidadePessoas ?? d?.quantidadePessoas ?? 1,
-        dataSaida: t.dataSaida ?? d?.dataSaida ?? "",
-      };
-    });
-  } catch {
-    return buildInitial();
-  }
-}
-
-const CATEGORIAS_RAPIDAS: { label: string; backend: Categoria }[] = [
-  { label: "Elétrica", backend: "Elétrica" },
-  { label: "Hidráulica", backend: "Hidráulica" },
-  { label: "Ar Condicionado", backend: "Ar condicionado" },
-  { label: "Mobiliário", backend: "Alvenaria" },
-  { label: "TV / Internet", backend: "Automação" },
-  { label: "Outros", backend: "Alvenaria" },
+  // === UNIDADE: IPANEMA ===
+  { id: 20, quarto: "307", tipoQuarto: "Suíte Twin", unidade: "Ipanema", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 1, saida: "08/07/2026" },
+  { id: 21, quarto: "01", tipoQuarto: "Estúdio Standard Twin", unidade: "Ipanema", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 2, saida: "08/07/2026" },
+  { id: 22, quarto: "104", tipoQuarto: "Estúdio Triplo Standard", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Concluído", pax: 3, saida: "09/07/2026" },
+  { id: 23, quarto: "02", tipoQuarto: "Estúdio Triplo Standard", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 3, saida: "10/07/2026" },
+  { id: 24, quarto: "103", tipoQuarto: "Loft Queen", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Em Andamento", pax: 2, saida: "11/07/2026" },
+  { id: 25, quarto: "205", tipoQuarto: "Loft Queen", unidade: "Ipanema", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Pendente", pax: 2, saida: "12/07/2026" },
+  { id: 26, quarto: "309", tipoQuarto: "Loft Queen", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "08/07/2026" },
+  { id: 27, quarto: "308", tipoQuarto: "Loft Twin", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Concluído", pax: 2, saida: "13/07/2026" },
+  { id: 28, quarto: "206", tipoQuarto: "Estúdio Familia", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 4, saida: "10/07/2026" },
+  { id: 29, quarto: "411", tipoQuarto: "Mezanino Queen Varanda", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "11/07/2026" },
+  { id: 30, quarto: "412", tipoQuarto: "Mezanino Queen Varanda", unidade: "Ipanema", tipoTarefa: "VERIFICAÇÃO CHECK-IN", status: "Em Andamento", pax: 2, saida: "15/07/2026" },
+  { id: 31, quarto: "410", tipoQuarto: "Mezanino Twin", unidade: "Ipanema", tipoTarefa: "GERAL CHECK-OUT", status: "Pendente", pax: 2, saida: "09/07/2026" },
 ];
 
-type Urgencia = "Leve" | "Normal" | "Urgente";
+function PainelCamareiras() {
+  const [unidadeAtiva, setUnidadeAtiva] = useState<"Botafogo" | "Ipanema">("Botafogo");
+  const [filtroStatus, setFiltroStatus] = useState<"Todos" | Status>("Todos");
+  const [quartos, setQuartos] = useState<Quarto[]>(dadosQuartosCloudbeds);
 
-function CamareirasPage() {
-  const { data: me } = useMe();
-  const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
+  const alterarStatus = (id: number, novoStatus: Status) => {
+    setQuartos(quartos.map((q) => (q.id === id ? { ...q, status: novoStatus } : q)));
+  };
 
-  const [tarefas, setTarefas] = useState<Tarefa[]>(() => loadTarefas());
-  const [filtro, setFiltro] = useState<"Todos" | LimpezaStatus>("Todos");
-  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
-  const [reportar, setReportar] = useState<Tarefa | null>(null);
-  const [prioridade, setPrioridade] = useState<PrioridadeEntry[]>(() => loadPrioridade());
-  const [legendaOpen, setLegendaOpen] = useState(false);
-
-  useEffect(() => {
-    try { window.localStorage.setItem(STORAGE_KEY, JSON.stringify(tarefas)); } catch { /* ignore */ }
-  }, [tarefas]);
-
-  useEffect(() => {
-    const refresh = () => setPrioridade(loadPrioridade());
-    window.addEventListener("injoy:prioridade-changed", refresh);
-    window.addEventListener("storage", refresh);
-    return () => {
-      window.removeEventListener("injoy:prioridade-changed", refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, []);
-
-  const ehPrioridade = (t: Tarefa) =>
-    prioridade.find((p) => p.unidade === t.unidade && p.quarto === t.quarto);
-
-  const visiveis = useMemo(
-    () =>
-      tarefas
-        .filter((t) => t.unidade === unidadeAtiva)
-        .filter((t) => filtro === "Todos" || t.status === filtro)
-        .sort((a, b) => {
-          const pa = ehPrioridade(a) ? 0 : 1;
-          const pb = ehPrioridade(b) ? 0 : 1;
-          return pa - pb;
-        }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [tarefas, unidadeAtiva, filtro, prioridade],
+  const quartosFiltrados = quartos.filter(
+    (q) => q.unidade === unidadeAtiva && (filtroStatus === "Todos" || q.status === filtroStatus),
   );
 
-  const alterar = (id: string, novo: LimpezaStatus) => {
-    setTarefas((prev) => prev.map((t) => (t.id === id ? { ...t, status: novo } : t)));
-    if (novo === "Concluído") {
-      const t = tarefas.find((x) => x.id === id);
-      if (t) {
-        const pri = loadPrioridade().filter((p) => !(p.unidade === t.unidade && p.quarto === t.quarto));
-        savePrioridade(pri);
-        setPrioridade(pri);
-      }
-    }
-  };
-
-  const cicloServico = (id: string) => {
-    setTarefas((prev) =>
-      prev.map((t) => {
-        if (t.id !== id) return t;
-        const atual = t.servico ?? "GERAL CHECK-OUT";
-        const idx = SERVICO_TIPOS.indexOf(atual);
-        const prox = SERVICO_TIPOS[(idx + 1) % SERVICO_TIPOS.length];
-        return { ...t, servico: prox };
-      }),
-    );
-  };
-
-  if (reportar) {
-    return (
-      <ReportarDefeitoForm
-        tarefa={reportar}
-        onClose={() => setReportar(null)}
-        onSucesso={() => {
-          // Marca quarto como Urgente visualmente: muda status para "Em Andamento" se Pendente
-          setReportar(null);
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="space-y-5">
-      <header className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold tracking-tight">Camareiras</h1>
-          <p className="text-sm text-muted-foreground">
-            Controle de faxina e abertura rápida de manutenção.
-          </p>
-        </div>
-        <Link
-          to="/chat"
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-card px-3 py-2 text-xs font-medium hover:border-primary/40"
+    <div className="w-full max-w-4xl mx-auto p-4 md:p-6 font-sans antialiased bg-slate-50 min-h-screen">
+      <div className="mb-6">
+        <h1 className="text-2xl font-bold text-slate-800">Camareiras</h1>
+        <p className="text-sm text-slate-500">Controle de faxina e abertura rápida de manutenção.</p>
+      </div>
+
+      {/* Abas Superiores Botafogo / Ipanema */}
+      <div className="grid grid-cols-2 gap-4 mb-6 bg-white p-2 rounded-xl border border-slate-200 shadow-sm">
+        <button
+          onClick={() => setUnidadeAtiva("Botafogo")}
+          className={`py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            unidadeAtiva === "Botafogo"
+              ? "bg-teal-50 border border-teal-600 text-teal-800 shadow-sm"
+              : "text-slate-600 hover:bg-slate-50"
+          }`}
         >
-          <MessageSquare className="h-4 w-4" /> Chat
-        </Link>
-      </header>
-
-      {/* Unidades */}
-      <div className="flex gap-2">
-        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => {
-          const active = unidadeAtiva === u;
-          return (
-            <button
-              key={u}
-              onClick={() => setUnidadeAtiva(u)}
-              className={cn(
-                "flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all",
-                active
-                  ? "border-primary bg-primary/10 text-primary"
-                  : "border-border bg-card text-muted-foreground hover:border-primary/40",
-              )}
-            >
-              <Building2 className="h-4 w-4" /> {u}
-            </button>
-          );
-        })}
+          🏢 Botafogo
+        </button>
+        <button
+          onClick={() => setUnidadeAtiva("Ipanema")}
+          className={`py-3 rounded-lg font-bold text-sm flex items-center justify-center gap-2 transition-all ${
+            unidadeAtiva === "Ipanema"
+              ? "bg-teal-50 border border-teal-600 text-teal-800 shadow-sm"
+              : "text-slate-600 hover:bg-slate-50"
+          }`}
+        >
+          🏢 Ipanema
+        </button>
       </div>
 
-      {/* Filtros */}
-      <div className="flex gap-2 overflow-x-auto -mx-1 px-1 py-1">
-        {(["Todos", "Pendente", "Em Andamento", "Concluído"] as const).map((f) => {
-          const active = filtro === f;
-          return (
-            <button
-              key={f}
-              onClick={() => setFiltro(f)}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all border",
-                active
-                  ? "bg-primary text-primary-foreground border-primary"
-                  : "bg-card text-muted-foreground border-border hover:border-primary/40",
-              )}
-            >
-              {f}
-            </button>
-          );
-        })}
-      </div>
-
-      {/* Banner ALTA PRIORIDADE — vistoria reprovada */}
-      {prioridade.filter((p) => p.unidade === unidadeAtiva).length > 0 && (
-        <div className="rounded-xl border-2 border-red-500 bg-red-600 text-white p-4 shadow-md animate-pulse">
-          <div className="flex items-center gap-2 font-extrabold text-sm uppercase tracking-wider">
-            <AlertTriangle className="h-5 w-5" />
-            {prioridade.filter((p) => p.unidade === unidadeAtiva).length} quarto(s) com ALTA PRIORIDADE
-          </div>
-          <p className="text-xs text-red-100 mt-1">
-            Vistoria de check-in reprovada pela recepção — refazer imediatamente.
-          </p>
-        </div>
-      )}
-
-      {/* Cards */}
-      <div className="space-y-3">
-        {visiveis.length === 0 && (
-          <div className="rounded-xl border border-dashed border-border bg-muted/30 p-8 text-center text-sm text-muted-foreground">
-            Nenhum quarto neste filtro.
-          </div>
-        )}
-        {visiveis.map((t) => {
-          const prio = ehPrioridade(t);
-          return (
-          <div
-            key={t.id}
-            className={cn(
-              "rounded-xl border bg-card shadow-sm overflow-hidden transition-all",
-              prio
-                ? "border-2 border-red-500 ring-2 ring-red-500/30 shadow-red-200"
-                : "border-border",
-            )}
+      {/* Filtros rápidos de status */}
+      <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
+        {(["Todos", "Pendente", "Em Andamento", "Concluído"] as const).map((status) => (
+          <button
+            key={status}
+            onClick={() => setFiltroStatus(status)}
+            className={`px-4 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
+              filtroStatus === status
+                ? "bg-teal-700 text-white shadow-sm"
+                : "bg-white border border-slate-200 text-slate-600 active:bg-slate-100"
+            }`}
           >
-            {prio && (
-              <div className="bg-red-600 text-white px-4 py-2 flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider animate-pulse">
-                <AlertTriangle className="h-4 w-4" />
-                Alta prioridade — vistoria reprovada
-              </div>
-            )}
-            <div className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="text-lg sm:text-xl font-black tracking-tight leading-tight">
-                    Quarto {padQuarto(t.quarto)} - {getTipoQuarto(t.unidade, t.quarto)}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground uppercase tracking-wider">
-                    INJOY {t.unidade}
-                  </div>
-                  {prio && (
-                    <div className="mt-1 text-[11px] text-red-700 dark:text-red-300 font-semibold">
-                      Motivo: {prio.motivo}
-                    </div>
-                  )}
+            {status}
+          </button>
+        ))}
+      </div>
+
+      {/* Grid de Cards Dinâmicos */}
+      <div className="space-y-4">
+        {quartosFiltrados.length === 0 ? (
+          <p className="text-center text-sm text-slate-400 py-8 bg-white rounded-xl border border-dashed border-slate-200">
+            Nenhum quarto pendente para Injoy {unidadeAtiva}.
+          </p>
+        ) : (
+          quartosFiltrados.map((item) => (
+            <div key={item.id} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h2 className="text-lg font-black text-slate-800 tracking-tight">
+                    Quarto {item.quarto} – {item.tipoQuarto}
+                  </h2>
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mt-0.5">
+                    INJOY {item.unidade.toUpperCase()}
+                  </p>
                 </div>
-                <div className="shrink-0 flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setLegendaOpen(true)}
-                    aria-label="Legenda dos tipos de serviço"
-                    className="h-6 w-6 grid place-items-center rounded-full border border-border bg-background text-muted-foreground hover:text-primary hover:border-primary/40 transition"
-                    title="Ver legenda dos serviços"
-                  >
-                    <Info className="h-3.5 w-3.5" />
+
+                <div className="flex items-center gap-1.5">
+                  <button className="text-slate-400 hover:text-slate-600 transition-colors">
+                    <Info size={16} />
                   </button>
-                  <button
-                    type="button"
-                    onClick={() => podeCriar && cicloServico(t.id)}
-                    disabled={!podeCriar}
-                    title={
-                      SERVICO_DESCRICAO[t.servico ?? "GERAL CHECK-OUT"] +
-                      (podeCriar ? " (clique para alternar)" : "")
-                    }
-                    className="text-[11px] font-extrabold uppercase tracking-wider px-2.5 py-1 rounded-md shadow-sm bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-80 disabled:cursor-default transition"
-                  >
-                    {t.servico ?? "GERAL CHECK-OUT"}
-                  </button>
+                  <span className="bg-emerald-600 text-white text-[10px] font-black px-2.5 py-1 rounded-md tracking-wide">
+                    {item.tipoTarefa}
+                  </span>
                 </div>
               </div>
 
-              <div className="mt-3 flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider">
-                <span className="text-muted-foreground">Status:</span>
-                <span
-                  className={cn(
-                    "px-2 py-0.5 rounded",
-                    t.status === "Pendente" && "bg-red-100 text-red-700",
-                    t.status === "Em Andamento" && "bg-[#0b2545]/10 text-[#0b2545]",
-                    t.status === "Concluído" && "bg-emerald-100 text-emerald-700",
-                  )}
-                >
-                  {t.status}
-                </span>
+              <div className="flex flex-wrap items-center gap-3 text-xs pt-1">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-slate-500 font-medium">STATUS:</span>
+                  <span
+                    className={`px-2 py-0.5 rounded text-[10px] font-black uppercase ${
+                      item.status === "Pendente"
+                        ? "bg-red-100 text-red-700"
+                        : item.status === "Em Andamento"
+                          ? "bg-amber-100 text-amber-700"
+                          : "bg-emerald-100 text-emerald-700"
+                    }`}
+                  >
+                    {item.status}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">
+                  <Users size={13} className="text-slate-400" />
+                  <span>
+                    Hóspedes: {item.pax} {item.pax > 1 ? "pessoas" : "pessoa"}
+                  </span>
+                </div>
+
+                <div className="flex items-center gap-1 bg-slate-50 border border-slate-200 px-2 py-1 rounded-lg text-slate-600">
+                  <Calendar size={13} className="text-slate-400" />
+                  <span>Saída: {item.saida}</span>
+                </div>
               </div>
 
-              {(t.quantidadePessoas || t.dataSaida) && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {t.quantidadePessoas != null && (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
-                      <Users className="h-3.5 w-3.5 text-primary" />
-                      Hóspedes: {t.quantidadePessoas} {t.quantidadePessoas > 1 ? "pessoas" : "pessoa"}
-                    </span>
-                  )}
-                  {t.dataSaida && (
-                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
-                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
-                      Saída: {t.dataSaida}
-                    </span>
-                  )}
-                </div>
-              )}
-
-
-
-
-              <div className="mt-4 flex flex-col sm:flex-row gap-2 border-t border-border pt-3">
-                {!podeCriar ? null : t.status === "Pendente" ? (
+              <div className="flex gap-2 pt-2 border-t border-slate-100">
+                {item.status === "Pendente" && (
                   <button
-                    onClick={() => alterar(t.id, "Em Andamento")}
-                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-[#0b2545] hover:bg-[#0b2545]/90 text-white text-sm py-3.5 font-bold active:scale-[0.99] transition shadow-sm"
+                    onClick={() => alterarStatus(item.id, "Em Andamento")}
+                    className="flex-1 bg-slate-900 text-white text-sm py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:bg-slate-800 transition-colors"
                   >
-                    <Play className="h-4 w-4" /> Iniciar Limpeza
+                    <Play size={16} fill="currentColor" /> Iniciar Limpeza
                   </button>
-                ) : t.status === "Em Andamento" ? (
+                )}
+
+                {item.status === "Em Andamento" && (
                   <button
-                    onClick={() => alterar(t.id, "Concluído")}
-                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-sm py-3.5 font-bold active:scale-[0.99] transition shadow-sm"
+                    onClick={() => alterarStatus(item.id, "Concluído")}
+                    className="flex-1 bg-emerald-600 text-white text-sm py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:bg-emerald-700 transition-colors"
                   >
-                    <Check className="h-4 w-4" /> Concluir Faxina
+                    ✔ Finalizar Faxina
                   </button>
-                ) : (
+                )}
+
+                {item.status === "Concluído" && (
                   <button
-                    onClick={() => alterar(t.id, "Pendente")}
-                    className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 rounded-lg bg-muted text-foreground text-sm py-3.5 font-semibold"
+                    onClick={() => alterarStatus(item.id, "Pendente")}
+                    className="flex-1 bg-slate-100 text-slate-700 text-sm py-3 rounded-xl font-bold flex items-center justify-center gap-2 active:bg-slate-200 border border-slate-200 transition-colors"
                   >
-                    Reabrir
+                    <RotateCcw size={15} /> Reabrir
                   </button>
                 )}
 
                 <button
-                  onClick={() => setReportar(t)}
-                  aria-label={`Reportar defeito no quarto ${t.quarto}`}
-                  className="w-full sm:w-auto sm:shrink-0 inline-flex items-center justify-center gap-2 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-bold py-3.5 sm:px-5 active:scale-[0.99] transition shadow-sm"
+                  onClick={() => alert(`Abrir chamado de manutenção para o Quarto ${item.quarto} de ${item.unidade}`)}
+                  className="bg-red-600 text-white px-4 rounded-xl flex items-center justify-center active:bg-red-700 transition-colors shadow-sm"
+                  title="Reportar Manutenção"
                 >
-                  <AlertTriangle className="h-5 w-5" />
-                  <span className="sm:hidden">Reportar Defeito</span>
+                  <AlertTriangle size={18} />
                 </button>
               </div>
             </div>
-          </div>
-          );
-        })}
-      </div>
-
-      {legendaOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4"
-          onClick={() => setLegendaOpen(false)}
-        >
-          <div
-            className="w-full max-w-md rounded-2xl bg-card border border-border shadow-xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between px-5 py-3 border-b border-border">
-              <div className="flex items-center gap-2">
-                <Info className="h-4 w-4 text-primary" />
-                <div className="font-semibold text-sm">Legenda dos tipos de serviço</div>
-              </div>
-              <button
-                onClick={() => setLegendaOpen(false)}
-                aria-label="Fechar legenda"
-                className="p-1 rounded hover:bg-muted"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-            <ul className="p-4 space-y-3">
-              {SERVICO_TIPOS.map((tipo) => (
-                <li key={tipo} className="flex flex-col gap-1">
-                  <span className="self-start text-[11px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-600 text-white">
-                    {tipo}
-                  </span>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {SERVICO_DESCRICAO[tipo]}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* -------------------------- Reportar Defeito -------------------------- */
-
-function ReportarDefeitoForm({
-  tarefa,
-  onClose,
-  onSucesso,
-}: {
-  tarefa: Tarefa;
-  onClose: () => void;
-  onSucesso: () => void;
-}) {
-  const criar = useCriarChamado();
-  const { data: me } = useMe();
-  const { data: funcionarios = [] } = useFuncionarios();
-  const [catLabel, setCatLabel] = useState<string>("");
-  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
-  const [urgencia, setUrgencia] = useState<Urgencia>("Normal");
-  const [descricao, setDescricao] = useState("");
-  const [foto, setFoto] = useState<string | null>(null);
-  const [sucesso, setSucesso] = useState(false);
-  const [tecnicoAcionado, setTecnicoAcionado] = useState<string | null>(null);
-  const [categoriaAcionada, setCategoriaAcionada] = useState<string>("");
-
-  const catSelecionada = CATEGORIAS_RAPIDAS.find((c) => c.label === catLabel);
-  const tecnicosDaCategoria = catSelecionada
-    ? funcionarios.filter((f) => f.categorias.includes(catSelecionada.backend))
-    : [];
-
-  // Auto-seleciona se houver apenas 1 técnico; reseta quando muda a categoria.
-  useEffect(() => {
-    if (tecnicosDaCategoria.length === 1) {
-      setTecnicoId(tecnicosDaCategoria[0].id);
-    } else {
-      setTecnicoId(null);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [catLabel, funcionarios.length]);
-
-  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
-  const podeEnviar = !!catLabel && !precisaEscolherTecnico && !criar.isPending;
-
-  const enviar = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!podeEnviar || !catSelecionada) return;
-
-    const tecnicoEscolhido = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
-    const responsavelId = tecnicoEscolhido?.id ?? null;
-    const tecnicoNome = tecnicoEscolhido?.nome ?? "Pendente de Atribuição";
-
-    const prefixoUrg =
-      urgencia === "Urgente"
-        ? "🚨 URGENTE — bloqueia quarto. "
-        : urgencia === "Leve"
-          ? "Prioridade leve. "
-          : "";
-    const obs = descricao.trim() ? ` Obs.: ${descricao.trim()}` : "";
-    const fotoNota = foto ? " [Foto anexada pela camareira]" : "";
-    const tecnicoNota = ` [Técnico responsável: ${tecnicoNome}]`;
-    const descricaoFinal = `[Quarto ${tarefa.quarto}] ${prefixoUrg}${catLabel}.${obs}${fotoNota}${tecnicoNota}`;
-
-    criar.mutate(
-      {
-        unidade: tarefa.unidade,
-        categoria: catSelecionada.backend,
-        descricao: descricaoFinal,
-        responsavelId,
-      },
-      {
-        onSuccess: async (novo) => {
-          console.log("[camareiras] chamado criado", {
-            chamado: novo,
-            tecnicoResponsavel: tecnicoNome,
-            categoria: catLabel,
-            quarto: tarefa.quarto,
-          });
-
-          // 🚨 Notifica a RECEPÇÃO quando o chamado URGENTE bloqueia o quarto
-          if (urgencia === "Urgente" && me?.userId) {
-            try {
-              const { data: recep, error: recepErr } = await supabase
-                .rpc("get_recepcao_user_ids");
-              if (recepErr) throw recepErr;
-              const destinatarios = (recep ?? []).filter(
-                (r: { user_id: string }) => r.user_id !== me.userId,
-              );
-              if (destinatarios.length > 0) {
-                const aviso =
-                  `🚨 QUARTO BLOQUEADO — Q. ${tarefa.quarto} (INJOY ${tarefa.unidade})\n` +
-                  `Defeito URGENTE reportado: ${catLabel}.\n` +
-                  `Técnico acionado: ${tecnicoNome}.\n` +
-                  (descricao.trim() ? `Obs.: ${descricao.trim()}\n` : "") +
-                  `⚠️ Não vender este quarto até liberação.`;
-                const rows = destinatarios.map((r: { user_id: string }) => ({
-                  remetente_id: me.userId!,
-                  destinatario_id: r.user_id,
-                  conteudo: aviso,
-                }));
-                const { error: msgErr } = await supabase.from("mensagens").insert(rows);
-                if (msgErr) throw msgErr;
-                toast.success(`Recepção notificada (${destinatarios.length}) — quarto bloqueado.`);
-              } else {
-                toast.message("Nenhum recepcionista cadastrado para notificar.");
-              }
-            } catch (e) {
-              console.error("[camareiras] falha ao notificar recepção", e);
-              toast.error("Chamado criado, mas não foi possível notificar a recepção.");
-            }
-          }
-
-          setTecnicoAcionado(tecnicoNome);
-          setCategoriaAcionada(catLabel);
-          setSucesso(true);
-          toast.success(`Chamado enviado para ${tecnicoNome}`);
-          setTimeout(() => {
-            onSucesso();
-          }, 2200);
-        },
-        onError: (err) => toast.error(err.message),
-      },
-    );
-  };
-
-
-  const onFotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => setFoto(typeof reader.result === "string" ? reader.result : null);
-    reader.readAsDataURL(file);
-  };
-
-  if (sucesso) {
-    return (
-      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-6">
-        <div className="h-20 w-20 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 grid place-items-center mb-4 shadow-sm">
-          <Check className="h-10 w-10 stroke-[3]" />
-        </div>
-        <h2 className="text-2xl font-black">Defeito reportado!</h2>
-        {tecnicoAcionado && tecnicoAcionado !== "Pendente de Atribuição" ? (
-          <p className="text-foreground mt-3 max-w-md">
-            O técnico <span className="font-bold">{tecnicoAcionado}</span>{" "}
-            <span className="text-muted-foreground">
-              (Especialista em {categoriaAcionada})
-            </span>{" "}
-            já recebeu o chamado para o{" "}
-            <span className="font-bold">Q. {tarefa.quarto}</span>!
-          </p>
-        ) : (
-          <p className="text-foreground mt-3 max-w-md">
-            Chamado do <span className="font-bold">Q. {tarefa.quarto}</span>{" "}
-            registrado como{" "}
-            <span className="font-bold">Pendente de Atribuição</span>. O gestor
-            irá direcionar ao técnico responsável.
-          </p>
+          ))
         )}
       </div>
-    );
-  }
-
-  return (
-    <div className="-mx-4 sm:-mx-6 lg:-mx-10 -my-6 lg:-my-10">
-      <div className="bg-red-600 text-white px-4 py-4 shadow-md flex items-center gap-3">
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Voltar"
-          className="p-1 rounded-lg active:bg-red-700"
-        >
-          <ArrowLeft className="h-6 w-6" />
-        </button>
-        <div className="min-w-0">
-          <h1 className="text-xl font-bold tracking-tight truncate">Reportar Defeito</h1>
-          <p className="text-xs text-red-100">
-            Quarto {tarefa.quarto} · INJOY {tarefa.unidade}
-          </p>
-        </div>
-      </div>
-
-      <form onSubmit={enviar} className="p-4 space-y-5 max-w-2xl mx-auto">
-        {/* Categorias */}
-        <div>
-          <label className="block text-sm font-bold mb-2">Qual é o problema?</label>
-          <div className="grid grid-cols-2 gap-2">
-            {CATEGORIAS_RAPIDAS.map((c) => {
-              const active = catLabel === c.label;
-              return (
-                <button
-                  type="button"
-                  key={c.label}
-                  onClick={() => setCatLabel(c.label)}
-                  className={cn(
-                    "py-3 px-3 rounded-xl border font-semibold text-sm transition-all",
-                    active
-                      ? "bg-red-50 dark:bg-red-950/30 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500"
-                      : "bg-card border-border text-foreground/80 hover:border-primary/40",
-                  )}
-                >
-                  {c.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Seleção de técnico (apenas se houver 2+ cadastrados na categoria) */}
-        {catLabel && tecnicosDaCategoria.length >= 2 && (
-          <div>
-            <label className="block text-sm font-bold mb-2">
-              Qual técnico vai atender?
-            </label>
-            <div className="grid grid-cols-1 gap-2">
-              {tecnicosDaCategoria.map((t) => {
-                const active = tecnicoId === t.id;
-                return (
-                  <button
-                    type="button"
-                    key={t.id}
-                    onClick={() => setTecnicoId(t.id)}
-                    className={cn(
-                      "py-3 px-3 rounded-xl border text-left transition-all",
-                      active
-                        ? "bg-red-50 dark:bg-red-950/30 border-red-500 text-red-700 dark:text-red-400 ring-1 ring-red-500 font-bold"
-                        : "bg-card border-border text-foreground/80 hover:border-primary/40 font-semibold",
-                    )}
-                  >
-                    <div className="text-sm">{t.nome}</div>
-                    <div className="text-[11px] text-muted-foreground font-normal">
-                      {t.categorias.join(" · ")}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-            {precisaEscolherTecnico && (
-              <p className="mt-2 text-xs text-amber-600 dark:text-amber-400 font-medium">
-                Escolha o técnico que deve atender este chamado.
-              </p>
-            )}
-          </div>
-        )}
-
-
-
-        {/* Urgência */}
-        <div>
-          <label className="block text-sm font-bold mb-2">Bloqueia a venda do quarto?</label>
-          <div className="flex gap-2">
-            {([
-              { nivel: "Leve", desc: "Não impede venda" },
-              { nivel: "Normal", desc: "Consertar logo" },
-              { nivel: "Urgente", desc: "Bloqueia quarto!" },
-            ] as { nivel: Urgencia; desc: string }[]).map((u) => {
-              const active = urgencia === u.nivel;
-              const palette =
-                u.nivel === "Leve"
-                  ? "border-amber-300 text-amber-700 bg-amber-50 ring-amber-500 dark:bg-amber-950/30 dark:text-amber-400"
-                  : u.nivel === "Normal"
-                    ? "border-orange-300 text-orange-700 bg-orange-50 ring-orange-500 dark:bg-orange-950/30 dark:text-orange-400"
-                    : "border-red-500 text-red-700 bg-red-50 ring-red-500 dark:bg-red-950/30 dark:text-red-400";
-              return (
-                <button
-                  type="button"
-                  key={u.nivel}
-                  onClick={() => setUrgencia(u.nivel)}
-                  className={cn(
-                    "flex-1 py-3 px-2 rounded-xl border text-center transition-all flex flex-col items-center justify-center",
-                    active
-                      ? `${palette} ring-2 ring-offset-1 font-bold`
-                      : "bg-card border-border text-muted-foreground opacity-70",
-                  )}
-                >
-                  <span className="text-sm">{u.nivel}</span>
-                  <span className="text-[10px] leading-tight mt-0.5 font-normal">{u.desc}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Foto */}
-        <div>
-          <label className="block text-sm font-bold mb-2">Foto do Problema (Opcional)</label>
-          {foto ? (
-            <div className="relative">
-              <img
-                src={foto}
-                alt="Prévia do defeito"
-                className="w-full max-h-64 object-cover rounded-xl border border-border"
-              />
-              <button
-                type="button"
-                onClick={() => setFoto(null)}
-                className="absolute top-2 right-2 bg-black/60 text-white text-xs px-2 py-1 rounded-md"
-              >
-                Remover
-              </button>
-            </div>
-          ) : (
-            <label className="w-full cursor-pointer bg-card border-2 border-dashed border-border rounded-xl p-6 flex flex-col items-center justify-center gap-2 text-muted-foreground active:bg-muted/50 transition-colors">
-              <div className="p-3 bg-muted rounded-full">
-                <Camera className="h-6 w-6" />
-              </div>
-              <span className="text-sm font-medium">Tirar foto com o celular</span>
-              <input
-                type="file"
-                accept="image/*"
-                capture="environment"
-                onChange={onFotoChange}
-                className="hidden"
-              />
-            </label>
-          )}
-        </div>
-
-        {/* Observações */}
-        <div>
-          <label className="block text-sm font-bold mb-2">Observações Adicionais</label>
-          <textarea
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            placeholder="Descreva brevemente o problema encontrado..."
-            className="w-full bg-card border border-border rounded-xl p-3 text-sm focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none h-24 resize-none"
-          />
-        </div>
-
-        <button
-          type="submit"
-          disabled={!podeEnviar}
-          className={cn(
-            "w-full py-3.5 rounded-xl text-white font-bold text-base flex items-center justify-center gap-2 transition-all shadow-sm",
-            podeEnviar ? "bg-red-600 active:bg-red-700" : "bg-muted-foreground/40 cursor-not-allowed",
-          )}
-        >
-          <Send className="h-4 w-4" />
-          {criar.isPending ? "Enviando..." : "Abrir Ordem de Serviço"}
-        </button>
-      </form>
     </div>
   );
 }
