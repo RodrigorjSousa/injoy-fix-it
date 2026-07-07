@@ -42,7 +42,7 @@ const BOTAFOGO: Record<string, string> = {
  * sem preenchimento de zeros à esquerda.
  */
 export function padQuarto(num: string | number): string {
-  return String(num).replace(/^0+(?=\d)/, "");
+  return String(num);
 }
 
 export function getTipoQuarto(unidade: Unidade, quarto: string | number): string {
