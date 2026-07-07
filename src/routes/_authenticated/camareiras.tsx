@@ -12,6 +12,8 @@ import {
   Building2,
   Info,
   X,
+  Users,
+  CalendarDays,
 } from "lucide-react";
 import { useCriarChamado, useFuncionarios, useMe, type Categoria, type Unidade } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +49,8 @@ type Tarefa = {
   quarto: string;
   status: LimpezaStatus;
   servico?: ServicoTipo;
+  quantidadePessoas?: number;
+  dataSaida?: string;
 };
 
 const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
@@ -81,9 +85,25 @@ function savePrioridade(list: PrioridadeEntry[]) {
 
 function buildInitial(): Tarefa[] {
   const arr: Tarefa[] = [];
+  const hoje = new Date();
   (["Botafogo", "Ipanema"] as Unidade[]).forEach((u) => {
-    QUARTOS_POR_UNIDADE[u].forEach((q) => {
-      arr.push({ id: `${u}-${q}`, unidade: u, quarto: q, status: "Pendente", servico: "GERAL CHECK-OUT" });
+    QUARTOS_POR_UNIDADE[u].forEach((q, idx) => {
+      // Mock: alterna 1/2/3 pessoas e distribui datas de saída nos próximos dias
+      const pessoas = ((idx % 3) + 1);
+      const saida = new Date(hoje);
+      saida.setDate(hoje.getDate() + ((idx % 7) + 1));
+      const dd = String(saida.getDate()).padStart(2, "0");
+      const mm = String(saida.getMonth() + 1).padStart(2, "0");
+      const yyyy = saida.getFullYear();
+      arr.push({
+        id: `${u}-${q}`,
+        unidade: u,
+        quarto: q,
+        status: "Pendente",
+        servico: "GERAL CHECK-OUT",
+        quantidadePessoas: pessoas,
+        dataSaida: `${dd}/${mm}/${yyyy}`,
+      });
     });
   });
   return arr;
@@ -96,7 +116,17 @@ function loadTarefas(): Tarefa[] {
     if (!raw) return buildInitial();
     const parsed = JSON.parse(raw) as Tarefa[];
     if (!Array.isArray(parsed) || parsed.length === 0) return buildInitial();
-    return parsed;
+    // Enriquece registros antigos com os novos campos de reserva (mock)
+    const defaults = buildInitial();
+    return parsed.map((t) => {
+      if (t.quantidadePessoas && t.dataSaida) return t;
+      const d = defaults.find((x) => x.id === t.id);
+      return {
+        ...t,
+        quantidadePessoas: t.quantidadePessoas ?? d?.quantidadePessoas ?? 1,
+        dataSaida: t.dataSaida ?? d?.dataSaida ?? "",
+      };
+    });
   } catch {
     return buildInitial();
   }
@@ -340,6 +370,25 @@ function CamareirasPage() {
                   {t.status}
                 </span>
               </div>
+
+              {(t.quantidadePessoas || t.dataSaida) && (
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  {t.quantidadePessoas != null && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                      <Users className="h-3.5 w-3.5 text-primary" />
+                      Hóspedes: {t.quantidadePessoas} {t.quantidadePessoas > 1 ? "pessoas" : "pessoa"}
+                    </span>
+                  )}
+                  {t.dataSaida && (
+                    <span className="inline-flex items-center gap-1.5 rounded-md border border-border bg-muted/40 px-2 py-1 text-xs font-medium text-foreground">
+                      <CalendarDays className="h-3.5 w-3.5 text-primary" />
+                      Saída: {t.dataSaida}
+                    </span>
+                  )}
+                </div>
+              )}
+
+
 
 
               <div className="mt-4 flex flex-col sm:flex-row gap-2 border-t border-border pt-3">
