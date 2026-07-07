@@ -36,32 +36,30 @@ async function buscarDadosUnidade(nomeUnidade: string, apiKey?: string) {
 }
 
 function extrair(d: any) {
-  const dash = d?.dashboard?.data ?? d?.dashboard ?? {}
+  const dash = d?.dashboard?.data ?? {}
   const hk = d?.housekeeping?.data ?? []
 
-  // getDashboard: campos possíveis — occupancyPercentage, occupancy, revenue, balanceDue
+  // getDashboard: campo real é `percentageOccupied`
   const ocupacao = parseFloat(
-    dash.occupancyPercentage ?? dash.occupancy ?? dash.occupancyRate ?? 0
+    dash.percentageOccupied ?? dash.occupancyPercentage ?? 0
   )
-  const aReceber = parseFloat(
-    dash.balanceDue ?? dash.pendingBalance ?? dash.financials?.balanceDue ?? 0
-  )
+  const aReceber = 0 // getDashboard não expõe saldo pendente
 
-  // getHousekeepingStatus: normalmente array de quartos com campo `roomCondition` (clean/dirty)
-  // ou objeto com counters. Suportar ambos.
+  // getHousekeepingStatus retorna array de quartos.
+  // roomCondition: clean | dirty | inspected | out_of_service
+  // roomBlocked=true também conta como manutenção/bloqueio.
   let limpos = 0, sujos = 0, manutencao = 0
   if (Array.isArray(hk)) {
     for (const room of hk) {
-      const cond = String(room.roomCondition ?? room.condition ?? '').toLowerCase()
-      const outOfService = room.roomOccupied === false && (room.doNotDisturb || room.outOfService)
-      if (cond === 'clean') limpos++
-      else if (cond === 'dirty') sujos++
-      else if (cond === 'out_of_service' || cond === 'maintenance' || outOfService) manutencao++
+      const cond = String(room.roomCondition ?? '').toLowerCase()
+      if (room.roomBlocked === true || cond === 'out_of_service') {
+        manutencao++
+      } else if (cond === 'clean' || cond === 'inspected') {
+        limpos++
+      } else if (cond === 'dirty') {
+        sujos++
+      }
     }
-  } else if (hk?.counters) {
-    limpos = parseInt(hk.counters.clean ?? 0, 10)
-    sujos = parseInt(hk.counters.dirty ?? 0, 10)
-    manutencao = parseInt(hk.counters.maintenance ?? 0, 10)
   }
 
   return { ocupacao, limpos, sujos, manutencao, aReceber }
