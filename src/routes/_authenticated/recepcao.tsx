@@ -42,8 +42,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 1,
     property: "Botafogo",
-    quarto: "001",
-    tipo: getTipoQuarto("Botafogo", "001"),
+    quarto: "01",
+    tipo: getTipoQuarto("Botafogo", "01"),
     statusLimpeza: "Pendente",
     hospede: "Carlos Silva",
     chegadaHora: "14:00",
@@ -56,8 +56,8 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 2,
     property: "Botafogo",
-    quarto: "002",
-    tipo: getTipoQuarto("Botafogo", "002"),
+    quarto: "02",
+    tipo: getTipoQuarto("Botafogo", "02"),
     statusLimpeza: "Concluído",
     hospede: "Mariana Costa",
     chegadaHora: "11:30",
