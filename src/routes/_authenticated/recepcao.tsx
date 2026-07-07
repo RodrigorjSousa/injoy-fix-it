@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   User,
   Calendar,
@@ -9,8 +9,11 @@ import {
   CheckCircle2,
   RefreshCw,
   Search,
+  Building2,
 } from "lucide-react";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+import type { Unidade } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
@@ -21,6 +24,7 @@ type StatusCheckin = "Aguardando" | "Realizado";
 
 interface QuartoRecepcao {
   id: number;
+  property: Unidade;
   quarto: string;
   tipo: string;
   statusLimpeza: StatusLimpeza;
@@ -36,6 +40,7 @@ interface QuartoRecepcao {
 const quartosRecepcaoInicial: QuartoRecepcao[] = [
   {
     id: 1,
+    property: "Botafogo",
     quarto: "102",
     tipo: "Standard",
     statusLimpeza: "Pendente",
@@ -49,6 +54,7 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   },
   {
     id: 2,
+    property: "Botafogo",
     quarto: "204",
     tipo: "Master Suíte",
     statusLimpeza: "Concluído",
@@ -62,6 +68,7 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   },
   {
     id: 3,
+    property: "Botafogo",
     quarto: "105",
     tipo: "Standard",
     statusLimpeza: "Em Andamento",
@@ -75,6 +82,7 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
   },
   {
     id: 4,
+    property: "Ipanema",
     quarto: "301",
     tipo: "Presidencial",
     statusLimpeza: "Concluído",
@@ -86,11 +94,40 @@ const quartosRecepcaoInicial: QuartoRecepcao[] = [
     docPendente: false,
     statusCheckin: "Realizado",
   },
+  {
+    id: 5,
+    property: "Ipanema",
+    quarto: "410",
+    tipo: "Deluxe Vista Mar",
+    statusLimpeza: "Pendente",
+    hospede: "Felipe Moraes",
+    chegadaHora: "15:00",
+    dataSaida: "14/07/2026",
+    pax: 2,
+    pagamentoPendente: true,
+    docPendente: true,
+    statusCheckin: "Aguardando",
+  },
+  {
+    id: 6,
+    property: "Ipanema",
+    quarto: "205",
+    tipo: "Standard",
+    statusLimpeza: "Concluído",
+    hospede: "Beatriz Lima",
+    chegadaHora: "12:00",
+    dataSaida: "11/07/2026",
+    pax: 2,
+    pagamentoPendente: false,
+    docPendente: false,
+    statusCheckin: "Aguardando",
+  },
 ];
 
 function RecepcaoPage() {
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>(quartosRecepcaoInicial);
   const [pesquisa, setPesquisa] = useState("");
+  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
 
   const fazerCheckin = (id: number) => {
     setQuartos((prev) =>
@@ -99,10 +136,16 @@ function RecepcaoPage() {
     toast.success("Check-in realizado");
   };
 
-  const quartosFiltrados = quartos.filter(
-    (q) =>
-      q.quarto.includes(pesquisa) ||
-      q.hospede.toLowerCase().includes(pesquisa.toLowerCase()),
+  const quartosFiltrados = useMemo(
+    () =>
+      quartos
+        .filter((q) => q.property === unidadeAtiva)
+        .filter(
+          (q) =>
+            q.quarto.includes(pesquisa) ||
+            q.hospede.toLowerCase().includes(pesquisa.toLowerCase()),
+        ),
+    [quartos, unidadeAtiva, pesquisa],
   );
 
   return (
@@ -121,7 +164,28 @@ function RecepcaoPage() {
         </button>
       </div>
 
-      <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-2">
+      {/* Seletor de Unidade */}
+      <div className="p-4 pb-0 flex gap-2">
+        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => {
+          const active = unidadeAtiva === u;
+          return (
+            <button
+              key={u}
+              onClick={() => setUnidadeAtiva(u)}
+              className={cn(
+                "flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all",
+                active
+                  ? "border-blue-600 bg-blue-50 text-blue-700"
+                  : "border-slate-200 bg-white text-slate-500 hover:border-blue-300",
+              )}
+            >
+              <Building2 className="h-4 w-4" /> INJOY {u}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-2 mt-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-3.5 text-slate-400" size={18} />
           <input
@@ -143,7 +207,9 @@ function RecepcaoPage() {
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
                 <span className="text-2xl font-black text-slate-800">Q. {q.quarto}</span>
-                <span className="text-xs text-slate-500 block">{q.tipo}</span>
+                <span className="text-xs text-slate-500 block">
+                  {q.tipo} · INJOY {q.property}
+                </span>
               </div>
               <span
                 className={`text-xs font-bold px-3 py-1 rounded-full ${
@@ -230,7 +296,7 @@ function RecepcaoPage() {
 
         {quartosFiltrados.length === 0 && (
           <div className="col-span-full text-center text-sm text-slate-500 py-12">
-            Nenhum quarto encontrado.
+            Nenhum quarto encontrado em INJOY {unidadeAtiva}.
           </div>
         )}
       </div>

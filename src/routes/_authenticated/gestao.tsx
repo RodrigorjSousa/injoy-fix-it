@@ -1,19 +1,45 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { ArrowUpRight, TrendingUp } from "lucide-react";
+import { useMemo, useState } from "react";
+import { ArrowUpRight, TrendingUp, Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { Unidade } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
 });
 
-const dadosHotel = {
-  ocupacaoAtual: 78,
-  totalQuartos: 40,
-  quartosLimpos: 22,
-  quartosEmLimpeza: 6,
-  quartosSujos: 9,
-  quartosManutencao: 3,
-  faturamentoPendente: "R$ 2.450,00",
-  documentosFaltando: 4,
+type DadosHotel = {
+  ocupacaoAtual: number;
+  totalQuartos: number;
+  quartosLimpos: number;
+  quartosEmLimpeza: number;
+  quartosSujos: number;
+  quartosManutencao: number;
+  faturamentoPendente: string;
+  documentosFaltando: number;
+};
+
+const DADOS_POR_UNIDADE: Record<Unidade, DadosHotel> = {
+  Botafogo: {
+    ocupacaoAtual: 78,
+    totalQuartos: 40,
+    quartosLimpos: 22,
+    quartosEmLimpeza: 6,
+    quartosSujos: 9,
+    quartosManutencao: 3,
+    faturamentoPendente: "R$ 2.450,00",
+    documentosFaltando: 4,
+  },
+  Ipanema: {
+    ocupacaoAtual: 91,
+    totalQuartos: 28,
+    quartosLimpos: 18,
+    quartosEmLimpeza: 4,
+    quartosSujos: 5,
+    quartosManutencao: 1,
+    faturamentoPendente: "R$ 3.980,00",
+    documentosFaltando: 2,
+  },
 };
 
 type Urgencia = "Urgente" | "Normal" | "Leve";
@@ -21,6 +47,7 @@ type StatusChamado = "Aberto" | "Em Atendimento" | "Resolvido";
 
 interface ChamadoManut {
   id: number;
+  property: Unidade;
   quarto: string;
   categoria: string;
   urgencia: Urgencia;
@@ -29,23 +56,54 @@ interface ChamadoManut {
 }
 
 const chamadosManutencaoAtivos: ChamadoManut[] = [
-  { id: 101, quarto: "102", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
-  { id: 102, quarto: "204", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
-  { id: 103, quarto: "105", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
-  { id: 104, quarto: "301", categoria: "Mobiliário", urgencia: "Leve", tecnico: "Marceneiro Terceirizado", status: "Resolvido" },
+  { id: 101, property: "Botafogo", quarto: "102", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
+  { id: 102, property: "Botafogo", quarto: "204", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
+  { id: 103, property: "Botafogo", quarto: "105", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
+  { id: 104, property: "Botafogo", quarto: "301", categoria: "Mobiliário", urgencia: "Leve", tecnico: "Marceneiro Terceirizado", status: "Resolvido" },
+  { id: 201, property: "Ipanema", quarto: "410", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
+  { id: 202, property: "Ipanema", quarto: "205", categoria: "Elétrica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Em Atendimento" },
+  { id: 203, property: "Ipanema", quarto: "308", categoria: "Hidráulica", urgencia: "Leve", tecnico: "Técnico Geral", status: "Resolvido" },
 ];
 
 function DashboardGestao() {
-  const ativos = chamadosManutencaoAtivos.filter((c) => c.status !== "Resolvido").length;
+  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
+  const dadosHotel = DADOS_POR_UNIDADE[unidadeAtiva];
+
+  const chamadosUnidade = useMemo(
+    () => chamadosManutencaoAtivos.filter((c) => c.property === unidadeAtiva),
+    [unidadeAtiva],
+  );
+  const ativos = chamadosUnidade.filter((c) => c.status !== "Resolvido").length;
 
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased pb-12">
       <div className="bg-blue-950 text-white p-5 shadow-md sticky top-0 z-10">
         <h1 className="text-xl font-bold tracking-tight">Injoy Fix-It</h1>
-        <p className="text-xs text-blue-300">Painel de Gestão e Indicadores</p>
+        <p className="text-xs text-blue-300">Painel de Gestão e Indicadores · INJOY {unidadeAtiva}</p>
       </div>
 
       <div className="p-4 space-y-6">
+        {/* Seletor de Unidade */}
+        <div className="flex gap-2">
+          {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => {
+            const active = unidadeAtiva === u;
+            return (
+              <button
+                key={u}
+                onClick={() => setUnidadeAtiva(u)}
+                className={cn(
+                  "flex-1 inline-flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold transition-all",
+                  active
+                    ? "border-blue-700 bg-blue-50 text-blue-800"
+                    : "border-slate-200 bg-white text-slate-500 hover:border-blue-300",
+                )}
+              >
+                <Building2 className="h-4 w-4" /> INJOY {u}
+              </button>
+            );
+          })}
+        </div>
+
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div>
@@ -132,7 +190,12 @@ function DashboardGestao() {
           </div>
 
           <div className="space-y-3">
-            {chamadosManutencaoAtivos.map((chamado) => (
+            {chamadosUnidade.length === 0 && (
+              <div className="text-center text-xs text-slate-500 py-6">
+                Nenhum chamado registrado em INJOY {unidadeAtiva}.
+              </div>
+            )}
+            {chamadosUnidade.map((chamado) => (
               <div key={chamado.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="font-black text-slate-800 text-sm">Quarto {chamado.quarto}</span>
