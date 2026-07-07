@@ -80,7 +80,10 @@ function DashboardGestao() {
       quartosLimpos: live.clean_rooms,
       quartosSujos: live.dirty_rooms,
       quartosManutencao: live.maintenance_rooms,
+      quartosEmLimpeza: live.dirty_rooms,
       faturamentoPendente: `R$ ${Number(live.pending_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      totalQuartos: (live.available_rooms ?? base.totalQuartos) + (live.clean_rooms || 0) + (live.dirty_rooms || 0) + (live.maintenance_rooms || 0),
+      documentosFaltando: live.pending_docs_count ?? base.documentosFaltando,
     };
   }, [unidadeAtiva, live]);
 
