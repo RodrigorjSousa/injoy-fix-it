@@ -153,7 +153,7 @@ function RecepcaoPage() {
       {/* Header */}
       <div className="bg-[#0f172a] text-white p-4 shadow-sm sticky top-0 z-10 flex justify-between items-center">
         <div>
-          <h1 className="text-xl font-bold tracking-tight text-slate-200">Injoy Hoteis</h1>
+          <h1 className="text-xl font-bold tracking-tight text-slate-200">INJOY HOTÉIS</h1>
           <p className="text-xs text-slate-400">Painel de Controle da Recepção</p>
         </div>
         <button
