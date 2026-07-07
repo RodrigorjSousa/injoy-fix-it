@@ -11,6 +11,8 @@ export type HotelMetricRow = {
   dirty_rooms: number;
   maintenance_rooms: number;
   pending_balance: number;
+  available_rooms: number | null;
+  pending_docs_count: number | null;
   updated_at: string;
 };
 
