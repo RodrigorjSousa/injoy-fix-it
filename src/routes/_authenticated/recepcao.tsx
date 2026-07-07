@@ -207,9 +207,11 @@ function RecepcaoPage() {
           >
             <div className="p-4 border-b border-slate-100 flex justify-between items-center bg-slate-50">
               <div>
-                <span className="text-2xl font-black text-slate-800">Q. {q.quarto}</span>
+                <span className="text-2xl font-black text-slate-800">
+                  Quarto {padQuarto(q.quarto)} - {q.tipo}
+                </span>
                 <span className="text-xs text-slate-500 block">
-                  {q.tipo} · INJOY {q.property}
+                  INJOY {q.property}
                 </span>
               </div>
               <span
