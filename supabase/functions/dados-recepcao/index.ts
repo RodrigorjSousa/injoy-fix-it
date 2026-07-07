@@ -1,0 +1,93 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apiKey, content-type',
+}
+
+const API_BASE = "https://hotels.cloudbeds.com/api/v1.2"
+
+async function cb(path: string, apiKey: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: { Authorization: `Bearer ${apiKey}` },
+  })
+  const raw = await res.text()
+  try {
+    return JSON.parse(raw)
+  } catch {
+    console.error(`[dados-recepcao] non-JSON ${path}:`, raw.slice(0, 500))
+    return null
+  }
+}
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  try {
+    const url = new URL(req.url)
+    const propriedade = url.searchParams.get('property')
+    if (!propriedade) throw new Error("Propriedade não especificada.")
+
+    const apiKey = propriedade === 'Ipanema'
+      ? Deno.env.get('CLOUDBEDS_API_KEY_IPANEMA')
+      : Deno.env.get('CLOUDBEDS_API_KEY_BOTAFOGO')
+    if (!apiKey) throw new Error(`Chave de API para ${propriedade} não configurada.`)
+
+    const hoje = new Date().toISOString().split('T')[0]
+
+    const [reservasJson, hkJson] = await Promise.all([
+      cb(`/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}`, apiKey),
+      cb(`/getHousekeepingStatus`, apiKey),
+    ])
+
+    // Map de status de limpeza por número de quarto
+    const limpezaPorQuarto: Record<string, 'Limpo' | 'Sujo' | 'Em Limpeza'> = {}
+    const hkList = hkJson?.data ?? []
+    if (Array.isArray(hkList)) {
+      for (const room of hkList) {
+        const num = String(room.roomName ?? room.roomNumber ?? '').trim()
+        if (!num) continue
+        const cond = String(room.roomCondition ?? '').toLowerCase()
+        if (cond === 'clean' || cond === 'inspected') limpezaPorQuarto[num] = 'Limpo'
+        else if (cond === 'dirty') limpezaPorQuarto[num] = 'Sujo'
+        else limpezaPorQuarto[num] = 'Em Limpeza'
+      }
+    }
+
+    if (!reservasJson?.success) {
+      console.error(`[dados-recepcao] Cloudbeds ${propriedade}:`, reservasJson)
+      return new Response(JSON.stringify({ success: false, data: [] }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      })
+    }
+
+    const listaFormatada = (reservasJson.data ?? []).map((res: any) => {
+      const docFaltando = !res.guestDocumentNumber || !res.guestCountry
+      const quarto = res.assignedRoomNumber || "S/Q"
+      return {
+        id: res.reservationId,
+        quarto,
+        tipoQuarto: res.roomTypeName || "Não Alocado",
+        unidade: propriedade,
+        hospede: `${res.guestFirstName ?? ''} ${res.guestLastName ?? ''}`.trim() || "Hóspede",
+        pax: parseInt(res.numberOfGuests || 1, 10),
+        chegadaHora: res.estimatedArrivalTime || "14:00",
+        dataSaida: res.checkOutDate ? res.checkOutDate.split('-').reverse().join('/') : "--/--/----",
+        pagamentoPendente: parseFloat(res.balanceDue || 0) > 0,
+        docPendente: docFaltando,
+        statusCheckin: res.status === 'checked_in' ? 'Realizado' : 'Aguardando',
+        statusLimpeza: limpezaPorQuarto[quarto] ?? 'Em Limpeza',
+      }
+    })
+
+    return new Response(JSON.stringify({ success: true, data: listaFormatada }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 200,
+    })
+  } catch (error) {
+    return new Response(JSON.stringify({ error: (error as Error).message }), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+      status: 400,
+    })
+  }
+})
