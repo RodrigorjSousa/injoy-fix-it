@@ -23,12 +23,19 @@ serve(async (req) => {
     const processarPropriedade = async (apiKey: string | undefined, nomeUnidade: string) => {
       if (!apiKey) return { quartos: [] as any[], dashboard: null as any }
 
+      const janelaInicio = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+      const janelaFim = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+        .toISOString()
+        .split('T')[0]
+
       const [roomsRes, resRes, dashRes] = await Promise.all([
         fetch('https://hotels.cloudbeds.com/api/v1.2/getHousekeepingStatus', {
           headers: { Authorization: `Bearer ${apiKey}` },
         }),
         fetch(
-          `https://hotels.cloudbeds.com/api/v1.2/getReservations?checkInFrom=${hojeStr}&checkOutTo=${hojeStr}&includeGuestsDetails=true&pageSize=100`,
+          `https://hotels.cloudbeds.com/api/v1.2/getReservations?checkInFrom=${janelaInicio}&checkInTo=${janelaFim}&includeGuestsDetails=true&pageSize=500`,
           { headers: { Authorization: `Bearer ${apiKey}` } },
         ),
         fetch('https://hotels.cloudbeds.com/api/v1.2/getDashboard', {
@@ -46,28 +53,58 @@ serve(async (req) => {
         : Array.isArray(houseData?.rooms)
           ? houseData.rooms
           : []
-      const reservas: any[] = resJson?.success ? resJson.data ?? [] : []
+      const reservasRaw: any[] = resJson?.success ? resJson.data ?? [] : []
+
+      // Normaliza reservas: extrai hóspede principal + número do quarto atribuído
+      const reservas = reservasRaw.map((r: any) => {
+        const mainGuestId = r.guestID
+        const g = r.guestList?.[mainGuestId] ?? Object.values(r.guestList ?? {})[0] ?? {}
+        const assignedRooms: any[] = Array.isArray(g.rooms) ? g.rooms : []
+        const unassignedRooms: any[] = Array.isArray(g.unassignedRooms) ? g.unassignedRooms : []
+        const roomInfo = assignedRooms[0] ?? unassignedRooms[0] ?? {}
+        const roomNumber = String(
+          roomInfo.roomName ?? roomInfo.roomNumber ?? roomInfo.assignedRoomNumber ?? '',
+        ).trim()
+        const checkInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
+        const checkOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        const guestFirstName = g.guestFirstName ?? ''
+        const guestLastName = g.guestLastName ?? ''
+        const guestDocumentNumber = g.guestDocumentNumber ?? r.guestDocumentNumber ?? ''
+        const guestCountry = g.guestCountry ?? r.guestCountry ?? ''
+        const numberOfGuests = (parseInt(r.adults ?? 1, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
+        return {
+          ...r,
+          _roomNumber: roomNumber,
+          _checkInDate: checkInDate,
+          _checkOutDate: checkOutDate,
+          guestFirstName,
+          guestLastName,
+          guestDocumentNumber,
+          guestCountry,
+          numberOfGuests,
+        }
+      }).filter((r: any) => {
+        const s = String(r.status ?? '').toLowerCase()
+        return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
+      })
 
       const quartos = todosQuartos.map((room: any) => {
-        const numQuarto = String(room.roomNumber ?? room.roomName ?? '')
-
-        const roomOf = (r: any) =>
-          String(r?.assignedRoomNumber ?? r?.roomNumber ?? r?.roomName ?? '')
+        const numQuarto = String(room.roomName ?? room.roomNumber ?? '').trim()
 
         const reservaSaindoHoje = reservas.find(
-          (r: any) => roomOf(r) === numQuarto && r.checkOutDate === hojeStr,
+          (r: any) => r._roomNumber === numQuarto && r._checkOutDate === hojeStr,
         )
         const reservaEntrandoHoje = reservas.find(
           (r: any) =>
-            roomOf(r) === numQuarto &&
-            r.checkInDate === hojeStr &&
-            r.status !== 'checked_out',
+            r._roomNumber === numQuarto &&
+            r._checkInDate === hojeStr &&
+            String(r.status).toLowerCase() !== 'checked_out',
         )
         const hospedeAtualInHouse = reservas.find(
           (r: any) =>
-            roomOf(r) === numQuarto &&
-            r.status === 'checked_in' &&
-            r.checkOutDate > hojeStr,
+            r._roomNumber === numQuarto &&
+            String(r.status).toLowerCase() === 'checked_in' &&
+            (!r._checkOutDate || r._checkOutDate > hojeStr),
         )
 
         let tarefaSugerida = 'VERIFICAÇÃO'
@@ -81,7 +118,7 @@ serve(async (req) => {
           corLegenda = 'CINZA'
         } else if (hospedeAtualInHouse) {
           corLegenda = 'VERDE'
-          const dataCheckin = new Date(hospedeAtualInHouse.checkInDate)
+          const dataCheckin = new Date(hospedeAtualInHouse._checkInDate)
           const dataHoje = new Date(hojeStr)
           const diferencaDias = Math.floor(
             (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
@@ -112,7 +149,7 @@ serve(async (req) => {
         const guestName = resAtiva
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
-        const pax = resAtiva ? parseInt(String(resAtiva.numberOfGuests ?? 1), 10) || 0 : 0
+        const pax = resAtiva ? resAtiva.numberOfGuests || 0 : 0
         const hasPendingPayment = resAtiva
           ? parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0)) > 0
           : false
@@ -137,6 +174,7 @@ serve(async (req) => {
 
       return { quartos, dashboard: dashJson, reservas }
     }
+
 
 
     const [ipanema, botafogo] = await Promise.all([
