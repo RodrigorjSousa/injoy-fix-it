@@ -19,6 +19,10 @@ type RoomRow = {
   condition: string | null;
   assigned_task: string | null;
   color_code: string | null;
+  guest_name: string | null;
+  pax: number | null;
+  has_pending_payment: boolean | null;
+  has_pending_docs: boolean | null;
   updated_at: string;
 };
 
