@@ -34,10 +34,17 @@ serve(async (req) => {
     if (!apiKey) throw new Error(`Chave de API para ${propriedade} não configurada.`)
 
     const hoje = new Date().toISOString().split('T')[0]
+    // Janela ampla para pegar hóspedes já hospedados (check-in em dias anteriores)
+    const janelaInicio = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
+    const janelaFim = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
 
     const [reservasJson, hkJson] = await Promise.all([
       cb(
-        `/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}&includeGuestsDetails=true`,
+        `/getReservations?checkInFrom=${janelaInicio}&checkInTo=${janelaFim}&includeGuestsDetails=true&pageSize=500`,
         apiKey,
       ),
       cb(`/getHousekeepingStatus`, apiKey),
@@ -80,7 +87,13 @@ serve(async (req) => {
     if (reservasJson?.success) {
       const ativos = (reservasJson.data ?? []).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
-        return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
+        if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
+        // Estadia ativa hoje: check-in <= hoje < check-out, OU já em check_in
+        const ci = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
+        const co = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        if (s === 'checked_in') return !co || co >= hoje
+        if (ci && co) return ci <= hoje && co >= hoje
+        return ci === hoje
       })
 
       for (const res of ativos) {
@@ -114,9 +127,11 @@ serve(async (req) => {
           checkedIn: status === 'checked_in',
         }
 
-        // Se houver mais de uma reserva no mesmo quarto, prioriza a que já fez check-in
+        // Prioriza: já em check-in > check-in hoje > outras
         const existente = reservasPorQuarto[quarto]
-        if (!existente || (registro.checkedIn && !existente.checkedIn)) {
+        const prio = (x: any) => (x.checkedIn ? 2 : x.chegadaHoje ? 1 : 0)
+        ;(registro as any).chegadaHoje = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10) === hoje
+        if (!existente || prio(registro) > prio(existente)) {
           reservasPorQuarto[quarto] = registro
         }
       }
