@@ -167,7 +167,7 @@ function PainelCamareiras() {
           <input
             value={busca}
             onChange={(e) => setBusca(e.target.value)}
-            placeholder="Buscar quarto ou tipo..."
+            placeholder="Buscar quarto, tipo ou hóspede..."
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:border-blue-500"
           />
         </div>
