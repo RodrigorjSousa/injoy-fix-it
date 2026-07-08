@@ -202,13 +202,29 @@ function PainelCamareiras() {
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {loading && quartos.length === 0 ? (
-          <p className="text-center text-slate-400 col-span-2 py-8 animate-pulse">
-            Sincronizando tarefas com a agenda do Cloudbeds...
-          </p>
+          <div className="col-span-2">
+            <LoadingState label="Sincronizando tarefas com a agenda do Cloudbeds..." />
+          </div>
+        ) : erro && quartos.length === 0 ? (
+          <div className="col-span-2">
+            <ErrorState
+              title="Não foi possível carregar as tarefas"
+              description={erro}
+              onRetry={carregar}
+              retrying={loading}
+            />
+          </div>
         ) : filtrados.length === 0 ? (
-          <p className="col-span-2 text-center text-sm text-slate-400 py-8 bg-white rounded-xl border border-dashed border-slate-200">
-            Nenhum quarto encontrado em INJOY {unidadeAtiva}.
-          </p>
+          <div className="col-span-2">
+            <EmptyState
+              title={`Nenhum quarto encontrado em INJOY ${unidadeAtiva}`}
+              description={
+                busca || filtro !== "Todos"
+                  ? "Ajuste os filtros ou a busca para ver mais quartos."
+                  : "Toque em sincronizar para buscar tarefas do Cloudbeds."
+              }
+            />
+          </div>
         ) : (
           filtrados.map((q) => (
             <div
