@@ -258,28 +258,22 @@ function RecepcaoPage() {
                       <span className={`w-2 h-2 rounded-full ${ocupStyle.dot}`}></span>
                       {ocupStyle.label}
                     </span>
-                    <span
-                      className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full ${
-                        q.statusLimpeza === "Limpo"
-                          ? "bg-emerald-100 text-emerald-800"
-                          : q.statusLimpeza === "Em Limpeza"
-                            ? "bg-amber-100 text-amber-800"
-                            : "bg-red-100 text-red-800"
-                      }`}
-                    >
-                      <span
-                        className={`w-2 h-2 rounded-full ${
-                          q.statusLimpeza === "Limpo"
-                            ? "bg-emerald-500"
-                            : q.statusLimpeza === "Em Limpeza"
-                              ? "bg-amber-500"
-                              : "bg-red-500"
-                        }`}
-                      ></span>
-                      {q.statusLimpeza}
-                    </span>
                     {q.assignedTask && (
-                      <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wide">
+                      <span
+                        className={`inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
+                          q.assignedTask === "GERAL - CHECK-IN"
+                            ? "bg-red-600 text-white border-red-700"
+                            : q.assignedTask === "GERAL"
+                              ? "bg-orange-500 text-white border-orange-600"
+                              : q.assignedTask === "TROCA"
+                                ? "bg-purple-600 text-white border-purple-700"
+                                : q.assignedTask === "ARRUMAÇÃO"
+                                  ? "bg-blue-600 text-white border-blue-700"
+                                  : q.assignedTask === "REVISÃO"
+                                    ? "bg-cyan-500 text-white border-cyan-600"
+                                    : "bg-emerald-600 text-white border-emerald-700"
+                        }`}
+                      >
                         {q.assignedTask}
                       </span>
                     )}
