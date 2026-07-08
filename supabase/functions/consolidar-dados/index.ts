@@ -108,6 +108,18 @@ serve(async (req) => {
         else if (cond === 'dirty') status = 'dirty'
         else status = String(room.housekeepingStatus ?? 'dirty').toLowerCase()
 
+        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaSaindoHoje
+        const guestName = resAtiva
+          ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
+          : 'Quarto Vazio'
+        const pax = resAtiva ? parseInt(String(resAtiva.numberOfGuests ?? 1), 10) || 0 : 0
+        const hasPendingPayment = resAtiva
+          ? parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0)) > 0
+          : false
+        const hasPendingDocs = resAtiva
+          ? !resAtiva.guestDocumentNumber || !resAtiva.guestCountry
+          : false
+
         return {
           property: nomeUnidade,
           room_number: numQuarto,
@@ -116,6 +128,10 @@ serve(async (req) => {
           condition: blocked ? 'maintenance' : 'normal',
           assigned_task: tarefaSugerida,
           color_code: corLegenda,
+          guest_name: guestName,
+          pax,
+          has_pending_payment: hasPendingPayment,
+          has_pending_docs: hasPendingDocs,
         }
       })
 
