@@ -70,7 +70,7 @@ const chamadosManutencaoAtivos: ChamadoManut[] = [
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
-  const { metrics, syncing, sincronizar } = useHotelMetrics();
+  const { metrics, syncing, sincronizar, error: metricsError } = useHotelMetrics();
   const live = metrics[unidadeAtiva];
   const dadosHotel: DadosHotel = useMemo(() => {
     const base = DADOS_POR_UNIDADE[unidadeAtiva];
