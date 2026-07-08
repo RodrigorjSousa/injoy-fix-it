@@ -116,6 +116,16 @@ function Painel() {
         </div>
       </header>
 
+      {error ? (
+        <ErrorState
+          title="Não foi possível carregar os chamados"
+          description={friendlyError(error)}
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
+      ) : isLoading ? (
+        <LoadingState label="Carregando chamados..." />
+      ) : (
       <Tabs defaultValue="kanban" className="w-full">
         <TabsList>
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
