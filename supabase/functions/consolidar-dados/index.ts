@@ -30,21 +30,62 @@ serve(async (req) => {
         .toISOString()
         .split('T')[0]
 
-      const [roomsRes, resRes, dashRes] = await Promise.all([
-        fetch('https://hotels.cloudbeds.com/api/v1.2/getHousekeepingStatus', {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        }),
-        fetch(
-          `https://hotels.cloudbeds.com/api/v1.2/getReservations?checkInFrom=${janelaInicio}&checkInTo=${janelaFim}&includeGuestsDetails=true&pageSize=500`,
-          { headers: { Authorization: `Bearer ${apiKey}` } },
+      const authHeaders = { Authorization: `Bearer ${apiKey}` }
+
+      // Busca reservas paginadas — Cloudbeds limita pageSize a 100.
+      // Sem paginação, hóspedes de estadia longa (checkin > 100 reservas atrás)
+      // ficam de fora e o quarto aparece como "Quarto Vazio".
+      const fetchReservasPagina = async (
+        pageNumber: number,
+        checkInFrom: string,
+        checkInTo: string,
+        statusFilter = '',
+      ) => {
+        const url =
+          `https://hotels.cloudbeds.com/api/v1.2/getReservations?checkInFrom=${checkInFrom}` +
+          `&checkInTo=${checkInTo}&includeGuestsDetails=true&pageSize=100&pageNumber=${pageNumber}` +
+          statusFilter
+        const r = await fetch(url, { headers: authHeaders })
+        return r.json().catch(() => ({}))
+      }
+
+      const fetchTodasReservas = async (
+        checkInFrom: string,
+        checkInTo: string,
+        statusFilter = '',
+      ) => {
+        const primeira = await fetchReservasPagina(1, checkInFrom, checkInTo, statusFilter)
+        if (!primeira?.success) return [] as any[]
+        const total = Number(primeira.total ?? primeira.count ?? 0)
+        const acc: any[] = Array.isArray(primeira.data) ? [...primeira.data] : []
+        const totalPaginas = Math.min(Math.ceil(total / 100), 50) // hard cap de segurança
+        if (totalPaginas > 1) {
+          const pags = await Promise.all(
+            Array.from({ length: totalPaginas - 1 }, (_, i) =>
+              fetchReservasPagina(i + 2, checkInFrom, checkInTo, statusFilter),
+            ),
+          )
+          for (const p of pags) {
+            if (p?.success && Array.isArray(p.data)) acc.push(...p.data)
+          }
+        }
+        return acc
+      }
+
+      const [roomsRes, dashRes, reservasWindow, reservasCheckedIn] = await Promise.all([
+        fetch('https://hotels.cloudbeds.com/api/v1.2/getHousekeepingStatus', { headers: authHeaders }),
+        fetch('https://hotels.cloudbeds.com/api/v1.2/getDashboard', { headers: authHeaders }),
+        // Janela padrão: reservas do dia (arrivals/departures/short-stay)
+        fetchTodasReservas(janelaInicio, janelaFim),
+        // Hóspedes atualmente hospedados — checkin nos últimos 365 dias, filtro status
+        fetchTodasReservas(
+          new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+          janelaFim,
+          '&status=checked_in',
         ),
-        fetch('https://hotels.cloudbeds.com/api/v1.2/getDashboard', {
-          headers: { Authorization: `Bearer ${apiKey}` },
-        }),
       ])
 
       const roomsJson = await roomsRes.json().catch(() => ({}))
-      const resJson = await resRes.json().catch(() => ({}))
       const dashJson = await dashRes.json().catch(() => ({}))
 
       const houseData = roomsJson?.data
@@ -53,7 +94,15 @@ serve(async (req) => {
         : Array.isArray(houseData?.rooms)
           ? houseData.rooms
           : []
-      const reservasRaw: any[] = resJson?.success ? resJson.data ?? [] : []
+
+      // Deduplica por reservationID unindo as duas consultas
+      const mapReservas = new Map<string, any>()
+      for (const r of [...reservasWindow, ...reservasCheckedIn]) {
+        const id = String(r?.reservationID ?? r?.reservationId ?? r?.id ?? '')
+        if (!id) continue
+        if (!mapReservas.has(id)) mapReservas.set(id, r)
+      }
+      const reservasRaw: any[] = Array.from(mapReservas.values())
 
       // Normaliza reservas: extrai hóspede principal + número do quarto atribuído
       const reservas = reservasRaw.map((r: any) => {
@@ -111,6 +160,17 @@ serve(async (req) => {
             String(r.status).toLowerCase() === 'checked_in' &&
             (!r._checkOutDate || r._checkOutDate > hojeStr),
         )
+        // Fallback: reserva confirmada/pending com estadia sobreposta a hoje
+        // (cobre atrasos de check-in em que o Cloudbeds ainda não marcou como checked_in).
+        const reservaAtivaSobreposta = !hospedeAtualInHouse && !reservaEntrandoHoje && !reservaSaindoHoje
+          ? reservas.find((r: any) => {
+              if (r._roomNumber !== numQuarto) return false
+              const st = String(r.status ?? '').toLowerCase()
+              if (st === 'checked_out' || st === 'canceled' || st === 'cancelled' || st === 'no_show') return false
+              return r._checkInDate && r._checkOutDate &&
+                r._checkInDate <= hojeStr && r._checkOutDate > hojeStr
+            })
+          : null
 
         let tarefaSugerida = 'VERIFICAÇÃO'
         let corLegenda = 'CINZA'
@@ -137,6 +197,16 @@ serve(async (req) => {
             !(reservaEntrandoHoje.guestDocumentNumber || reservaEntrandoHoje.guestTaxID || reservaEntrandoHoje.guestDocumentType)
 
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
+        } else if (reservaAtivaSobreposta) {
+          // Reserva confirmada com estadia iniciada — trata como hóspede em casa
+          corLegenda = 'VERDE'
+          const dataCheckin = new Date(reservaAtivaSobreposta._checkInDate)
+          const dataHoje = new Date(hojeStr)
+          const diferencaDias = Math.floor(
+            (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
+          )
+          tarefaSugerida =
+            diferencaDias > 0 && diferencaDias % 3 === 0 ? 'TROCA' : 'ARRUMAÇÃO'
         } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
           tarefaSugerida = 'ARRUMAÇÃO'
         }
@@ -151,7 +221,7 @@ serve(async (req) => {
         else if (cond === 'dirty') status = 'dirty'
         else status = String(room.housekeepingStatus ?? 'dirty').toLowerCase()
 
-        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaSaindoHoje
+        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaAtivaSobreposta || reservaSaindoHoje
         const guestName = resAtiva
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
