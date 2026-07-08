@@ -273,6 +273,8 @@ export type Database = {
       }
       room_housekeeping: {
         Row: {
+          assigned_task: string | null
+          color_code: string | null
           condition: string | null
           id: string
           property: string
@@ -282,6 +284,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          assigned_task?: string | null
+          color_code?: string | null
           condition?: string | null
           id?: string
           property: string
@@ -291,6 +295,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          assigned_task?: string | null
+          color_code?: string | null
           condition?: string | null
           id?: string
           property?: string
