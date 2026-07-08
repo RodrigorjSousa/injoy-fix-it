@@ -237,6 +237,11 @@ serve(async (req) => {
             ) || formatHora(res.estimatedArrivalTime) || '--:--'
           : formatHora(res.estimatedArrivalTime) || 'A definir'
 
+        const startISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
+        const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
+        // In-house: já checkado OU estadia já iniciada (startDate < hoje e ainda não saiu)
+        const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
+
         const registro = {
           id: res.reservationID ?? res.reservationId,
           tipoQuartoReserva: roomInfo.roomTypeName || '',
@@ -246,14 +251,15 @@ serve(async (req) => {
           dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
           pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
           docPendente: docFaltando,
-          statusCheckin: isCheckedIn ? 'Realizado' : 'Aguardando',
-          checkedIn: isCheckedIn,
+          statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
+          checkedIn: emCasa,
+          startISO,
         }
 
-        // Prioriza: já em check-in > check-in hoje > outras
+        // Prioriza: já em casa > check-in hoje > outras
         const existente = reservasPorQuarto[quarto]
         const prio = (x: any) => (x.checkedIn ? 2 : x.chegadaHoje ? 1 : 0)
-        ;(registro as any).chegadaHoje = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10) === hoje
+        ;(registro as any).chegadaHoje = startISO === hoje
         if (!existente || prio(registro) > prio(existente)) {
           reservasPorQuarto[quarto] = registro
         }
