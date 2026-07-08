@@ -114,23 +114,19 @@ serve(async (req) => {
         const saidaISO = res.endDate || roomInfo.roomCheckOut
         const status = String(res.status ?? '').toLowerCase()
 
-        // Formata hora HH:MM a partir de vários formatos possíveis
+        // Extrai HH:MM como texto puro, SEM conversão de fuso horário.
         const formatHora = (v: unknown): string => {
-          if (!v) return ''
+          if (v === null || v === undefined) return ''
           const s = String(v).trim()
           if (!s) return ''
+          // ISO datetime: "2026-07-07T18:30:00" -> pega depois do "T"
+          if (s.includes('T')) {
+            const parte = s.split('T')[1]
+            if (parte && parte.length >= 5) return parte.substring(0, 5)
+          }
           // "HH:MM" ou "HH:MM:SS"
           const hm = s.match(/(\d{1,2}):(\d{2})/)
           if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`
-          // ISO datetime
-          const d = new Date(s)
-          if (!isNaN(d.getTime())) {
-            return d.toLocaleTimeString('pt-BR', {
-              hour: '2-digit',
-              minute: '2-digit',
-              timeZone: 'America/Sao_Paulo',
-            })
-          }
           return ''
         }
 
