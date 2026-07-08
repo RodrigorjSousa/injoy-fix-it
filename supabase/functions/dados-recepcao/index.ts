@@ -79,10 +79,34 @@ serve(async (req) => {
       .toISOString()
       .split('T')[0]
 
-    const [reservasWindow, reservasCheckedIn, hkJson] = await Promise.all([
+    // Cliente Supabase para ler o painel das camareiras (fonte de verdade da limpeza)
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    const fetchRoomHousekeeping = async () => {
+      if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [] as any[]
+      try {
+        const res = await fetch(
+          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task`,
+          {
+            headers: {
+              apikey: SUPABASE_SERVICE_ROLE_KEY,
+              Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            },
+          },
+        )
+        if (!res.ok) return []
+        return (await res.json()) as any[]
+      } catch (e) {
+        console.error('[dados-recepcao] erro room_housekeeping:', e)
+        return []
+      }
+    }
+
+    const [reservasWindow, reservasCheckedIn, hkJson, camareiraRows] = await Promise.all([
       fetchTodasReservas(janelaInicio, janelaFim),
       fetchTodasReservas(janelaLonga, janelaFim, '&status=checked_in'),
       cb(`/getHousekeepingStatus`, apiKey),
+      fetchRoomHousekeeping(),
     ])
 
     // Deduplica reservas
@@ -94,6 +118,30 @@ serve(async (req) => {
     }
     const todasReservas = Array.from(mapaReservas.values())
     const reservasJson = { success: true, data: todasReservas }
+
+    // Índice do painel das camareiras por número normalizado (só dígitos)
+    const normalizeKey = (v: string) => {
+      const digits = String(v ?? '').replace(/\D+/g, '')
+      return digits ? digits.replace(/^0+/, '') || '0' : String(v ?? '').trim().toUpperCase()
+    }
+    type CamareiraInfo = {
+      status: 'Limpo' | 'Sujo' | 'Em Limpeza'
+      assignedTask: string | null
+    }
+    const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
+    for (const row of camareiraRows ?? []) {
+      const key = normalizeKey(row?.room_number ?? '')
+      if (!key) continue
+      const st = String(row?.status ?? '').toLowerCase()
+      let statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza' = 'Em Limpeza'
+      if (st === 'clean' || st === 'limpo' || st === 'inspected') statusLimpeza = 'Limpo'
+      else if (st === 'dirty' || st === 'sujo') statusLimpeza = 'Sujo'
+      else if (st === 'in_progress' || st === 'em_limpeza' || st === 'em limpeza') statusLimpeza = 'Em Limpeza'
+      camareiraPorQuarto[key] = {
+        status: statusLimpeza,
+        assignedTask: row?.assigned_task ?? null,
+      }
+    }
 
 
     // Mapa de todos os quartos físicos a partir do housekeeping
@@ -189,6 +237,11 @@ serve(async (req) => {
             ) || formatHora(res.estimatedArrivalTime) || '--:--'
           : formatHora(res.estimatedArrivalTime) || 'A definir'
 
+        const startISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
+        const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
+        // In-house: já checkado OU estadia já iniciada (startDate < hoje e ainda não saiu)
+        const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
+
         const registro = {
           id: res.reservationID ?? res.reservationId,
           tipoQuartoReserva: roomInfo.roomTypeName || '',
@@ -198,14 +251,15 @@ serve(async (req) => {
           dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
           pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
           docPendente: docFaltando,
-          statusCheckin: isCheckedIn ? 'Realizado' : 'Aguardando',
-          checkedIn: isCheckedIn,
+          statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
+          checkedIn: emCasa,
+          startISO,
         }
 
-        // Prioriza: já em check-in > check-in hoje > outras
+        // Prioriza: já em casa > check-in hoje > outras
         const existente = reservasPorQuarto[quarto]
         const prio = (x: any) => (x.checkedIn ? 2 : x.chegadaHoje ? 1 : 0)
-        ;(registro as any).chegadaHoje = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10) === hoje
+        ;(registro as any).chegadaHoje = startISO === hoje
         if (!existente || prio(registro) > prio(existente)) {
           reservasPorQuarto[quarto] = registro
         }
@@ -217,6 +271,10 @@ serve(async (req) => {
     // Monta lista final: TODOS os quartos físicos, com dados da reserva quando existir
     const listaFormatada = Object.values(quartosFisicos).map((hk) => {
       const r = reservasPorQuarto[hk.quarto]
+      // Status de limpeza: painel das camareiras é a fonte de verdade; Cloudbeds é fallback
+      const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
+      const statusLimpeza = cam?.status ?? hk.statusLimpeza
+
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
       if (hk.bloqueado) ocupacao = 'Bloqueado'
       else if (r?.checkedIn) ocupacao = 'Ocupado'
@@ -226,7 +284,8 @@ serve(async (req) => {
         quarto: hk.quarto,
         tipoQuarto: r?.tipoQuartoReserva || hk.tipoQuarto,
         unidade: propriedade,
-        statusLimpeza: hk.statusLimpeza,
+        statusLimpeza,
+        assignedTask: cam?.assignedTask ?? null,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
