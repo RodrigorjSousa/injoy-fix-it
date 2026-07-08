@@ -135,8 +135,9 @@ serve(async (req) => {
         }
       })
 
-      return { quartos, dashboard: dashJson }
+      return { quartos, dashboard: dashJson, reservas }
     }
+
 
     const [ipanema, botafogo] = await Promise.all([
       processarPropriedade(apiKeyIpanema, 'Ipanema'),
@@ -145,32 +146,65 @@ serve(async (req) => {
 
     const nowIso = new Date().toISOString()
 
-    // Métricas do dashboard
+    // Métricas do dashboard — deriva do housekeeping+reservas quando o dashboard não expõe os campos
     for (const [unidade, dados] of [
       ['Ipanema', ipanema] as const,
       ['Botafogo', botafogo] as const,
     ]) {
       const d = dados.dashboard?.data ?? {}
+      console.log(`[consolidar-dados] dashboard ${unidade} keys:`, Object.keys(d))
+
       const limpos = dados.quartos.filter((q) => q.status === 'clean').length
       const sujos = dados.quartos.filter((q) => q.status === 'dirty').length
       const manut = dados.quartos.filter((q) => q.status === 'maintenance').length
+      const total = dados.quartos.length
+
+      // Reservas ativas hoje (check-in <= hoje < check-out) ou já em check-in
+      const reservasAtivas = (dados.reservas ?? []).filter((r: any) => {
+        const s = String(r.status ?? '').toLowerCase()
+        if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
+        const ci = String(r.checkInDate ?? r.startDate ?? '').slice(0, 10)
+        const co = String(r.checkOutDate ?? r.endDate ?? '').slice(0, 10)
+        if (s === 'checked_in') return !co || co >= hojeStr
+        if (ci && co) return ci <= hojeStr && co >= hojeStr
+        return ci === hojeStr
+      })
+
+      // Ocupação: prefere dashboard, senão calcula do estoque de quartos
+      const ocupados = reservasAtivas.filter((r: any) => String(r.status).toLowerCase() === 'checked_in').length
+      const ocupacaoDash = parseFloat(
+        d.percentageOccupied ?? d.occupancy ?? d.occupancyPercentage ?? 'NaN',
+      )
+      const ocupacao = Number.isFinite(ocupacaoDash) && ocupacaoDash > 0
+        ? ocupacaoDash
+        : total > 0 ? (ocupados / total) * 100 : 0
+
+      // Disponíveis para venda: limpos e não bloqueados; fallback do dashboard se houver
+      const dashAvail = parseInt(String(d.roomsAvailable ?? d.availableRooms ?? '0'), 10)
+      const availableRooms = dashAvail > 0 ? dashAvail : Math.max(limpos - manut, 0)
+
+      // Saldo pendente: soma de balanceDue das reservas ativas
+      const pendingBalance = reservasAtivas.reduce((sum: number, r: any) => {
+        const v = parseFloat(String(r.balanceDue ?? r.balance ?? 0))
+        return sum + (Number.isFinite(v) && v > 0 ? v : 0)
+      }, 0)
+
+      // Docs pendentes: reservas com documento ou país ausente
+      const pendingDocs = reservasAtivas.filter(
+        (r: any) => !r.guestDocumentNumber || !r.guestCountry,
+      ).length
 
       await supabaseClient.from('hotel_metrics').upsert(
         {
           property: unidade,
           date: hojeStr,
-          occupancy_percentage: parseFloat(
-            d.percentageOccupied ?? d.occupancy ?? d.occupancyPercentage ?? 0,
-          ),
+          occupancy_percentage: Number(ocupacao.toFixed(2)),
           clean_rooms: limpos,
           dirty_rooms: sujos,
           maintenance_rooms: manut,
-          pending_balance: parseFloat(d.balance ?? d.balanceDue ?? 0),
-          available_rooms: parseInt(d.roomsAvailable ?? d.availableRooms ?? 0, 10),
-          pending_docs_count: parseInt(
-            d.pendingPreCheckins ?? d.missingDocumentsCount ?? 0,
-            10,
-          ),
+          pending_balance: Number(pendingBalance.toFixed(2)),
+          available_rooms: availableRooms,
+          pending_docs_count: pendingDocs,
           updated_at: nowIso,
         },
         { onConflict: 'property,date' },
