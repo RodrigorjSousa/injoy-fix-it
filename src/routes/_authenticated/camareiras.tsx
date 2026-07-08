@@ -266,6 +266,13 @@ function PainelCamareiras() {
                 </div>
               </div>
 
+              {q.blink_troca && (
+                <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
+                  ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
+                </span>
+              )}
+
+
               <div className="border-t border-b border-dashed border-slate-200 py-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
                   <User size={15} className="text-slate-400" />
