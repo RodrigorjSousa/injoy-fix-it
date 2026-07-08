@@ -255,14 +255,19 @@ function PainelCamareiras() {
                     className={cn("w-3 h-3 rounded-full", corLegenda(q.color_code))}
                     title={`Estado Cloudbeds: ${q.color_code ?? "—"}`}
                   />
-                  <span
-                    className={cn(
-                      "text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wide border-2",
-                      estiloTarefa(q.assigned_task),
-                    )}
-                  >
-                    {q.assigned_task ?? "VERIFICAÇÃO"}
-                  </span>
+                  {(() => {
+                    const tarefaExibida = q.assigned_task === "TROCA" ? "TROCA + ARRUMAÇÃO" : (q.assigned_task ?? "VERIFICAÇÃO");
+                    return (
+                      <span
+                        className={cn(
+                          "text-[10px] font-black px-3 py-1 rounded-lg uppercase tracking-wide border-2",
+                          estiloTarefa(tarefaExibida),
+                        )}
+                      >
+                        {tarefaExibida}
+                      </span>
+                    );
+                  })()}
                 </div>
               </div>
 
