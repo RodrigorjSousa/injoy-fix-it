@@ -70,6 +70,8 @@ serve(async (req) => {
         const guestFirstName = g.guestFirstName ?? ''
         const guestLastName = g.guestLastName ?? ''
         const guestDocumentNumber = g.guestDocumentNumber ?? r.guestDocumentNumber ?? ''
+        const guestDocumentType = g.guestDocumentType ?? ''
+        const guestTaxID = g.taxID ?? r.taxID ?? ''
         const guestCountry = g.guestCountry ?? r.guestCountry ?? ''
         const numberOfGuests = (parseInt(r.adults ?? 1, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
         return {
@@ -80,9 +82,12 @@ serve(async (req) => {
           guestFirstName,
           guestLastName,
           guestDocumentNumber,
+          guestDocumentType,
+          guestTaxID,
           guestCountry,
           numberOfGuests,
         }
+
       }).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
         return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
