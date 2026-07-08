@@ -103,6 +103,20 @@ function RecepcaoPage() {
     carregar(unidadeAtiva);
   }, [unidadeAtiva, carregar]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel(`recepcao-housekeeping-${unidadeAtiva}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_housekeeping", filter: `property=eq.${unidadeAtiva}` },
+        () => carregar(unidadeAtiva),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [unidadeAtiva, carregar]);
+
   const fazerCheckin = (id: string | number) => {
     setCheckinsLocais((prev) => new Set(prev).add(id));
     toast.success("Check-in realizado");
