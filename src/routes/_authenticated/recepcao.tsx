@@ -24,6 +24,15 @@ import {
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6">
+      <ErrorState
+        title="Falha ao carregar a recepção"
+        description={friendlyError(error)}
+        onRetry={reset}
+      />
+    </div>
+  ),
 });
 
 type StatusLimpeza = "Limpo" | "Sujo" | "Em Limpeza";
