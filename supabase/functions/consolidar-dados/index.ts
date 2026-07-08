@@ -160,6 +160,17 @@ serve(async (req) => {
             String(r.status).toLowerCase() === 'checked_in' &&
             (!r._checkOutDate || r._checkOutDate > hojeStr),
         )
+        // Fallback: reserva confirmada/pending com estadia sobreposta a hoje
+        // (cobre atrasos de check-in em que o Cloudbeds ainda não marcou como checked_in).
+        const reservaAtivaSobreposta = !hospedeAtualInHouse && !reservaEntrandoHoje && !reservaSaindoHoje
+          ? reservas.find((r: any) => {
+              if (r._roomNumber !== numQuarto) return false
+              const st = String(r.status ?? '').toLowerCase()
+              if (st === 'checked_out' || st === 'canceled' || st === 'cancelled' || st === 'no_show') return false
+              return r._checkInDate && r._checkOutDate &&
+                r._checkInDate <= hojeStr && r._checkOutDate > hojeStr
+            })
+          : null
 
         let tarefaSugerida = 'VERIFICAÇÃO'
         let corLegenda = 'CINZA'
@@ -186,6 +197,16 @@ serve(async (req) => {
             !(reservaEntrandoHoje.guestDocumentNumber || reservaEntrandoHoje.guestTaxID || reservaEntrandoHoje.guestDocumentType)
 
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
+        } else if (reservaAtivaSobreposta) {
+          // Reserva confirmada com estadia iniciada — trata como hóspede em casa
+          corLegenda = 'VERDE'
+          const dataCheckin = new Date(reservaAtivaSobreposta._checkInDate)
+          const dataHoje = new Date(hojeStr)
+          const diferencaDias = Math.floor(
+            (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
+          )
+          tarefaSugerida =
+            diferencaDias > 0 && diferencaDias % 3 === 0 ? 'TROCA' : 'ARRUMAÇÃO'
         } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
           tarefaSugerida = 'ARRUMAÇÃO'
         }
@@ -200,7 +221,7 @@ serve(async (req) => {
         else if (cond === 'dirty') status = 'dirty'
         else status = String(room.housekeepingStatus ?? 'dirty').toLowerCase()
 
-        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaSaindoHoje
+        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaAtivaSobreposta || reservaSaindoHoje
         const guestName = resAtiva
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
