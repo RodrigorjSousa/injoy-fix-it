@@ -260,6 +260,7 @@ serve(async (req) => {
           pax,
           has_pending_payment: hasPendingPayment,
           has_pending_docs: hasPendingDocs,
+          blink_troca: blinkTroca,
         }
       })
 
