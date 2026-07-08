@@ -46,6 +46,25 @@ export function useHotelMetrics() {
     fetchMetrics();
   }, [fetchMetrics]);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("gestao-housekeeping-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_housekeeping" },
+        () => fetchMetrics(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hotel_metrics" },
+        () => fetchMetrics(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [fetchMetrics]);
+
   const sincronizar = useCallback(async () => {
     if (syncing) return;
     setSyncing(true);
