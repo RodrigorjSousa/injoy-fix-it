@@ -203,6 +203,7 @@ function Painel() {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }
