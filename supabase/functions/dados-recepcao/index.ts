@@ -127,9 +127,11 @@ serve(async (req) => {
           checkedIn: status === 'checked_in',
         }
 
-        // Se houver mais de uma reserva no mesmo quarto, prioriza a que já fez check-in
+        // Prioriza: já em check-in > check-in hoje > outras
         const existente = reservasPorQuarto[quarto]
-        if (!existente || (registro.checkedIn && !existente.checkedIn)) {
+        const prio = (x: any) => (x.checkedIn ? 2 : x.chegadaHoje ? 1 : 0)
+        ;(registro as any).chegadaHoje = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10) === hoje
+        if (!existente || prio(registro) > prio(existente)) {
           reservasPorQuarto[quarto] = registro
         }
       }
