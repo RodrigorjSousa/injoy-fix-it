@@ -134,7 +134,8 @@ serve(async (req) => {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
             parseFloat(reservaEntrandoHoje.balanceDue ?? reservaEntrandoHoje.balance ?? 0) > 0 ||
-            !reservaEntrandoHoje.guestDocumentNumber
+            !(reservaEntrandoHoje.guestDocumentNumber || reservaEntrandoHoje.guestTaxID || reservaEntrandoHoje.guestDocumentType)
+
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
         } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
           tarefaSugerida = 'ARRUMAÇÃO'
