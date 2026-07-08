@@ -34,10 +34,17 @@ serve(async (req) => {
     if (!apiKey) throw new Error(`Chave de API para ${propriedade} não configurada.`)
 
     const hoje = new Date().toISOString().split('T')[0]
+    // Janela ampla para pegar hóspedes já hospedados (check-in em dias anteriores)
+    const janelaInicio = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
+    const janelaFim = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
 
     const [reservasJson, hkJson] = await Promise.all([
       cb(
-        `/getReservations?checkInFrom=${hoje}&checkInTo=${hoje}&includeGuestsDetails=true`,
+        `/getReservations?checkInFrom=${janelaInicio}&checkInTo=${janelaFim}&checkOutFrom=${hoje}&checkOutTo=${janelaInicio.replace(janelaInicio, '')}&includeGuestsDetails=true&pageSize=500`,
         apiKey,
       ),
       cb(`/getHousekeepingStatus`, apiKey),
