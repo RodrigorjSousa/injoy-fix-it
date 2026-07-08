@@ -56,7 +56,7 @@ const COLUNAS: { status: Status; label: string; tone: string }[] = [
 function Painel() {
   const search = Route.useSearch();
   const { data: me } = useMe();
-  const { data: chamados = [], isLoading } = useChamados();
+  const { data: chamados = [], isLoading, error, refetch, isFetching } = useChamados();
   const { data: funcionarios = [] } = useFuncionarios();
   const excluir = useExcluirChamado();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
