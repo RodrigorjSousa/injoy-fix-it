@@ -4,6 +4,12 @@ import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSig
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  friendlyError,
+} from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
   component: PainelCamareiras,
