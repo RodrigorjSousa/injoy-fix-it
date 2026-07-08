@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
 import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
+import { ErrorState } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
