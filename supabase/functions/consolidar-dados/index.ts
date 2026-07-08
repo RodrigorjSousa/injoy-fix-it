@@ -70,6 +70,8 @@ serve(async (req) => {
         const guestFirstName = g.guestFirstName ?? ''
         const guestLastName = g.guestLastName ?? ''
         const guestDocumentNumber = g.guestDocumentNumber ?? r.guestDocumentNumber ?? ''
+        const guestDocumentType = g.guestDocumentType ?? ''
+        const guestTaxID = g.taxID ?? r.taxID ?? ''
         const guestCountry = g.guestCountry ?? r.guestCountry ?? ''
         const numberOfGuests = (parseInt(r.adults ?? 1, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
         return {
@@ -80,9 +82,12 @@ serve(async (req) => {
           guestFirstName,
           guestLastName,
           guestDocumentNumber,
+          guestDocumentType,
+          guestTaxID,
           guestCountry,
           numberOfGuests,
         }
+
       }).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
         return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
@@ -129,7 +134,8 @@ serve(async (req) => {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
             parseFloat(reservaEntrandoHoje.balanceDue ?? reservaEntrandoHoje.balance ?? 0) > 0 ||
-            !reservaEntrandoHoje.guestDocumentNumber
+            !(reservaEntrandoHoje.guestDocumentNumber || reservaEntrandoHoje.guestTaxID || reservaEntrandoHoje.guestDocumentType)
+
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
         } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
           tarefaSugerida = 'ARRUMAÇÃO'
@@ -153,9 +159,17 @@ serve(async (req) => {
         const hasPendingPayment = resAtiva
           ? parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0)) > 0
           : false
+        // Docs completos se qualquer identificação estiver preenchida:
+        // documento (passaporte/RG), taxID (CPF) ou tipo de documento cadastrado.
+        // Cloudbeds só popula guestDocumentNumber quando digitado manualmente;
+        // reservas de OTAs (Booking, Expedia) usam apenas taxID/CPF ou country.
+        const docNum = String(resAtiva?.guestDocumentNumber ?? '').trim()
+        const docType = String(resAtiva?.guestDocumentType ?? '').trim().replace(/^-$/, '')
+        const taxId = String(resAtiva?.guestTaxID ?? '').trim()
         const hasPendingDocs = resAtiva
-          ? !resAtiva.guestDocumentNumber || !resAtiva.guestCountry
+          ? !(docNum || taxId || docType)
           : false
+
 
         return {
           property: nomeUnidade,
@@ -228,9 +242,13 @@ serve(async (req) => {
       }, 0)
 
       // Docs pendentes: reservas com documento ou país ausente
-      const pendingDocs = reservasAtivas.filter(
-        (r: any) => !r.guestDocumentNumber || !r.guestCountry,
-      ).length
+      const pendingDocs = reservasAtivas.filter((r: any) => {
+        const dn = String(r.guestDocumentNumber ?? '').trim()
+        const dt = String(r.guestDocumentType ?? '').trim().replace(/^-$/, '')
+        const tx = String(r.guestTaxID ?? '').trim()
+        return !(dn || dt || tx)
+      }).length
+
 
       await supabaseClient.from('hotel_metrics').upsert(
         {
