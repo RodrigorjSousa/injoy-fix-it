@@ -37,6 +37,7 @@ import {
   type Chamado,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) => ({
