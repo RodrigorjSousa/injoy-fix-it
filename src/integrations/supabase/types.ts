@@ -276,7 +276,11 @@ export type Database = {
           assigned_task: string | null
           color_code: string | null
           condition: string | null
+          guest_name: string | null
+          has_pending_docs: boolean | null
+          has_pending_payment: boolean | null
           id: string
+          pax: number | null
           property: string
           room_number: string
           room_type: string | null
@@ -287,7 +291,11 @@ export type Database = {
           assigned_task?: string | null
           color_code?: string | null
           condition?: string | null
+          guest_name?: string | null
+          has_pending_docs?: boolean | null
+          has_pending_payment?: boolean | null
           id?: string
+          pax?: number | null
           property: string
           room_number: string
           room_type?: string | null
@@ -298,7 +306,11 @@ export type Database = {
           assigned_task?: string | null
           color_code?: string | null
           condition?: string | null
+          guest_name?: string | null
+          has_pending_docs?: boolean | null
+          has_pending_payment?: boolean | null
           id?: string
+          pax?: number | null
           property?: string
           room_number?: string
           room_type?: string | null
