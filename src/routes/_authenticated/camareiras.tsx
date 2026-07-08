@@ -50,6 +50,8 @@ function estiloTarefa(t: string | null) {
       return "bg-red-600 text-white border-red-700";
     case "GERAL":
       return "bg-orange-500 text-white border-orange-600";
+    case "TROCA + ARRUMAÇÃO":
+      return "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700";
     case "TROCA":
       return "bg-purple-600 text-white border-purple-700";
     case "ARRUMAÇÃO":
