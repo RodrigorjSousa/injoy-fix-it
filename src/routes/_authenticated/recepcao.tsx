@@ -259,27 +259,28 @@ function RecepcaoPage() {
                       <span className={`w-2 h-2 rounded-full ${ocupStyle.dot}`}></span>
                       {ocupStyle.label}
                     </span>
-                    {q.assignedTask && (
-                      <span
-                        className={`inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
-                          q.assignedTask === "GERAL - CHECK-IN"
-                            ? "bg-red-600 text-white border-red-700"
-                            : q.assignedTask === "GERAL"
-                              ? "bg-orange-500 text-white border-orange-600"
-                              : q.assignedTask === "TROCA + ARRUMAÇÃO"
-                                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700"
-                                : q.assignedTask === "TROCA"
-                                  ? "bg-purple-600 text-white border-purple-700"
-                                  : q.assignedTask === "ARRUMAÇÃO"
+                    {q.assignedTask && (() => {
+                      const tarefaExibida = q.assignedTask === "TROCA" ? "TROCA + ARRUMAÇÃO" : q.assignedTask;
+                      return (
+                        <span
+                          className={`inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
+                            tarefaExibida === "GERAL - CHECK-IN"
+                              ? "bg-red-600 text-white border-red-700"
+                              : tarefaExibida === "GERAL"
+                                ? "bg-orange-500 text-white border-orange-600"
+                                : tarefaExibida === "TROCA + ARRUMAÇÃO"
+                                  ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700"
+                                  : tarefaExibida === "ARRUMAÇÃO"
                                     ? "bg-blue-600 text-white border-blue-700"
-                                    : q.assignedTask === "REVISÃO"
+                                    : tarefaExibida === "REVISÃO"
                                       ? "bg-cyan-500 text-white border-cyan-600"
                                       : "bg-emerald-600 text-white border-emerald-700"
-                        }`}
-                      >
-                        {q.assignedTask}
-                      </span>
-                    )}
+                          }`}
+                        >
+                          {tarefaExibida}
+                        </span>
+                      );
+                    })()}
                   </div>
                 </div>
 
