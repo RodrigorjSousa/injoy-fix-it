@@ -87,7 +87,13 @@ serve(async (req) => {
     if (reservasJson?.success) {
       const ativos = (reservasJson.data ?? []).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
-        return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
+        if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
+        // Estadia ativa hoje: check-in <= hoje < check-out, OU já em check_in
+        const ci = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
+        const co = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        if (s === 'checked_in') return !co || co >= hoje
+        if (ci && co) return ci <= hoje && co >= hoje
+        return ci === hoje
       })
 
       for (const res of ativos) {
