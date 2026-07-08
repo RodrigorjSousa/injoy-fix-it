@@ -158,9 +158,17 @@ serve(async (req) => {
         const hasPendingPayment = resAtiva
           ? parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0)) > 0
           : false
+        // Docs completos se qualquer identificação estiver preenchida:
+        // documento (passaporte/RG), taxID (CPF) ou tipo de documento cadastrado.
+        // Cloudbeds só popula guestDocumentNumber quando digitado manualmente;
+        // reservas de OTAs (Booking, Expedia) usam apenas taxID/CPF ou country.
+        const docNum = String(resAtiva?.guestDocumentNumber ?? '').trim()
+        const docType = String(resAtiva?.guestDocumentType ?? '').trim().replace(/^-$/, '')
+        const taxId = String(resAtiva?.guestTaxID ?? '').trim()
         const hasPendingDocs = resAtiva
-          ? !resAtiva.guestDocumentNumber || !resAtiva.guestCountry
+          ? !(docNum || taxId || docType)
           : false
+
 
         return {
           property: nomeUnidade,
