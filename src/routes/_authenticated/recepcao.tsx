@@ -15,9 +15,24 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { padQuarto } from "@/lib/tipos-quarto";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  friendlyError,
+} from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6">
+      <ErrorState
+        title="Falha ao carregar a recepção"
+        description={friendlyError(error)}
+        onRetry={reset}
+      />
+    </div>
+  ),
 });
 
 type StatusLimpeza = "Limpo" | "Sujo" | "Em Limpeza";
@@ -73,27 +88,33 @@ function RecepcaoPage() {
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [checkinsLocais, setCheckinsLocais] = useState<Set<string | number>>(
     new Set(),
   );
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
+    setErro(null);
     try {
       const { data, error } = await supabase.functions.invoke(
         `dados-recepcao?property=${unidade}`,
         { method: "GET" },
       );
       if (error) throw error;
-      if (data?.success) {
+      if (data?.success && Array.isArray(data.data)) {
         setQuartos(data.data as QuartoRecepcao[]);
+      } else if (data?.error) {
+        throw new Error(String(data.error));
       } else {
         setQuartos([]);
       }
     } catch (err) {
+      const msg = friendlyError(err, "Falha ao carregar dados do Cloudbeds");
       console.error("[recepcao] erro ao buscar:", err);
-      toast.error("Falha ao carregar dados do Cloudbeds");
+      setErro(msg);
       setQuartos([]);
+      toast.error(msg);
     } finally {
       setCarregando(false);
     }
@@ -188,14 +209,30 @@ function RecepcaoPage() {
       </div>
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {carregando ? (
-          <p className="text-center text-slate-400 col-span-full py-12">
-            Carregando dados operacionais do Cloudbeds...
-          </p>
+        {carregando && quartos.length === 0 ? (
+          <div className="col-span-full">
+            <LoadingState label="Carregando dados operacionais do Cloudbeds..." />
+          </div>
+        ) : erro && quartos.length === 0 ? (
+          <div className="col-span-full">
+            <ErrorState
+              title="Não foi possível carregar a recepção"
+              description={erro}
+              onRetry={() => carregar(unidadeAtiva)}
+              retrying={carregando}
+            />
+          </div>
         ) : quartosFiltrados.length === 0 ? (
-          <p className="text-center text-slate-400 col-span-full py-12">
-            Nenhum quarto localizado para INJOY {unidadeAtiva}.
-          </p>
+          <div className="col-span-full">
+            <EmptyState
+              title={`Nenhum quarto localizado para INJOY ${unidadeAtiva}`}
+              description={
+                pesquisa
+                  ? "Ajuste a busca ou limpe o filtro para ver todos os quartos."
+                  : "Assim que houver reservas ou housekeeping sincronizados, eles aparecerão aqui."
+              }
+            />
+          </div>
         ) : (
           quartosFiltrados.map((q) => {
             const ocupStyle = OCUPACAO_STYLE[q.ocupacao];

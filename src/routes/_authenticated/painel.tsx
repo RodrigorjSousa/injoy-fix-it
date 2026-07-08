@@ -37,6 +37,7 @@ import {
   type Chamado,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) => ({
@@ -55,7 +56,7 @@ const COLUNAS: { status: Status; label: string; tone: string }[] = [
 function Painel() {
   const search = Route.useSearch();
   const { data: me } = useMe();
-  const { data: chamados = [], isLoading } = useChamados();
+  const { data: chamados = [], isLoading, error, refetch, isFetching } = useChamados();
   const { data: funcionarios = [] } = useFuncionarios();
   const excluir = useExcluirChamado();
   const [unidade, setUnidade] = useState<Unidade | "todas">("todas");
@@ -115,6 +116,16 @@ function Painel() {
         </div>
       </header>
 
+      {error ? (
+        <ErrorState
+          title="Não foi possível carregar os chamados"
+          description={friendlyError(error)}
+          onRetry={() => refetch()}
+          retrying={isFetching}
+        />
+      ) : isLoading ? (
+        <LoadingState label="Carregando chamados..." />
+      ) : (
       <Tabs defaultValue="kanban" className="w-full">
         <TabsList>
           <TabsTrigger value="kanban">Kanban</TabsTrigger>
@@ -192,6 +203,7 @@ function Painel() {
           </Card>
         </TabsContent>
       </Tabs>
+      )}
     </div>
   );
 }

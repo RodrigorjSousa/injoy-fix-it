@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
 import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
+import { ErrorState } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
@@ -69,7 +70,7 @@ const chamadosManutencaoAtivos: ChamadoManut[] = [
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
-  const { metrics, syncing, sincronizar } = useHotelMetrics();
+  const { metrics, syncing, sincronizar, error: metricsError } = useHotelMetrics();
   const live = metrics[unidadeAtiva];
   const dadosHotel: DadosHotel = useMemo(() => {
     const base = DADOS_POR_UNIDADE[unidadeAtiva];
@@ -131,6 +132,16 @@ function DashboardGestao() {
             );
           })}
         </div>
+
+        {metricsError && !live && (
+          <ErrorState
+            title="Métricas ao vivo indisponíveis"
+            description={`${metricsError}. Mostrando valores estimados — toque em sincronizar para tentar novamente.`}
+            onRetry={sincronizar}
+            retrying={syncing}
+          />
+        )}
+
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-start mb-2">

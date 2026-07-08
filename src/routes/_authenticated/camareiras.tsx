@@ -4,9 +4,24 @@ import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSig
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  friendlyError,
+} from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
   component: PainelCamareiras,
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6">
+      <ErrorState
+        title="Falha ao carregar camareiras"
+        description={friendlyError(error)}
+        onRetry={reset}
+      />
+    </div>
+  ),
 });
 
 type Unidade = "Botafogo" | "Ipanema";
@@ -65,19 +80,26 @@ function PainelCamareiras() {
   const [quartos, setQuartos] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("room_housekeeping")
-      .select("*")
-      .order("room_number", { ascending: true });
-    setLoading(false);
-    if (error) {
-      toast.error("Falha ao carregar quartos");
-      return;
+    setErro(null);
+    try {
+      const { data, error } = await supabase
+        .from("room_housekeeping")
+        .select("*")
+        .order("room_number", { ascending: true });
+      if (error) throw error;
+      setQuartos((data ?? []) as RoomRow[]);
+    } catch (err) {
+      const msg = friendlyError(err, "Falha ao carregar quartos");
+      console.error("[camareiras] fetch error", err);
+      setErro(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-    setQuartos((data ?? []) as RoomRow[]);
   }, []);
 
   useEffect(() => {
@@ -189,13 +211,29 @@ function PainelCamareiras() {
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         {loading && quartos.length === 0 ? (
-          <p className="text-center text-slate-400 col-span-2 py-8 animate-pulse">
-            Sincronizando tarefas com a agenda do Cloudbeds...
-          </p>
+          <div className="col-span-2">
+            <LoadingState label="Sincronizando tarefas com a agenda do Cloudbeds..." />
+          </div>
+        ) : erro && quartos.length === 0 ? (
+          <div className="col-span-2">
+            <ErrorState
+              title="Não foi possível carregar as tarefas"
+              description={erro}
+              onRetry={carregar}
+              retrying={loading}
+            />
+          </div>
         ) : filtrados.length === 0 ? (
-          <p className="col-span-2 text-center text-sm text-slate-400 py-8 bg-white rounded-xl border border-dashed border-slate-200">
-            Nenhum quarto encontrado em INJOY {unidadeAtiva}.
-          </p>
+          <div className="col-span-2">
+            <EmptyState
+              title={`Nenhum quarto encontrado em INJOY ${unidadeAtiva}`}
+              description={
+                busca || filtro !== "Todos"
+                  ? "Ajuste os filtros ou a busca para ver mais quartos."
+                  : "Toque em sincronizar para buscar tarefas do Cloudbeds."
+              }
+            />
+          </div>
         ) : (
           filtrados.map((q) => (
             <div
