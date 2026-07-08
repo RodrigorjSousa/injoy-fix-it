@@ -121,7 +121,8 @@ function PainelCamareiras() {
       if (filtro === "Limpo" && q.status !== "clean") return false;
       if (filtro === "Sujo" && q.status !== "dirty") return false;
       if (filtro === "Manutenção" && q.condition !== "maintenance") return false;
-      if (busca && !`${q.room_number} ${q.room_type ?? ""}`.toLowerCase().includes(busca.toLowerCase())) return false;
+      const alvo = `${q.room_number} ${q.room_type ?? ""} ${q.guest_name ?? ""}`.toLowerCase();
+      if (busca && !alvo.includes(busca.toLowerCase())) return false;
       return true;
     });
   }, [quartos, unidadeAtiva, filtro, busca]);
