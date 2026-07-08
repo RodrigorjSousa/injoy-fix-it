@@ -200,14 +200,30 @@ function RecepcaoPage() {
       </div>
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {carregando ? (
-          <p className="text-center text-slate-400 col-span-full py-12">
-            Carregando dados operacionais do Cloudbeds...
-          </p>
+        {carregando && quartos.length === 0 ? (
+          <div className="col-span-full">
+            <LoadingState label="Carregando dados operacionais do Cloudbeds..." />
+          </div>
+        ) : erro && quartos.length === 0 ? (
+          <div className="col-span-full">
+            <ErrorState
+              title="Não foi possível carregar a recepção"
+              description={erro}
+              onRetry={() => carregar(unidadeAtiva)}
+              retrying={carregando}
+            />
+          </div>
         ) : quartosFiltrados.length === 0 ? (
-          <p className="text-center text-slate-400 col-span-full py-12">
-            Nenhum quarto localizado para INJOY {unidadeAtiva}.
-          </p>
+          <div className="col-span-full">
+            <EmptyState
+              title={`Nenhum quarto localizado para INJOY ${unidadeAtiva}`}
+              description={
+                pesquisa
+                  ? "Ajuste a busca ou limpe o filtro para ver todos os quartos."
+                  : "Assim que houver reservas ou housekeeping sincronizados, eles aparecerão aqui."
+              }
+            />
+          </div>
         ) : (
           quartosFiltrados.map((q) => {
             const ocupStyle = OCUPACAO_STYLE[q.ocupacao];
