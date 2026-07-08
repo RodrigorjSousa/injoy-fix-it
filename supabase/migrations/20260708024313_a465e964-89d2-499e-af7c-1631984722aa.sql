@@ -1,0 +1,1 @@
+ALTER TABLE public.room_housekeeping ADD COLUMN IF NOT EXISTS blink_troca boolean NOT NULL DEFAULT false;
