@@ -174,6 +174,21 @@ serve(async (req) => {
 
         let tarefaSugerida = 'VERIFICAÇÃO'
         let corLegenda = 'CINZA'
+        let blinkTroca = false
+
+        const calcularTroca = (checkInISO: string, checkOutISO: string | null | undefined) => {
+          const dataCheckin = new Date(checkInISO)
+          const dataHoje = new Date(hojeStr)
+          const diff = Math.floor(
+            (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
+          )
+          const diaDeTroca = diff > 0 && diff % 3 === 0
+          const coincideCheckout = !!checkOutISO && checkOutISO === hojeStr
+          return {
+            tarefa: diaDeTroca ? 'TROCA + ARRUMAÇÃO' : 'ARRUMAÇÃO',
+            blink: diaDeTroca && coincideCheckout,
+          }
+        }
 
         if (reservaSaindoHoje && reservaEntrandoHoje) {
           tarefaSugerida = 'GERAL - CHECK-IN'
@@ -183,13 +198,9 @@ serve(async (req) => {
           corLegenda = 'CINZA'
         } else if (hospedeAtualInHouse) {
           corLegenda = 'VERDE'
-          const dataCheckin = new Date(hospedeAtualInHouse._checkInDate)
-          const dataHoje = new Date(hojeStr)
-          const diferencaDias = Math.floor(
-            (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
-          )
-          tarefaSugerida =
-            diferencaDias > 0 && diferencaDias % 3 === 0 ? 'TROCA' : 'ARRUMAÇÃO'
+          const t = calcularTroca(hospedeAtualInHouse._checkInDate, hospedeAtualInHouse._checkOutDate)
+          tarefaSugerida = t.tarefa
+          blinkTroca = t.blink
         } else if (!hospedeAtualInHouse && reservaEntrandoHoje) {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
@@ -198,18 +209,14 @@ serve(async (req) => {
 
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
         } else if (reservaAtivaSobreposta) {
-          // Reserva confirmada com estadia iniciada — trata como hóspede em casa
           corLegenda = 'VERDE'
-          const dataCheckin = new Date(reservaAtivaSobreposta._checkInDate)
-          const dataHoje = new Date(hojeStr)
-          const diferencaDias = Math.floor(
-            (dataHoje.getTime() - dataCheckin.getTime()) / (1000 * 60 * 60 * 24),
-          )
-          tarefaSugerida =
-            diferencaDias > 0 && diferencaDias % 3 === 0 ? 'TROCA' : 'ARRUMAÇÃO'
+          const t = calcularTroca(reservaAtivaSobreposta._checkInDate, reservaAtivaSobreposta._checkOutDate)
+          tarefaSugerida = t.tarefa
+          blinkTroca = t.blink
         } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
           tarefaSugerida = 'ARRUMAÇÃO'
         }
+
 
         const cond = String(room.roomCondition ?? '').toLowerCase()
         const blocked =
