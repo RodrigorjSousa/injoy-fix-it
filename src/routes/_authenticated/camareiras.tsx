@@ -97,6 +97,8 @@ function PainelCamareiras() {
       supabase.removeChannel(channel);
     };
   }, [carregar]);
+
+  const sincronizar = useCallback(async () => {
     if (syncing) return;
     setSyncing(true);
     const t = toast.loading("Sincronizando com Cloudbeds...");
