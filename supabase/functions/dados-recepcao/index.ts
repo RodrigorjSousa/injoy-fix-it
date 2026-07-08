@@ -288,6 +288,7 @@ serve(async (req) => {
         unidade: propriedade,
         statusLimpeza,
         assignedTask: cam?.assignedTask ?? null,
+        blinkTroca: cam?.blinkTroca ?? false,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
