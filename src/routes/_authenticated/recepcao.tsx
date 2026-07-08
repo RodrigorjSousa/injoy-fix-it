@@ -278,6 +278,11 @@ function RecepcaoPage() {
                       ></span>
                       {q.statusLimpeza}
                     </span>
+                    {q.assignedTask && (
+                      <span className="inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 uppercase tracking-wide">
+                        {q.assignedTask}
+                      </span>
+                    )}
                   </div>
                 </div>
 
