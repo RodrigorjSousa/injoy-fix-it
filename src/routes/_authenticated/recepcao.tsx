@@ -45,6 +45,7 @@ interface QuartoRecepcao {
   quarto: string;
   tipoQuarto: string;
   statusLimpeza: StatusLimpeza;
+  assignedTask: string | null;
   ocupacao: Ocupacao;
   hospede: string;
   chegadaHora: string;
