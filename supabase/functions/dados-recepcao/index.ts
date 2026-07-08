@@ -42,13 +42,59 @@ serve(async (req) => {
       .toISOString()
       .split('T')[0]
 
-    const [reservasJson, hkJson] = await Promise.all([
+    // Cloudbeds limita pageSize a 100. Sem paginação, hóspedes de estadia longa
+    // (checkin > 100 reservas atrás) somem da lista e o quarto aparece como Livre.
+    const fetchReservasPag = async (
+      page: number,
+      from: string,
+      to: string,
+      statusFilter = '',
+    ) =>
       cb(
-        `/getReservations?checkInFrom=${janelaInicio}&checkInTo=${janelaFim}&includeGuestsDetails=true&pageSize=500`,
+        `/getReservations?checkInFrom=${from}&checkInTo=${to}` +
+          `&includeGuestsDetails=true&pageSize=100&pageNumber=${page}${statusFilter}`,
         apiKey,
-      ),
+      )
+
+    const fetchTodasReservas = async (from: string, to: string, statusFilter = '') => {
+      const p1 = await fetchReservasPag(1, from, to, statusFilter)
+      if (!p1?.success) return [] as any[]
+      const total = Number(p1.total ?? p1.count ?? 0)
+      const acc: any[] = Array.isArray(p1.data) ? [...p1.data] : []
+      const totalPaginas = Math.min(Math.ceil(total / 100), 50)
+      if (totalPaginas > 1) {
+        const rest = await Promise.all(
+          Array.from({ length: totalPaginas - 1 }, (_, i) =>
+            fetchReservasPag(i + 2, from, to, statusFilter),
+          ),
+        )
+        for (const p of rest) {
+          if (p?.success && Array.isArray(p.data)) acc.push(...p.data)
+        }
+      }
+      return acc
+    }
+
+    const janelaLonga = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
+      .toISOString()
+      .split('T')[0]
+
+    const [reservasWindow, reservasCheckedIn, hkJson] = await Promise.all([
+      fetchTodasReservas(janelaInicio, janelaFim),
+      fetchTodasReservas(janelaLonga, janelaFim, '&status=checked_in'),
       cb(`/getHousekeepingStatus`, apiKey),
     ])
+
+    // Deduplica reservas
+    const mapaReservas = new Map<string, any>()
+    for (const r of [...reservasWindow, ...reservasCheckedIn]) {
+      const id = String(r?.reservationID ?? r?.reservationId ?? r?.id ?? '')
+      if (!id) continue
+      if (!mapaReservas.has(id)) mapaReservas.set(id, r)
+    }
+    const todasReservas = Array.from(mapaReservas.values())
+    const reservasJson = { success: true, data: todasReservas }
+
 
     // Mapa de todos os quartos físicos a partir do housekeeping
     type HKRoom = {
