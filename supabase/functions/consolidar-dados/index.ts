@@ -241,9 +241,13 @@ serve(async (req) => {
       }, 0)
 
       // Docs pendentes: reservas com documento ou país ausente
-      const pendingDocs = reservasAtivas.filter(
-        (r: any) => !r.guestDocumentNumber || !r.guestCountry,
-      ).length
+      const pendingDocs = reservasAtivas.filter((r: any) => {
+        const dn = String(r.guestDocumentNumber ?? '').trim()
+        const dt = String(r.guestDocumentType ?? '').trim().replace(/^-$/, '')
+        const tx = String(r.guestTaxID ?? '').trim()
+        return !(dn || dt || tx)
+      }).length
+
 
       await supabaseClient.from('hotel_metrics').upsert(
         {
