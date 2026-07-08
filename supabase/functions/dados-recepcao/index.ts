@@ -271,6 +271,10 @@ serve(async (req) => {
     // Monta lista final: TODOS os quartos físicos, com dados da reserva quando existir
     const listaFormatada = Object.values(quartosFisicos).map((hk) => {
       const r = reservasPorQuarto[hk.quarto]
+      // Status de limpeza: painel das camareiras é a fonte de verdade; Cloudbeds é fallback
+      const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
+      const statusLimpeza = cam?.status ?? hk.statusLimpeza
+
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
       if (hk.bloqueado) ocupacao = 'Bloqueado'
       else if (r?.checkedIn) ocupacao = 'Ocupado'
@@ -280,7 +284,8 @@ serve(async (req) => {
         quarto: hk.quarto,
         tipoQuarto: r?.tipoQuartoReserva || hk.tipoQuarto,
         unidade: propriedade,
-        statusLimpeza: hk.statusLimpeza,
+        statusLimpeza,
+        assignedTask: cam?.assignedTask ?? null,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
