@@ -84,7 +84,19 @@ function PainelCamareiras() {
     carregar();
   }, [carregar]);
 
-  const sincronizar = useCallback(async () => {
+  useEffect(() => {
+    const channel = supabase
+      .channel("room_housekeeping_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_housekeeping" },
+        () => carregar(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [carregar]);
     if (syncing) return;
     setSyncing(true);
     const t = toast.loading("Sincronizando com Cloudbeds...");
