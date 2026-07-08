@@ -225,6 +225,35 @@ function PainelCamareiras() {
                 </div>
               </div>
 
+              <div className="border-t border-b border-dashed border-slate-200 py-3 space-y-2">
+                <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
+                  <User size={15} className="text-slate-400" />
+                  <span>{q.guest_name || "Quarto Vazio"}</span>
+                  {q.pax && q.pax > 0 ? (
+                    <span className="text-[10px] font-normal text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
+                      {q.pax} pax
+                    </span>
+                  ) : null}
+                </div>
+                {(q.has_pending_payment || q.has_pending_docs) &&
+                q.guest_name &&
+                q.guest_name !== "Quarto Vazio" ? (
+                  <div className="flex flex-wrap gap-1.5 pt-1">
+                    {q.has_pending_payment && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-red-50 text-red-700 px-2 py-1 rounded-md border border-red-200">
+                        <DollarSign size={12} /> RECEBER NO BALCÃO
+                      </span>
+                    )}
+                    {q.has_pending_docs && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-700 px-2 py-1 rounded-md border border-amber-200">
+                        <FileText size={12} /> DOC PENDENTE
+                      </span>
+                    )}
+                  </div>
+                ) : null}
+              </div>
+
+
               <div className="flex justify-between items-center text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-100">
                 <span className="flex items-center gap-1 font-semibold">
                   {q.status === "clean" ? (
