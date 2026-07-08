@@ -114,17 +114,50 @@ serve(async (req) => {
         const saidaISO = res.endDate || roomInfo.roomCheckOut
         const status = String(res.status ?? '').toLowerCase()
 
+        // Formata hora HH:MM a partir de vários formatos possíveis
+        const formatHora = (v: unknown): string => {
+          if (!v) return ''
+          const s = String(v).trim()
+          if (!s) return ''
+          // "HH:MM" ou "HH:MM:SS"
+          const hm = s.match(/(\d{1,2}):(\d{2})/)
+          if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`
+          // ISO datetime
+          const d = new Date(s)
+          if (!isNaN(d.getTime())) {
+            return d.toLocaleTimeString('pt-BR', {
+              hour: '2-digit',
+              minute: '2-digit',
+              timeZone: 'America/Sao_Paulo',
+            })
+          }
+          return ''
+        }
+
+        const isCheckedIn = status === 'checked_in'
+        // Para hóspedes já em check-in: hora real de check-in
+        // Para reservas aguardando: hora estimada de chegada
+        const horaChegada = isCheckedIn
+          ? formatHora(
+              res.checkInTime ??
+                res.checkinTime ??
+                res.checkedInDate ??
+                res.dateCheckedIn ??
+                res.startDate,
+            ) || formatHora(res.estimatedArrivalTime) || '--:--'
+          : formatHora(res.estimatedArrivalTime) || 'A definir'
+
         const registro = {
           id: res.reservationID ?? res.reservationId,
           tipoQuartoReserva: roomInfo.roomTypeName || '',
           hospede: nome,
           pax,
-          chegadaHora: res.estimatedArrivalTime || '14:00',
+          chegadaHora: horaChegada,
           dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
           pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
           docPendente: docFaltando,
-          statusCheckin: status === 'checked_in' ? 'Realizado' : 'Aguardando',
-          checkedIn: status === 'checked_in',
+          statusCheckin: isCheckedIn ? 'Realizado' : 'Aguardando',
+          checkedIn: isCheckedIn,
         }
 
         // Prioriza: já em check-in > check-in hoje > outras
