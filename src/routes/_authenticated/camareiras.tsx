@@ -71,19 +71,26 @@ function PainelCamareiras() {
   const [quartos, setQuartos] = useState<RoomRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const { data, error } = await supabase
-      .from("room_housekeeping")
-      .select("*")
-      .order("room_number", { ascending: true });
-    setLoading(false);
-    if (error) {
-      toast.error("Falha ao carregar quartos");
-      return;
+    setErro(null);
+    try {
+      const { data, error } = await supabase
+        .from("room_housekeeping")
+        .select("*")
+        .order("room_number", { ascending: true });
+      if (error) throw error;
+      setQuartos((data ?? []) as RoomRow[]);
+    } catch (err) {
+      const msg = friendlyError(err, "Falha ao carregar quartos");
+      console.error("[camareiras] fetch error", err);
+      setErro(msg);
+      toast.error(msg);
+    } finally {
+      setLoading(false);
     }
-    setQuartos((data ?? []) as RoomRow[]);
   }, []);
 
   useEffect(() => {
