@@ -46,6 +46,7 @@ interface QuartoRecepcao {
   tipoQuarto: string;
   statusLimpeza: StatusLimpeza;
   assignedTask: string | null;
+  blinkTroca: boolean;
   ocupacao: Ocupacao;
   hospede: string;
   chegadaHora: string;
