@@ -79,27 +79,33 @@ function RecepcaoPage() {
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>([]);
   const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
   const [checkinsLocais, setCheckinsLocais] = useState<Set<string | number>>(
     new Set(),
   );
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
+    setErro(null);
     try {
       const { data, error } = await supabase.functions.invoke(
         `dados-recepcao?property=${unidade}`,
         { method: "GET" },
       );
       if (error) throw error;
-      if (data?.success) {
+      if (data?.success && Array.isArray(data.data)) {
         setQuartos(data.data as QuartoRecepcao[]);
+      } else if (data?.error) {
+        throw new Error(String(data.error));
       } else {
         setQuartos([]);
       }
     } catch (err) {
+      const msg = friendlyError(err, "Falha ao carregar dados do Cloudbeds");
       console.error("[recepcao] erro ao buscar:", err);
-      toast.error("Falha ao carregar dados do Cloudbeds");
+      setErro(msg);
       setQuartos([]);
+      toast.error(msg);
     } finally {
       setCarregando(false);
     }
