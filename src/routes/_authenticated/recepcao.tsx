@@ -15,6 +15,12 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { padQuarto } from "@/lib/tipos-quarto";
+import {
+  EmptyState,
+  ErrorState,
+  LoadingState,
+  friendlyError,
+} from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/recepcao")({
   component: RecepcaoPage,
