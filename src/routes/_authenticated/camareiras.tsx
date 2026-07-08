@@ -13,6 +13,15 @@ import {
 
 export const Route = createFileRoute("/_authenticated/camareiras")({
   component: PainelCamareiras,
+  errorComponent: ({ error, reset }) => (
+    <div className="p-6">
+      <ErrorState
+        title="Falha ao carregar camareiras"
+        description={friendlyError(error)}
+        onRetry={reset}
+      />
+    </div>
+  ),
 });
 
 type Unidade = "Botafogo" | "Ipanema";
