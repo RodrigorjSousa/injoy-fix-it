@@ -38,6 +38,7 @@ type RoomRow = {
   pax: number | null;
   has_pending_payment: boolean | null;
   has_pending_docs: boolean | null;
+  blink_troca: boolean | null;
   updated_at: string;
 };
 
@@ -49,6 +50,8 @@ function estiloTarefa(t: string | null) {
       return "bg-red-600 text-white border-red-700";
     case "GERAL":
       return "bg-orange-500 text-white border-orange-600";
+    case "TROCA + ARRUMAÇÃO":
+      return "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700";
     case "TROCA":
       return "bg-purple-600 text-white border-purple-700";
     case "ARRUMAÇÃO":
@@ -262,6 +265,13 @@ function PainelCamareiras() {
                   </span>
                 </div>
               </div>
+
+              {q.blink_troca && (
+                <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
+                  ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
+                </span>
+              )}
+
 
               <div className="border-t border-b border-dashed border-slate-200 py-3 space-y-2">
                 <div className="flex items-center gap-2 text-sm font-bold text-slate-700">

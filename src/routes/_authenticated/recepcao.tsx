@@ -46,6 +46,7 @@ interface QuartoRecepcao {
   tipoQuarto: string;
   statusLimpeza: StatusLimpeza;
   assignedTask: string | null;
+  blinkTroca: boolean;
   ocupacao: Ocupacao;
   hospede: string;
   chegadaHora: string;
@@ -265,13 +266,15 @@ function RecepcaoPage() {
                             ? "bg-red-600 text-white border-red-700"
                             : q.assignedTask === "GERAL"
                               ? "bg-orange-500 text-white border-orange-600"
-                              : q.assignedTask === "TROCA"
-                                ? "bg-purple-600 text-white border-purple-700"
-                                : q.assignedTask === "ARRUMAÇÃO"
-                                  ? "bg-blue-600 text-white border-blue-700"
-                                  : q.assignedTask === "REVISÃO"
-                                    ? "bg-cyan-500 text-white border-cyan-600"
-                                    : "bg-emerald-600 text-white border-emerald-700"
+                              : q.assignedTask === "TROCA + ARRUMAÇÃO"
+                                ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700"
+                                : q.assignedTask === "TROCA"
+                                  ? "bg-purple-600 text-white border-purple-700"
+                                  : q.assignedTask === "ARRUMAÇÃO"
+                                    ? "bg-blue-600 text-white border-blue-700"
+                                    : q.assignedTask === "REVISÃO"
+                                      ? "bg-cyan-500 text-white border-cyan-600"
+                                      : "bg-emerald-600 text-white border-emerald-700"
                         }`}
                       >
                         {q.assignedTask}
@@ -279,6 +282,13 @@ function RecepcaoPage() {
                     )}
                   </div>
                 </div>
+
+                {q.blinkTroca && (
+                  <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
+                    ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
+                  </span>
+                )}
+
 
                 <div className="space-y-3 flex-1">
                   {q.temReserva ? (

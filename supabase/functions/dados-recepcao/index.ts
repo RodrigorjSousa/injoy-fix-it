@@ -86,7 +86,7 @@ serve(async (req) => {
       if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [] as any[]
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task`,
+          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task,blink_troca`,
           {
             headers: {
               apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -127,6 +127,7 @@ serve(async (req) => {
     type CamareiraInfo = {
       status: 'Limpo' | 'Sujo' | 'Em Limpeza'
       assignedTask: string | null
+      blinkTroca: boolean
     }
     const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
     for (const row of camareiraRows ?? []) {
@@ -140,6 +141,7 @@ serve(async (req) => {
       camareiraPorQuarto[key] = {
         status: statusLimpeza,
         assignedTask: row?.assigned_task ?? null,
+        blinkTroca: row?.blink_troca === true,
       }
     }
 
@@ -286,6 +288,7 @@ serve(async (req) => {
         unidade: propriedade,
         statusLimpeza,
         assignedTask: cam?.assignedTask ?? null,
+        blinkTroca: cam?.blinkTroca ?? false,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
