@@ -133,6 +133,16 @@ function DashboardGestao() {
           })}
         </div>
 
+        {metricsError && !live && (
+          <ErrorState
+            title="Métricas ao vivo indisponíveis"
+            description={`${metricsError}. Mostrando valores estimados — toque em sincronizar para tentar novamente.`}
+            onRetry={sincronizar}
+            retrying={syncing}
+          />
+        )}
+
+
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
           <div className="flex justify-between items-start mb-2">
             <div>
