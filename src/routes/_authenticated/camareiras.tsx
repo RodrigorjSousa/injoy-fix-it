@@ -39,8 +39,15 @@ type RoomRow = {
   has_pending_payment: boolean | null;
   has_pending_docs: boolean | null;
   blink_troca: boolean | null;
+  service_status: string | null;
+  assigned_camareira: string | null;
+  service_started_at: string | null;
+  service_ended_at: string | null;
   updated_at: string;
 };
+
+type Funcionario = { id: string; nome: string };
+
 
 type Filtro = "Todos" | "Limpo" | "Sujo" | "Manutenção";
 
