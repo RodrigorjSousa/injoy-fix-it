@@ -128,6 +128,8 @@ serve(async (req) => {
       status: 'Limpo' | 'Sujo' | 'Em Limpeza'
       assignedTask: string | null
       blinkTroca: boolean
+      serviceStatus: string | null
+      assignedCamareira: string | null
     }
     const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
     for (const row of camareiraRows ?? []) {
@@ -142,6 +144,8 @@ serve(async (req) => {
         status: statusLimpeza,
         assignedTask: row?.assigned_task ?? null,
         blinkTroca: row?.blink_troca === true,
+        serviceStatus: row?.service_status ?? null,
+        assignedCamareira: row?.assigned_camareira ?? null,
       }
     }
 
