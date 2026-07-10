@@ -129,6 +129,8 @@ function PainelCamareiras() {
       .update({
         service_status: "done",
         service_ended_at: new Date().toISOString(),
+        status: "clean",
+        condition: "clean",
       } as any)
       .eq("property", q.property)
       .eq("room_number", q.room_number);
@@ -136,7 +138,7 @@ function PainelCamareiras() {
       toast.error("Falha ao finalizar serviço");
       return;
     }
-    toast.success("Serviço finalizado");
+    toast.success("Serviço finalizado — quarto liberado");
   }, []);
 
 

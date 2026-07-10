@@ -47,6 +47,8 @@ interface QuartoRecepcao {
   statusLimpeza: StatusLimpeza;
   assignedTask: string | null;
   blinkTroca: boolean;
+  serviceStatus: string | null;
+  assignedCamareira: string | null;
   ocupacao: Ocupacao;
   hospede: string;
   chegadaHora: string;
@@ -293,6 +295,21 @@ function RecepcaoPage() {
                   <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
                     ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
                   </span>
+                )}
+
+                {q.serviceStatus === "in_progress" && q.assignedCamareira && (
+                  <div className="w-full flex items-center justify-center gap-2 text-xs font-bold bg-yellow-50 border-2 border-yellow-300 text-yellow-800 py-2 rounded-xl">
+                    🧹 Em serviço:
+                    <span className="animate-pulse font-black text-yellow-900 tracking-wide">
+                      {q.assignedCamareira}
+                    </span>
+                  </div>
+                )}
+
+                {q.serviceStatus === "done" && q.assignedCamareira && (
+                  <div className="w-full flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 py-2 rounded-xl">
+                    <CheckCircle2 size={14} /> Liberado por {q.assignedCamareira}
+                  </div>
                 )}
 
 
