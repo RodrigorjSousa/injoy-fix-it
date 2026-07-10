@@ -297,6 +297,21 @@ function RecepcaoPage() {
                   </span>
                 )}
 
+                {q.serviceStatus === "in_progress" && q.assignedCamareira && (
+                  <div className="w-full flex items-center justify-center gap-2 text-xs font-bold bg-yellow-50 border-2 border-yellow-300 text-yellow-800 py-2 rounded-xl">
+                    🧹 Em serviço:
+                    <span className="animate-pulse font-black text-yellow-900 tracking-wide">
+                      {q.assignedCamareira}
+                    </span>
+                  </div>
+                )}
+
+                {q.serviceStatus === "done" && q.assignedCamareira && (
+                  <div className="w-full flex items-center justify-center gap-1.5 text-xs font-bold bg-emerald-50 border border-emerald-200 text-emerald-700 py-2 rounded-xl">
+                    <CheckCircle2 size={14} /> Liberado por {q.assignedCamareira}
+                  </div>
+                )}
+
 
                 <div className="space-y-3 flex-1">
                   {q.temReserva ? (
