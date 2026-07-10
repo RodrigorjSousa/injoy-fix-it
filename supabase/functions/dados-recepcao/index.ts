@@ -293,6 +293,8 @@ serve(async (req) => {
         statusLimpeza,
         assignedTask: cam?.assignedTask ?? null,
         blinkTroca: cam?.blinkTroca ?? false,
+        serviceStatus: cam?.serviceStatus ?? null,
+        assignedCamareira: cam?.assignedCamareira ?? null,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
