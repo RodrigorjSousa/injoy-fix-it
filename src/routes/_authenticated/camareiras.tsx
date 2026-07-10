@@ -424,6 +424,54 @@ function PainelCamareiras() {
           ))
         )}
       </div>
+
+      {selecionarPara && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setSelecionarPara(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 className="font-black text-slate-800">Quem vai fazer o serviço?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Quarto APT {selecionarPara.room_number} — INJOY {selecionarPara.property}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelecionarPara(null)}
+                className="p-2 rounded-lg hover:bg-slate-100"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-3 space-y-2">
+              {funcionarios.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-6">
+                  Nenhuma funcionária cadastrada.
+                </p>
+              ) : (
+                funcionarios.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => iniciarServico(selecionarPara, f.nome)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                      {f.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-semibold text-slate-800 text-sm">{f.nome}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
