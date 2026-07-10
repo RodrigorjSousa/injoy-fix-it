@@ -91,6 +91,54 @@ function PainelCamareiras() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("funcionarios")
+      .select("id, nome")
+      .order("nome", { ascending: true })
+      .then(({ data }) => setFuncionarios((data ?? []) as Funcionario[]));
+  }, []);
+
+  const iniciarServico = useCallback(async (q: RoomRow, nome: string) => {
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "in_progress",
+        assigned_camareira: nome,
+        service_started_at: new Date().toISOString(),
+        service_ended_at: null,
+      } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao iniciar serviço");
+      return;
+    }
+    toast.success(`Serviço iniciado por ${nome}`);
+    setSelecionarPara(null);
+  }, []);
+
+  const finalizarServico = useCallback(async (q: RoomRow) => {
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "done",
+        service_ended_at: new Date().toISOString(),
+      } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao finalizar serviço");
+      return;
+    }
+    toast.success("Serviço finalizado");
+  }, []);
+
 
   const carregar = useCallback(async () => {
     setLoading(true);
