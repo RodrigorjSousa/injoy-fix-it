@@ -86,7 +86,7 @@ serve(async (req) => {
       if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [] as any[]
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task,blink_troca`,
+          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task,blink_troca,service_status,assigned_camareira`,
           {
             headers: {
               apikey: SUPABASE_SERVICE_ROLE_KEY,
