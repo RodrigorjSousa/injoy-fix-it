@@ -49,15 +49,15 @@ function estiloTarefa(t: string | null) {
     case "GERAL - CHECK-IN":
       return "bg-red-600 text-white border-red-700";
     case "GERAL":
-      return "bg-orange-500 text-white border-orange-600";
+      return "bg-sky-400 text-white border-sky-500";
     case "TROCA + ARRUMAÇÃO":
       return "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700";
     case "TROCA":
       return "bg-purple-600 text-white border-purple-700";
     case "ARRUMAÇÃO":
       return "bg-blue-600 text-white border-blue-700";
-    case "REVISÃO":
-      return "bg-cyan-500 text-white border-cyan-600";
+    case "REVISÃO CHECK IN":
+      return "bg-orange-500 text-white border-orange-600";
     default:
       return "bg-emerald-600 text-white border-emerald-700";
   }
