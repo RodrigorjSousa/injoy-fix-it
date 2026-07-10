@@ -94,13 +94,39 @@ function PainelCamareiras() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
 
-  useEffect(() => {
-    supabase
-      .from("funcionarios")
-      .select("id, nome")
-      .order("nome", { ascending: true })
-      .then(({ data }) => setFuncionarios((data ?? []) as Funcionario[]));
+  const carregarCamareiras = useCallback(async () => {
+    // biome-ignore lint/suspicious/noExplicitAny: RPC ainda não presente no types.ts gerado
+    const { data, error } = await (supabase as any).rpc("list_camareiras");
+    if (error) {
+      console.error("[camareiras] load list error", error);
+      return;
+    }
+    setFuncionarios((data ?? []) as Funcionario[]);
   }, []);
+
+  useEffect(() => {
+    carregarCamareiras();
+  }, [carregarCamareiras]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel("camareiras_lista_changes")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "user_roles" },
+        () => carregarCamareiras(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "funcionarios" },
+        () => carregarCamareiras(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [carregarCamareiras]);
+
 
   const iniciarServico = useCallback(async (q: RoomRow, nome: string) => {
     const { error } = await supabase

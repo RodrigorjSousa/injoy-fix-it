@@ -379,6 +379,13 @@ export type Database = {
           user_id: string
         }[]
       }
+      list_camareiras: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
     }
     Enums: {
       app_role:
