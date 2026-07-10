@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, Square, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -39,8 +39,15 @@ type RoomRow = {
   has_pending_payment: boolean | null;
   has_pending_docs: boolean | null;
   blink_troca: boolean | null;
+  service_status: string | null;
+  assigned_camareira: string | null;
+  service_started_at: string | null;
+  service_ended_at: string | null;
   updated_at: string;
 };
+
+type Funcionario = { id: string; nome: string };
+
 
 type Filtro = "Todos" | "Limpo" | "Sujo" | "Manutenção";
 
@@ -84,6 +91,54 @@ function PainelCamareiras() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
+  const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from("funcionarios")
+      .select("id, nome")
+      .order("nome", { ascending: true })
+      .then(({ data }) => setFuncionarios((data ?? []) as Funcionario[]));
+  }, []);
+
+  const iniciarServico = useCallback(async (q: RoomRow, nome: string) => {
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "in_progress",
+        assigned_camareira: nome,
+        service_started_at: new Date().toISOString(),
+        service_ended_at: null,
+      } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao iniciar serviço");
+      return;
+    }
+    toast.success(`Serviço iniciado por ${nome}`);
+    setSelecionarPara(null);
+  }, []);
+
+  const finalizarServico = useCallback(async (q: RoomRow) => {
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "done",
+        service_ended_at: new Date().toISOString(),
+      } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao finalizar serviço");
+      return;
+    }
+    toast.success("Serviço finalizado");
+  }, []);
+
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -329,10 +384,94 @@ function PainelCamareiras() {
                   Condição: {q.condition === "maintenance" ? "Em Manutenção" : "Normal"}
                 </span>
               </div>
+
+              {q.service_status === "in_progress" && q.assigned_camareira && (
+                <div className="flex items-center justify-center gap-2 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-2 px-3">
+                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Em serviço:</span>
+                  <span className="text-sm font-black text-yellow-900 animate-pulse">
+                    {q.assigned_camareira}
+                  </span>
+                </div>
+              )}
+
+              {q.service_status === "done" && q.assigned_camareira && (
+                <div className="flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl py-2 px-3">
+                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-800">
+                    Concluído por {q.assigned_camareira}
+                  </span>
+                </div>
+              )}
+
+              {q.service_status !== "in_progress" ? (
+                <button
+                  onClick={() => setSelecionarPara(q)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
+                >
+                  <Play size={16} />
+                  {q.service_status === "done" ? "Reiniciar Serviço" : "Iniciar Serviço"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => finalizarServico(q)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                >
+                  <Square size={16} />
+                  Finalizar Serviço
+                </button>
+              )}
             </div>
           ))
         )}
       </div>
+
+      {selecionarPara && (
+        <div
+          className="fixed inset-0 bg-black/60 z-50 flex items-end sm:items-center justify-center p-4"
+          onClick={() => setSelecionarPara(null)}
+        >
+          <div
+            className="bg-white rounded-2xl w-full max-w-md max-h-[80vh] overflow-hidden flex flex-col shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between p-4 border-b">
+              <div>
+                <h3 className="font-black text-slate-800">Quem vai fazer o serviço?</h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Quarto APT {selecionarPara.room_number} — INJOY {selecionarPara.property}
+                </p>
+              </div>
+              <button
+                onClick={() => setSelecionarPara(null)}
+                className="p-2 rounded-lg hover:bg-slate-100"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-3 space-y-2">
+              {funcionarios.length === 0 ? (
+                <p className="text-sm text-slate-500 text-center py-6">
+                  Nenhuma funcionária cadastrada.
+                </p>
+              ) : (
+                funcionarios.map((f) => (
+                  <button
+                    key={f.id}
+                    onClick={() => iniciarServico(selecionarPara, f.nome)}
+                    className="w-full flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
+                      {f.nome.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="font-semibold text-slate-800 text-sm">{f.nome}</span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -273,6 +273,7 @@ export type Database = {
       }
       room_housekeeping: {
         Row: {
+          assigned_camareira: string | null
           assigned_task: string | null
           blink_troca: boolean
           color_code: string | null
@@ -285,10 +286,14 @@ export type Database = {
           property: string
           room_number: string
           room_type: string | null
+          service_ended_at: string | null
+          service_started_at: string | null
+          service_status: string
           status: string | null
           updated_at: string
         }
         Insert: {
+          assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
           color_code?: string | null
@@ -301,10 +306,14 @@ export type Database = {
           property: string
           room_number: string
           room_type?: string | null
+          service_ended_at?: string | null
+          service_started_at?: string | null
+          service_status?: string
           status?: string | null
           updated_at?: string
         }
         Update: {
+          assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
           color_code?: string | null
@@ -317,6 +326,9 @@ export type Database = {
           property?: string
           room_number?: string
           room_type?: string | null
+          service_ended_at?: string | null
+          service_started_at?: string | null
+          service_status?: string
           status?: string | null
           updated_at?: string
         }
