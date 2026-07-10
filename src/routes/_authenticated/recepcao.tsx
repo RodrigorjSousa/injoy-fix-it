@@ -260,20 +260,25 @@ function RecepcaoPage() {
                       {ocupStyle.label}
                     </span>
                     {q.assignedTask && (() => {
-                      const tarefaExibida = q.assignedTask === "TROCA" ? "TROCA + ARRUMAÇÃO" : q.assignedTask;
+                      const tarefaExibida =
+                        q.assignedTask === "TROCA"
+                          ? "TROCA + ARRUMAÇÃO"
+                          : q.assignedTask === "REVISÃO"
+                            ? "REVISÃO CHECK IN"
+                            : q.assignedTask;
                       return (
                         <span
                           className={`inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
                             tarefaExibida === "GERAL - CHECK-IN"
                               ? "bg-red-600 text-white border-red-700"
                               : tarefaExibida === "GERAL"
-                                ? "bg-orange-500 text-white border-orange-600"
+                                ? "bg-sky-400 text-white border-sky-500"
                                 : tarefaExibida === "TROCA + ARRUMAÇÃO"
                                   ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white border-purple-700"
                                   : tarefaExibida === "ARRUMAÇÃO"
                                     ? "bg-blue-600 text-white border-blue-700"
-                                    : tarefaExibida === "REVISÃO"
-                                      ? "bg-cyan-500 text-white border-cyan-600"
+                                    : tarefaExibida === "REVISÃO CHECK IN"
+                                      ? "bg-orange-500 text-white border-orange-600"
                                       : "bg-emerald-600 text-white border-emerald-700"
                           }`}
                         >
