@@ -384,6 +384,42 @@ function PainelCamareiras() {
                   Condição: {q.condition === "maintenance" ? "Em Manutenção" : "Normal"}
                 </span>
               </div>
+
+              {q.service_status === "in_progress" && q.assigned_camareira && (
+                <div className="flex items-center justify-center gap-2 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-2 px-3">
+                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Em serviço:</span>
+                  <span className="text-sm font-black text-yellow-900 animate-pulse">
+                    {q.assigned_camareira}
+                  </span>
+                </div>
+              )}
+
+              {q.service_status === "done" && q.assigned_camareira && (
+                <div className="flex items-center justify-center gap-2 bg-emerald-50 border border-emerald-200 rounded-xl py-2 px-3">
+                  <CheckCircle2 size={14} className="text-emerald-600" />
+                  <span className="text-xs font-bold text-emerald-800">
+                    Concluído por {q.assigned_camareira}
+                  </span>
+                </div>
+              )}
+
+              {q.service_status !== "in_progress" ? (
+                <button
+                  onClick={() => setSelecionarPara(q)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
+                >
+                  <Play size={16} />
+                  {q.service_status === "done" ? "Reiniciar Serviço" : "Iniciar Serviço"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => finalizarServico(q)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                >
+                  <Square size={16} />
+                  Finalizar Serviço
+                </button>
+              )}
             </div>
           ))
         )}
