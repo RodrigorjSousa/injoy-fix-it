@@ -216,12 +216,12 @@ function DashboardGestao() {
               <div>
                 <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosManutencao}</p>
                 <p className="text-xs text-slate-500">Bloqueados OS</p>
-        </div>
-
-        <TempoCamareirasChart unidade={unidadeAtiva} />
+              </div>
             </div>
           </div>
         </div>
+
+        <TempoCamareirasChart unidade={unidadeAtiva} />
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
