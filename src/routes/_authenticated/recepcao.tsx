@@ -389,7 +389,20 @@ function RecepcaoPage() {
                   )}
                 </div>
 
-                <div>
+                <div className="space-y-2">
+                  {q.ocupacao !== "Bloqueado" && q.statusCheckin !== "Realizado" && (
+                    <button
+                      onClick={() =>
+                        setVistoriaAlvo({
+                          unidade: q.unidade,
+                          roomNumber: padQuarto(q.quarto),
+                        })
+                      }
+                      className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                    >
+                      <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                    </button>
+                  )}
                   {q.ocupacao === "Bloqueado" ? (
                     <div className="w-full py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
                       Quarto Bloqueado
@@ -418,6 +431,7 @@ function RecepcaoPage() {
                     </div>
                   )}
                 </div>
+
               </div>
             );
           })
