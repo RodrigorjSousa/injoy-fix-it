@@ -184,7 +184,7 @@ function DashboardGestao() {
           </div>
         </div>
 
-        <StatusOperacaoQuartos unidade={unidadeAtiva} />
+        
 
 
         <TempoCamareirasChart unidade={unidadeAtiva} />
