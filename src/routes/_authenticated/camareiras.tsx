@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban } from "lucide-react";
 import { toast } from "sonner";
+import { DndModal } from "@/components/camareiras/dnd-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
@@ -45,6 +46,9 @@ type RoomRow = {
   assigned_camareira: string | null;
   service_started_at: string | null;
   service_ended_at: string | null;
+  is_dnd: boolean | null;
+  dnd_photo_url: string | null;
+  room_comment: string | null;
   updated_at: string;
 };
 
@@ -100,6 +104,23 @@ function PainelCamareiras() {
   const [erro, setErro] = useState<string | null>(null);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
+  const [dndPara, setDndPara] = useState<RoomRow | null>(null);
+  const [comentarios, setComentarios] = useState<Record<string, string>>({});
+
+  const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
+    if ((q.room_comment ?? "") === texto) return;
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: coluna nova ainda não está no types.ts gerado
+      .update({ room_comment: texto, updated_at: new Date().toISOString() } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao salvar comentário");
+      return;
+    }
+    toast.success("Comentário salvo");
+  }, []);
 
   const carregarCamareiras = useCallback(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: RPC ainda não presente no types.ts gerado
@@ -449,34 +470,96 @@ function PainelCamareiras() {
                 </div>
               )}
 
-              {q.service_status === "done" ? (
-                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm shadow-sm uppercase tracking-wider">
-                  <CheckCircle2 size={16} />
-                  Serviço Feito
+              {q.is_dnd ? (
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3 bg-red-50 border-2 border-red-500 rounded-xl p-3">
+                    {q.dnd_photo_url ? (
+                      <img
+                        src={q.dnd_photo_url}
+                        alt="Placa Não Perturbe"
+                        className="w-14 h-14 rounded-lg object-cover border border-red-200"
+                      />
+                    ) : null}
+                    <div className="flex-1">
+                      <p className="text-[11px] font-black text-red-700 uppercase tracking-wider">
+                        🚫 Não Perturbe Ativado
+                      </p>
+                      <p className="text-xs text-red-600 mt-0.5">
+                        Faxina bloqueada para este quarto hoje.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-200 text-slate-500 font-black text-sm uppercase tracking-wider cursor-not-allowed">
+                    <Ban size={16} />
+                    Serviço Indisponível
+                  </div>
                 </div>
-              ) : q.service_status === "in_progress" ? (
-                <button
-                  onClick={() => finalizarServico(q)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
-                >
-                  <CheckCircle2 size={16} />
-                  Finalizar Serviço
-                </button>
               ) : (
-                <button
-                  onClick={() => {
-                    if (nomeAutomatico) {
-                      iniciarServico(q, nomeAutomatico);
-                    } else {
-                      setSelecionarPara(q);
-                    }
-                  }}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
-                >
-                  <Play size={16} />
-                  Iniciar Serviço
-                </button>
+                <>
+                  {q.service_status === "done" ? (
+                    <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm shadow-sm uppercase tracking-wider">
+                      <CheckCircle2 size={16} />
+                      Serviço Feito
+                    </div>
+                  ) : q.service_status === "in_progress" ? (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => finalizarServico(q)}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                      >
+                        <CheckCircle2 size={16} />
+                        Finalizar Serviço
+                      </button>
+                      <button
+                        onClick={() => setDndPara(q)}
+                        className="px-3 py-3 rounded-xl bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-xs shadow-sm transition-colors flex items-center gap-1"
+                        aria-label="Não Perturbe"
+                      >
+                        <Ban size={16} />
+                        Não Perturbe
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => {
+                          if (nomeAutomatico) {
+                            iniciarServico(q, nomeAutomatico);
+                          } else {
+                            setSelecionarPara(q);
+                          }
+                        }}
+                        className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
+                      >
+                        <Play size={16} />
+                        Iniciar Serviço
+                      </button>
+                      <button
+                        onClick={() => setDndPara(q)}
+                        className="px-3 py-3 rounded-xl bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-xs shadow-sm transition-colors flex items-center gap-1"
+                        aria-label="Não Perturbe"
+                      >
+                        <Ban size={16} />
+                        Não Perturbe
+                      </button>
+                    </div>
+                  )}
+                </>
               )}
+
+              <textarea
+                value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
+                onChange={(e) =>
+                  setComentarios((prev) => ({
+                    ...prev,
+                    [`${q.property}-${q.room_number}`]: e.target.value,
+                  }))
+                }
+                onBlur={(e) => salvarComentario(q, e.target.value)}
+                placeholder="Adicionar comentário ou observação do quarto..."
+                rows={2}
+                className="w-full mt-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700"
+              />
             </div>
           ))
         )}
@@ -528,6 +611,15 @@ function PainelCamareiras() {
             </div>
           </div>
         </div>
+      )}
+
+      {dndPara && (
+        <DndModal
+          open={!!dndPara}
+          onClose={() => setDndPara(null)}
+          unidade={dndPara.property}
+          roomNumber={dndPara.room_number}
+        />
       )}
     </div>
   );
