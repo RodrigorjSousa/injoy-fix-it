@@ -452,9 +452,9 @@ function PainelCamareiras() {
               ) : (
                 <button
                   onClick={() => finalizarServico(q)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
                 >
-                  <Square size={16} />
+                  <CheckCircle2 size={16} />
                   Finalizar Serviço
                 </button>
               )}
