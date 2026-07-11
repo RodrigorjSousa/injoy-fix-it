@@ -46,6 +46,9 @@ type RoomRow = {
   assigned_camareira: string | null;
   service_started_at: string | null;
   service_ended_at: string | null;
+  is_dnd: boolean | null;
+  dnd_photo_url: string | null;
+  room_comment: string | null;
   updated_at: string;
 };
 
