@@ -58,22 +58,23 @@ export function TempoCamareirasChart({ unidade }: Props) {
       cur.last = mins;
       byRoom.set(r.room_number, cur);
     }
+    const round1 = (n: number) => Math.round(n * 10) / 10;
     return Array.from(byRoom.entries())
       .map(([room, v]) => ({
         room,
         label: `${padQuarto(room)}`,
         tipo: getTipoQuarto(unidade, room),
-        media: Math.round(v.total / v.count),
-        ultimo: Math.round(v.last),
+        media: round1(v.total / v.count),
+        ultimo: round1(v.last),
         servicos: v.count,
       }))
       .sort((a, b) => b.media - a.media)
-      .slice(0, 15);
+      .slice(0, 30);
   }, [rows, unidade]);
 
   const geralMedia = useMemo(() => {
     if (chartData.length === 0) return 0;
-    return Math.round(chartData.reduce((s, d) => s + d.media, 0) / chartData.length);
+    return Math.round((chartData.reduce((s, d) => s + d.media, 0) / chartData.length) * 10) / 10;
   }, [chartData]);
 
   const colorFor = (mins: number) => {
@@ -112,7 +113,7 @@ export function TempoCamareirasChart({ unidade }: Props) {
           Ainda não há serviços concluídos em INJOY {unidade}. Assim que uma camareira iniciar e finalizar um serviço, os tempos aparecerão aqui.
         </div>
       ) : (
-        <div className="w-full h-72">
+        <div className="w-full" style={{ height: Math.max(288, chartData.length * 28) }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
