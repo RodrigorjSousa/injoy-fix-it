@@ -113,7 +113,7 @@ export function TempoCamareirasChart({ unidade }: Props) {
           Ainda não há serviços concluídos em INJOY {unidade}. Assim que uma camareira iniciar e finalizar um serviço, os tempos aparecerão aqui.
         </div>
       ) : (
-        <div className="w-full h-72">
+        <div className="w-full" style={{ height: Math.max(288, chartData.length * 28) }}>
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 8 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
