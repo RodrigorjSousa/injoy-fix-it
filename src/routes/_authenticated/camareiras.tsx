@@ -612,6 +612,15 @@ function PainelCamareiras() {
           </div>
         </div>
       )}
+
+      {dndPara && (
+        <DndModal
+          open={!!dndPara}
+          onClose={() => setDndPara(null)}
+          unidade={dndPara.property}
+          roomNumber={dndPara.room_number}
+        />
+      )}
     </div>
   );
 }
