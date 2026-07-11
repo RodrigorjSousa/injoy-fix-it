@@ -431,6 +431,20 @@ export function useAdicionarFuncionario() {
   });
 }
 
+export function useAtualizarCategoriasFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"]]);
+  return useMutation({
+    mutationFn: async (input: { id: string; categorias: Categoria[] }) => {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ categorias: input.categorias })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useRemoverFuncionario() {
   const invalidate = useInvalidate([["funcionarios"]]);
   return useMutation({

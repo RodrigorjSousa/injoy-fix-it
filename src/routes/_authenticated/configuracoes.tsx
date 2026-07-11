@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   CATEGORIAS,
   useAdicionarFuncionario,
+  useAtualizarCategoriasFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
@@ -19,6 +27,7 @@ import {
   useRemoverGestor,
   useAtribuirRole,
   type Categoria,
+  type Funcionario,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -38,6 +47,7 @@ function Configuracoes() {
   const [email, setEmail] = useState("");
   const [tipo, setTipo] = useState<TipoFuncionario>("tecnico");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
+  const [editando, setEditando] = useState<Funcionario | null>(null);
 
   // Apenas gestores e administradores
   if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
@@ -193,26 +203,43 @@ function Configuracoes() {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1 mt-1.5">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {f.categorias.map((c) => (
-                    <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
+                    <Badge
+                      key={c}
+                      variant="secondary"
+                      className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      {c}
+                    </Badge>
                   ))}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (confirm(`Remover ${f.nome}?`)) {
-                    remover.mutate(f.id, {
-                      onSuccess: () => toast.success("Funcionário removido"),
-                      onError: (e) => toast.error(e.message),
-                    });
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Editar funções de ${f.nome}`}
+                  onClick={() => setEditando(f)}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remover ${f.nome}`}
+                  onClick={() => {
+                    if (confirm(`Remover ${f.nome}?`)) {
+                      remover.mutate(f.id, {
+                        onSuccess: () => toast.success("Funcionário removido"),
+                        onError: (e) => toast.error(e.message),
+                      });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </Card>
           ))}
           {funcionarios.length === 0 && (
@@ -222,7 +249,93 @@ function Configuracoes() {
       </section>
 
       {me?.isAdmin && <GestoresAdmin />}
+
+      <EditarFuncoesDialog
+        funcionario={editando}
+        onClose={() => setEditando(null)}
+      />
     </div>
+  );
+}
+
+function EditarFuncoesDialog({
+  funcionario,
+  onClose,
+}: {
+  funcionario: Funcionario | null;
+  onClose: () => void;
+}) {
+  const atualizar = useAtualizarCategoriasFuncionario();
+  const [sel, setSel] = useState<Categoria[]>([]);
+  const initial = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
+
+  // Sync state when opening a new funcionario
+  const [lastId, setLastId] = useState<string | null>(null);
+  if (funcionario && funcionario.id !== lastId) {
+    setLastId(funcionario.id);
+    setSel(funcionario.categorias);
+  }
+  if (!funcionario && lastId !== null) {
+    setLastId(null);
+  }
+
+  const changed =
+    sel.length !== initial.length ||
+    sel.some((c) => !initial.includes(c)) ||
+    initial.some((c) => !sel.includes(c));
+
+  const toggle = (c: Categoria) =>
+    setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+
+  const salvar = () => {
+    if (!funcionario) return;
+    atualizar.mutate(
+      { id: funcionario.id, categorias: sel },
+      {
+        onSuccess: () => {
+          toast.success("Funções atualizadas");
+          onClose();
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar Funções de {funcionario?.nome ?? ""}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap gap-2 py-2">
+          {CATEGORIAS.map((c) => {
+            const active = sel.includes(c);
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => toggle(c)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={atualizar.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={!changed || atualizar.isPending}>
+            {atualizar.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
