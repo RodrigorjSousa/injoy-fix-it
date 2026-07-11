@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, Square, X } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -37,6 +37,7 @@ type RoomRow = {
   guest_name: string | null;
   pax: number | null;
   has_pending_payment: boolean | null;
+  pending_payment_amount: number | null;
   has_pending_docs: boolean | null;
   blink_troca: boolean | null;
   service_status: string | null;
@@ -382,7 +383,16 @@ function PainelCamareiras() {
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {q.has_pending_payment && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-red-50 text-red-700 px-2 py-1 rounded-md border border-red-200">
-                        <DollarSign size={12} /> RECEBER NO BALCÃO
+                        <DollarSign size={12} />
+                        RECEBER NO BALCÃO
+                        {q.pending_payment_amount && q.pending_payment_amount > 0 ? (
+                          <span className="ml-1 bg-red-600 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                            {q.pending_payment_amount.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </span>
+                        ) : null}
                       </span>
                     )}
                     {q.has_pending_docs && (
@@ -415,8 +425,9 @@ function PainelCamareiras() {
 
               {q.service_status === "in_progress" && q.assigned_camareira && (
                 <div className="flex items-center justify-center gap-2 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-2 px-3">
-                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Em serviço:</span>
-                  <span className="text-sm font-black text-yellow-900 animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Serviço em andamento —</span>
+                  <span className="text-sm font-black text-yellow-900">
                     {q.assigned_camareira}
                   </span>
                 </div>
@@ -442,9 +453,9 @@ function PainelCamareiras() {
               ) : (
                 <button
                   onClick={() => finalizarServico(q)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
                 >
-                  <Square size={16} />
+                  <CheckCircle2 size={16} />
                   Finalizar Serviço
                 </button>
               )}
