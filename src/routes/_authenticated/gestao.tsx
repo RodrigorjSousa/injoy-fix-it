@@ -3,8 +3,6 @@ import { useMemo, useState } from "react";
 import { ArrowUpRight, TrendingUp, Building2, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
-import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
-void getTipoQuarto; void padQuarto;
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 import { ErrorState } from "@/components/ui/data-state";
 import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart";
