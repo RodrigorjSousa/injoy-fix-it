@@ -10,8 +10,10 @@ import {
   RefreshCw,
   Search,
   BedDouble,
+  ClipboardCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { padQuarto } from "@/lib/tipos-quarto";
@@ -97,6 +99,10 @@ function RecepcaoPage() {
   const [checkinsLocais, setCheckinsLocais] = useState<Set<string | number>>(
     new Set(),
   );
+  const [vistoriaAlvo, setVistoriaAlvo] = useState<{
+    unidade: Unidade;
+    roomNumber: string;
+  } | null>(null);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
@@ -383,7 +389,20 @@ function RecepcaoPage() {
                   )}
                 </div>
 
-                <div>
+                <div className="space-y-2">
+                  {q.ocupacao !== "Bloqueado" && q.statusCheckin !== "Realizado" && (
+                    <button
+                      onClick={() =>
+                        setVistoriaAlvo({
+                          unidade: q.unidade,
+                          roomNumber: padQuarto(q.quarto),
+                        })
+                      }
+                      className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                    >
+                      <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                    </button>
+                  )}
                   {q.ocupacao === "Bloqueado" ? (
                     <div className="w-full py-2.5 bg-red-50 border border-red-200 text-red-700 rounded-xl font-bold text-sm flex items-center justify-center gap-2">
                       Quarto Bloqueado
@@ -412,11 +431,23 @@ function RecepcaoPage() {
                     </div>
                   )}
                 </div>
+
               </div>
             );
           })
         )}
       </div>
+
+      {vistoriaAlvo && (
+        <VistoriaModal
+          open={!!vistoriaAlvo}
+          onClose={() => setVistoriaAlvo(null)}
+          onSuccess={() => carregar(unidadeAtiva)}
+          unidade={vistoriaAlvo.unidade}
+          roomNumber={vistoriaAlvo.roomNumber}
+        />
+      )}
     </div>
   );
 }
+

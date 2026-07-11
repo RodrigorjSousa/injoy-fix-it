@@ -337,6 +337,39 @@ export type Database = {
         }
         Relationships: []
       }
+      room_inspections: {
+        Row: {
+          checklist: Json
+          created_at: string
+          id: string
+          inspector_id: string | null
+          inspector_name: string | null
+          photo_url: string
+          property: string
+          room_number: string
+        }
+        Insert: {
+          checklist: Json
+          created_at?: string
+          id?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          photo_url: string
+          property: string
+          room_number: string
+        }
+        Update: {
+          checklist?: Json
+          created_at?: string
+          id?: string
+          inspector_id?: string | null
+          inspector_name?: string | null
+          photo_url?: string
+          property?: string
+          room_number?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
