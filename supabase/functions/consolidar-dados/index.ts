@@ -281,7 +281,55 @@ serve(async (req) => {
 
     const nowIso = new Date().toISOString()
 
-    // Métricas do dashboard — deriva do housekeeping+reservas quando o dashboard não expõe os campos
+    // Normalização de número de quarto: banco local grava "APT 001",
+    // Cloudbeds retorna "001". Padroniza para "APT xxx" para que o mapa
+    // de preservação encontre o registro existente.
+    const normalizarNumero = (num: string) => {
+      const clean = String(num ?? '').trim()
+      if (!clean) return clean
+      return clean.toUpperCase().startsWith('APT ') ? clean : `APT ${clean}`
+    }
+
+    const consolidados = [...ipanema.quartos, ...botafogo.quartos].map((q) => ({
+      ...q,
+      room_number: normalizarNumero(q.room_number),
+    }))
+
+    // Busca status/condition atuais para preservar o que as camareiras marcaram no app.
+    // O app é a fonte da verdade do status de limpeza; Cloudbeds só alimenta dados de reserva.
+    const { data: existentes } = await supabaseClient
+      .from('room_housekeeping')
+      .select('property, room_number, status, condition')
+
+    const mapaExistente = new Map<string, { status: string | null; condition: string | null }>()
+    for (const r of existentes ?? []) {
+      mapaExistente.set(`${r.property}::${normalizarNumero(r.room_number)}`, {
+        status: r.status,
+        condition: r.condition,
+      })
+    }
+
+    // Aplica preservação ANTES das métricas — os valores finais gravados
+    // no banco são a fonte da verdade para os contadores da Gestão.
+    const finais = consolidados
+      .filter((q) => q.room_number)
+      .map((q) => {
+        const key = `${q.property}::${q.room_number}`
+        const atual = mapaExistente.get(key)
+        // Se o quarto já existe no banco, PRESERVA status e condition locais
+        // (definidos pelas camareiras no app). Só usa os do Cloudbeds em inserts novos.
+        // Exceção: se o Cloudbeds indica bloqueio de manutenção, aplica — isso vem de OS registrada.
+        const preservarStatus = atual ? atual.status ?? q.status : q.status
+        const preservarCondition = atual
+          ? q.condition === 'maintenance'
+            ? 'maintenance'
+            : atual.condition ?? q.condition
+          : q.condition
+        return { ...q, status: preservarStatus, condition: preservarCondition }
+      })
+
+    // Métricas do dashboard — usa os valores FINAIS (já preservados) do banco,
+    // nunca o status bruto do Cloudbeds.
     for (const [unidade, dados] of [
       ['Ipanema', ipanema] as const,
       ['Botafogo', botafogo] as const,
@@ -289,10 +337,11 @@ serve(async (req) => {
       const d = dados.dashboard?.data ?? {}
       console.log(`[consolidar-dados] dashboard ${unidade} keys:`, Object.keys(d))
 
-      const limpos = dados.quartos.filter((q) => q.status === 'clean').length
-      const sujos = dados.quartos.filter((q) => q.status === 'dirty').length
-      const manut = dados.quartos.filter((q) => q.status === 'maintenance').length
-      const total = dados.quartos.length
+      const quartosUnidade = finais.filter((q) => q.property === unidade)
+      const limpos = quartosUnidade.filter((q) => q.status === 'clean').length
+      const sujos = quartosUnidade.filter((q) => q.status === 'dirty').length
+      const manut = quartosUnidade.filter((q) => q.status === 'maintenance').length
+      const total = quartosUnidade.length
 
       // Reservas ativas hoje (check-in <= hoje < check-out) ou já em check-in
       const reservasAtivas = (dados.reservas ?? []).filter((r: any) => {
@@ -332,7 +381,6 @@ serve(async (req) => {
         return !(dn || dt || tx)
       }).length
 
-
       await supabaseClient.from('hotel_metrics').upsert(
         {
           property: unidade,
@@ -350,47 +398,13 @@ serve(async (req) => {
       )
     }
 
-    const consolidados = [...ipanema.quartos, ...botafogo.quartos]
-
-    // Busca status/condition atuais para preservar o que as camareiras marcaram no app.
-    // O app é a fonte da verdade do status de limpeza; Cloudbeds só alimenta dados de reserva.
-    const { data: existentes } = await supabaseClient
-      .from('room_housekeeping')
-      .select('property, room_number, status, condition')
-
-    const mapaExistente = new Map<string, { status: string | null; condition: string | null }>()
-    for (const r of existentes ?? []) {
-      mapaExistente.set(`${r.property}::${r.room_number}`, {
-        status: r.status,
-        condition: r.condition,
-      })
-    }
-
-    for (const q of consolidados) {
-      if (!q.room_number) continue
-      const key = `${q.property}::${q.room_number}`
-      const atual = mapaExistente.get(key)
-
-      // Se o quarto já existe no banco, PRESERVA status e condition locais
-      // (definidos pelas camareiras no app). Só usa os do Cloudbeds em inserts novos.
-      // Exceção: se o Cloudbeds indica bloqueio de manutenção, aplica — isso vem de OS registrada.
-      const preservarStatus = atual ? atual.status ?? q.status : q.status
-      const preservarCondition = atual
-        ? q.condition === 'maintenance'
-          ? 'maintenance'
-          : atual.condition ?? q.condition
-        : q.condition
-
+    for (const q of finais) {
       await supabaseClient.from('room_housekeeping').upsert(
-        {
-          ...q,
-          status: preservarStatus,
-          condition: preservarCondition,
-          updated_at: nowIso,
-        },
+        { ...q, updated_at: nowIso },
         { onConflict: 'property,room_number' },
       )
     }
+
 
     return new Response(
       JSON.stringify({ success: true, count: consolidados.length }),
