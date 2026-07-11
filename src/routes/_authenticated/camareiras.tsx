@@ -383,7 +383,16 @@ function PainelCamareiras() {
                   <div className="flex flex-wrap gap-1.5 pt-1">
                     {q.has_pending_payment && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-red-50 text-red-700 px-2 py-1 rounded-md border border-red-200">
-                        <DollarSign size={12} /> RECEBER NO BALCÃO
+                        <DollarSign size={12} />
+                        RECEBER NO BALCÃO
+                        {q.pending_payment_amount && q.pending_payment_amount > 0 ? (
+                          <span className="ml-1 bg-red-600 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                            {q.pending_payment_amount.toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </span>
+                        ) : null}
                       </span>
                     )}
                     {q.has_pending_docs && (
