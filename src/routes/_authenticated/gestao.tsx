@@ -68,11 +68,8 @@ function DashboardGestao() {
     };
   }, [unidadeAtiva, live]);
 
-  const chamadosUnidade = useMemo(
-    () => chamadosManutencaoAtivos.filter((c) => c.property === unidadeAtiva),
-    [unidadeAtiva],
-  );
-  const ativos = chamadosUnidade.filter((c) => c.status !== "Resolvido").length;
+
+
 
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 font-sans antialiased pb-12">
@@ -162,63 +159,9 @@ function DashboardGestao() {
           </div>
         </div>
 
-        
-
-
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Chamados de Manutenção Ativos</h3>
-            <span className="bg-red-100 text-red-700 text-xs px-2 py-0.5 rounded-md font-bold">
-              {ativos} Ativos
-            </span>
-          </div>
-
-          <div className="space-y-3">
-            {chamadosUnidade.length === 0 && (
-              <div className="text-center text-xs text-slate-500 py-6">
-                Nenhum chamado registrado em INJOY {unidadeAtiva}.
-              </div>
-            )}
-            {chamadosUnidade.map((chamado) => (
-              <div key={chamado.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="font-black text-slate-800 text-sm">
-                    Quarto {padQuarto(chamado.quarto)} - {getTipoQuarto(chamado.property, chamado.quarto)}
-                  </span>
-                  <span
-                    className={`px-2 py-0.5 rounded-md font-bold ${
-                      chamado.urgencia === "Urgente" ? "bg-red-100 text-red-700" : "bg-slate-200 text-slate-600"
-                    }`}
-                  >
-                    {chamado.urgencia}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center text-slate-600">
-                  <p>
-                    Categoria: <span className="font-semibold text-slate-800">{chamado.categoria}</span>
-                  </p>
-                  <p>
-                    Status: <span className="font-semibold text-blue-600">{chamado.status}</span>
-                  </p>
-                </div>
-
-                <div className="pt-1.5 border-t border-slate-200 flex justify-between items-center">
-                  <span className="text-slate-400">Responsável Técnico:</span>
-                  <span
-                    className={`font-bold px-2 py-0.5 rounded ${
-                      chamado.tecnico === "Rodrigo Sousa" ? "bg-blue-100 text-blue-800" : "bg-slate-200 text-slate-700"
-                    }`}
-                  >
-                    🛠️ {chamado.tecnico}
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ChamadosManutencaoAtivos unidade={unidadeAtiva} />
       </div>
     </div>
   );
