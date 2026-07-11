@@ -437,6 +437,17 @@ function RecepcaoPage() {
           })
         )}
       </div>
+
+      {vistoriaAlvo && (
+        <VistoriaModal
+          open={!!vistoriaAlvo}
+          onClose={() => setVistoriaAlvo(null)}
+          onSuccess={() => carregar(unidadeAtiva)}
+          unidade={vistoriaAlvo.unidade}
+          roomNumber={vistoriaAlvo.roomNumber}
+        />
+      )}
     </div>
   );
 }
+
