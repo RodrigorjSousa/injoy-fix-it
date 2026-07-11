@@ -40,9 +40,18 @@ type TipoFuncionario = "tecnico" | "recepcao" | "camareira";
 function Configuracoes() {
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
+  const { data: usuariosRoles = [] } = useUsuariosComRoles();
   const adicionar = useAdicionarFuncionario();
   const remover = useRemoverFuncionario();
   const atribuirRole = useAtribuirRole();
+
+  const rolesByUser = useMemo(() => {
+    const map = new Map<string, { recepcao: boolean; camareira: boolean }>();
+    usuariosRoles.forEach((u) =>
+      map.set(u.userId, { recepcao: u.isRecepcao, camareira: u.isCamareira }),
+    );
+    return map;
+  }, [usuariosRoles]);
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
