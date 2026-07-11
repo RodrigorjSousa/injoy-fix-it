@@ -222,7 +222,6 @@ function Configuracoes() {
         </div>
       </section>
 
-      {(me?.isGestor || me?.isAdmin) && <PerfisAcesso />}
       {me?.isAdmin && <GestoresAdmin />}
     </div>
   );
