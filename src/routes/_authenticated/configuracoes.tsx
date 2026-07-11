@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,8 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
   CATEGORIAS,
   useAdicionarFuncionario,
+  useAtualizarCategoriasFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
@@ -19,6 +27,7 @@ import {
   useRemoverGestor,
   useAtribuirRole,
   type Categoria,
+  type Funcionario,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
