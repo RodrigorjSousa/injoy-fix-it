@@ -22,14 +22,17 @@ export function TempoCamareirasChart({ unidade }: Props) {
     let cancelled = false;
     async function load() {
       setLoading(true);
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("room_housekeeping")
         .select("room_number, service_started_at, service_ended_at, assigned_camareira")
         .eq("property", unidade)
         .not("service_started_at", "is", null)
         .not("service_ended_at", "is", null)
+        .gte("service_ended_at", startOfDay.toISOString())
         .order("service_ended_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (cancelled) return;
       setRows((data ?? []) as Row[]);
       setLoading(false);
@@ -77,6 +80,11 @@ export function TempoCamareirasChart({ unidade }: Props) {
     return Math.round((chartData.reduce((s, d) => s + d.media, 0) / chartData.length) * 10) / 10;
   }, [chartData]);
 
+  const totalServicos = useMemo(
+    () => chartData.reduce((s, d) => s + d.servicos, 0),
+    [chartData],
+  );
+
   const colorFor = (mins: number) => {
     if (mins <= 25) return "#10b981";
     if (mins <= 45) return "#f59e0b";
@@ -88,21 +96,25 @@ export function TempoCamareirasChart({ unidade }: Props) {
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Tempo das Camareiras por Quarto</h3>
-          <p className="text-xs text-slate-500 mt-0.5">Duração em minutos entre início e fim do serviço</p>
+          <p className="text-xs text-slate-500 mt-0.5">Serviços concluídos hoje · duração entre início e fim</p>
         </div>
         <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
           <Clock3 size={18} />
         </div>
       </div>
 
-      <div className="flex gap-3 text-xs">
+      <div className="flex flex-wrap gap-3 text-xs">
         <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
           <div className="text-slate-500">Média geral</div>
           <div className="font-bold text-slate-800 text-base">{geralMedia} min</div>
         </div>
         <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
-          <div className="text-slate-500">Serviços registrados</div>
-          <div className="font-bold text-slate-800 text-base">{rows.length}</div>
+          <div className="text-slate-500">Serviços concluídos hoje</div>
+          <div className="font-bold text-slate-800 text-base">{totalServicos}</div>
+        </div>
+        <div className="bg-slate-50 rounded-lg px-3 py-2 border border-slate-200">
+          <div className="text-slate-500">Quartos atendidos</div>
+          <div className="font-bold text-slate-800 text-base">{chartData.length}</div>
         </div>
       </div>
 
@@ -110,7 +122,7 @@ export function TempoCamareirasChart({ unidade }: Props) {
         <div className="h-64 grid place-items-center text-xs text-slate-400">Carregando…</div>
       ) : chartData.length === 0 ? (
         <div className="h-40 grid place-items-center text-xs text-slate-500 text-center px-4">
-          Ainda não há serviços concluídos em INJOY {unidade}. Assim que uma camareira iniciar e finalizar um serviço, os tempos aparecerão aqui.
+          Ainda não há serviços concluídos hoje em INJOY {unidade}. Assim que uma camareira iniciar e finalizar um serviço, os tempos aparecerão aqui.
         </div>
       ) : (
         <div className="w-full" style={{ height: Math.max(288, chartData.length * 28) }}>
