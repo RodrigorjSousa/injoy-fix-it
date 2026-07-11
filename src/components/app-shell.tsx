@@ -18,30 +18,31 @@ type NavItem = {
   children?: NavChild[];
 };
 
-const isFullAccess = (me: Me) => !!me && (me.isGestor || me.isAdmin);
+// admin = gestor OR admin role (mantém acesso dos gestores existentes)
+const isAdmin = (me: Me) => !!me && (me.isGestor || me.isAdmin);
 const isTecnicoAC = (me: Me) =>
   !!me && me.isFuncionario && !!me.funcionario?.categorias?.includes("Ar condicionado");
 
-const podeCriar = (me: Me) =>
-  isFullAccess(me) || !!me?.isRecepcao || !!me?.isCamareira;
-// Painel: gestor/admin, técnicos (veem seus chamados) e camareira (acompanhar)
-const podePainel = (me: Me) =>
-  isFullAccess(me) || !!me?.isFuncionario || !!me?.isCamareira;
-const podeRecepcao = (me: Me) => isFullAccess(me) || !!me?.isRecepcao;
-const podeCamareira = (me: Me) => isFullAccess(me) || !!me?.isCamareira;
-const podePreventiva = (me: Me) => isFullAccess(me) || isTecnicoAC(me);
+// Abas condicionais por papel
+const podeRecepcao = (me: Me) => isAdmin(me) || !!me?.isRecepcao;
+const podeCamareira = (me: Me) => isAdmin(me) || !!me?.isCamareira;
+const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
 
 const ALL_NAV: NavItem[] = [
-  { to: "/servicos", label: "Serviços", icon: Wrench, show: podePainel },
-  { to: "/painel", label: "Painel", icon: LayoutGrid, show: podePainel },
+  // Comuns a todos
+  { to: "/servicos", label: "Serviços", icon: Wrench },
+  { to: "/painel", label: "Painel", icon: LayoutGrid },
+  // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
+  // Comum a todos
   { to: "/chat", label: "Chat", icon: MessageSquare },
+  // Somente admin
   {
     label: "ADMINISTRADOR",
     icon: ShieldCheck,
-    show: isFullAccess,
+    show: isAdmin,
     children: [
       { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
       { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
