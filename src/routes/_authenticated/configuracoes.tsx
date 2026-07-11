@@ -26,6 +26,7 @@ import {
   useTornarGestor,
   useRemoverGestor,
   useAtribuirRole,
+  useRemoverRole,
   type Categoria,
   type Funcionario,
 } from "@/lib/store";
