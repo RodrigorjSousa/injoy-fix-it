@@ -18,7 +18,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
   const fetchCounts = useCallback(async () => {
     const { data, error } = await supabase
       .from("room_housekeeping")
-      .select("status, condition")
+      .select("*")
       .eq("property", unidade);
     if (error) {
       console.error("[status-operacao] fetch", error);
@@ -34,7 +34,12 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
       else if (r.status === "clean") next.limpos += 1;
       else if (r.status === "dirty") next.sujos += 1;
     }
+    console.log("[status-operacao] counts", unidade, next);
     setCounts(next);
+  }, [unidade]);
+
+  useEffect(() => {
+    setCounts(ZERO);
   }, [unidade]);
 
   useEffect(() => {
