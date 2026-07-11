@@ -278,13 +278,16 @@ export type Database = {
           blink_troca: boolean
           color_code: string | null
           condition: string | null
+          dnd_photo_url: string | null
           guest_name: string | null
           has_pending_docs: boolean | null
           has_pending_payment: boolean | null
           id: string
+          is_dnd: boolean
           pax: number | null
           pending_payment_amount: number | null
           property: string
+          room_comment: string | null
           room_number: string
           room_type: string | null
           service_ended_at: string | null
@@ -299,13 +302,16 @@ export type Database = {
           blink_troca?: boolean
           color_code?: string | null
           condition?: string | null
+          dnd_photo_url?: string | null
           guest_name?: string | null
           has_pending_docs?: boolean | null
           has_pending_payment?: boolean | null
           id?: string
+          is_dnd?: boolean
           pax?: number | null
           pending_payment_amount?: number | null
           property: string
+          room_comment?: string | null
           room_number: string
           room_type?: string | null
           service_ended_at?: string | null
@@ -320,13 +326,16 @@ export type Database = {
           blink_troca?: boolean
           color_code?: string | null
           condition?: string | null
+          dnd_photo_url?: string | null
           guest_name?: string | null
           has_pending_docs?: boolean | null
           has_pending_payment?: boolean | null
           id?: string
+          is_dnd?: boolean
           pax?: number | null
           pending_payment_amount?: number | null
           property?: string
+          room_comment?: string | null
           room_number?: string
           room_type?: string | null
           service_ended_at?: string | null
