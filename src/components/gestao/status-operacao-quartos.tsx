@@ -18,7 +18,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
   const fetchCounts = useCallback(async () => {
     const { data, error } = await supabase
       .from("room_housekeeping")
-      .select("status, condition, service_status")
+      .select("status, condition")
       .eq("property", unidade);
     if (error) {
       console.error("[status-operacao] fetch", error);
@@ -30,11 +30,8 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
         next.bloqueados += 1;
         continue;
       }
-      if (r.service_status === "in_progress") {
-        next.emFaxina += 1;
-        continue;
-      }
-      if (r.status === "clean") next.limpos += 1;
+      if (r.status === "cleaning") next.emFaxina += 1;
+      else if (r.status === "clean") next.limpos += 1;
       else if (r.status === "dirty") next.sujos += 1;
     }
     setCounts(next);
@@ -46,18 +43,15 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
 
   useEffect(() => {
     const channel = supabase
-      .channel(`status-operacao-${unidade}`)
+      .channel(`mudancas-limpeza-${unidade}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "room_housekeeping" },
         () => fetchCounts(),
       )
       .subscribe();
-    // fallback polling a cada 5s para garantir atualização
-    const t = setInterval(fetchCounts, 5000);
     return () => {
       supabase.removeChannel(channel);
-      clearInterval(t);
     };
   }, [fetchCounts, unidade]);
 
