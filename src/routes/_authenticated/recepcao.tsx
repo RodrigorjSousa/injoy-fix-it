@@ -99,6 +99,10 @@ function RecepcaoPage() {
   const [checkinsLocais, setCheckinsLocais] = useState<Set<string | number>>(
     new Set(),
   );
+  const [vistoriaAlvo, setVistoriaAlvo] = useState<{
+    unidade: Unidade;
+    roomNumber: string;
+  } | null>(null);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
