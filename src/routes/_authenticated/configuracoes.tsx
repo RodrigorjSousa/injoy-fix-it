@@ -203,26 +203,43 @@ function Configuracoes() {
                     </span>
                   )}
                 </div>
-                <div className="flex flex-wrap gap-1 mt-1.5">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {f.categorias.map((c) => (
-                    <Badge key={c} variant="secondary" className="text-[10px]">{c}</Badge>
+                    <Badge
+                      key={c}
+                      variant="secondary"
+                      className="rounded-full bg-emerald-100 text-emerald-700 hover:bg-emerald-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      {c}
+                    </Badge>
                   ))}
                 </div>
               </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  if (confirm(`Remover ${f.nome}?`)) {
-                    remover.mutate(f.id, {
-                      onSuccess: () => toast.success("Funcionário removido"),
-                      onError: (e) => toast.error(e.message),
-                    });
-                  }
-                }}
-              >
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </Button>
+              <div className="flex items-center gap-1 shrink-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Editar funções de ${f.nome}`}
+                  onClick={() => setEditando(f)}
+                >
+                  <Pencil className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label={`Remover ${f.nome}`}
+                  onClick={() => {
+                    if (confirm(`Remover ${f.nome}?`)) {
+                      remover.mutate(f.id, {
+                        onSuccess: () => toast.success("Funcionário removido"),
+                        onError: (e) => toast.error(e.message),
+                      });
+                    }
+                  }}
+                >
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </Button>
+              </div>
             </Card>
           ))}
           {funcionarios.length === 0 && (
