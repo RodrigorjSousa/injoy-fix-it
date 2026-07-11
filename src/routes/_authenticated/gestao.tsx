@@ -6,6 +6,7 @@ import type { Unidade } from "@/lib/store";
 import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 import { ErrorState } from "@/components/ui/data-state";
+import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
@@ -219,6 +220,8 @@ function DashboardGestao() {
             </div>
           </div>
         </div>
+
+        <TempoCamareirasChart unidade={unidadeAtiva} />
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex justify-between items-center">
