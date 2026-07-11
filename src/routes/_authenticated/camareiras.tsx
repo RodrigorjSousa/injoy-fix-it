@@ -4,6 +4,7 @@ import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSig
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useMe } from "@/lib/store";
 import {
   EmptyState,
   ErrorState,
@@ -85,6 +86,11 @@ function corLegenda(c: string | null) {
 }
 
 function PainelCamareiras() {
+  const { data: me } = useMe();
+  const nomeAutomatico = useMemo(() => {
+    if (!me?.isCamareira) return null;
+    return me.funcionario?.nome ?? null;
+  }, [me]);
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [filtro, setFiltro] = useState<Filtro>("Todos");
   const [busca, setBusca] = useState("");
@@ -457,7 +463,13 @@ function PainelCamareiras() {
                 </button>
               ) : (
                 <button
-                  onClick={() => setSelecionarPara(q)}
+                  onClick={() => {
+                    if (nomeAutomatico) {
+                      iniciarServico(q, nomeAutomatico);
+                    } else {
+                      setSelecionarPara(q);
+                    }
+                  }}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
                 >
                   <Play size={16} />
