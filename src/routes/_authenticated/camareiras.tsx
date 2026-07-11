@@ -86,6 +86,11 @@ function corLegenda(c: string | null) {
 }
 
 function PainelCamareiras() {
+  const { data: me } = useMe();
+  const nomeAutomatico = useMemo(() => {
+    if (!me?.isCamareira) return null;
+    return me.funcionario?.nome ?? null;
+  }, [me]);
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
   const [filtro, setFiltro] = useState<Filtro>("Todos");
   const [busca, setBusca] = useState("");
