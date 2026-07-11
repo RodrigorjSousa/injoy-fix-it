@@ -7,6 +7,7 @@ import { getTipoQuarto, padQuarto } from "@/lib/tipos-quarto";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 import { ErrorState } from "@/components/ui/data-state";
 import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart";
+import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quartos";
 
 export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
@@ -183,43 +184,8 @@ function DashboardGestao() {
           </div>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">Status da Operação de Quartos</h3>
+        <StatusOperacaoQuartos unidade={unidadeAtiva} />
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center gap-3 bg-emerald-50 p-3 rounded-xl border border-emerald-100">
-              <div className="w-2.5 h-2.5 bg-emerald-500 rounded-full" />
-              <div>
-                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosLimpos}</p>
-                <p className="text-xs text-slate-500">Prontos / Limpos</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-amber-50 p-3 rounded-xl border border-amber-100">
-              <div className="w-2.5 h-2.5 bg-amber-500 rounded-full" />
-              <div>
-                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosEmLimpeza}</p>
-                <p className="text-xs text-slate-500">Em Faxina</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-red-50 p-3 rounded-xl border border-red-100">
-              <div className="w-2.5 h-2.5 bg-red-500 rounded-full" />
-              <div>
-                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosSujos}</p>
-                <p className="text-xs text-slate-500">Sujos (Check-out)</p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 bg-slate-100 p-3 rounded-xl border border-slate-200">
-              <div className="w-2.5 h-2.5 bg-slate-500 rounded-full" />
-              <div>
-                <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosManutencao}</p>
-                <p className="text-xs text-slate-500">Bloqueados OS</p>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
