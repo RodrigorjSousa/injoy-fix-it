@@ -22,14 +22,17 @@ export function TempoCamareirasChart({ unidade }: Props) {
     let cancelled = false;
     async function load() {
       setLoading(true);
+      const startOfDay = new Date();
+      startOfDay.setHours(0, 0, 0, 0);
       const { data } = await supabase
         .from("room_housekeeping")
         .select("room_number, service_started_at, service_ended_at, assigned_camareira")
         .eq("property", unidade)
         .not("service_started_at", "is", null)
         .not("service_ended_at", "is", null)
+        .gte("service_ended_at", startOfDay.toISOString())
         .order("service_ended_at", { ascending: false })
-        .limit(200);
+        .limit(500);
       if (cancelled) return;
       setRows((data ?? []) as Row[]);
       setLoading(false);
