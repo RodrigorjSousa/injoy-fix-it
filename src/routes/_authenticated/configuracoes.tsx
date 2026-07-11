@@ -26,6 +26,7 @@ import {
   useTornarGestor,
   useRemoverGestor,
   useAtribuirRole,
+  useRemoverRole,
   type Categoria,
   type Funcionario,
 } from "@/lib/store";
@@ -39,9 +40,18 @@ type TipoFuncionario = "tecnico" | "recepcao" | "camareira";
 function Configuracoes() {
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
+  const { data: usuariosRoles = [] } = useUsuariosComRoles();
   const adicionar = useAdicionarFuncionario();
   const remover = useRemoverFuncionario();
   const atribuirRole = useAtribuirRole();
+
+  const rolesByUser = useMemo(() => {
+    const map = new Map<string, { recepcao: boolean; camareira: boolean }>();
+    usuariosRoles.forEach((u) =>
+      map.set(u.userId, { recepcao: u.isRecepcao, camareira: u.isCamareira }),
+    );
+    return map;
+  }, [usuariosRoles]);
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
@@ -213,6 +223,22 @@ function Configuracoes() {
                       {c}
                     </Badge>
                   ))}
+                  {f.userId && rolesByUser.get(f.userId)?.camareira && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-sky-100 text-sky-700 hover:bg-sky-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      Camareira
+                    </Badge>
+                  )}
+                  {f.userId && rolesByUser.get(f.userId)?.recepcao && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-sky-100 text-sky-700 hover:bg-sky-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      Recepção
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
@@ -266,40 +292,76 @@ function EditarFuncoesDialog({
   onClose: () => void;
 }) {
   const atualizar = useAtualizarCategoriasFuncionario();
+  const atribuirRole = useAtribuirRole();
+  const removerRole = useRemoverRole();
+  const { data: usuariosRoles = [] } = useUsuariosComRoles();
+
+  const currentRoles = useMemo(() => {
+    if (!funcionario?.userId) return { recepcao: false, camareira: false };
+    const u = usuariosRoles.find((x) => x.userId === funcionario.userId);
+    return { recepcao: !!u?.isRecepcao, camareira: !!u?.isCamareira };
+  }, [funcionario, usuariosRoles]);
+
   const [sel, setSel] = useState<Categoria[]>([]);
-  const initial = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
+  const [rolCamareira, setRolCamareira] = useState(false);
+  const [rolRecepcao, setRolRecepcao] = useState(false);
+
+  const initialCategorias = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
 
   // Sync state when opening a new funcionario
   const [lastId, setLastId] = useState<string | null>(null);
   if (funcionario && funcionario.id !== lastId) {
     setLastId(funcionario.id);
     setSel(funcionario.categorias);
+    setRolCamareira(currentRoles.camareira);
+    setRolRecepcao(currentRoles.recepcao);
   }
   if (!funcionario && lastId !== null) {
     setLastId(null);
   }
 
-  const changed =
-    sel.length !== initial.length ||
-    sel.some((c) => !initial.includes(c)) ||
-    initial.some((c) => !sel.includes(c));
+  const categoriasChanged =
+    sel.length !== initialCategorias.length ||
+    sel.some((c) => !initialCategorias.includes(c)) ||
+    initialCategorias.some((c) => !sel.includes(c));
+  const rolesChanged =
+    rolCamareira !== currentRoles.camareira || rolRecepcao !== currentRoles.recepcao;
+  const changed = categoriasChanged || rolesChanged;
 
   const toggle = (c: Categoria) =>
     setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
 
-  const salvar = () => {
+  const salvar = async () => {
     if (!funcionario) return;
-    atualizar.mutate(
-      { id: funcionario.id, categorias: sel },
-      {
-        onSuccess: () => {
-          toast.success("Funções atualizadas");
-          onClose();
-        },
-        onError: (e) => toast.error(e.message),
-      },
-    );
+    try {
+      if (categoriasChanged) {
+        await atualizar.mutateAsync({ id: funcionario.id, categorias: sel });
+      }
+      if (rolesChanged && funcionario.userId) {
+        if (rolCamareira !== currentRoles.camareira) {
+          if (rolCamareira) {
+            await atribuirRole.mutateAsync({ userId: funcionario.userId, role: "camareira" });
+          } else {
+            await removerRole.mutateAsync({ userId: funcionario.userId, role: "camareira" });
+          }
+        }
+        if (rolRecepcao !== currentRoles.recepcao) {
+          if (rolRecepcao) {
+            await atribuirRole.mutateAsync({ userId: funcionario.userId, role: "recepcao" });
+          } else {
+            await removerRole.mutateAsync({ userId: funcionario.userId, role: "recepcao" });
+          }
+        }
+      }
+      toast.success("Funções atualizadas");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
   };
+
+  const saving = atualizar.isPending || atribuirRole.isPending || removerRole.isPending;
+  const rolesDisabled = !funcionario?.userId;
 
   return (
     <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
@@ -307,31 +369,77 @@ function EditarFuncoesDialog({
         <DialogHeader>
           <DialogTitle>Editar Funções de {funcionario?.nome ?? ""}</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-wrap gap-2 py-2">
-          {CATEGORIAS.map((c) => {
-            const active = sel.includes(c);
-            return (
+
+        <div className="space-y-4 py-2">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+              Categorias técnicas
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {CATEGORIAS.map((c) => {
+                const active = sel.includes(c);
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => toggle(c)}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                      active
+                        ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                        : "bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
+              Perfil de acesso
+            </div>
+            <div className="flex flex-wrap gap-2">
               <button
-                key={c}
                 type="button"
-                onClick={() => toggle(c)}
-                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
-                  active
-                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                disabled={rolesDisabled}
+                onClick={() => setRolCamareira((v) => !v)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  rolCamareira
+                    ? "bg-sky-100 text-sky-700 border-sky-200"
                     : "bg-background hover:border-primary/40"
                 }`}
               >
-                {c}
+                Camareira
               </button>
-            );
-          })}
+              <button
+                type="button"
+                disabled={rolesDisabled}
+                onClick={() => setRolRecepcao((v) => !v)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  rolRecepcao
+                    ? "bg-sky-100 text-sky-700 border-sky-200"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                Recepção
+              </button>
+            </div>
+            {rolesDisabled && (
+              <p className="text-xs text-muted-foreground mt-2">
+                O funcionário ainda não criou conta. Perfis de acesso ficam disponíveis após o primeiro login.
+              </p>
+            )}
+          </div>
         </div>
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={atualizar.isPending}>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
-          <Button onClick={salvar} disabled={!changed || atualizar.isPending}>
-            {atualizar.isPending ? "Salvando..." : "Salvar"}
+          <Button onClick={salvar} disabled={!changed || saving}>
+            {saving ? "Salvando..." : "Salvar"}
           </Button>
         </DialogFooter>
       </DialogContent>
