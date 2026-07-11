@@ -47,28 +47,6 @@ const DADOS_POR_UNIDADE: Record<Unidade, DadosHotel> = {
   },
 };
 
-type Urgencia = "Urgente" | "Normal" | "Leve";
-type StatusChamado = "Aberto" | "Em Atendimento" | "Resolvido";
-
-interface ChamadoManut {
-  id: number;
-  property: Unidade;
-  quarto: string;
-  categoria: string;
-  urgencia: Urgencia;
-  tecnico: string;
-  status: StatusChamado;
-}
-
-const chamadosManutencaoAtivos: ChamadoManut[] = [
-  { id: 101, property: "Botafogo", quarto: "01", categoria: "Elétrica", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
-  { id: 102, property: "Botafogo", quarto: "02", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Em Atendimento" },
-  { id: 103, property: "Botafogo", quarto: "107", categoria: "Hidráulica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Aberto" },
-  { id: 104, property: "Botafogo", quarto: "301", categoria: "Mobiliário", urgencia: "Leve", tecnico: "Marceneiro Terceirizado", status: "Resolvido" },
-  { id: 201, property: "Ipanema", quarto: "410", categoria: "Ar Condicionado", urgencia: "Urgente", tecnico: "Rodrigo Sousa", status: "Aberto" },
-  { id: 202, property: "Ipanema", quarto: "205", categoria: "Elétrica", urgencia: "Normal", tecnico: "Técnico Geral", status: "Em Atendimento" },
-  { id: 203, property: "Ipanema", quarto: "308", categoria: "Hidráulica", urgencia: "Leve", tecnico: "Técnico Geral", status: "Resolvido" },
-];
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
