@@ -55,6 +55,7 @@ interface QuartoRecepcao {
   dataSaida: string;
   pax: number;
   pagamentoPendente: boolean;
+  pagamentoValor?: number;
   docPendente: boolean;
   statusCheckin: StatusCheckin;
   temReserva: boolean;
@@ -351,6 +352,14 @@ function RecepcaoPage() {
                               {q.pagamentoPendente && (
                                 <span className="animate-pulse inline-flex items-center gap-1 text-xs font-semibold bg-red-50 border-2 border-red-300 text-red-700 px-2.5 py-1 rounded-lg">
                                   <DollarSign size={14} /> Pagamento Pendente
+                                  {q.pagamentoValor && q.pagamentoValor > 0 ? (
+                                    <span className="ml-1 bg-red-600 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
+                                      {q.pagamentoValor.toLocaleString("pt-BR", {
+                                        style: "currency",
+                                        currency: "BRL",
+                                      })}
+                                    </span>
+                                  ) : null}
                                 </span>
                               )}
                               {q.docPendente && (

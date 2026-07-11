@@ -256,6 +256,10 @@ serve(async (req) => {
           chegadaHora: horaChegada,
           dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
           pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
+          pagamentoValor: (() => {
+            const v = parseFloat(res.balance ?? res.balanceDue ?? 0)
+            return Number.isFinite(v) && v > 0 ? Number(v.toFixed(2)) : 0
+          })(),
           docPendente: docFaltando,
           statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
           checkedIn: emCasa,
@@ -301,6 +305,7 @@ serve(async (req) => {
         chegadaHora: r?.chegadaHora ?? '',
         dataSaida: r?.dataSaida ?? '',
         pagamentoPendente: r?.pagamentoPendente ?? false,
+        pagamentoValor: r?.pagamentoValor ?? 0,
         docPendente: r?.docPendente ?? false,
         statusCheckin: r?.statusCheckin ?? 'Aguardando',
         temReserva: Boolean(r),
