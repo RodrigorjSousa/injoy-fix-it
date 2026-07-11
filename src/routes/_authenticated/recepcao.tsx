@@ -10,8 +10,10 @@ import {
   RefreshCw,
   Search,
   BedDouble,
+  ClipboardCheck,
 } from "lucide-react";
 import { toast } from "sonner";
+import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { padQuarto } from "@/lib/tipos-quarto";
