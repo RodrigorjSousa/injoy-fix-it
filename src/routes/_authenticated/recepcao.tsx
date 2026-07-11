@@ -55,6 +55,7 @@ interface QuartoRecepcao {
   dataSaida: string;
   pax: number;
   pagamentoPendente: boolean;
+  pagamentoValor?: number;
   docPendente: boolean;
   statusCheckin: StatusCheckin;
   temReserva: boolean;
