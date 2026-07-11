@@ -233,9 +233,13 @@ serve(async (req) => {
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
         const pax = resAtiva ? resAtiva.numberOfGuests || 0 : 0
-        const hasPendingPayment = resAtiva
-          ? parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0)) > 0
-          : false
+        const pendingAmount = resAtiva
+          ? (() => {
+              const v = parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0))
+              return Number.isFinite(v) && v > 0 ? Number(v.toFixed(2)) : 0
+            })()
+          : 0
+        const hasPendingPayment = pendingAmount > 0
         // Docs completos se qualquer identificação estiver preenchida:
         // documento (passaporte/RG), taxID (CPF) ou tipo de documento cadastrado.
         // Cloudbeds só popula guestDocumentNumber quando digitado manualmente;
