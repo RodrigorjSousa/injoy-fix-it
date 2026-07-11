@@ -216,7 +216,9 @@ function DashboardGestao() {
               <div>
                 <p className="text-xl font-bold text-slate-800">{dadosHotel.quartosManutencao}</p>
                 <p className="text-xs text-slate-500">Bloqueados OS</p>
-              </div>
+        </div>
+
+        <TempoCamareirasChart unidade={unidadeAtiva} />
             </div>
           </div>
         </div>
