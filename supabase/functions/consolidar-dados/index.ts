@@ -263,6 +263,7 @@ serve(async (req) => {
           guest_name: guestName,
           pax,
           has_pending_payment: hasPendingPayment,
+          pending_payment_amount: pendingAmount,
           has_pending_docs: hasPendingDocs,
           blink_troca: blinkTroca,
         }
