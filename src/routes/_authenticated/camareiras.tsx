@@ -425,8 +425,9 @@ function PainelCamareiras() {
 
               {q.service_status === "in_progress" && q.assigned_camareira && (
                 <div className="flex items-center justify-center gap-2 bg-yellow-50 border-2 border-yellow-400 rounded-xl py-2 px-3">
-                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Em serviço:</span>
-                  <span className="text-sm font-black text-yellow-900 animate-pulse">
+                  <span className="w-2 h-2 rounded-full bg-yellow-500 animate-pulse" />
+                  <span className="text-[10px] font-bold text-yellow-700 uppercase tracking-wider">Serviço em andamento —</span>
+                  <span className="text-sm font-black text-yellow-900">
                     {q.assigned_camareira}
                   </span>
                 </div>
