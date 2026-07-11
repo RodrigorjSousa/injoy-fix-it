@@ -162,7 +162,10 @@ function DashboardGestao() {
 
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
+        <StatusOperacaoQuartos unidade={unidadeAtiva} />
+
         <ChamadosManutencaoAtivos unidade={unidadeAtiva} />
+
       </div>
     </div>
   );
