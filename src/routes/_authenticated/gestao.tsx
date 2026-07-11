@@ -7,6 +7,7 @@ import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
 import { ErrorState } from "@/components/ui/data-state";
 import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart";
 import { ChamadosManutencaoAtivos } from "@/components/gestao/chamados-manutencao-ativos";
+import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quartos";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
@@ -161,7 +162,10 @@ function DashboardGestao() {
 
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
+        <StatusOperacaoQuartos unidade={unidadeAtiva} />
+
         <ChamadosManutencaoAtivos unidade={unidadeAtiva} />
+
       </div>
     </div>
   );
