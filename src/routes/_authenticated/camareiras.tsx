@@ -442,21 +442,26 @@ function PainelCamareiras() {
                 </div>
               )}
 
-              {q.service_status !== "in_progress" ? (
+              {q.service_status === "done" ? (
+                <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-600 text-white font-black text-sm shadow-sm uppercase tracking-wider">
+                  <CheckCircle2 size={16} />
+                  Serviço Feito
+                </div>
+              ) : q.service_status === "in_progress" ? (
+                <button
+                  onClick={() => finalizarServico(q)}
+                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-sm shadow-sm transition-colors"
+                >
+                  <CheckCircle2 size={16} />
+                  Finalizar Serviço
+                </button>
+              ) : (
                 <button
                   onClick={() => setSelecionarPara(q)}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
                 >
                   <Play size={16} />
-                  {q.service_status === "done" ? "Reiniciar Serviço" : "Iniciar Serviço"}
-                </button>
-              ) : (
-                <button
-                  onClick={() => finalizarServico(q)}
-                  className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
-                >
-                  <CheckCircle2 size={16} />
-                  Finalizar Serviço
+                  Iniciar Serviço
                 </button>
               )}
             </div>
