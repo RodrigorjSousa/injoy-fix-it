@@ -223,6 +223,22 @@ function Configuracoes() {
                       {c}
                     </Badge>
                   ))}
+                  {f.userId && rolesByUser.get(f.userId)?.camareira && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-sky-100 text-sky-700 hover:bg-sky-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      Camareira
+                    </Badge>
+                  )}
+                  {f.userId && rolesByUser.get(f.userId)?.recepcao && (
+                    <Badge
+                      variant="secondary"
+                      className="rounded-full bg-sky-100 text-sky-700 hover:bg-sky-100 border-0 text-[11px] font-medium px-2.5 py-0.5"
+                    >
+                      Recepção
+                    </Badge>
+                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1 shrink-0">
