@@ -283,6 +283,7 @@ export type Database = {
           has_pending_payment: boolean | null
           id: string
           pax: number | null
+          pending_payment_amount: number | null
           property: string
           room_number: string
           room_type: string | null
@@ -303,6 +304,7 @@ export type Database = {
           has_pending_payment?: boolean | null
           id?: string
           pax?: number | null
+          pending_payment_amount?: number | null
           property: string
           room_number: string
           room_type?: string | null
@@ -323,6 +325,7 @@ export type Database = {
           has_pending_payment?: boolean | null
           id?: string
           pax?: number | null
+          pending_payment_amount?: number | null
           property?: string
           room_number?: string
           room_type?: string | null

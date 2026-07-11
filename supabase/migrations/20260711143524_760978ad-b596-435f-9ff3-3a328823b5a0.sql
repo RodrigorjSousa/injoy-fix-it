@@ -1,0 +1,1 @@
+ALTER TABLE public.room_housekeeping ADD COLUMN IF NOT EXISTS pending_payment_amount NUMERIC(10,2) DEFAULT 0;
