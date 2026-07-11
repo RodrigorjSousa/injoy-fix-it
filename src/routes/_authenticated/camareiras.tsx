@@ -463,7 +463,13 @@ function PainelCamareiras() {
                 </button>
               ) : (
                 <button
-                  onClick={() => setSelecionarPara(q)}
+                  onClick={() => {
+                    if (nomeAutomatico) {
+                      iniciarServico(q, nomeAutomatico);
+                    } else {
+                      setSelecionarPara(q);
+                    }
+                  }}
                   className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm shadow-sm transition-colors"
                 >
                   <Play size={16} />
