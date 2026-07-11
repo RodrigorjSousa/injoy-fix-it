@@ -164,7 +164,7 @@ function PainelCamareiras() {
         service_status: "done",
         service_ended_at: new Date().toISOString(),
         status: "clean",
-        condition: "clean",
+        condition: "normal",
       } as any)
       .eq("property", q.property)
       .eq("room_number", q.room_number);
