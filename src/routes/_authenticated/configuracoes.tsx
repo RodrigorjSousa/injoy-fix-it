@@ -249,7 +249,93 @@ function Configuracoes() {
       </section>
 
       {me?.isAdmin && <GestoresAdmin />}
+
+      <EditarFuncoesDialog
+        funcionario={editando}
+        onClose={() => setEditando(null)}
+      />
     </div>
+  );
+}
+
+function EditarFuncoesDialog({
+  funcionario,
+  onClose,
+}: {
+  funcionario: Funcionario | null;
+  onClose: () => void;
+}) {
+  const atualizar = useAtualizarCategoriasFuncionario();
+  const [sel, setSel] = useState<Categoria[]>([]);
+  const initial = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
+
+  // Sync state when opening a new funcionario
+  const [lastId, setLastId] = useState<string | null>(null);
+  if (funcionario && funcionario.id !== lastId) {
+    setLastId(funcionario.id);
+    setSel(funcionario.categorias);
+  }
+  if (!funcionario && lastId !== null) {
+    setLastId(null);
+  }
+
+  const changed =
+    sel.length !== initial.length ||
+    sel.some((c) => !initial.includes(c)) ||
+    initial.some((c) => !sel.includes(c));
+
+  const toggle = (c: Categoria) =>
+    setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+
+  const salvar = () => {
+    if (!funcionario) return;
+    atualizar.mutate(
+      { id: funcionario.id, categorias: sel },
+      {
+        onSuccess: () => {
+          toast.success("Funções atualizadas");
+          onClose();
+        },
+        onError: (e) => toast.error(e.message),
+      },
+    );
+  };
+
+  return (
+    <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Editar Funções de {funcionario?.nome ?? ""}</DialogTitle>
+        </DialogHeader>
+        <div className="flex flex-wrap gap-2 py-2">
+          {CATEGORIAS.map((c) => {
+            const active = sel.includes(c);
+            return (
+              <button
+                key={c}
+                type="button"
+                onClick={() => toggle(c)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                  active
+                    ? "bg-emerald-100 text-emerald-700 border-emerald-200"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                {c}
+              </button>
+            );
+          })}
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={atualizar.isPending}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={!changed || atualizar.isPending}>
+            {atualizar.isPending ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
