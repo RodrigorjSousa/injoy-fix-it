@@ -80,6 +80,11 @@ export function TempoCamareirasChart({ unidade }: Props) {
     return Math.round((chartData.reduce((s, d) => s + d.media, 0) / chartData.length) * 10) / 10;
   }, [chartData]);
 
+  const totalServicos = useMemo(
+    () => chartData.reduce((s, d) => s + d.servicos, 0),
+    [chartData],
+  );
+
   const colorFor = (mins: number) => {
     if (mins <= 25) return "#10b981";
     if (mins <= 45) return "#f59e0b";
