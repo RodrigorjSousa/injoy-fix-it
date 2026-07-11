@@ -305,6 +305,7 @@ serve(async (req) => {
         chegadaHora: r?.chegadaHora ?? '',
         dataSaida: r?.dataSaida ?? '',
         pagamentoPendente: r?.pagamentoPendente ?? false,
+        pagamentoValor: r?.pagamentoValor ?? 0,
         docPendente: r?.docPendente ?? false,
         statusCheckin: r?.statusCheckin ?? 'Aguardando',
         temReserva: Boolean(r),
