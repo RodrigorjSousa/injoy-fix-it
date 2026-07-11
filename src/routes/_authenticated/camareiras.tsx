@@ -104,6 +104,23 @@ function PainelCamareiras() {
   const [erro, setErro] = useState<string | null>(null);
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
+  const [dndPara, setDndPara] = useState<RoomRow | null>(null);
+  const [comentarios, setComentarios] = useState<Record<string, string>>({});
+
+  const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
+    if ((q.room_comment ?? "") === texto) return;
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: coluna nova ainda não está no types.ts gerado
+      .update({ room_comment: texto, updated_at: new Date().toISOString() } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number);
+    if (error) {
+      toast.error("Falha ao salvar comentário");
+      return;
+    }
+    toast.success("Comentário salvo");
+  }, []);
 
   const carregarCamareiras = useCallback(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: RPC ainda não presente no types.ts gerado
