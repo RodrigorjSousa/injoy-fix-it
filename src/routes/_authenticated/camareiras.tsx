@@ -4,6 +4,7 @@ import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSig
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useMe } from "@/lib/store";
 import {
   EmptyState,
   ErrorState,
