@@ -47,6 +47,7 @@ function Configuracoes() {
   const [email, setEmail] = useState("");
   const [tipo, setTipo] = useState<TipoFuncionario>("tecnico");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
+  const [editando, setEditando] = useState<Funcionario | null>(null);
 
   // Apenas gestores e administradores
   if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
