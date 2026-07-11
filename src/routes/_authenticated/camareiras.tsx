@@ -144,6 +144,7 @@ function PainelCamareiras() {
         assigned_camareira: nome,
         service_started_at: new Date().toISOString(),
         service_ended_at: null,
+        status: "cleaning",
       } as any)
       .eq("property", q.property)
       .eq("room_number", q.room_number);
