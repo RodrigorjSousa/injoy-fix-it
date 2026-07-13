@@ -234,8 +234,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
           <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-2">
           <span className="text-lg font-bold tracking-wider">INJOY</span>
+          <div className="relative">
+            <select
+              value={unidade}
+              onChange={(e) => setUnidade(e.target.value as Unidade)}
+              aria-label="Unidade"
+              className="appearance-none rounded-md bg-muted/60 border border-border text-foreground text-xs font-medium pl-6 pr-6 py-1.5 cursor-pointer hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {UNIDADES.map((u) => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+            <Building2 className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </div>
         <button
           onClick={handleSignOut}
