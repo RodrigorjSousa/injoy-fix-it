@@ -252,6 +252,29 @@ serve(async (req) => {
           : false
 
 
+        // Hora estimada de chegada (do check-in online do hóspede no Cloudbeds).
+        // Extrai HH:MM sem converter fuso — Cloudbeds retorna hora local do hotel.
+        const formatHora = (v: unknown): string => {
+          if (v === null || v === undefined) return ''
+          const s = String(v).trim()
+          if (!s) return ''
+          if (s.includes('T')) {
+            const parte = s.split('T')[1]
+            if (parte && parte.length >= 5) return parte.substring(0, 5)
+          }
+          const hm = s.match(/(\d{1,2}):(\d{2})/)
+          if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`
+          return ''
+        }
+        const arrivalTime = resAtiva
+          ? formatHora(
+              (resAtiva as any).estimatedArrivalTime ??
+                (resAtiva as any).estimatedTimeArrival ??
+                (resAtiva as any).arrivalTime ??
+                (resAtiva as any).checkInTime,
+            ) || null
+          : null
+
         return {
           property: nomeUnidade,
           room_number: numQuarto,
@@ -266,7 +289,9 @@ serve(async (req) => {
           pending_payment_amount: pendingAmount,
           has_pending_docs: hasPendingDocs,
           blink_troca: blinkTroca,
+          arrival_time: arrivalTime,
         }
+
       })
 
       return { quartos, dashboard: dashJson, reservas }
