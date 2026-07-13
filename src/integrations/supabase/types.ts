@@ -291,6 +291,7 @@ export type Database = {
       }
       room_housekeeping: {
         Row: {
+          arrival_time: string | null
           assigned_camareira: string | null
           assigned_task: string | null
           blink_troca: boolean
@@ -315,6 +316,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          arrival_time?: string | null
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
@@ -339,6 +341,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          arrival_time?: string | null
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean

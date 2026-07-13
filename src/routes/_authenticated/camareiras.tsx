@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock } from "lucide-react";
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
@@ -42,6 +42,8 @@ type RoomRow = {
   has_pending_payment: boolean | null;
   pending_payment_amount: number | null;
   has_pending_docs: boolean | null;
+  arrival_time: string | null;
+
   blink_troca: boolean | null;
   service_status: string | null;
   assigned_camareira: string | null;
@@ -478,6 +480,16 @@ function PainelCamareiras() {
                     </span>
                   ) : null}
                 </div>
+                {q.arrival_time &&
+                q.guest_name &&
+                q.guest_name !== "Quarto Vazio" ? (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <Clock size={13} className="text-slate-400" />
+                    <span>Chegada:</span>
+                    <span className="font-bold text-slate-800">{q.arrival_time}</span>
+                  </div>
+                ) : null}
+
                 {(q.has_pending_payment || q.has_pending_docs) &&
                 q.guest_name &&
                 q.guest_name !== "Quarto Vazio" ? (
