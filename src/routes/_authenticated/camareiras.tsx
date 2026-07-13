@@ -353,7 +353,7 @@ function PainelCamareiras() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:border-blue-500"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto items-center">
           {(["Todos", "Limpo", "Sujo", "Manutenção"] as Filtro[]).map((f) => (
             <button
               key={f}
@@ -366,6 +366,14 @@ function PainelCamareiras() {
               {f}
             </button>
           ))}
+          <button
+            onClick={resetarServicosTurno}
+            className="ml-auto px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm"
+            title="Resetar serviços concluídos para 'Iniciar Serviço'"
+          >
+            <RefreshCw size={12} />
+            Resetar Serviços do Turno
+          </button>
         </div>
       </div>
 
