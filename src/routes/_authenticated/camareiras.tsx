@@ -106,6 +106,7 @@ function PainelCamareiras() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
+  const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
 
   const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
