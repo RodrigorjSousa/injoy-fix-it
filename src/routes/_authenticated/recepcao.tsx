@@ -188,24 +188,6 @@ function RecepcaoPage() {
         </button>
       </div>
 
-      <div className="p-4 grid grid-cols-2 gap-4 bg-white border-b border-slate-100 shadow-sm">
-        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => {
-          const active = unidadeAtiva === u;
-          return (
-            <button
-              key={u}
-              onClick={() => setUnidadeAtiva(u)}
-              className={`py-2.5 rounded-full font-semibold text-sm transition-all border ${
-                active
-                  ? "border-blue-600 bg-blue-50 text-blue-700 font-bold"
-                  : "border-slate-200 text-slate-600 hover:bg-slate-50"
-              }`}
-            >
-              🏢 INJOY {u}
-            </button>
-          );
-        })}
-      </div>
 
       <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-2">
         <div className="relative flex-1">
