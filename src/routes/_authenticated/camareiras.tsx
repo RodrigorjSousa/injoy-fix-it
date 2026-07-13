@@ -271,6 +271,32 @@ function PainelCamareiras() {
     }
   }, [carregar, syncing]);
 
+  const resetarServicosTurno = useCallback(async () => {
+    const confirmado = window.confirm(
+      "Deseja realmente resetar todos os serviços de camareiras para 'Iniciar Serviço'? Esta ação não pode ser desfeita.",
+    );
+    if (!confirmado) return;
+    const t = toast.loading("Resetando serviços do turno...");
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "idle",
+        assigned_camareira: null,
+        service_started_at: null,
+        service_ended_at: null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("property", unidadeAtiva)
+      .eq("service_status", "done");
+    if (error) {
+      toast.error("Falha ao resetar serviços", { id: t });
+      return;
+    }
+    toast.success("Serviços resetados para 'Iniciar Serviço'", { id: t });
+    await carregar();
+  }, [carregar, unidadeAtiva]);
+
   const filtrados = useMemo(() => {
     return quartos.filter((q) => {
       if (q.property !== unidadeAtiva) return false;
@@ -327,7 +353,7 @@ function PainelCamareiras() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:border-blue-500"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto">
+        <div className="flex gap-2 overflow-x-auto items-center">
           {(["Todos", "Limpo", "Sujo", "Manutenção"] as Filtro[]).map((f) => (
             <button
               key={f}
@@ -340,6 +366,14 @@ function PainelCamareiras() {
               {f}
             </button>
           ))}
+          <button
+            onClick={resetarServicosTurno}
+            className="ml-auto px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm"
+            title="Resetar serviços concluídos para 'Iniciar Serviço'"
+          >
+            <RefreshCw size={12} />
+            Resetar Serviços do Turno
+          </button>
         </div>
       </div>
 
