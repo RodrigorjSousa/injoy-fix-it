@@ -1,16 +1,15 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
-
-type Unidade = "Botafogo" | "Ipanema";
-const UNIDADES: Unidade[] = ["Botafogo", "Ipanema"];
-const UNIDADE_STORAGE_KEY = "injoy:unidade-ativa";
+import { useUnidade } from "@/lib/unidade-context";
+import type { Unidade } from "@/lib/store";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 type Me = ReturnType<typeof useMe>["data"];
 type NavChild = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
