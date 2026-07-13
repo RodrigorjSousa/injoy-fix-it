@@ -178,12 +178,13 @@ function PainelCamareiras() {
   }, []);
 
   const finalizarServico = useCallback(async (q: RoomRow) => {
+    const nowIso = new Date().toISOString();
     const { error } = await supabase
       .from("room_housekeeping")
       // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
       .update({
         service_status: "done",
-        service_ended_at: new Date().toISOString(),
+        service_ended_at: nowIso,
         status: "clean",
         condition: "normal",
       } as any)
@@ -193,8 +194,26 @@ function PainelCamareiras() {
       toast.error("Falha ao finalizar serviço");
       return;
     }
+
+    // Grava histórico cumulativo da limpeza
+    const { error: histErr } = await supabase
+      .from("room_housekeeping_history")
+      // biome-ignore lint/suspicious/noExplicitAny: tabela nova ainda não está no types.ts gerado
+      .insert({
+        property: q.property,
+        room_number: q.room_number,
+        camareira_name: q.assigned_camareira ?? nomeAutomatico ?? "—",
+        action_type: "LIMPEZA",
+        task_name: q.assigned_task ?? "ARRUMAÇÃO",
+        started_at: q.service_started_at,
+        ended_at: nowIso,
+        photo_url: null,
+        comment: q.room_comment ?? null,
+      } as any);
+    if (histErr) console.error("[camareiras] falha ao gravar histórico", histErr);
+
     toast.success("Serviço finalizado — quarto liberado");
-  }, []);
+  }, [nomeAutomatico]);
 
 
   const carregar = useCallback(async () => {
@@ -619,6 +638,13 @@ function PainelCamareiras() {
           onClose={() => setDndPara(null)}
           unidade={dndPara.property}
           roomNumber={dndPara.room_number}
+          camareiraName={dndPara.assigned_camareira ?? nomeAutomatico}
+          taskName={dndPara.assigned_task}
+          startedAt={dndPara.service_started_at}
+          comment={
+            comentarios[`${dndPara.property}-${dndPara.room_number}`] ??
+            dndPara.room_comment
+          }
         />
       )}
     </div>
