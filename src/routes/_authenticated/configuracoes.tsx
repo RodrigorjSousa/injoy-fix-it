@@ -1,13 +1,15 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+
 import {
   Dialog,
   DialogContent,
@@ -274,6 +276,8 @@ function Configuracoes() {
         </div>
       </section>
 
+      <SenhaResetTurno />
+
       {me?.isAdmin && <GestoresAdmin />}
 
       <EditarFuncoesDialog
@@ -283,6 +287,66 @@ function Configuracoes() {
     </div>
   );
 }
+
+function SenhaResetTurno() {
+  const [senha, setSenha] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("app_settings" as never)
+        .select("value")
+        .eq("key", "reset_turno_password")
+        .maybeSingle();
+      if (!error) setSenha(((data as { value?: string } | null)?.value) ?? "");
+      setCarregando(false);
+    })();
+  }, []);
+
+  const salvar = async () => {
+    if (!senha.trim()) {
+      toast.error("A senha não pode ficar vazia");
+      return;
+    }
+    setSalvando(true);
+    const { error } = await supabase
+      .from("app_settings" as never)
+      .upsert({ key: "reset_turno_password", value: senha, updated_at: new Date().toISOString() } as never);
+    setSalvando(false);
+    if (error) {
+      toast.error("Falha ao salvar senha: " + error.message);
+      return;
+    }
+    toast.success("Senha atualizada");
+  };
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold">Senha para Resetar Serviços do Turno</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Essa senha é pedida às camareiras/recepção ao usar o botão “Resetar Serviços do Turno”.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <Input
+          value={senha}
+          onChange={(e) => setSenha(e.target.value)}
+          placeholder="Digite a nova senha"
+          disabled={carregando}
+          className="flex-1"
+        />
+        <Button onClick={salvar} disabled={carregando || salvando}>
+          {salvando ? "Salvando..." : "Salvar"}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
 
 function EditarFuncoesDialog({
   funcionario,

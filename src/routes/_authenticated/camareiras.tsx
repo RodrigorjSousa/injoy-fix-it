@@ -272,10 +272,26 @@ function PainelCamareiras() {
   }, [carregar, syncing]);
 
   const resetarServicosTurno = useCallback(async () => {
-    const confirmado = window.confirm(
-      "Deseja realmente resetar todos os serviços de camareiras para 'Iniciar Serviço'? Esta ação não pode ser desfeita.",
-    );
-    if (!confirmado) return;
+    const senha = window.prompt("Digite a senha para resetar os serviços do turno:");
+    if (senha === null) return;
+    if (!senha.trim()) {
+      toast.error("Senha obrigatória para resetar os serviços");
+      return;
+    }
+    const { data: cfg, error: cfgErr } = await supabase
+      .from("app_settings" as never)
+      .select("value")
+      .eq("key", "reset_turno_password")
+      .maybeSingle();
+    if (cfgErr) {
+      toast.error("Falha ao validar senha");
+      return;
+    }
+    const senhaCorreta = (cfg as { value?: string } | null)?.value ?? "Injoy2014";
+    if (senha !== senhaCorreta) {
+      toast.error("Senha incorreta");
+      return;
+    }
     const t = toast.loading("Resetando serviços do turno...");
     const { error } = await supabase
       .from("room_housekeeping")
@@ -296,6 +312,7 @@ function PainelCamareiras() {
     toast.success("Serviços resetados para 'Iniciar Serviço'", { id: t });
     await carregar();
   }, [carregar, unidadeAtiva]);
+
 
   const filtrados = useMemo(() => {
     return quartos.filter((q) => {
