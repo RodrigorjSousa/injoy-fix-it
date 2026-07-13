@@ -1,8 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck } from "lucide-react";
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
+import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
@@ -105,6 +106,7 @@ function PainelCamareiras() {
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
+  const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
 
   const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
@@ -618,6 +620,15 @@ function PainelCamareiras() {
                 </>
               )}
 
+              {q.property === "Ipanema" && !q.is_dnd && (
+                <button
+                  onClick={() => setVistoriaPara(q)}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                >
+                  <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                </button>
+              )}
+
               <textarea
                 value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
                 onChange={(e) =>
@@ -697,6 +708,16 @@ function PainelCamareiras() {
             comentarios[`${dndPara.property}-${dndPara.room_number}`] ??
             dndPara.room_comment
           }
+        />
+      )}
+
+      {vistoriaPara && (
+        <VistoriaModal
+          open={!!vistoriaPara}
+          onClose={() => setVistoriaPara(null)}
+          onSuccess={() => carregar()}
+          unidade={vistoriaPara.property}
+          roomNumber={vistoriaPara.room_number}
         />
       )}
     </div>
