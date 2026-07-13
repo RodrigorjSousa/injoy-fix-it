@@ -92,7 +92,7 @@ const OCUPACAO_STYLE: Record<
 };
 
 function RecepcaoPage() {
-  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
+  const { unidade: unidadeAtiva } = useUnidade();
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>([]);
   const [carregando, setCarregando] = useState(false);
