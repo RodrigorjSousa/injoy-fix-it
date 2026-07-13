@@ -77,14 +77,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleGroup = (label: string, defaultOpen: boolean) =>
     setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? defaultOpen) }));
 
-  // Flat list for mobile bottom nav (children promoted)
-  const mobileNav: NavChild[] = nav.flatMap((n) =>
-    n.children
-      ? n.children.map((c) => ({ ...c }))
-      : n.to
-      ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
-      : [],
-  );
+  // Flat list for mobile bottom nav — apenas abas operacionais (máx 5).
+  // Abas de administrador (Dashboard/Gestão/Equipe) ficam ocultas no mobile.
+  const MOBILE_ALLOWED = new Set(["/servicos", "/painel", "/recepcao", "/camareiras", "/chat"]);
+  const mobileNav: NavChild[] = nav
+    .flatMap((n) =>
+      n.children
+        ? [] // grupos admin não vão para o bottom nav do celular
+        : n.to
+        ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
+        : [],
+    )
+    .filter((item) => MOBILE_ALLOWED.has(item.to))
+    .slice(0, 5);
+
+  // Seletor de unidade (persistido em localStorage)
+  const [unidade, setUnidadeState] = useState<Unidade>("Botafogo");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(UNIDADE_STORAGE_KEY);
+      if (saved === "Botafogo" || saved === "Ipanema") setUnidadeState(saved);
+    } catch {
+      // ignore
+    }
+  }, []);
+  const setUnidade = (u: Unidade) => {
+    setUnidadeState(u);
+    try {
+      localStorage.setItem(UNIDADE_STORAGE_KEY, u);
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
