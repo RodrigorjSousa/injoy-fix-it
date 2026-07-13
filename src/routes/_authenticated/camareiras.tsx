@@ -710,6 +710,16 @@ function PainelCamareiras() {
           }
         />
       )}
+
+      {vistoriaPara && (
+        <VistoriaModal
+          open={!!vistoriaPara}
+          onClose={() => setVistoriaPara(null)}
+          onSuccess={() => carregar(unidadeAtiva)}
+          unidade={vistoriaPara.property}
+          roomNumber={vistoriaPara.room_number}
+        />
+      )}
     </div>
   );
 }
