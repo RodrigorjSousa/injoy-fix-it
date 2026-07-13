@@ -19,6 +19,7 @@ import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
@@ -78,6 +79,12 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedHistoricoVistoriasRoute =
+  AuthenticatedHistoricoVistoriasRouteImport.update({
+    id: '/historico-vistorias',
+    path: '/historico-vistorias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHistoricoLimpezaRoute =
   AuthenticatedHistoricoLimpezaRouteImport.update({
     id: '/historico-limpeza',
@@ -137,6 +144,7 @@ export interface FileRoutesByFullPath {
   '/escala': typeof AuthenticatedEscalaRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
+  '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -155,6 +163,7 @@ export interface FileRoutesByTo {
   '/escala': typeof AuthenticatedEscalaRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
+  '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -177,6 +186,7 @@ export interface FileRoutesById {
   '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
+  '/_authenticated/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -200,6 +210,7 @@ export interface FileRouteTypes {
     | '/escala'
     | '/gestao'
     | '/historico-limpeza'
+    | '/historico-vistorias'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -218,6 +229,7 @@ export interface FileRouteTypes {
     | '/escala'
     | '/gestao'
     | '/historico-limpeza'
+    | '/historico-vistorias'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -239,6 +251,7 @@ export interface FileRouteTypes {
     | '/_authenticated/escala'
     | '/_authenticated/gestao'
     | '/_authenticated/historico-limpeza'
+    | '/_authenticated/historico-vistorias'
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
@@ -329,6 +342,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/historico-vistorias': {
+      id: '/_authenticated/historico-vistorias'
+      path: '/historico-vistorias'
+      fullPath: '/historico-vistorias'
+      preLoaderRoute: typeof AuthenticatedHistoricoVistoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/historico-limpeza': {
       id: '/_authenticated/historico-limpeza'
       path: '/historico-limpeza'
@@ -403,6 +423,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedHistoricoLimpezaRoute: typeof AuthenticatedHistoricoLimpezaRoute
+  AuthenticatedHistoricoVistoriasRoute: typeof AuthenticatedHistoricoVistoriasRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
@@ -420,6 +441,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedHistoricoLimpezaRoute: AuthenticatedHistoricoLimpezaRoute,
+  AuthenticatedHistoricoVistoriasRoute: AuthenticatedHistoricoVistoriasRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
@@ -452,13 +474,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
