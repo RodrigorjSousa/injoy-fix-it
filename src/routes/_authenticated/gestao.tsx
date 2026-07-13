@@ -160,11 +160,29 @@ function DashboardGestao() {
           </div>
         </div>
 
+        <Link
+          to="/historico-limpeza"
+          className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-700 grid place-items-center text-white shadow-sm">
+              <ClipboardList className="h-5 w-5" />
+            </div>
+            <div>
+              <p className="text-sm font-black text-slate-900">Histórico de Produção de Limpeza</p>
+              <p className="text-xs text-slate-500">Relatório cumulativo das camareiras (filtros por dia, mês, ano, unidade)</p>
+            </div>
+          </div>
+          <ArrowUpRight className="h-4 w-4 text-slate-400" />
+        </Link>
+
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
         <StatusOperacaoQuartos unidade={unidadeAtiva} />
 
         <ChamadosManutencaoAtivos unidade={unidadeAtiva} />
+
+
 
       </div>
     </div>
