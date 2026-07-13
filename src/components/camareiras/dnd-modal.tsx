@@ -75,6 +75,24 @@ export function DndModal({ open, onClose, unidade, roomNumber, camareiraName, ta
         .eq("room_number", roomNumber);
       if (updErr) throw updErr;
 
+      // Registra no histórico cumulativo
+      const nowIso = new Date().toISOString();
+      const { error: histErr } = await supabase
+        .from("room_housekeeping_history")
+        // biome-ignore lint/suspicious/noExplicitAny: tabela nova ainda não está no types.ts gerado
+        .insert({
+          property: unidade,
+          room_number: roomNumber,
+          camareira_name: camareiraName ?? "—",
+          action_type: "NÃO PERTURBE",
+          task_name: taskName ?? "NÃO PERTURBE",
+          started_at: startedAt ?? nowIso,
+          ended_at: nowIso,
+          photo_url: photoUrl,
+          comment: comment ?? null,
+        } as any);
+      if (histErr) console.error("[dnd] falha ao gravar histórico", histErr);
+
       toast.success(`Não Perturbe ativado no quarto ${roomNumber}`);
       onClose();
     } catch (err) {
