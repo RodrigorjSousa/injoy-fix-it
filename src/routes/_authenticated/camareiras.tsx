@@ -620,6 +620,15 @@ function PainelCamareiras() {
                 </>
               )}
 
+              {q.property === "Ipanema" && !q.is_dnd && (
+                <button
+                  onClick={() => setVistoriaPara(q)}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                >
+                  <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                </button>
+              )}
+
               <textarea
                 value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
                 onChange={(e) =>
