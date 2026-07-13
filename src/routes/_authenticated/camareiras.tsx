@@ -349,22 +349,6 @@ function PainelCamareiras() {
         </button>
       </div>
 
-      <div className="p-4 grid grid-cols-2 gap-3 bg-white border-b border-slate-100">
-        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => (
-          <button
-            key={u}
-            onClick={() => setUnidadeAtiva(u)}
-            className={cn(
-              "py-2 rounded-xl text-sm font-bold border",
-              unidadeAtiva === u
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-slate-200 text-slate-600",
-            )}
-          >
-            🏢 INJOY {u}
-          </button>
-        ))}
-      </div>
 
       <div className="p-4 bg-white border-b space-y-3">
         <div className="relative">
