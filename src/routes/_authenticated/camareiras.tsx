@@ -480,6 +480,16 @@ function PainelCamareiras() {
                     </span>
                   ) : null}
                 </div>
+                {q.arrival_time &&
+                q.guest_name &&
+                q.guest_name !== "Quarto Vazio" ? (
+                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
+                    <Clock size={13} className="text-slate-400" />
+                    <span>Chegada:</span>
+                    <span className="font-bold text-slate-800">{q.arrival_time}</span>
+                  </div>
+                ) : null}
+
                 {(q.has_pending_payment || q.has_pending_docs) &&
                 q.guest_name &&
                 q.guest_name !== "Quarto Vazio" ? (
