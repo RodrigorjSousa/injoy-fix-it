@@ -90,24 +90,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .filter((item) => MOBILE_ALLOWED.has(item.to))
     .slice(0, 5);
 
-  // Seletor de unidade (persistido em localStorage)
-  const [unidade, setUnidadeState] = useState<Unidade>("Botafogo");
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(UNIDADE_STORAGE_KEY);
-      if (saved === "Botafogo" || saved === "Ipanema") setUnidadeState(saved);
-    } catch {
-      // ignore
-    }
-  }, []);
-  const setUnidade = (u: Unidade) => {
-    setUnidadeState(u);
-    try {
-      localStorage.setItem(UNIDADE_STORAGE_KEY, u);
-    } catch {
-      // ignore
-    }
-  };
+  // Unidade ativa vinda do contexto global
+  const { unidade, setUnidade, unidades: UNIDADES } = useUnidade();
+
+  // Sheet "Mais" (mobile) — links administrativos
+  const [maisOpen, setMaisOpen] = useState(false);
+  const adminGroup = ALL_NAV.find((n) => n.label === "ADMINISTRADOR");
+  const showMais = isAdmin(me) && !!adminGroup?.children?.length;
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
