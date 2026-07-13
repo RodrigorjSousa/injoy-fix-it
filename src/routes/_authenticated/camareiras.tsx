@@ -271,6 +271,32 @@ function PainelCamareiras() {
     }
   }, [carregar, syncing]);
 
+  const resetarServicosTurno = useCallback(async () => {
+    const confirmado = window.confirm(
+      "Deseja realmente resetar todos os serviços de camareiras para 'Iniciar Serviço'? Esta ação não pode ser desfeita.",
+    );
+    if (!confirmado) return;
+    const t = toast.loading("Resetando serviços do turno...");
+    const { error } = await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({
+        service_status: "idle",
+        assigned_camareira: null,
+        service_started_at: null,
+        service_ended_at: null,
+        updated_at: new Date().toISOString(),
+      } as any)
+      .eq("property", unidadeAtiva)
+      .eq("service_status", "done");
+    if (error) {
+      toast.error("Falha ao resetar serviços", { id: t });
+      return;
+    }
+    toast.success("Serviços resetados para 'Iniciar Serviço'", { id: t });
+    await carregar();
+  }, [carregar, unidadeAtiva]);
+
   const filtrados = useMemo(() => {
     return quartos.filter((q) => {
       if (q.property !== unidadeAtiva) return false;
