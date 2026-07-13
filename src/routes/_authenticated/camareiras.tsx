@@ -620,7 +620,7 @@ function PainelCamareiras() {
                 </>
               )}
 
-              {!q.is_dnd && (q.assigned_task === "REVISÃO" || q.assigned_task === "GERAL - CHECK-IN") && (
+              {q.property === "Ipanema" && !q.is_dnd && (q.assigned_task === "REVISÃO" || q.assigned_task === "GERAL - CHECK-IN") && (
                 <button
                   onClick={() => setVistoriaPara(q)}
                   className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
