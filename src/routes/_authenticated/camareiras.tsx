@@ -715,7 +715,7 @@ function PainelCamareiras() {
         <VistoriaModal
           open={!!vistoriaPara}
           onClose={() => setVistoriaPara(null)}
-          onSuccess={() => carregar(unidadeAtiva)}
+          onSuccess={() => carregar()}
           unidade={vistoriaPara.property}
           roomNumber={vistoriaPara.room_number}
         />
