@@ -346,6 +346,48 @@ export type Database = {
         }
         Relationships: []
       }
+      room_housekeeping_history: {
+        Row: {
+          action_type: string
+          camareira_name: string
+          comment: string | null
+          created_at: string
+          ended_at: string | null
+          id: string
+          photo_url: string | null
+          property: string
+          room_number: string
+          started_at: string | null
+          task_name: string
+        }
+        Insert: {
+          action_type: string
+          camareira_name: string
+          comment?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          photo_url?: string | null
+          property: string
+          room_number: string
+          started_at?: string | null
+          task_name: string
+        }
+        Update: {
+          action_type?: string
+          camareira_name?: string
+          comment?: string | null
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          photo_url?: string | null
+          property?: string
+          room_number?: string
+          started_at?: string | null
+          task_name?: string
+        }
+        Relationships: []
+      }
       room_inspections: {
         Row: {
           checklist: Json
