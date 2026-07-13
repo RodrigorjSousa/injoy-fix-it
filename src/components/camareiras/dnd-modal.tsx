@@ -9,9 +9,13 @@ interface DndModalProps {
   onClose: () => void;
   unidade: "Botafogo" | "Ipanema";
   roomNumber: string;
+  camareiraName?: string | null;
+  taskName?: string | null;
+  startedAt?: string | null;
+  comment?: string | null;
 }
 
-export function DndModal({ open, onClose, unidade, roomNumber }: DndModalProps) {
+export function DndModal({ open, onClose, unidade, roomNumber, camareiraName, taskName, startedAt, comment }: DndModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
