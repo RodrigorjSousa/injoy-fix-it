@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         : [],
     )
     .filter((item) => MOBILE_ALLOWED.has(item.to))
-    .slice(0, 5);
+    .slice(0, 4);
 
   // Unidade ativa vinda do contexto global
   const { unidade, setUnidade, unidades: UNIDADES } = useUnidade();
