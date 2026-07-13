@@ -128,6 +128,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <span className="text-xl font-bold tracking-wider text-sidebar-foreground">INJOY</span>
         </div>
+        <div className="px-4 pt-4 pb-2">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 mb-1.5 flex items-center gap-1.5">
+            <Building2 className="h-3 w-3" />
+            Unidade
+          </label>
+          <div className="relative">
+            <select
+              value={unidade}
+              onChange={(e) => setUnidade(e.target.value as Unidade)}
+              className="w-full appearance-none rounded-lg bg-sidebar-accent/40 border border-sidebar-border text-sidebar-foreground text-sm font-medium px-3 py-2 pr-8 cursor-pointer hover:bg-sidebar-accent/70 transition-colors focus:outline-none focus:ring-2 focus:ring-sidebar-primary/40"
+            >
+              {UNIDADES.map((u) => (
+                <option key={u} value={u} className="bg-sidebar text-sidebar-foreground">
+                  {u}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
+          </div>
+        </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {nav.map((item) => {
             const Icon = item.icon;
