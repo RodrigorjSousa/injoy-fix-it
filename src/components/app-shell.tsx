@@ -6,6 +6,7 @@ import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
+import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 
 type Me = ReturnType<typeof useMe>["data"];
 type NavChild = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
@@ -225,6 +226,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      <PwaInstallPrompt />
     </div>
   );
 }
