@@ -301,15 +301,16 @@ function PainelCamareiras() {
         assigned_camareira: null,
         service_started_at: null,
         service_ended_at: null,
+        is_dnd: false,
+        dnd_photo_url: null,
         updated_at: new Date().toISOString(),
       } as any)
-      .eq("property", unidadeAtiva)
-      .eq("service_status", "done");
+      .eq("property", unidadeAtiva);
     if (error) {
       toast.error("Falha ao resetar serviços", { id: t });
       return;
     }
-    toast.success("Serviços resetados para 'Iniciar Serviço'", { id: t });
+    toast.success("Serviços liberados — todos os quartos prontos para iniciar", { id: t });
     await carregar();
   }, [carregar, unidadeAtiva]);
 
