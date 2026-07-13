@@ -74,6 +74,10 @@ export function PwaInstallPrompt() {
   if (hidden) return null;
   if (isStandalone()) return null;
   if (platform === "other") return null; // só em mobile
+  // Ocultar dentro do app nativo (Capacitor)
+  if (typeof window !== "undefined" && (window as unknown as { Capacitor?: unknown }).Capacitor) {
+    return null;
+  }
 
   const dismiss = () => {
     try {

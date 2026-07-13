@@ -1,12 +1,16 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3 } from "lucide-react";
-import { useState } from "react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+
+type Unidade = "Botafogo" | "Ipanema";
+const UNIDADES: Unidade[] = ["Botafogo", "Ipanema"];
+const UNIDADE_STORAGE_KEY = "injoy:unidade-ativa";
 
 type Me = ReturnType<typeof useMe>["data"];
 type NavChild = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
@@ -73,14 +77,38 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleGroup = (label: string, defaultOpen: boolean) =>
     setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? defaultOpen) }));
 
-  // Flat list for mobile bottom nav (children promoted)
-  const mobileNav: NavChild[] = nav.flatMap((n) =>
-    n.children
-      ? n.children.map((c) => ({ ...c }))
-      : n.to
-      ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
-      : [],
-  );
+  // Flat list for mobile bottom nav — apenas abas operacionais (máx 5).
+  // Abas de administrador (Dashboard/Gestão/Equipe) ficam ocultas no mobile.
+  const MOBILE_ALLOWED = new Set(["/servicos", "/painel", "/recepcao", "/camareiras", "/chat"]);
+  const mobileNav: NavChild[] = nav
+    .flatMap((n) =>
+      n.children
+        ? [] // grupos admin não vão para o bottom nav do celular
+        : n.to
+        ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
+        : [],
+    )
+    .filter((item) => MOBILE_ALLOWED.has(item.to))
+    .slice(0, 5);
+
+  // Seletor de unidade (persistido em localStorage)
+  const [unidade, setUnidadeState] = useState<Unidade>("Botafogo");
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(UNIDADE_STORAGE_KEY);
+      if (saved === "Botafogo" || saved === "Ipanema") setUnidadeState(saved);
+    } catch {
+      // ignore
+    }
+  }, []);
+  const setUnidade = (u: Unidade) => {
+    setUnidadeState(u);
+    try {
+      localStorage.setItem(UNIDADE_STORAGE_KEY, u);
+    } catch {
+      // ignore
+    }
+  };
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -99,6 +127,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <img src={injoyLogo.url} alt="INJOY" className="h-9 w-9 object-contain" />
           </div>
           <span className="text-xl font-bold tracking-wider text-sidebar-foreground">INJOY</span>
+        </div>
+        <div className="px-4 pt-4 pb-2">
+          <label className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 mb-1.5 flex items-center gap-1.5">
+            <Building2 className="h-3 w-3" />
+            Unidade
+          </label>
+          <div className="relative">
+            <select
+              value={unidade}
+              onChange={(e) => setUnidade(e.target.value as Unidade)}
+              className="w-full appearance-none rounded-lg bg-sidebar-accent/40 border border-sidebar-border text-sidebar-foreground text-sm font-medium px-3 py-2 pr-8 cursor-pointer hover:bg-sidebar-accent/70 transition-colors focus:outline-none focus:ring-2 focus:ring-sidebar-primary/40"
+            >
+              {UNIDADES.map((u) => (
+                <option key={u} value={u} className="bg-sidebar text-sidebar-foreground">
+                  {u}
+                </option>
+              ))}
+            </select>
+            <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-sidebar-foreground/60" />
+          </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {nav.map((item) => {
@@ -186,8 +234,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
           <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
         </div>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 flex items-center gap-2">
           <span className="text-lg font-bold tracking-wider">INJOY</span>
+          <div className="relative">
+            <select
+              value={unidade}
+              onChange={(e) => setUnidade(e.target.value as Unidade)}
+              aria-label="Unidade"
+              className="appearance-none rounded-md bg-muted/60 border border-border text-foreground text-xs font-medium pl-6 pr-6 py-1.5 cursor-pointer hover:bg-muted transition-colors focus:outline-none focus:ring-2 focus:ring-primary/40"
+            >
+              {UNIDADES.map((u) => (
+                <option key={u} value={u}>{u}</option>
+              ))}
+            </select>
+            <Building2 className="pointer-events-none absolute left-1.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          </div>
         </div>
         <button
           onClick={handleSignOut}
