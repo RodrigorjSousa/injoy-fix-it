@@ -226,6 +226,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           })}
         </div>
       </nav>
+
+      <PwaInstallPrompt />
     </div>
   );
 }
