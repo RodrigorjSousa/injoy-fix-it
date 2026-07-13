@@ -7,6 +7,7 @@ import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
+import { useUnidade } from "@/lib/unidade-context";
 import {
   EmptyState,
   ErrorState,
@@ -98,7 +99,7 @@ function PainelCamareiras() {
     if (!me?.isCamareira) return null;
     return me.funcionario?.nome ?? null;
   }, [me]);
-  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
+  const { unidade: unidadeAtiva } = useUnidade();
   const [filtro, setFiltro] = useState<Filtro>("Todos");
   const [busca, setBusca] = useState("");
   const [quartos, setQuartos] = useState<RoomRow[]>([]);
@@ -348,22 +349,6 @@ function PainelCamareiras() {
         </button>
       </div>
 
-      <div className="p-4 grid grid-cols-2 gap-3 bg-white border-b border-slate-100">
-        {(["Botafogo", "Ipanema"] as Unidade[]).map((u) => (
-          <button
-            key={u}
-            onClick={() => setUnidadeAtiva(u)}
-            className={cn(
-              "py-2 rounded-xl text-sm font-bold border",
-              unidadeAtiva === u
-                ? "border-blue-600 bg-blue-50 text-blue-700"
-                : "border-slate-200 text-slate-600",
-            )}
-          >
-            🏢 INJOY {u}
-          </button>
-        ))}
-      </div>
 
       <div className="p-4 bg-white border-b space-y-3">
         <div className="relative">

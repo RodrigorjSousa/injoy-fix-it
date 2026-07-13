@@ -1,16 +1,15 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal } from "lucide-react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
-
-type Unidade = "Botafogo" | "Ipanema";
-const UNIDADES: Unidade[] = ["Botafogo", "Ipanema"];
-const UNIDADE_STORAGE_KEY = "injoy:unidade-ativa";
+import { useUnidade } from "@/lib/unidade-context";
+import type { Unidade } from "@/lib/store";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
 type Me = ReturnType<typeof useMe>["data"];
 type NavChild = { to: string; label: string; icon: typeof PlusCircle; exact?: boolean };
@@ -89,26 +88,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         : [],
     )
     .filter((item) => MOBILE_ALLOWED.has(item.to))
-    .slice(0, 5);
+    .slice(0, 4);
 
-  // Seletor de unidade (persistido em localStorage)
-  const [unidade, setUnidadeState] = useState<Unidade>("Botafogo");
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem(UNIDADE_STORAGE_KEY);
-      if (saved === "Botafogo" || saved === "Ipanema") setUnidadeState(saved);
-    } catch {
-      // ignore
-    }
-  }, []);
-  const setUnidade = (u: Unidade) => {
-    setUnidadeState(u);
-    try {
-      localStorage.setItem(UNIDADE_STORAGE_KEY, u);
-    } catch {
-      // ignore
-    }
-  };
+  // Unidade ativa vinda do contexto global
+  const { unidade, setUnidade, unidades: UNIDADES } = useUnidade();
+
+  // Sheet "Mais" (mobile) — links administrativos
+  const [maisOpen, setMaisOpen] = useState(false);
+  const adminGroup = ALL_NAV.find((n) => n.label === "ADMINISTRADOR");
+  const showMais = isAdmin(me) && !!adminGroup?.children?.length;
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -268,7 +256,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <nav className="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-card/95 backdrop-blur border-t border-border">
-        <div className={cn("grid", mobileNav.length <= 2 ? "grid-cols-2" : mobileNav.length === 3 ? "grid-cols-3" : mobileNav.length === 4 ? "grid-cols-4" : mobileNav.length === 5 ? "grid-cols-5" : mobileNav.length === 6 ? "grid-cols-6" : mobileNav.length === 7 ? "grid-cols-7" : "grid-cols-8")}>
+        <div
+          className={cn(
+            "grid",
+            (() => {
+              const total = mobileNav.length + (showMais ? 1 : 0);
+              return total <= 2
+                ? "grid-cols-2"
+                : total === 3
+                  ? "grid-cols-3"
+                  : total === 4
+                    ? "grid-cols-4"
+                    : "grid-cols-5";
+            })(),
+          )}
+        >
           {mobileNav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
@@ -286,8 +288,61 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               </Link>
             );
           })}
+          {showMais && (
+            <button
+              type="button"
+              onClick={() => setMaisOpen(true)}
+              className={cn(
+                "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                maisOpen ? "text-primary" : "text-muted-foreground",
+              )}
+              aria-label="Mais opções"
+            >
+              <MoreHorizontal className="h-5 w-5" />
+              <span className="truncate max-w-[72px]">Mais</span>
+            </button>
+          )}
         </div>
       </nav>
+
+      {/* Mais — gaveta com links administrativos (mobile) */}
+      {showMais && (
+        <Sheet open={maisOpen} onOpenChange={setMaisOpen}>
+          <SheetContent side="bottom" className="rounded-t-2xl">
+            <SheetHeader className="text-left">
+              <SheetTitle className="flex items-center gap-2 text-base">
+                <ShieldCheck className="h-4 w-4 text-primary" />
+                Administrador
+              </SheetTitle>
+              <SheetDescription>
+                Acesso rápido às telas de gestão e configuração.
+              </SheetDescription>
+            </SheetHeader>
+            <div className="mt-4 space-y-1">
+              {adminGroup?.children?.map((c) => {
+                const active = isActive(c.to, c.exact);
+                const CIcon = c.icon;
+                return (
+                  <Link
+                    key={c.to}
+                    to={c.to}
+                    onClick={() => setMaisOpen(false)}
+                    className={cn(
+                      "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors",
+                      active
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-muted/40 hover:bg-muted text-foreground",
+                    )}
+                  >
+                    <CIcon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{c.label}</span>
+                  </Link>
+                );
+              })}
+            </div>
+          </SheetContent>
+        </Sheet>
+      )}
 
       <PwaInstallPrompt />
     </div>
