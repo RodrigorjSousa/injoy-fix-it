@@ -638,6 +638,13 @@ function PainelCamareiras() {
           onClose={() => setDndPara(null)}
           unidade={dndPara.property}
           roomNumber={dndPara.room_number}
+          camareiraName={dndPara.assigned_camareira ?? nomeAutomatico}
+          taskName={dndPara.assigned_task}
+          startedAt={dndPara.service_started_at}
+          comment={
+            comentarios[`${dndPara.property}-${dndPara.room_number}`] ??
+            dndPara.room_comment
+          }
         />
       )}
     </div>
