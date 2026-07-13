@@ -99,7 +99,7 @@ function PainelCamareiras() {
     if (!me?.isCamareira) return null;
     return me.funcionario?.nome ?? null;
   }, [me]);
-  const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
+  const { unidade: unidadeAtiva } = useUnidade();
   const [filtro, setFiltro] = useState<Filtro>("Todos");
   const [busca, setBusca] = useState("");
   const [quartos, setQuartos] = useState<RoomRow[]>([]);
