@@ -530,6 +530,7 @@ function EditarFuncoesDialog({
               >
                 Gestor
               </button>
+            </div>
             {rolesDisabled && (
               <p className="text-xs text-muted-foreground mt-2">
                 O funcionário ainda não criou conta. Perfis de acesso ficam disponíveis após o primeiro login.
