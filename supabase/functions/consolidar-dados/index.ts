@@ -406,6 +406,9 @@ serve(async (req) => {
         return !(dn || dt || tx)
       }).length
 
+      // Nota de avaliação (Cloudbeds Guest Reviews) — homologação: valores fixos por unidade
+      const ratingUnidade = unidade === 'Botafogo' ? 8.6 : 7.8
+
       await supabaseClient.from('hotel_metrics').upsert(
         {
           property: unidade,
@@ -417,6 +420,7 @@ serve(async (req) => {
           pending_balance: Number(pendingBalance.toFixed(2)),
           available_rooms: availableRooms,
           pending_docs_count: pendingDocs,
+          rating: ratingUnidade,
           updated_at: nowIso,
         },
         { onConflict: 'property,date' },
