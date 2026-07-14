@@ -47,13 +47,14 @@ export function DndModal({ open, onClose, unidade, roomNumber, camareiraName, ta
     if (!canSubmit || !file) return;
     setEnviando(true);
     try {
-      const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
       const safeRoom = roomNumber.replace(/\s+/g, "_");
       const path = `dnd/${unidade}/${safeRoom}/${Date.now()}.${ext}`;
 
       const { error: upErr } = await supabase.storage
         .from("inspections")
-        .upload(path, file, { cacheControl: "3600", upsert: false });
+        .upload(path, compressed, { cacheControl: "3600", upsert: false, contentType: compressed.type });
       if (upErr) throw upErr;
 
       const { data: publicUrlData } = supabase.storage
