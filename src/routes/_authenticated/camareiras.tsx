@@ -366,28 +366,31 @@ function PainelCamareiras() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-2.5 text-sm outline-none focus:border-blue-500"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto items-center">
-          {(["Todos", "Limpo", "Sujo", "Manutenção"] as Filtro[]).map((f) => (
-            <button
-              key={f}
-              onClick={() => setFiltro(f)}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all",
-                filtro === f ? "bg-slate-800 text-white" : "bg-slate-100 text-slate-600",
-              )}
-            >
-              {f}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-2 items-center">
+          <button
+            onClick={() => setExtraTasksOpen(true)}
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all"
+          >
+            <ListChecks size={16} />
+            Tarefas Extras
+          </button>
+          <button
+            onClick={() => setLaundryOpen(true)}
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white flex items-center justify-center gap-2 shadow-md shadow-sky-500/20 transition-all"
+          >
+            <Shirt size={16} />
+            Lavanderia
+          </button>
           <button
             onClick={resetarServicosTurno}
-            className="ml-auto px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm"
             title="Resetar serviços concluídos para 'Iniciar Serviço'"
           >
             <RefreshCw size={12} />
-            Resetar Serviços do Turno
+            Resetar Turno
           </button>
         </div>
+
       </div>
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
