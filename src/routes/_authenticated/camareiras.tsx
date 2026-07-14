@@ -117,6 +117,7 @@ function PainelCamareiras() {
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
+  const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
 
 
 
