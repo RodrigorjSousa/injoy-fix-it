@@ -16,6 +16,7 @@ import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
+import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
@@ -65,6 +66,12 @@ const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
   path: '/servicos',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedRelatorioOperacoesRoute =
+  AuthenticatedRelatorioOperacoesRouteImport.update({
+    id: '/relatorio-operacoes',
+    path: '/relatorio-operacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
   id: '/recepcao',
   path: '/recepcao',
@@ -155,6 +162,7 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
+  '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -175,6 +183,7 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
+  '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -199,6 +208,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
+  '/_authenticated/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/preventiva'
     | '/recepcao'
+    | '/relatorio-operacoes'
     | '/servicos'
     | '/vistoria'
     | '/auth/admin'
@@ -244,6 +255,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/preventiva'
     | '/recepcao'
+    | '/relatorio-operacoes'
     | '/servicos'
     | '/vistoria'
     | '/auth/admin'
@@ -267,6 +279,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
+    | '/_authenticated/relatorio-operacoes'
     | '/_authenticated/servicos'
     | '/_authenticated/vistoria'
     | '/auth/admin'
@@ -331,6 +344,13 @@ declare module '@tanstack/react-router' {
       path: '/servicos'
       fullPath: '/servicos'
       preLoaderRoute: typeof AuthenticatedServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-operacoes': {
+      id: '/_authenticated/relatorio-operacoes'
+      path: '/relatorio-operacoes'
+      fullPath: '/relatorio-operacoes'
+      preLoaderRoute: typeof AuthenticatedRelatorioOperacoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/recepcao': {
@@ -447,6 +467,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
+  AuthenticatedRelatorioOperacoesRoute: typeof AuthenticatedRelatorioOperacoesRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedVistoriaRoute: typeof AuthenticatedVistoriaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -466,6 +487,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
+  AuthenticatedRelatorioOperacoesRoute: AuthenticatedRelatorioOperacoesRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedVistoriaRoute: AuthenticatedVistoriaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
