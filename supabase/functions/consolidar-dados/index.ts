@@ -408,13 +408,9 @@ serve(async (req) => {
         return sum + (Number.isFinite(v) && v > 0 ? v : 0)
       }, 0)
 
-      // Docs pendentes: reservas com documento ou país ausente
-      const pendingDocs = reservasAtivas.filter((r: any) => {
-        const dn = String(r.guestDocumentNumber ?? '').trim()
-        const dt = String(r.guestDocumentType ?? '').trim().replace(/^-$/, '')
-        const tx = String(r.guestTaxID ?? '').trim()
-        return !(dn || dt || tx)
-      }).length
+      // Docs pendentes: usa a mesma regra aplicada aos quartos (após validação de
+      // reserva confirmada + saldo zero), garantindo consistência com os badges.
+      const pendingDocs = quartosUnidade.filter((q) => q.has_pending_docs === true).length
 
       // Nota de avaliação (Cloudbeds Guest Reviews) — homologação: valores fixos por unidade
       const ratingUnidade = unidade === 'Botafogo' ? 8.6 : 7.8
