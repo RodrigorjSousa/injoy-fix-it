@@ -404,7 +404,10 @@ function PainelCamareiras() {
 
       </div>
 
+      <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
+
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+
         {loading && quartos.length === 0 ? (
           <div className="col-span-2">
             <LoadingState label="Sincronizando tarefas com a agenda do Cloudbeds..." />
