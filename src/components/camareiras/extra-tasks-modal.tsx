@@ -22,9 +22,20 @@ interface Props {
 export function ExtraTasksModal({ open, onClose, unidade, camareiraName }: Props) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [salvando, setSalvando] = useState(false);
+  const [tarefas, setTarefas] = useState<string[]>(TAREFAS_FALLBACK);
 
   useEffect(() => {
-    if (open) setChecked({});
+    if (!open) return;
+    setChecked({});
+    (async () => {
+      const { data, error } = await supabase
+        .from("extra_tasks_directory" as never)
+        .select("name")
+        .order("name");
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setTarefas((data as { name: string }[]).map((d) => d.name));
+      }
+    })();
   }, [open]);
 
   if (!open) return null;
