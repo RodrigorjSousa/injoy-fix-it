@@ -51,6 +51,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
       { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
       { to: "/relatorio-operacoes", label: "LAVANDERIA", icon: ClipboardList },
+      { to: "/almoxarifado", label: "ALMOXARIFADO", icon: Package },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
     ],
   },
