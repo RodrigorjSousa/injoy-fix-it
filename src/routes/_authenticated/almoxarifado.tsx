@@ -12,6 +12,8 @@ import {
   Building2,
   Loader2,
   Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
@@ -64,6 +66,16 @@ function AlmoxarifadoAdmin() {
   const [setorFiltro, setSetorFiltro] = useState<string>("__all");
   const [dirty, setDirty] = useState<Record<string, { current_stock?: number; min_stock?: number; name?: string; unit_type?: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showNewItem, setShowNewItem] = useState(false);
+  const [novo, setNovo] = useState<{ name: string; sector: string; unit_type: string; current_stock: number; min_stock: number }>({
+    name: "",
+    sector: SETORES[0],
+    unit_type: "un",
+    current_stock: 0,
+    min_stock: 0,
+  });
+  const [creating, setCreating] = useState(false);
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["inv_items", unidade],
@@ -157,6 +169,54 @@ function AlmoxarifadoAdmin() {
       setSavingId(null);
     }
   };
+
+  const excluir = async (item: Item) => {
+    if (!confirm(`Excluir "${item.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(item.id);
+    try {
+      const { error } = await supabase
+        .from("inventory_items" as never)
+        .delete()
+        .eq("id", item.id);
+      if (error) throw error;
+      toast.success("Item excluído");
+      qc.invalidateQueries({ queryKey: ["inv_items"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const criar = async () => {
+    const nome = novo.name.trim();
+    const unit = novo.unit_type.trim();
+    if (!nome) { toast.error("Informe o nome do item"); return; }
+    if (!unit) { toast.error("Informe a unidade"); return; }
+    setCreating(true);
+    try {
+      const { error } = await supabase
+        .from("inventory_items" as never)
+        .insert({
+          property: unidade,
+          sector: novo.sector,
+          name: nome,
+          unit_type: unit,
+          current_stock: novo.current_stock,
+          min_stock: novo.min_stock,
+        } as never);
+      if (error) throw error;
+      toast.success("Item criado");
+      setShowNewItem(false);
+      setNovo({ name: "", sector: novo.sector, unit_type: "un", current_stock: 0, min_stock: 0 });
+      qc.invalidateQueries({ queryKey: ["inv_items"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar item");
+    } finally {
+      setCreating(false);
+    }
+  };
+
 
   if (!isAdmin) {
     return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
@@ -255,7 +315,14 @@ function AlmoxarifadoAdmin() {
               />
             </div>
           </div>
+          <button
+            onClick={() => setShowNewItem(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          >
+            <Plus size={14} /> Novo Item
+          </button>
         </div>
+
 
         <Tabs defaultValue="inventario" className="w-full">
           <TabsList className="grid grid-cols-3 max-w-2xl">
@@ -292,7 +359,7 @@ function AlmoxarifadoAdmin() {
                             <th className="p-2 font-bold">Estoque</th>
                             <th className="p-2 font-bold">Mín.</th>
                             <th className="p-2 font-bold">Unid.</th>
-                            <th className="p-2 font-bold w-24">Ações</th>
+                            <th className="p-2 font-bold w-32">Ações</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -353,23 +420,37 @@ function AlmoxarifadoAdmin() {
                                   />
                                 </td>
                                 <td className="p-2">
-                                  <button
-                                    onClick={() => salvar(it)}
-                                    disabled={!changed || savingId === it.id}
-                                    className={cn(
-                                      "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
-                                      changed
-                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                        : "bg-slate-100 text-slate-400 cursor-not-allowed",
-                                    )}
-                                  >
-                                    {savingId === it.id ? (
-                                      <Loader2 size={12} className="animate-spin" />
-                                    ) : (
-                                      <Save size={12} />
-                                    )}
-                                    Salvar
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => salvar(it)}
+                                      disabled={!changed || savingId === it.id}
+                                      className={cn(
+                                        "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
+                                        changed
+                                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                          : "bg-slate-100 text-slate-400 cursor-not-allowed",
+                                      )}
+                                    >
+                                      {savingId === it.id ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                      ) : (
+                                        <Save size={12} />
+                                      )}
+                                      Salvar
+                                    </button>
+                                    <button
+                                      onClick={() => excluir(it)}
+                                      disabled={deletingId === it.id}
+                                      title="Excluir item"
+                                      className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                                    >
+                                      {deletingId === it.id ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                      ) : (
+                                        <Trash2 size={12} />
+                                      )}
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
@@ -439,9 +520,87 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {showNewItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4" onClick={() => setShowNewItem(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-slate-800">Novo Item</h3>
+                <p className="text-[11px] text-slate-500">Cadastrar item em {unidade}</p>
+              </div>
+              <button onClick={() => setShowNewItem(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-500">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nome do item</label>
+                <input
+                  type="text"
+                  value={novo.name}
+                  onChange={(e) => setNovo((s) => ({ ...s, name: e.target.value }))}
+                  placeholder="Ex.: Sabonete líquido"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Setor</label>
+                <Select value={novo.sector} onValueChange={(v) => setNovo((s) => ({ ...s, sector: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SETORES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unid.</label>
+                  <input
+                    type="text"
+                    value={novo.unit_type}
+                    onChange={(e) => setNovo((s) => ({ ...s, unit_type: e.target.value }))}
+                    placeholder="un"
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Estoque</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={novo.current_stock}
+                    onChange={(e) => setNovo((s) => ({ ...s, current_stock: Math.max(0, parseInt(e.target.value || "0", 10)) }))}
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mín.</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={novo.min_stock}
+                    onChange={(e) => setNovo((s) => ({ ...s, min_stock: Math.max(0, parseInt(e.target.value || "0", 10)) }))}
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={criar}
+                disabled={creating}
+                className="w-full py-2.5 rounded-xl font-black text-sm inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              >
+                {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Criar item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function ComprasForm({ itens, onDone }: { itens: Item[]; onDone: () => void }) {
   const [itemId, setItemId] = useState<string>("");
