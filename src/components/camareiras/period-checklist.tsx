@@ -7,13 +7,13 @@ import { cn } from "@/lib/utils";
 type Unidade = "Botafogo" | "Ipanema";
 type PeriodKey = "manha" | "tarde" | "noite";
 
-type LogRow = {
+type StatusRow = {
   id: string;
   property: string;
-  camareira_name: string;
   period: PeriodKey;
-  completed_items: string[];
-  created_at: string;
+  is_completed: boolean;
+  completed_by: string | null;
+  completed_at: string | null;
 };
 
 const PERIODS: {
@@ -71,12 +71,6 @@ const PERIODS: {
   },
 ];
 
-function todayStart(): Date {
-  const d = new Date();
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
 export function PeriodChecklistSection({
   unidade,
   camareiraName,
@@ -84,7 +78,7 @@ export function PeriodChecklistSection({
   unidade: Unidade;
   camareiraName: string | null;
 }) {
-  const [logs, setLogs] = useState<LogRow[]>([]);
+  const [statuses, setStatuses] = useState<StatusRow[]>([]);
   const [marked, setMarked] = useState<Record<PeriodKey, Set<string>>>({
     manha: new Set(),
     tarde: new Set(),
@@ -93,18 +87,15 @@ export function PeriodChecklistSection({
   const [saving, setSaving] = useState<PeriodKey | null>(null);
 
   const carregar = useCallback(async () => {
-    const start = todayStart().toISOString();
     const { data, error } = await supabase
-      .from("period_checklist_logs" as never)
+      .from("daily_period_status" as never)
       .select("*")
-      .eq("property", unidade)
-      .gte("created_at", start)
-      .order("created_at", { ascending: false });
+      .eq("property", unidade);
     if (error) {
       console.error("[period-checklist] load", error);
       return;
     }
-    setLogs((data as unknown as LogRow[]) ?? []);
+    setStatuses((data as unknown as StatusRow[]) ?? []);
   }, [unidade]);
 
   useEffect(() => {
@@ -113,10 +104,10 @@ export function PeriodChecklistSection({
 
   useEffect(() => {
     const channel = supabase
-      .channel(`period_checklist_${unidade}`)
+      .channel(`daily_period_status_${unidade}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "period_checklist_logs" },
+        { event: "*", schema: "public", table: "daily_period_status" },
         () => carregar(),
       )
       .subscribe();
@@ -125,13 +116,11 @@ export function PeriodChecklistSection({
     };
   }, [carregar, unidade]);
 
-  const doneByPeriod = useMemo(() => {
-    const map = new Map<PeriodKey, LogRow>();
-    for (const log of logs) {
-      if (!map.has(log.period)) map.set(log.period, log);
-    }
+  const statusByPeriod = useMemo(() => {
+    const map = new Map<PeriodKey, StatusRow>();
+    for (const s of statuses) map.set(s.period, s);
     return map;
-  }, [logs]);
+  }, [statuses]);
 
   const toggle = (period: PeriodKey, item: string) => {
     setMarked((prev) => {
@@ -142,16 +131,14 @@ export function PeriodChecklistSection({
     });
   };
 
-  const finalizar = async (
-    period: PeriodKey,
-    items: string[],
-  ) => {
+  const finalizar = async (period: PeriodKey, items: string[]) => {
     if (!camareiraName) {
       toast.error("Perfil de camareira não identificado");
       return;
     }
     setSaving(period);
-    const { error } = await supabase
+
+    const { error: logError } = await supabase
       .from("period_checklist_logs" as never)
       .insert({
         property: unidade,
@@ -159,9 +146,28 @@ export function PeriodChecklistSection({
         period,
         completed_items: items,
       } as never);
-    setSaving(null);
-    if (error) {
+
+    if (logError) {
+      setSaving(null);
       toast.error("Falha ao registrar turno");
+      return;
+    }
+
+    const nowIso = new Date().toISOString();
+    const { error: statusError } = await supabase
+      .from("daily_period_status" as never)
+      .update({
+        is_completed: true,
+        completed_by: camareiraName,
+        completed_at: nowIso,
+        updated_at: nowIso,
+      } as never)
+      .eq("property", unidade)
+      .eq("period", period);
+
+    setSaving(null);
+    if (statusError) {
+      toast.error("Falha ao atualizar estado do turno");
       return;
     }
     toast.success("Turno finalizado com sucesso");
@@ -187,11 +193,9 @@ export function PeriodChecklistSection({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {PERIODS.map((p) => {
-          const doneLog = doneByPeriod.get(p.key);
-          const done = !!doneLog;
-          const checkedSet = done
-            ? new Set(doneLog!.completed_items)
-            : marked[p.key];
+          const status = statusByPeriod.get(p.key);
+          const done = !!status?.is_completed;
+          const checkedSet = marked[p.key];
           const allChecked = p.items.every((it) => checkedSet.has(it));
           const Icon = p.icon;
           return (
@@ -225,7 +229,7 @@ export function PeriodChecklistSection({
 
               <ul className="space-y-2 flex-1">
                 {p.items.map((item) => {
-                  const checked = checkedSet.has(item);
+                  const checked = done || checkedSet.has(item);
                   return (
                     <li key={item}>
                       <label
@@ -258,13 +262,18 @@ export function PeriodChecklistSection({
                   <span>
                     ✓ Concluído hoje por{" "}
                     <span className="font-black">
-                      {doneLog!.camareira_name}
-                    </span>{" "}
-                    às{" "}
-                    {new Date(doneLog!.created_at).toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                      {status?.completed_by ?? "—"}
+                    </span>
+                    {status?.completed_at && (
+                      <>
+                        {" "}
+                        às{" "}
+                        {new Date(status.completed_at).toLocaleTimeString(
+                          "pt-BR",
+                          { hour: "2-digit", minute: "2-digit" },
+                        )}
+                      </>
+                    )}
                   </span>
                 </div>
               ) : (
