@@ -15,6 +15,7 @@ import {
   Loader2,
   Filter,
   ClipboardList,
+  Sunrise,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/lib/unidade-context";
