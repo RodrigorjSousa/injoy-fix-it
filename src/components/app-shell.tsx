@@ -113,12 +113,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background text-foreground">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed inset-y-0 left-0 w-64 flex-col bg-sidebar text-sidebar-foreground">
-        <div className="px-6 py-6 flex items-center gap-3 border-b border-sidebar-border">
+        <Link
+          to="/"
+          className="px-6 py-6 flex items-center gap-3 border-b border-sidebar-border cursor-pointer hover:opacity-80 transition-all"
+        >
           <div className="h-11 w-11 rounded-xl bg-white shadow-sm overflow-hidden grid place-items-center">
             <img src={injoyLogo.url} alt="INJOY" className="h-9 w-9 object-contain" />
           </div>
           <span className="text-xl font-bold tracking-wider text-sidebar-foreground">INJOY</span>
-        </div>
+        </Link>
+
         <div className="px-4 pt-4 pb-2">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 mb-1.5 flex items-center gap-1.5">
             <Building2 className="h-3 w-3" />
@@ -222,11 +226,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
-          <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
-        </div>
-        <div className="min-w-0 flex-1 flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-all">
+          <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
+            <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
+          </div>
           <span className="text-lg font-bold tracking-wider">INJOY</span>
+        </Link>
+        <div className="min-w-0 flex-1 flex items-center gap-2">
+
           <div className="relative">
             <select
               value={unidade}
