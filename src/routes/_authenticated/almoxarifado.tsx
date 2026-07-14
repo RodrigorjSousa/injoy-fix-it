@@ -303,12 +303,17 @@ function AlmoxarifadoAdmin() {
                             return (
                               <tr key={it.id} className="border-b border-slate-50 last:border-0">
                                 <td className="p-3 text-slate-800 font-semibold">
-                                  <span className="flex items-center gap-2">
+                                  <div className="flex items-center gap-2">
                                     {critico && (
-                                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+                                      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse shrink-0" />
                                     )}
-                                    {it.name}
-                                  </span>
+                                    <input
+                                      type="text"
+                                      defaultValue={it.name}
+                                      onChange={(e) => updateDirty(it.id, { name: e.target.value })}
+                                      className="w-full min-w-[160px] border border-slate-200 rounded-md px-2 py-1 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                                    />
+                                  </div>
                                 </td>
                                 <td className="p-2">
                                   <input
@@ -339,7 +344,14 @@ function AlmoxarifadoAdmin() {
                                     className="w-20 border border-slate-200 rounded-md px-2 py-1 text-center text-sm"
                                   />
                                 </td>
-                                <td className="p-2 text-xs text-slate-500">{it.unit_type}</td>
+                                <td className="p-2">
+                                  <input
+                                    type="text"
+                                    defaultValue={it.unit_type}
+                                    onChange={(e) => updateDirty(it.id, { unit_type: e.target.value })}
+                                    className="w-24 border border-slate-200 rounded-md px-2 py-1 text-center text-xs focus:outline-none focus:border-blue-500"
+                                  />
+                                </td>
                                 <td className="p-2">
                                   <button
                                     onClick={() => salvar(it)}
