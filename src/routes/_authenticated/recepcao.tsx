@@ -451,6 +451,14 @@ function RecepcaoPage() {
           roomNumber={vistoriaAlvo.roomNumber}
         />
       )}
+
+      <VendaBebidasModal
+        open={vendaBebidasOpen}
+        onClose={() => setVendaBebidasOpen(false)}
+        unidade={unidadeAtiva}
+        recepcionistaName={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+        roomsAtivos={Array.from(new Set(quartos.map((q) => padQuarto(q.quarto)))).sort()}
+      />
     </div>
   );
 }
