@@ -143,8 +143,8 @@ function useActivityFeed() {
       const [{ data: hk }, { data: chamados }] = await Promise.all([
         supabase
           .from("room_housekeeping_history")
-          .select("id, room_id, status, changed_at, property")
-          .order("changed_at", { ascending: false })
+          .select("id, room_number, action_type, task_name, camareira_name, created_at, property")
+          .order("created_at", { ascending: false })
           .limit(6),
         supabase
           .from("chamados")
@@ -155,11 +155,6 @@ function useActivityFeed() {
       if (cancelled) return;
       const feed: FeedItem[] = [];
       (hk ?? []).forEach((h) => {
-        const stMap: Record<string, string> = {
-          clean: "liberou o quarto",
-          cleaning: "iniciou faxina",
-          dirty: "marcou como sujo",
-        };
         feed.push({
           id: `hk-${h.id}`,
           text: `${h.property}: ${stMap[h.status as string] ?? h.status} ${h.room_id ?? ""}`,
