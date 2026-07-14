@@ -287,6 +287,8 @@ function Configuracoes() {
 
       <SenhaResetTurno />
 
+      <PeriodItemsManager />
+
       {me?.isAdmin && <GestoresAdmin />}
 
       <EditarFuncoesDialog
