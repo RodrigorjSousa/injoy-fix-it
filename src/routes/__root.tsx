@@ -147,7 +147,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+      <UnidadeProvider>
+        {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+      </UnidadeProvider>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
