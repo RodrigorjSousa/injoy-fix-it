@@ -151,6 +151,48 @@ export type Database = {
           },
         ]
       }
+      booking_reviews: {
+        Row: {
+          cleanliness_score: number | null
+          created_at: string
+          created_by: string | null
+          id: string
+          notes: string | null
+          overall_score: number
+          reference_date: string
+          sample_size: number | null
+          staff_score: number | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          cleanliness_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          overall_score: number
+          reference_date: string
+          sample_size?: number | null
+          staff_score?: number | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          cleanliness_score?: number | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          notes?: string | null
+          overall_score?: number
+          reference_date?: string
+          sample_size?: number | null
+          staff_score?: number | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       chamados: {
         Row: {
           categoria: string
