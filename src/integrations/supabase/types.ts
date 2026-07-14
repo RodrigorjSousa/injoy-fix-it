@@ -161,6 +161,7 @@ export type Database = {
           pending_balance: number
           pending_docs_count: number | null
           property: string
+          rating: number | null
           updated_at: string
         }
         Insert: {
@@ -175,6 +176,7 @@ export type Database = {
           pending_balance?: number
           pending_docs_count?: number | null
           property: string
+          rating?: number | null
           updated_at?: string
         }
         Update: {
@@ -189,6 +191,7 @@ export type Database = {
           pending_balance?: number
           pending_docs_count?: number | null
           property?: string
+          rating?: number | null
           updated_at?: string
         }
         Relationships: []
