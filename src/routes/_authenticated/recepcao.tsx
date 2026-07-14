@@ -97,6 +97,7 @@ const OCUPACAO_STYLE: Record<
 
 function RecepcaoPage() {
   const { unidade: unidadeAtiva } = useUnidade();
+  const { data: me } = useMe();
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>([]);
   const [carregando, setCarregando] = useState(false);
@@ -108,6 +109,7 @@ function RecepcaoPage() {
     unidade: Unidade;
     roomNumber: string;
   } | null>(null);
+  const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
