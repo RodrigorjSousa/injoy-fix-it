@@ -372,9 +372,9 @@ function BoasVindas() {
           </>
         )}
       </div>
-      </div>
 
       {/* 4. Status da Operação de Quartos (Realtime) */}
+      {visaoCompleta && (
       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 backdrop-blur-md">
         <div className="flex justify-between items-center flex-wrap gap-2">
           <div>
