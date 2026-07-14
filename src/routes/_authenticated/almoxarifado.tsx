@@ -66,6 +66,16 @@ function AlmoxarifadoAdmin() {
   const [setorFiltro, setSetorFiltro] = useState<string>("__all");
   const [dirty, setDirty] = useState<Record<string, { current_stock?: number; min_stock?: number; name?: string; unit_type?: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [showNewItem, setShowNewItem] = useState(false);
+  const [novo, setNovo] = useState<{ name: string; sector: string; unit_type: string; current_stock: number; min_stock: number }>({
+    name: "",
+    sector: SETORES[0],
+    unit_type: "un",
+    current_stock: 0,
+    min_stock: 0,
+  });
+  const [creating, setCreating] = useState(false);
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["inv_items", unidade],
