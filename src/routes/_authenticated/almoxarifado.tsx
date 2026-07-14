@@ -12,6 +12,8 @@ import {
   Building2,
   Loader2,
   Search,
+  Trash2,
+  X,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
