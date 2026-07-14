@@ -421,6 +421,24 @@ function HistoricoVistoriasPage() {
                 </div>
               );
             })}
+            {hasMore ? (
+              <div ref={sentinelRef} className="py-4 flex items-center justify-center">
+                {loadingMore ? (
+                  <div className="flex items-center gap-2 text-slate-500 text-sm">
+                    <Loader2 size={14} className="animate-spin" /> Carregando mais...
+                  </div>
+                ) : (
+                  <button
+                    onClick={carregarMais}
+                    className="text-xs font-bold text-blue-700 hover:underline"
+                  >
+                    Carregar mais
+                  </button>
+                )}
+              </div>
+            ) : rows.length > 0 ? (
+              <p className="text-center text-[11px] text-slate-400 py-4">— fim do histórico —</p>
+            ) : null}
           </div>
         )}
       </div>
