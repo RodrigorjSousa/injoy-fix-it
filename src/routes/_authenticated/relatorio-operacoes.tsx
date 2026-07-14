@@ -642,16 +642,28 @@ function RelatorioOperacoes() {
   );
 }
 
+const PERIOD_LABEL: Record<"manha" | "tarde" | "noite", string> = {
+  manha: "Manhã",
+  tarde: "Tarde",
+  noite: "Noite",
+};
+
 function RegistroRow({
   r,
 }: {
   r:
     | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog };
+    | { tipo: "tarefa"; log: ExtraTaskLog }
+    | { tipo: "checklist"; log: PeriodChecklistLog };
 }) {
   const [open, setOpen] = useState(false);
   const log = r.log;
-  const isLav = r.tipo === "lavanderia";
+  const badge =
+    r.tipo === "lavanderia"
+      ? { bg: "bg-sky-500", label: "Lavanderia", text: "text-sky-600", icon: <Shirt size={14} /> }
+      : r.tipo === "tarefa"
+        ? { bg: "bg-emerald-500", label: "Tarefa Extra", text: "text-emerald-600", icon: <ListChecks size={14} /> }
+        : { bg: "bg-amber-500", label: `Checklist ${PERIOD_LABEL[r.log.period]}`, text: "text-amber-600", icon: <Sunrise size={14} /> };
   return (
     <div className="py-3">
       <button
@@ -661,10 +673,10 @@ function RegistroRow({
         <div
           className={cn(
             "h-8 w-8 rounded-lg flex items-center justify-center text-white shrink-0",
-            isLav ? "bg-sky-500" : "bg-emerald-500",
+            badge.bg,
           )}
         >
-          {isLav ? <Shirt size={14} /> : <ListChecks size={14} />}
+          {badge.icon}
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-sm font-bold text-slate-800 truncate">
@@ -672,13 +684,8 @@ function RegistroRow({
           </p>
           <p className="text-[11px] text-slate-500">
             {formatData(log.created_at)} · {formatHora(log.created_at)} ·{" "}
-            <span
-              className={cn(
-                "font-semibold",
-                isLav ? "text-sky-600" : "text-emerald-600",
-              )}
-            >
-              {isLav ? "Lavanderia" : "Tarefa Extra"}
+            <span className={cn("font-semibold", badge.text)}>
+              {badge.label}
             </span>
           </p>
         </div>
@@ -688,7 +695,7 @@ function RegistroRow({
       </button>
       {open && (
         <div className="mt-3 ml-11 text-xs">
-          {isLav ? (
+          {r.tipo === "lavanderia" ? (
             <table className="w-full">
               <thead>
                 <tr className="text-slate-500 text-[10px] uppercase tracking-wider">
@@ -699,7 +706,7 @@ function RegistroRow({
                 </tr>
               </thead>
               <tbody>
-                {((r.log as LaundryLog).items_data ?? []).map((it, i) => (
+                {(r.log.items_data ?? []).map((it, i) => (
                   <tr key={i} className="border-t border-slate-100">
                     <td className="py-1 text-slate-700">{it.item}</td>
                     <td className="py-1 text-right">{it.enviado}</td>
@@ -716,9 +723,15 @@ function RegistroRow({
                 ))}
               </tbody>
             </table>
+          ) : r.tipo === "tarefa" ? (
+            <ul className="list-disc list-inside space-y-1 text-slate-700">
+              {(r.log.completed_tasks ?? []).map((t, i) => (
+                <li key={i}>{t}</li>
+              ))}
+            </ul>
           ) : (
             <ul className="list-disc list-inside space-y-1 text-slate-700">
-              {((r.log as ExtraTaskLog).completed_tasks ?? []).map((t, i) => (
+              {(r.log.completed_items ?? []).map((t, i) => (
                 <li key={i}>{t}</li>
               ))}
             </ul>
