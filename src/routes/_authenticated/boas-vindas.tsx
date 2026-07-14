@@ -68,22 +68,42 @@ function BoasVindas() {
   const [statusQuartos, setStatusQuartos] = useState<StatusQuartos>(EMPTY_STATUS);
   const [loading, setLoading] = useState(true);
 
-  // Carrega nome do perfil uma vez
+  // Carrega nome do perfil uma vez (com fallback para metadados do Auth)
   useEffect(() => {
     let cancelled = false;
+    const GENERICOS = ["administrador", "admin", "user", "usuario", "usuário", "gestor", "funcionario", "funcionário"];
     (async () => {
-      if (!me?.userId) return;
-      const { data } = await supabase
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: profileData } = await supabase
         .from("profiles")
         .select("nome")
-        .eq("id", me.userId)
+        .eq("id", user.id)
         .maybeSingle();
-      if (!cancelled && data?.nome) setNome(data.nome);
+
+      const nomeCompleto =
+        profileData?.nome ||
+        (user.user_metadata as any)?.full_name ||
+        (user.user_metadata as any)?.name ||
+        (user.user_metadata as any)?.nome ||
+        "";
+
+      let primeiro = "";
+      if (nomeCompleto) {
+        const p = nomeCompleto.trim().split(/\s+/)[0];
+        if (p && !GENERICOS.includes(p.toLowerCase())) {
+          primeiro = p.charAt(0).toUpperCase() + p.slice(1).toLowerCase();
+        }
+      }
+
+      if (!cancelled && primeiro) setNome(primeiro);
     })();
     return () => {
       cancelled = true;
     };
   }, [me?.userId]);
+
 
   // Carrega métricas + status de quartos por unidade
   useEffect(() => {
