@@ -27,7 +27,7 @@ function AdminAuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/", replace: true });
+      if (data.user) navigate({ to: "/boas-vindas", replace: true });
     });
   }, [navigate]);
 
@@ -40,7 +40,7 @@ function AdminAuthPage() {
       const email = local.includes("@") ? local : `${local}@injoy.com.br`;
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/boas-vindas", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao autenticar");
     } finally {
