@@ -563,6 +563,33 @@ export type Database = {
         }
         Relationships: []
       }
+      period_checklist_logs: {
+        Row: {
+          camareira_name: string
+          completed_items: Json
+          created_at: string
+          id: string
+          period: string
+          property: string
+        }
+        Insert: {
+          camareira_name: string
+          completed_items?: Json
+          created_at?: string
+          id?: string
+          period: string
+          property: string
+        }
+        Update: {
+          camareira_name?: string
+          completed_items?: Json
+          created_at?: string
+          id?: string
+          period?: string
+          property?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
