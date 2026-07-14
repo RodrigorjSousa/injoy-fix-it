@@ -16,14 +16,19 @@ type StatusRow = {
   completed_at: string | null;
 };
 
+type DirectoryRow = {
+  id: string;
+  property: string;
+  period: PeriodKey;
+  item_name: string;
+};
+
 const PERIODS: {
   key: PeriodKey;
   title: string;
   subtitle: string;
   icon: typeof Sun;
   gradient: string;
-  accent: string;
-  items: string[];
 }[] = [
   {
     key: "manha",
@@ -31,14 +36,6 @@ const PERIODS: {
     subtitle: "Início dos trabalhos",
     icon: Sunrise,
     gradient: "from-amber-400 to-orange-500",
-    accent: "bg-amber-500",
-    items: [
-      "Fazer café",
-      "Áreas comuns",
-      "Retirar lixo",
-      "Banheiro da recepção",
-      "Conferir roupas",
-    ],
   },
   {
     key: "tarde",
@@ -46,13 +43,6 @@ const PERIODS: {
     subtitle: "Meio do dia",
     icon: Sun,
     gradient: "from-sky-400 to-blue-500",
-    accent: "bg-sky-500",
-    items: [
-      "Áreas comuns",
-      "Retirar lixo",
-      "Banheiro da recepção",
-      "Conferir roupas",
-    ],
   },
   {
     key: "noite",
@@ -60,14 +50,6 @@ const PERIODS: {
     subtitle: "Final do expediente",
     icon: Moon,
     gradient: "from-indigo-500 to-purple-600",
-    accent: "bg-indigo-500",
-    items: [
-      "Verificar o café",
-      "Áreas comuns",
-      "Retirar lixo",
-      "Banheiro da recepção",
-      "Conferir roupas",
-    ],
   },
 ];
 
@@ -79,6 +61,7 @@ export function PeriodChecklistSection({
   camareiraName: string | null;
 }) {
   const [statuses, setStatuses] = useState<StatusRow[]>([]);
+  const [directory, setDirectory] = useState<DirectoryRow[]>([]);
   const [marked, setMarked] = useState<Record<PeriodKey, Set<string>>>({
     manha: new Set(),
     tarde: new Set(),
@@ -86,21 +69,35 @@ export function PeriodChecklistSection({
   });
   const [saving, setSaving] = useState<PeriodKey | null>(null);
 
-  const carregar = useCallback(async () => {
+  const carregarStatuses = useCallback(async () => {
     const { data, error } = await supabase
       .from("daily_period_status" as never)
       .select("*")
       .eq("property", unidade);
     if (error) {
-      console.error("[period-checklist] load", error);
+      console.error("[period-checklist] load status", error);
       return;
     }
     setStatuses((data as unknown as StatusRow[]) ?? []);
   }, [unidade]);
 
+  const carregarDirectory = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("period_items_directory" as never)
+      .select("*")
+      .eq("property", unidade)
+      .order("created_at", { ascending: true });
+    if (error) {
+      console.error("[period-checklist] load directory", error);
+      return;
+    }
+    setDirectory((data as unknown as DirectoryRow[]) ?? []);
+  }, [unidade]);
+
   useEffect(() => {
-    carregar();
-  }, [carregar]);
+    carregarStatuses();
+    carregarDirectory();
+  }, [carregarStatuses, carregarDirectory]);
 
   useEffect(() => {
     const channel = supabase
@@ -108,19 +105,32 @@ export function PeriodChecklistSection({
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "daily_period_status" },
-        () => carregar(),
+        () => carregarStatuses(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "period_items_directory" },
+        () => carregarDirectory(),
       )
       .subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [carregar, unidade]);
+  }, [carregarStatuses, carregarDirectory, unidade]);
 
   const statusByPeriod = useMemo(() => {
     const map = new Map<PeriodKey, StatusRow>();
     for (const s of statuses) map.set(s.period, s);
     return map;
   }, [statuses]);
+
+  const itemsByPeriod = useMemo(() => {
+    const map: Record<PeriodKey, string[]> = { manha: [], tarde: [], noite: [] };
+    for (const d of directory) {
+      if (d.period in map) map[d.period].push(d.item_name);
+    }
+    return map;
+  }, [directory]);
 
   const toggle = (period: PeriodKey, item: string) => {
     setMarked((prev) => {
@@ -172,7 +182,7 @@ export function PeriodChecklistSection({
     }
     toast.success("Turno finalizado com sucesso");
     setMarked((prev) => ({ ...prev, [period]: new Set() }));
-    carregar();
+    carregarStatuses();
   };
 
   return (
@@ -193,10 +203,11 @@ export function PeriodChecklistSection({
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
         {PERIODS.map((p) => {
+          const items = itemsByPeriod[p.key];
           const status = statusByPeriod.get(p.key);
           const done = !!status?.is_completed;
           const checkedSet = marked[p.key];
-          const allChecked = p.items.every((it) => checkedSet.has(it));
+          const allChecked = items.length > 0 && items.every((it) => checkedSet.has(it));
           const Icon = p.icon;
           return (
             <div
@@ -227,34 +238,40 @@ export function PeriodChecklistSection({
                 </div>
               </div>
 
-              <ul className="space-y-2 flex-1">
-                {p.items.map((item) => {
-                  const checked = done || checkedSet.has(item);
-                  return (
-                    <li key={item}>
-                      <label
-                        className={cn(
-                          "flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 cursor-pointer",
-                          done
-                            ? "text-emerald-800 cursor-not-allowed"
-                            : "text-slate-700 hover:bg-slate-50",
-                        )}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={checked}
-                          disabled={done || saving === p.key}
-                          onChange={() => toggle(p.key, item)}
-                          className="h-4 w-4 rounded border-slate-300 accent-emerald-600"
-                        />
-                        <span className={cn(done && "line-through opacity-80")}>
-                          {item}
-                        </span>
-                      </label>
-                    </li>
-                  );
-                })}
-              </ul>
+              {items.length === 0 ? (
+                <p className="text-xs text-slate-400 italic flex-1">
+                  Nenhuma tarefa cadastrada para este período.
+                </p>
+              ) : (
+                <ul className="space-y-2 flex-1">
+                  {items.map((item) => {
+                    const checked = done || checkedSet.has(item);
+                    return (
+                      <li key={item}>
+                        <label
+                          className={cn(
+                            "flex items-center gap-2 text-sm rounded-lg px-2 py-1.5 cursor-pointer",
+                            done
+                              ? "text-emerald-800 cursor-not-allowed"
+                              : "text-slate-700 hover:bg-slate-50",
+                          )}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            disabled={done || saving === p.key}
+                            onChange={() => toggle(p.key, item)}
+                            className="h-4 w-4 rounded border-slate-300 accent-emerald-600"
+                          />
+                          <span className={cn(done && "line-through opacity-80")}>
+                            {item}
+                          </span>
+                        </label>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
 
               {done ? (
                 <div className="mt-3 text-[11px] font-bold text-emerald-700 bg-emerald-100 border border-emerald-200 rounded-lg px-3 py-2 flex items-center gap-1.5">
@@ -278,7 +295,7 @@ export function PeriodChecklistSection({
                 </div>
               ) : (
                 <button
-                  onClick={() => finalizar(p.key, p.items)}
+                  onClick={() => finalizar(p.key, items)}
                   disabled={!allChecked || saving === p.key}
                   className={cn(
                     "mt-3 w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-white flex items-center justify-center gap-2 shadow-sm transition-all",
