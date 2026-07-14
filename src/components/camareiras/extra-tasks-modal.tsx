@@ -41,7 +41,7 @@ export function ExtraTasksModal({ open, onClose, unidade, camareiraName }: Props
   if (!open) return null;
 
   const toggle = (t: string) => setChecked((s) => ({ ...s, [t]: !s[t] }));
-  const selecionadas = TAREFAS.filter((t) => checked[t]);
+  const selecionadas = tarefas.filter((t: string) => checked[t]);
   const canSubmit = selecionadas.length > 0 && !salvando;
 
   const salvar = async () => {
@@ -88,7 +88,7 @@ export function ExtraTasksModal({ open, onClose, unidade, camareiraName }: Props
         </div>
 
         <div className="p-4 space-y-2 overflow-y-auto flex-1">
-          {TAREFAS.map((t) => {
+          {tarefas.map((t: string) => {
             const on = !!checked[t];
             return (
               <button
