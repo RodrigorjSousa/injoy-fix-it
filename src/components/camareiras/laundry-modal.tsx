@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const ITENS = [
+const ITENS_FALLBACK = [
   "Protetor Travesseiro",
   "Capa de Almofada",
   "Protetor Colchão Casal / Solteiro",
