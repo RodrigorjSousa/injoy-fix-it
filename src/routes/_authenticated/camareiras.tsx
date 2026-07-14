@@ -750,6 +750,13 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
         camareiraName={nomeAutomatico ?? ""}
       />
+
+      <RetiradaAlmoxarifadoModal
+        open={almoxarifadoOpen}
+        onClose={() => setAlmoxarifadoOpen(false)}
+        unidade={unidadeAtiva}
+        funcionarioName={nomeAutomatico ?? ""}
+      />
     </div>
   );
 }
