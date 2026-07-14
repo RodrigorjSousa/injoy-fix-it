@@ -62,7 +62,7 @@ function AlmoxarifadoAdmin() {
   const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [busca, setBusca] = useState("");
   const [setorFiltro, setSetorFiltro] = useState<string>("__all");
-  const [dirty, setDirty] = useState<Record<string, { current_stock?: number; min_stock?: number }>>({});
+  const [dirty, setDirty] = useState<Record<string, { current_stock?: number; min_stock?: number; name?: string; unit_type?: string }>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
 
   const { data: itens = [], isLoading } = useQuery({
