@@ -206,6 +206,14 @@ function RecepcaoPage() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
+        <button
+          onClick={() => setVendaBebidasOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <GlassWater size={18} />
+          <span className="hidden sm:inline">Frigobar</span>
+          <span className="sm:hidden">🍹</span>
+        </button>
       </div>
 
       <div className="p-4">
