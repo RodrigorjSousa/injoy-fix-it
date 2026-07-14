@@ -37,7 +37,14 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
 });
 
-type TipoFuncionario = "tecnico" | "recepcao" | "camareira";
+type TipoFuncionario = "tecnico" | "recepcao" | "camareira" | "gestor";
+
+const LABEL_TIPO: Record<TipoFuncionario, string> = {
+  tecnico: "Técnico",
+  recepcao: "Recepção",
+  camareira: "Camareira",
+  gestor: "Gestor",
+};
 
 function Configuracoes() {
   const { data: me } = useMe();
