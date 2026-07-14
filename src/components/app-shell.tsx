@@ -50,6 +50,7 @@ const ALL_NAV: NavItem[] = [
     children: [
       { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
       { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
+      { to: "/relatorio-operacoes", label: "LAVANDERIA", icon: ClipboardList },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
     ],
   },
