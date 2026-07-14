@@ -436,6 +436,7 @@ function BoasVindas() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest pt-4">
         INJOY Hotéis • Tecnologia e Gestão Hoteleira de Alta Performance
