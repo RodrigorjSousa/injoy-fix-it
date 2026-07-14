@@ -359,7 +359,7 @@ function AlmoxarifadoAdmin() {
                             <th className="p-2 font-bold">Estoque</th>
                             <th className="p-2 font-bold">Mín.</th>
                             <th className="p-2 font-bold">Unid.</th>
-                            <th className="p-2 font-bold w-24">Ações</th>
+                            <th className="p-2 font-bold w-32">Ações</th>
                           </tr>
                         </thead>
                         <tbody>
