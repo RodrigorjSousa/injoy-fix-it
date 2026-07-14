@@ -8,6 +8,7 @@ import { ErrorState } from "@/components/ui/data-state";
 import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart";
 import { ChamadosManutencaoAtivos } from "@/components/gestao/chamados-manutencao-ativos";
 import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quartos";
+import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
@@ -191,6 +192,8 @@ function DashboardGestao() {
           </div>
           <ArrowUpRight className="h-4 w-4 text-slate-400" />
         </Link>
+
+        <BookingReviewsCard unidade={unidadeAtiva} />
 
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
