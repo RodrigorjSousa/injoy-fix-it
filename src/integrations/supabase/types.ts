@@ -68,6 +68,89 @@ export type Database = {
         }
         Relationships: []
       }
+      beverage_catalog: {
+        Row: {
+          created_at: string
+          current_stock: number
+          id: string
+          min_stock: number
+          name: string
+          price: number
+          property: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          min_stock?: number
+          name: string
+          price?: number
+          property: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_stock?: number
+          id?: string
+          min_stock?: number
+          name?: string
+          price?: number
+          property?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      beverage_sales: {
+        Row: {
+          created_at: string
+          id: string
+          payment_method: string
+          product_id: string | null
+          product_name: string
+          property: string
+          quantity: number
+          registered_by: string
+          room_number: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          payment_method: string
+          product_id?: string | null
+          product_name: string
+          property: string
+          quantity: number
+          registered_by: string
+          room_number?: string | null
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          payment_method?: string
+          product_id?: string | null
+          product_name?: string
+          property?: string
+          quantity?: number
+          registered_by?: string
+          room_number?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beverage_sales_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "beverage_catalog"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       chamados: {
         Row: {
           categoria: string
