@@ -59,6 +59,8 @@ function keyOf(property: string, room: string) {
   return `${property}::${room}`;
 }
 
+const PAGE_SIZE = 20;
+
 function HistoricoVistoriasPage() {
   const { data: me } = useMe();
   const isFull = !!me && (me.isGestor || me.isAdmin);
@@ -67,6 +69,8 @@ function HistoricoVistoriasPage() {
   const [dndByRoom, setDndByRoom] = useState<Record<string, DndPhoto[]>>({});
   const [inspByRoom, setInspByRoom] = useState<Record<string, Inspection[]>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [loadingExtras, setLoadingExtras] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [unidade, setUnidade] = useState<Unidade>("Todas");
@@ -74,22 +78,64 @@ function HistoricoVistoriasPage() {
   const [data, setData] = useState("");
   const [lightbox, setLightbox] = useState<LightboxState>(null);
 
+  const applyFilters = useCallback(
+    // biome-ignore lint/suspicious/noExplicitAny: query builder do supabase
+    (q: any) => {
+      if (unidade !== "Todas") q = q.eq("property", unidade);
+      if (data) {
+        const [y, m, d] = data.split("-").map(Number);
+        const start = new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
+        const end = new Date(y, m - 1, d, 23, 59, 59, 999).toISOString();
+        q = q.gte("created_at", start).lte("created_at", end);
+      }
+      return q;
+    },
+    [unidade, data],
+  );
+
+  const fetchExtras = useCallback(async () => {
+    setLoadingExtras(true);
+    try {
+      let dq = supabase
+        .from("room_housekeeping_history")
+        .select("id, property, room_number, photo_url, camareira_name, created_at")
+        .eq("action_type", "NÃO PERTURBE")
+        .not("photo_url", "is", null)
+        .order("created_at", { ascending: false })
+        .limit(200);
+      if (unidade !== "Todas") dq = dq.eq("property", unidade);
+      const { data: dd, error: derr } = await dq;
+      if (derr) throw derr;
+      const dndGroup: Record<string, DndPhoto[]> = {};
+      for (const r of (dd ?? []) as DndPhoto[]) {
+        const k = keyOf(r.property, r.room_number);
+        (dndGroup[k] ||= []).push(r);
+      }
+      setDndByRoom(dndGroup);
+    } catch (e) {
+      console.error("[historico-vistorias] falha ao carregar DND", e);
+    } finally {
+      setLoadingExtras(false);
+    }
+  }, [unidade]);
+
   const fetchRows = useCallback(async () => {
     setLoading(true);
     setErro(null);
     try {
-      let q = supabase
-        .from("room_inspections")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(500);
-      if (unidade !== "Todas") q = q.eq("property", unidade);
+      const q = applyFilters(
+        supabase
+          .from("room_inspections")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(0, PAGE_SIZE - 1),
+      );
       const { data: d, error } = await q;
       if (error) throw error;
       const list = (d ?? []) as Inspection[];
       setRows(list);
+      setHasMore(list.length === PAGE_SIZE);
 
-      // Agrupa vistorias por quarto (para "Fotos da Recepção")
       const inspGroup: Record<string, Inspection[]> = {};
       for (const r of list) {
         const k = keyOf(r.property, r.room_number);
@@ -97,41 +143,66 @@ function HistoricoVistoriasPage() {
       }
       setInspByRoom(inspGroup);
 
-      // Busca fotos de "Não Perturbe" dos mesmos quartos
-      setLoadingExtras(true);
-      try {
-        let dq = supabase
-          .from("room_housekeeping_history")
-          .select("id, property, room_number, photo_url, camareira_name, created_at")
-          .eq("action_type", "NÃO PERTURBE")
-          .not("photo_url", "is", null)
-          .order("created_at", { ascending: false })
-          .limit(500);
-        if (unidade !== "Todas") dq = dq.eq("property", unidade);
-        const { data: dd, error: derr } = await dq;
-        if (derr) throw derr;
-        const dndGroup: Record<string, DndPhoto[]> = {};
-        for (const r of (dd ?? []) as DndPhoto[]) {
-          const k = keyOf(r.property, r.room_number);
-          (dndGroup[k] ||= []).push(r);
-        }
-        setDndByRoom(dndGroup);
-      } catch (e) {
-        console.error("[historico-vistorias] falha ao carregar DND", e);
-      } finally {
-        setLoadingExtras(false);
-      }
+      fetchExtras();
     } catch (e) {
       setErro(friendlyError(e));
       toast.error("Não foi possível carregar as vistorias");
     } finally {
       setLoading(false);
     }
-  }, [unidade]);
+  }, [applyFilters, fetchExtras]);
+
+  const carregarMais = useCallback(async () => {
+    if (loading || loadingMore || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const from = rows.length;
+      const to = from + PAGE_SIZE - 1;
+      const q = applyFilters(
+        supabase
+          .from("room_inspections")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      );
+      const { data: d, error } = await q;
+      if (error) throw error;
+      const list = (d ?? []) as Inspection[];
+      setRows((prev) => {
+        const merged = [...prev, ...list];
+        const inspGroup: Record<string, Inspection[]> = {};
+        for (const r of merged) {
+          const k = keyOf(r.property, r.room_number);
+          (inspGroup[k] ||= []).push(r);
+        }
+        setInspByRoom(inspGroup);
+        return merged;
+      });
+      setHasMore(list.length === PAGE_SIZE);
+    } catch (e) {
+      toast.error(friendlyError(e, "Falha ao carregar mais"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [applyFilters, hasMore, loading, loadingMore, rows.length]);
 
   useEffect(() => {
     fetchRows();
   }, [fetchRows]);
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) carregarMais();
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [carregarMais]);
 
   // Teclado no lightbox
   useEffect(() => {
