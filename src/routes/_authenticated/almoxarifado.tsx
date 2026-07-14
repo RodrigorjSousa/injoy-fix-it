@@ -170,6 +170,54 @@ function AlmoxarifadoAdmin() {
     }
   };
 
+  const excluir = async (item: Item) => {
+    if (!confirm(`Excluir "${item.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingId(item.id);
+    try {
+      const { error } = await supabase
+        .from("inventory_items" as never)
+        .delete()
+        .eq("id", item.id);
+      if (error) throw error;
+      toast.success("Item excluído");
+      qc.invalidateQueries({ queryKey: ["inv_items"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
+  const criar = async () => {
+    const nome = novo.name.trim();
+    const unit = novo.unit_type.trim();
+    if (!nome) { toast.error("Informe o nome do item"); return; }
+    if (!unit) { toast.error("Informe a unidade"); return; }
+    setCreating(true);
+    try {
+      const { error } = await supabase
+        .from("inventory_items" as never)
+        .insert({
+          property: unidade,
+          sector: novo.sector,
+          name: nome,
+          unit_type: unit,
+          current_stock: novo.current_stock,
+          min_stock: novo.min_stock,
+        } as never);
+      if (error) throw error;
+      toast.success("Item criado");
+      setShowNewItem(false);
+      setNovo({ name: "", sector: novo.sector, unit_type: "un", current_stock: 0, min_stock: 0 });
+      qc.invalidateQueries({ queryKey: ["inv_items"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar item");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+
   if (!isAdmin) {
     return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
   }
