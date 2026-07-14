@@ -1,6 +1,7 @@
 import { createFileRoute, Link, useNavigate, useParams } from "@tanstack/react-router";
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compression";
 import { toast } from "sonner";
 import { ArrowLeft, Camera, CheckCircle2, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -194,11 +195,12 @@ function PhotoSlot({
     try {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) throw new Error("Sessão expirada. Entre novamente.");
-      const ext = file.name.split(".").pop() || "jpg";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop() || "jpg";
       const path = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("fotos-manutencao")
-        .upload(path, file, { upsert: false, contentType: file.type });
+        .upload(path, compressed, { upsert: false, contentType: compressed.type });
       if (upErr) throw upErr;
 
       const { data: signed, error: signErr } = await supabase.storage
