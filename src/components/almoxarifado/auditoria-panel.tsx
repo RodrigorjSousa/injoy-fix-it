@@ -22,7 +22,7 @@ type Row = {
 export function AuditoriaAlmoxarifadoPanel({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
   const qc = useQueryClient();
   const { data: me } = useMe();
-  const nomeRecepcao = me?.funcionario?.nome || me?.nome || "Recepção";
+  const nomeRecepcao = me?.funcionario?.nome || "Recepção";
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const { data: pendentes = [], isLoading } = useQuery({
