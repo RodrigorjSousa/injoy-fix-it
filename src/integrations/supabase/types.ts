@@ -620,6 +620,30 @@ export type Database = {
         }
         Relationships: []
       }
+      period_items_directory: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          period: string
+          property: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          period: string
+          property: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          period?: string
+          property?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
