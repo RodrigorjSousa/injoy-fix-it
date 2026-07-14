@@ -243,6 +243,36 @@ export type Database = {
           },
         ]
       }
+      daily_period_status: {
+        Row: {
+          completed_at: string | null
+          completed_by: string | null
+          id: string
+          is_completed: boolean
+          period: string
+          property: string
+          updated_at: string
+        }
+        Insert: {
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          is_completed?: boolean
+          period: string
+          property: string
+          updated_at?: string
+        }
+        Update: {
+          completed_at?: string | null
+          completed_by?: string | null
+          id?: string
+          is_completed?: boolean
+          period?: string
+          property?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       extra_tasks_directory: {
         Row: {
           created_at: string
