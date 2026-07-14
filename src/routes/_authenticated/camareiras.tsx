@@ -113,6 +113,10 @@ function PainelCamareiras() {
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
   const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [extraTasksOpen, setExtraTasksOpen] = useState(false);
+  const [laundryOpen, setLaundryOpen] = useState(false);
+
+
 
   const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
     if ((q.room_comment ?? "") === texto) return;
