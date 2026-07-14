@@ -517,7 +517,19 @@ function EditarFuncoesDialog({
               >
                 Recepção
               </button>
-            </div>
+              <button
+                type="button"
+                disabled={gestorDisabled}
+                onClick={() => setRolGestor((v) => !v)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  rolGestor
+                    ? "bg-sky-100 text-sky-700 border-sky-200"
+                    : "bg-background hover:border-primary/40"
+                }`}
+                title={!me?.isAdmin ? "Apenas administradores podem alterar este perfil" : undefined}
+              >
+                Gestor
+              </button>
             {rolesDisabled && (
               <p className="text-xs text-muted-foreground mt-2">
                 O funcionário ainda não criou conta. Perfis de acesso ficam disponíveis após o primeiro login.
