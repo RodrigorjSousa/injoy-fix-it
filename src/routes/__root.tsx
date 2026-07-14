@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { AppShell } from "@/components/app-shell";
+import { UnidadeProvider } from "@/lib/unidade-context";
 import { Toaster } from "@/components/ui/sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -147,7 +148,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+      <UnidadeProvider>
+        {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+      </UnidadeProvider>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
   );
