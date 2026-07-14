@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, X, ImageIcon, Clock, Building2 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,8 @@ type HistRow = {
 
 type Unidade = "Todas" | "Botafogo" | "Ipanema";
 
+const PAGE_SIZE = 20;
+
 function pad(n: number) {
   return n.toString().padStart(2, "0");
 }
@@ -50,12 +52,34 @@ function duracao(started: string | null, ended: string | null) {
   return `${h}h ${pad(r)}min`;
 }
 
+function rangeForDay(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const start = new Date(y, m - 1, d, 0, 0, 0, 0);
+  const end = new Date(y, m - 1, d, 23, 59, 59, 999);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+function rangeForMonth(mes: string, ano: string) {
+  const y = Number(ano) || new Date().getFullYear();
+  const m = Number(mes);
+  const start = new Date(y, m - 1, 1, 0, 0, 0, 0);
+  const end = new Date(y, m, 0, 23, 59, 59, 999);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+function rangeForYear(ano: string) {
+  const y = Number(ano);
+  const start = new Date(y, 0, 1, 0, 0, 0, 0);
+  const end = new Date(y, 11, 31, 23, 59, 59, 999);
+  return { start: start.toISOString(), end: end.toISOString() };
+}
+
 function HistoricoLimpezaPage() {
   const { data: me } = useMe();
   const isFull = !!me && (me.isGestor || me.isAdmin);
 
   const [rows, setRows] = useState<HistRow[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
 
   const [data, setData] = useState<string>(todayStr());
@@ -65,18 +89,39 @@ function HistoricoLimpezaPage() {
   const [unidade, setUnidade] = useState<Unidade>("Todas");
   const [fotoAberta, setFotoAberta] = useState<string | null>(null);
 
+  const buildQuery = useCallback(
+    (from: number, to: number) => {
+      // biome-ignore lint/suspicious/noExplicitAny: tabela nova ainda não está no types.ts gerado
+      let q: any = (supabase as any)
+        .from("room_housekeeping_history")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .range(from, to);
+      if (unidade !== "Todas") q = q.eq("property", unidade);
+      if (data) {
+        const r = rangeForDay(data);
+        q = q.gte("created_at", r.start).lte("created_at", r.end);
+      } else if (mes) {
+        const r = rangeForMonth(mes, ano || String(new Date().getFullYear()));
+        q = q.gte("created_at", r.start).lte("created_at", r.end);
+      } else if (ano) {
+        const r = rangeForYear(ano);
+        q = q.gte("created_at", r.start).lte("created_at", r.end);
+      }
+      return q;
+    },
+    [unidade, data, mes, ano],
+  );
+
   const carregar = useCallback(async () => {
     setLoading(true);
     setErro(null);
     try {
-      // biome-ignore lint/suspicious/noExplicitAny: tabela nova ainda não está no types.ts gerado
-      const { data: d, error } = await (supabase as any)
-        .from("room_housekeeping_history")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(1000);
+      const { data: d, error } = await buildQuery(0, PAGE_SIZE - 1);
       if (error) throw error;
-      setRows((d ?? []) as HistRow[]);
+      const list = (d ?? []) as HistRow[];
+      setRows(list);
+      setHasMore(list.length === PAGE_SIZE);
     } catch (err) {
       const msg = friendlyError(err, "Falha ao carregar histórico");
       setErro(msg);
@@ -84,7 +129,25 @@ function HistoricoLimpezaPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [buildQuery]);
+
+  const carregarMais = useCallback(async () => {
+    if (loadingMore || loading || !hasMore) return;
+    setLoadingMore(true);
+    try {
+      const from = rows.length;
+      const to = from + PAGE_SIZE - 1;
+      const { data: d, error } = await buildQuery(from, to);
+      if (error) throw error;
+      const list = (d ?? []) as HistRow[];
+      setRows((prev) => [...prev, ...list]);
+      setHasMore(list.length === PAGE_SIZE);
+    } catch (err) {
+      toast.error(friendlyError(err, "Falha ao carregar mais"));
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [buildQuery, hasMore, loading, loadingMore, rows.length]);
 
   useEffect(() => {
     if (isFull) carregar();
@@ -95,7 +158,7 @@ function HistoricoLimpezaPage() {
       .channel("room_housekeeping_history_changes")
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "room_housekeeping_history" },
+        { event: "INSERT", schema: "public", table: "room_housekeeping_history" },
         () => carregar(),
       )
       .subscribe();
@@ -104,26 +167,32 @@ function HistoricoLimpezaPage() {
     };
   }, [carregar]);
 
+  // Infinite scroll sentinel
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) carregarMais();
+      },
+      { rootMargin: "300px" },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [carregarMais]);
+
   const camareirasUnicas = useMemo(
     () => Array.from(new Set(rows.map((r) => r.camareira_name).filter(Boolean))).sort(),
     [rows],
   );
 
+  // Filtro adicional de camareira aplicado apenas nas linhas carregadas
   const filtrados = useMemo(() => {
-    return rows.filter((r) => {
-      const dt = new Date(r.created_at);
-      if (data) {
-        const [y, m, d] = data.split("-").map(Number);
-        if (dt.getFullYear() !== y || dt.getMonth() + 1 !== m || dt.getDate() !== d) return false;
-      } else {
-        if (mes && dt.getMonth() + 1 !== Number(mes)) return false;
-        if (ano && dt.getFullYear() !== Number(ano)) return false;
-      }
-      if (unidade !== "Todas" && r.property !== unidade) return false;
-      if (camareira && !r.camareira_name.toLowerCase().includes(camareira.toLowerCase())) return false;
-      return true;
-    });
-  }, [rows, data, mes, ano, unidade, camareira]);
+    if (!camareira) return rows;
+    const q = camareira.toLowerCase();
+    return rows.filter((r) => r.camareira_name.toLowerCase().includes(q));
+  }, [rows, camareira]);
 
   const resumo = useMemo(() => {
     const total = filtrados.length;
@@ -278,6 +347,7 @@ function HistoricoLimpezaPage() {
                         src={r.photo_url}
                         alt="Placa Não Perturbe"
                         className="w-16 h-16 rounded-lg object-cover border border-red-300"
+                        loading="lazy"
                       />
                     </button>
                   ) : isDnd ? (
@@ -328,6 +398,25 @@ function HistoricoLimpezaPage() {
                 </div>
               );
             })}
+
+            {hasMore ? (
+              <div ref={sentinelRef} className="py-4 flex items-center justify-center">
+                {loadingMore ? (
+                  <div className="flex items-center gap-2 text-slate-500 text-sm">
+                    <Loader2 size={14} className="animate-spin" /> Carregando mais...
+                  </div>
+                ) : (
+                  <button
+                    onClick={carregarMais}
+                    className="text-xs font-bold text-blue-700 hover:underline"
+                  >
+                    Carregar mais
+                  </button>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-[11px] text-slate-400 py-4">— fim do histórico —</p>
+            )}
           </div>
         )}
       </div>
