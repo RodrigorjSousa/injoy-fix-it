@@ -194,12 +194,14 @@ function BoasVindas() {
     );
   }
 
-  const primeiroNome = (
-    nome ||
-    me?.funcionario?.nome ||
-    me?.email?.split("@")[0] ||
-    "Colaborador"
-  ).split(" ")[0];
+  const GENERICOS_DISPLAY = ["administrador", "admin", "user", "usuario", "usuário", "gestor", "funcionario", "funcionário"];
+  const candidatoFuncionario = me?.funcionario?.nome?.trim().split(/\s+/)[0] || "";
+  const candidatoEmail = me?.email?.split("@")[0] || "";
+  const fallback = !GENERICOS_DISPLAY.includes(candidatoFuncionario.toLowerCase())
+    ? candidatoFuncionario
+    : candidatoEmail;
+  const primeiroNome = nome || fallback || "Colaborador";
+
   const metaBatida = rating >= 8.0;
 
   return (
