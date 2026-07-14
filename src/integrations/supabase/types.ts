@@ -118,6 +118,30 @@ export type Database = {
           },
         ]
       }
+      extra_tasks_logs: {
+        Row: {
+          camareira_name: string
+          completed_tasks: Json
+          created_at: string
+          id: string
+          property: string
+        }
+        Insert: {
+          camareira_name: string
+          completed_tasks: Json
+          created_at?: string
+          id?: string
+          property: string
+        }
+        Update: {
+          camareira_name?: string
+          completed_tasks?: Json
+          created_at?: string
+          id?: string
+          property?: string
+        }
+        Relationships: []
+      }
       funcionarios: {
         Row: {
           categorias: string[]
@@ -241,6 +265,30 @@ export type Database = {
           status_limpeza?: string
           unidade?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      laundry_logs: {
+        Row: {
+          camareira_name: string
+          created_at: string
+          id: string
+          items_data: Json
+          property: string
+        }
+        Insert: {
+          camareira_name: string
+          created_at?: string
+          id?: string
+          items_data: Json
+          property: string
+        }
+        Update: {
+          camareira_name?: string
+          created_at?: string
+          id?: string
+          items_data?: Json
+          property?: string
         }
         Relationships: []
       }
