@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const TAREFAS = [
+const TAREFAS_FALLBACK = [
   "Fazer café",
   "Limpar banheiro comum",
   "Limpar o chão da área comum",
