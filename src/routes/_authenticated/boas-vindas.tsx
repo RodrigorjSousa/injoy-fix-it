@@ -157,8 +157,8 @@ function useActivityFeed() {
       (hk ?? []).forEach((h) => {
         feed.push({
           id: `hk-${h.id}`,
-          text: `${h.property}: ${stMap[h.status as string] ?? h.status} ${h.room_id ?? ""}`,
-          when: h.changed_at,
+          text: `${h.property}: ${h.camareira_name} — ${h.task_name} (APT ${h.room_number})`,
+          when: h.created_at,
         });
       });
       (chamados ?? []).forEach((c) => {
