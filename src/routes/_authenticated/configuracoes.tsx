@@ -363,20 +363,24 @@ function EditarFuncoesDialog({
   funcionario: Funcionario | null;
   onClose: () => void;
 }) {
+  const { data: me } = useMe();
   const atualizar = useAtualizarCategoriasFuncionario();
   const atribuirRole = useAtribuirRole();
   const removerRole = useRemoverRole();
+  const tornarGestor = useTornarGestor();
+  const removerGestor = useRemoverGestor();
   const { data: usuariosRoles = [] } = useUsuariosComRoles();
 
   const currentRoles = useMemo(() => {
-    if (!funcionario?.userId) return { recepcao: false, camareira: false };
+    if (!funcionario?.userId) return { recepcao: false, camareira: false, gestor: false };
     const u = usuariosRoles.find((x) => x.userId === funcionario.userId);
-    return { recepcao: !!u?.isRecepcao, camareira: !!u?.isCamareira };
+    return { recepcao: !!u?.isRecepcao, camareira: !!u?.isCamareira, gestor: !!u?.isGestor };
   }, [funcionario, usuariosRoles]);
 
   const [sel, setSel] = useState<Categoria[]>([]);
   const [rolCamareira, setRolCamareira] = useState(false);
   const [rolRecepcao, setRolRecepcao] = useState(false);
+  const [rolGestor, setRolGestor] = useState(false);
 
   const initialCategorias = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
 
