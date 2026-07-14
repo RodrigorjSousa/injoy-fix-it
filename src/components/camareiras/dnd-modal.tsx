@@ -3,6 +3,7 @@ import { Camera, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compression";
 
 interface DndModalProps {
   open: boolean;
