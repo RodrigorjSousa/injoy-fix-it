@@ -203,6 +203,7 @@ function BoasVindas() {
   const primeiroNome = nome || fallback || "Colaborador";
 
   const metaBatida = rating >= 8.0;
+  const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white p-4 md:p-6 font-sans space-y-6 pb-12">
