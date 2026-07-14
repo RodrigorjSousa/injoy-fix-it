@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,9 +14,12 @@ import {
   ChevronRight,
   Users,
   PlusCircle,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useChamados, useFuncionarios, type Chamado, type Funcionario } from "@/lib/store";
+import { useChamados, useFuncionarios, useMe, type Chamado, type Funcionario } from "@/lib/store";
+import { useUnidade } from "@/lib/unidade-context";
+import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 
 export const Route = createFileRoute("/_authenticated/servicos")({
   component: Servicos,
