@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compression";
 
 const CHECKLIST_ITEMS = [
   "Ar condicionado testado e gelando",
