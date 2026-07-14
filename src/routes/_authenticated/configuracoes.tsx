@@ -37,7 +37,14 @@ export const Route = createFileRoute("/_authenticated/configuracoes")({
   component: Configuracoes,
 });
 
-type TipoFuncionario = "tecnico" | "recepcao" | "camareira";
+type TipoFuncionario = "tecnico" | "recepcao" | "camareira" | "gestor";
+
+const LABEL_TIPO: Record<TipoFuncionario, string> = {
+  tecnico: "Técnico",
+  recepcao: "Recepção",
+  camareira: "Camareira",
+  gestor: "Gestor",
+};
 
 function Configuracoes() {
   const { data: me } = useMe();
@@ -92,10 +99,10 @@ function Configuracoes() {
             const userId = (data as { user_id: string | null } | null)?.user_id;
             if (userId) {
               atribuirRole.mutate({ userId, role: tipo });
-              toast.success(`${nome} cadastrado(a) como ${tipo === "recepcao" ? "Recepção" : "Camareira"}`);
+              toast.success(`${nome} cadastrado(a) como ${LABEL_TIPO[tipo]}`);
             } else {
               toast.success(`${nome} cadastrado(a)`, {
-                description: `Quando criar conta com este email, atribua o perfil "${tipo === "recepcao" ? "Recepção" : "Camareira"}" em Perfis de acesso.`,
+                description: `Quando criar conta com este email, atribua o perfil "${LABEL_TIPO[tipo]}" em Perfis de acesso.`,
               });
             }
           } else {
@@ -131,11 +138,12 @@ function Configuracoes() {
 
         <div className="space-y-2">
           <Label>Função</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {([
               { v: "tecnico", l: "Técnico" },
               { v: "recepcao", l: "Recepção" },
               { v: "camareira", l: "Camareira" },
+              ...(me?.isAdmin ? [{ v: "gestor" as const, l: "Gestor" }] : []),
             ] as { v: TipoFuncionario; l: string }[]).map((opt) => (
               <button
                 key={opt.v}
