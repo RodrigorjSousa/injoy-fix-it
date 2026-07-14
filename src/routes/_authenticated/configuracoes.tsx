@@ -99,10 +99,10 @@ function Configuracoes() {
             const userId = (data as { user_id: string | null } | null)?.user_id;
             if (userId) {
               atribuirRole.mutate({ userId, role: tipo });
-              toast.success(`${nome} cadastrado(a) como ${tipo === "recepcao" ? "Recepção" : "Camareira"}`);
+              toast.success(`${nome} cadastrado(a) como ${LABEL_TIPO[tipo]}`);
             } else {
               toast.success(`${nome} cadastrado(a)`, {
-                description: `Quando criar conta com este email, atribua o perfil "${tipo === "recepcao" ? "Recepção" : "Camareira"}" em Perfis de acesso.`,
+                description: `Quando criar conta com este email, atribua o perfil "${LABEL_TIPO[tipo]}" em Perfis de acesso.`,
               });
             }
           } else {
