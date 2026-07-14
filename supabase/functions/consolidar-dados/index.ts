@@ -247,9 +247,19 @@ serve(async (req) => {
         const docNum = String(resAtiva?.guestDocumentNumber ?? '').trim()
         const docType = String(resAtiva?.guestDocumentType ?? '').trim().replace(/^-$/, '')
         const taxId = String(resAtiva?.guestTaxID ?? '').trim()
-        const hasPendingDocs = resAtiva
+        let hasPendingDocs = resAtiva
           ? !(docNum || taxId || docType)
           : false
+        // Regra customizada: se a reserva está confirmada e sem saldo pendente,
+        // consideramos a documentação liberada (ignora alerta falso do Cloudbeds).
+        const statusReserva = String(resAtiva?.status ?? '').toLowerCase()
+        if (
+          hasPendingDocs &&
+          (statusReserva === 'confirmed' || statusReserva === 'checked_in') &&
+          pendingAmount <= 0
+        ) {
+          hasPendingDocs = false
+        }
 
 
         // Hora estimada de chegada (do check-in online do hóspede no Cloudbeds).
