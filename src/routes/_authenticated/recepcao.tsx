@@ -11,10 +11,13 @@ import {
   Search,
   BedDouble,
   ClipboardCheck,
+  GlassWater,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
+import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
