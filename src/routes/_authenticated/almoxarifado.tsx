@@ -115,13 +115,23 @@ function AlmoxarifadoAdmin() {
     return Array.from(map.entries()).sort(([a], [b]) => a.localeCompare(b));
   }, [itensFiltrados]);
 
-  const updateDirty = (id: string, patch: { current_stock?: number; min_stock?: number }) => {
+  const updateDirty = (id: string, patch: { current_stock?: number; min_stock?: number; name?: string; unit_type?: string }) => {
     setDirty((s) => ({ ...s, [id]: { ...s[id], ...patch } }));
   };
 
   const salvar = async (item: Item) => {
     const changes = dirty[item.id];
     if (!changes) return;
+    const newName = (changes.name ?? item.name).trim();
+    const newUnit = (changes.unit_type ?? item.unit_type).trim();
+    if (!newName) {
+      toast.error("Nome do item não pode ficar vazio");
+      return;
+    }
+    if (!newUnit) {
+      toast.error("Unidade não pode ficar vazia");
+      return;
+    }
     setSavingId(item.id);
     try {
       const { error } = await supabase
@@ -129,6 +139,8 @@ function AlmoxarifadoAdmin() {
         .update({
           current_stock: changes.current_stock ?? item.current_stock,
           min_stock: changes.min_stock ?? item.min_stock,
+          name: newName,
+          unit_type: newUnit,
         } as never)
         .eq("id", item.id);
       if (error) throw error;
