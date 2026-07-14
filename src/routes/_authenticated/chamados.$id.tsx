@@ -195,11 +195,12 @@ function PhotoSlot({
     try {
       const { data: userData, error: userErr } = await supabase.auth.getUser();
       if (userErr || !userData.user) throw new Error("Sessão expirada. Entre novamente.");
-      const ext = file.name.split(".").pop() || "jpg";
+      const compressed = await compressImage(file);
+      const ext = compressed.name.split(".").pop() || "jpg";
       const path = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
       const { error: upErr } = await supabase.storage
         .from("fotos-manutencao")
-        .upload(path, file, { upsert: false, contentType: file.type });
+        .upload(path, compressed, { upsert: false, contentType: compressed.type });
       if (upErr) throw upErr;
 
       const { data: signed, error: signErr } = await supabase.storage
