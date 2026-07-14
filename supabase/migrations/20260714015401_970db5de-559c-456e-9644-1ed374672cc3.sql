@@ -1,0 +1,1 @@
+ALTER TABLE public.hotel_metrics ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1) DEFAULT 8.5;
