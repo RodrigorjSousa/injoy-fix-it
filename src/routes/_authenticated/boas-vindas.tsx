@@ -203,6 +203,7 @@ function BoasVindas() {
   const primeiroNome = nome || fallback || "Colaborador";
 
   const metaBatida = rating >= 8.0;
+  const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 text-white p-4 md:p-6 font-sans space-y-6 pb-12">
@@ -312,7 +313,7 @@ function BoasVindas() {
       </div>
 
       {/* 3. Indicadores de Gestão */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className={`grid grid-cols-1 gap-4 ${visaoCompleta ? "md:grid-cols-3" : ""}`}>
         <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
           <div className="flex justify-between items-center text-slate-400">
             <span className="text-xs font-bold uppercase tracking-wider">
@@ -331,44 +332,49 @@ function BoasVindas() {
           </div>
         </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">
-              A Receber no Balcão
-            </span>
-            <DollarSign size={16} className="text-red-400" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-3xl font-black text-red-400">
-              R${" "}
-              {metricas.receberBalcao.toLocaleString("pt-BR", {
-                minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
-              })}
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold">
-              Cobrança ativa obrigatória no check-in
-            </p>
-          </div>
-        </div>
+        {visaoCompleta && (
+          <>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider">
+                  A Receber no Balcão
+                </span>
+                <DollarSign size={16} className="text-red-400" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-3xl font-black text-red-400">
+                  R${" "}
+                  {metricas.receberBalcao.toLocaleString("pt-BR", {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold">
+                  Cobrança ativa obrigatória no check-in
+                </p>
+              </div>
+            </div>
 
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
-          <div className="flex justify-between items-center text-slate-400">
-            <span className="text-xs font-bold uppercase tracking-wider">Docs Pendentes</span>
-            <FileText size={16} className="text-amber-400" />
-          </div>
-          <div className="space-y-1">
-            <h3 className="text-3xl font-black text-amber-400">
-              {metricas.docsPendentes} Hóspedes
-            </h3>
-            <p className="text-[10px] text-slate-400 font-bold">
-              Falta preenchimento de ficha de entrada
-            </p>
-          </div>
-        </div>
+            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+              <div className="flex justify-between items-center text-slate-400">
+                <span className="text-xs font-bold uppercase tracking-wider">Docs Pendentes</span>
+                <FileText size={16} className="text-amber-400" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-3xl font-black text-amber-400">
+                  {metricas.docsPendentes} Hóspedes
+                </h3>
+                <p className="text-[10px] text-slate-400 font-bold">
+                  Falta preenchimento de ficha de entrada
+                </p>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 4. Status da Operação de Quartos (Realtime) */}
+      {visaoCompleta && (
       <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 backdrop-blur-md">
         <div className="flex justify-between items-center flex-wrap gap-2">
           <div>
@@ -430,6 +436,7 @@ function BoasVindas() {
           </div>
         </div>
       </div>
+      )}
 
       <div className="text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest pt-4">
         INJOY Hotéis • Tecnologia e Gestão Hoteleira de Alta Performance
