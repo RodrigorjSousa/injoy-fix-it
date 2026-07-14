@@ -385,6 +385,13 @@ function PainelCamareiras() {
             Lavanderia
           </button>
           <button
+            onClick={() => setAlmoxarifadoOpen(true)}
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center gap-2 shadow-md shadow-purple-500/20 transition-all"
+          >
+            <Package size={16} />
+            Almoxarifado
+          </button>
+          <button
             onClick={resetarServicosTurno}
             className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-amber-500 hover:bg-amber-600 text-white flex items-center gap-1.5 shadow-sm"
             title="Resetar serviços concluídos para 'Iniciar Serviço'"
