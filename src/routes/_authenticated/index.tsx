@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
@@ -33,8 +33,17 @@ export const Route = createFileRoute("/_authenticated/")({
       | Categoria
       | undefined,
   }),
+  beforeLoad: ({ search }) => {
+    // Raiz autenticada abre a tela de Boas-Vindas para todos os cargos
+    // (gestor, recepção, camareiras, técnicos). Quando há categoria na URL,
+    // mantém a tela de abertura de chamado (usada por deep-links).
+    if (!search.categoria) {
+      throw redirect({ to: "/boas-vindas", replace: true });
+    }
+  },
   component: NovoChamado,
 });
+
 
 const ICONS: Record<Categoria, typeof Snowflake> = {
   "Ar condicionado": Snowflake,
