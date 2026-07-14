@@ -188,8 +188,9 @@ function RelatorioOperacoes() {
     const set = new Set<string>();
     laundry.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     extras.forEach((l) => l.camareira_name && set.add(l.camareira_name));
+    checklists.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     return Array.from(set).sort();
-  }, [laundry, extras]);
+  }, [laundry, extras, checklists]);
 
   const laundryFiltrado = useMemo(
     () =>
@@ -204,6 +205,13 @@ function RelatorioOperacoes() {
         ? extras
         : extras.filter((l) => l.camareira_name === camareiraFiltro),
     [extras, camareiraFiltro],
+  );
+  const checklistsFiltrado = useMemo(
+    () =>
+      camareiraFiltro === "__all"
+        ? checklists
+        : checklists.filter((l) => l.camareira_name === camareiraFiltro),
+    [checklists, camareiraFiltro],
   );
 
   // ---- KPIs (últimos 365 dias) --------------------------------------------
