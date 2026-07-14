@@ -226,11 +226,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
-        <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
-          <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
-        </div>
-        <div className="min-w-0 flex-1 flex items-center gap-2">
+        <Link to="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-all">
+          <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
+            <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
+          </div>
           <span className="text-lg font-bold tracking-wider">INJOY</span>
+        </Link>
+        <div className="min-w-0 flex-1 flex items-center gap-2">
+
           <div className="relative">
             <select
               value={unidade}
