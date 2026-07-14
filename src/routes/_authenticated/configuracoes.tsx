@@ -138,11 +138,12 @@ function Configuracoes() {
 
         <div className="space-y-2">
           <Label>Função</Label>
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {([
               { v: "tecnico", l: "Técnico" },
               { v: "recepcao", l: "Recepção" },
               { v: "camareira", l: "Camareira" },
+              ...(me?.isAdmin ? [{ v: "gestor" as const, l: "Gestor" }] : []),
             ] as { v: TipoFuncionario; l: string }[]).map((opt) => (
               <button
                 key={opt.v}
