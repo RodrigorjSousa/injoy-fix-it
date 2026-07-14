@@ -571,7 +571,7 @@ function RelatorioOperacoes() {
 
           {/* Registros por mês */}
           <TabsContent value="registros" className="mt-4">
-            {loadingLaundry || loadingExtras ? (
+            {loadingLaundry || loadingExtras || loadingChecklists ? (
               <div className="p-8 text-center text-slate-500">
                 <Loader2 className="animate-spin inline mr-2" size={16} />
                 Carregando registros…
