@@ -32,7 +32,7 @@ function AuthPage() {
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
-      if (data.user) navigate({ to: "/", replace: true });
+      if (data.user) navigate({ to: "/boas-vindas", replace: true });
     });
   }, [navigate]);
 
@@ -55,7 +55,7 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       }
-      navigate({ to: "/", replace: true });
+      navigate({ to: "/boas-vindas", replace: true });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao autenticar");
     } finally {
@@ -74,7 +74,7 @@ function AuthPage() {
       return;
     }
     if (result.redirected) return;
-    navigate({ to: "/", replace: true });
+    navigate({ to: "/boas-vindas", replace: true });
   }
 
   return (
