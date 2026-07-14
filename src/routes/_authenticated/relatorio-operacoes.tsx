@@ -235,7 +235,8 @@ function RelatorioOperacoes() {
   // ---- Registros unificados agrupados por mês -----------------------------
   type Registro =
     | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog };
+    | { tipo: "tarefa"; log: ExtraTaskLog }
+    | { tipo: "checklist"; log: PeriodChecklistLog };
 
   const registrosPorMes = useMemo(() => {
     const map = new Map<string, Registro[]>();
@@ -249,6 +250,11 @@ function RelatorioOperacoes() {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push({ tipo: "tarefa", log });
     });
+    checklistsFiltrado.forEach((log) => {
+      const k = monthKey(log.created_at);
+      if (!map.has(k)) map.set(k, []);
+      map.get(k)!.push({ tipo: "checklist", log });
+    });
     const keys = Array.from(map.keys()).sort().reverse();
     return keys.map((k) => ({
       key: k,
@@ -261,7 +267,7 @@ function RelatorioOperacoes() {
             new Date(a.log.created_at).getTime(),
         ),
     }));
-  }, [laundryFiltrado, extrasFiltrado]);
+  }, [laundryFiltrado, extrasFiltrado, checklistsFiltrado]);
 
   // ---- PDF Export ---------------------------------------------------------
   const exportPDF = async () => {
