@@ -420,23 +420,37 @@ function AlmoxarifadoAdmin() {
                                   />
                                 </td>
                                 <td className="p-2">
-                                  <button
-                                    onClick={() => salvar(it)}
-                                    disabled={!changed || savingId === it.id}
-                                    className={cn(
-                                      "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
-                                      changed
-                                        ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                        : "bg-slate-100 text-slate-400 cursor-not-allowed",
-                                    )}
-                                  >
-                                    {savingId === it.id ? (
-                                      <Loader2 size={12} className="animate-spin" />
-                                    ) : (
-                                      <Save size={12} />
-                                    )}
-                                    Salvar
-                                  </button>
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => salvar(it)}
+                                      disabled={!changed || savingId === it.id}
+                                      className={cn(
+                                        "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
+                                        changed
+                                          ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                          : "bg-slate-100 text-slate-400 cursor-not-allowed",
+                                      )}
+                                    >
+                                      {savingId === it.id ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                      ) : (
+                                        <Save size={12} />
+                                      )}
+                                      Salvar
+                                    </button>
+                                    <button
+                                      onClick={() => excluir(it)}
+                                      disabled={deletingId === it.id}
+                                      title="Excluir item"
+                                      className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                                    >
+                                      {deletingId === it.id ? (
+                                        <Loader2 size={12} className="animate-spin" />
+                                      ) : (
+                                        <Trash2 size={12} />
+                                      )}
+                                    </button>
+                                  </div>
                                 </td>
                               </tr>
                             );
