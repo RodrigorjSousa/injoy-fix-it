@@ -391,6 +391,7 @@ function EditarFuncoesDialog({
     setSel(funcionario.categorias);
     setRolCamareira(currentRoles.camareira);
     setRolRecepcao(currentRoles.recepcao);
+    setRolGestor(currentRoles.gestor);
   }
   if (!funcionario && lastId !== null) {
     setLastId(null);
@@ -401,7 +402,9 @@ function EditarFuncoesDialog({
     sel.some((c) => !initialCategorias.includes(c)) ||
     initialCategorias.some((c) => !sel.includes(c));
   const rolesChanged =
-    rolCamareira !== currentRoles.camareira || rolRecepcao !== currentRoles.recepcao;
+    rolCamareira !== currentRoles.camareira ||
+    rolRecepcao !== currentRoles.recepcao ||
+    rolGestor !== currentRoles.gestor;
   const changed = categoriasChanged || rolesChanged;
 
   const toggle = (c: Categoria) =>
@@ -428,6 +431,13 @@ function EditarFuncoesDialog({
             await removerRole.mutateAsync({ userId: funcionario.userId, role: "recepcao" });
           }
         }
+        if (rolGestor !== currentRoles.gestor) {
+          if (rolGestor) {
+            await tornarGestor.mutateAsync(funcionario.userId);
+          } else {
+            await removerGestor.mutateAsync(funcionario.userId);
+          }
+        }
       }
       toast.success("Funções atualizadas");
       onClose();
@@ -436,8 +446,14 @@ function EditarFuncoesDialog({
     }
   };
 
-  const saving = atualizar.isPending || atribuirRole.isPending || removerRole.isPending;
+  const saving =
+    atualizar.isPending ||
+    atribuirRole.isPending ||
+    removerRole.isPending ||
+    tornarGestor.isPending ||
+    removerGestor.isPending;
   const rolesDisabled = !funcionario?.userId;
+  const gestorDisabled = rolesDisabled || !me?.isAdmin;
 
   return (
     <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
