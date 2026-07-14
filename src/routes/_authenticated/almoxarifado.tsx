@@ -520,9 +520,87 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
         </Tabs>
       </div>
+
+      {showNewItem && (
+        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4" onClick={() => setShowNewItem(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-slate-800">Novo Item</h3>
+                <p className="text-[11px] text-slate-500">Cadastrar item em {unidade}</p>
+              </div>
+              <button onClick={() => setShowNewItem(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-500">
+                <X size={16} />
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Nome do item</label>
+                <input
+                  type="text"
+                  value={novo.name}
+                  onChange={(e) => setNovo((s) => ({ ...s, name: e.target.value }))}
+                  placeholder="Ex.: Sabonete líquido"
+                  className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Setor</label>
+                <Select value={novo.sector} onValueChange={(v) => setNovo((s) => ({ ...s, sector: v }))}>
+                  <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SETORES.map((s) => <SelectItem key={s} value={s}>{s}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Unid.</label>
+                  <input
+                    type="text"
+                    value={novo.unit_type}
+                    onChange={(e) => setNovo((s) => ({ ...s, unit_type: e.target.value }))}
+                    placeholder="un"
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Estoque</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={novo.current_stock}
+                    onChange={(e) => setNovo((s) => ({ ...s, current_stock: Math.max(0, parseInt(e.target.value || "0", 10)) }))}
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Mín.</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={novo.min_stock}
+                    onChange={(e) => setNovo((s) => ({ ...s, min_stock: Math.max(0, parseInt(e.target.value || "0", 10)) }))}
+                    className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:border-blue-500"
+                  />
+                </div>
+              </div>
+              <button
+                onClick={criar}
+                disabled={creating}
+                className="w-full py-2.5 rounded-xl font-black text-sm inline-flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              >
+                {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Criar item
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
 
 function ComprasForm({ itens, onDone }: { itens: Item[]; onDone: () => void }) {
   const [itemId, setItemId] = useState<string>("");
