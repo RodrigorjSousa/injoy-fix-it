@@ -29,6 +29,7 @@ import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authen
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
+import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 
@@ -135,6 +136,12 @@ const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
   path: '/boas-vindas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedAlmoxarifadoRoute =
+  AuthenticatedAlmoxarifadoRouteImport.update({
+    id: '/almoxarifado',
+    path: '/almoxarifado',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
     id: '/api/public/cloudbeds-webhook',
@@ -150,6 +157,7 @@ const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
@@ -171,6 +179,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
 }
 export interface FileRoutesByTo {
+  '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
@@ -196,6 +205,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
@@ -222,6 +232,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/almoxarifado'
     | '/boas-vindas'
     | '/camareiras'
     | '/chat'
@@ -243,6 +254,7 @@ export interface FileRouteTypes {
     | '/api/public/cloudbeds-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/almoxarifado'
     | '/boas-vindas'
     | '/camareiras'
     | '/chat'
@@ -267,6 +279,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/_authenticated/almoxarifado'
     | '/_authenticated/boas-vindas'
     | '/_authenticated/camareiras'
     | '/_authenticated/chat'
@@ -437,6 +450,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedBoasVindasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/almoxarifado': {
+      id: '/_authenticated/almoxarifado'
+      path: '/almoxarifado'
+      fullPath: '/almoxarifado'
+      preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/api/public/cloudbeds-webhook': {
       id: '/api/public/cloudbeds-webhook'
       path: '/api/public/cloudbeds-webhook'
@@ -455,6 +475,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAlmoxarifadoRoute: typeof AuthenticatedAlmoxarifadoRoute
   AuthenticatedBoasVindasRoute: typeof AuthenticatedBoasVindasRoute
   AuthenticatedCamareirasRoute: typeof AuthenticatedCamareirasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
@@ -475,6 +496,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAlmoxarifadoRoute: AuthenticatedAlmoxarifadoRoute,
   AuthenticatedBoasVindasRoute: AuthenticatedBoasVindasRoute,
   AuthenticatedCamareirasRoute: AuthenticatedCamareirasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,

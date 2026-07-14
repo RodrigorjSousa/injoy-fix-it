@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
@@ -201,6 +202,11 @@ function RecepcaoPage() {
           />
         </div>
       </div>
+
+      <div className="p-4">
+        <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
+      </div>
+
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {carregando && quartos.length === 0 ? (

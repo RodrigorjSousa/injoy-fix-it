@@ -1,10 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package } from "lucide-react";
+
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
 import { ExtraTasksModal } from "@/components/camareiras/extra-tasks-modal";
 import { LaundryModal } from "@/components/camareiras/laundry-modal";
+import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -115,6 +117,7 @@ function PainelCamareiras() {
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
+  const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
 
 
 
@@ -380,6 +383,13 @@ function PainelCamareiras() {
           >
             <Shirt size={16} />
             Lavanderia
+          </button>
+          <button
+            onClick={() => setAlmoxarifadoOpen(true)}
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 text-white flex items-center justify-center gap-2 shadow-md shadow-purple-500/20 transition-all"
+          >
+            <Package size={16} />
+            Almoxarifado
           </button>
           <button
             onClick={resetarServicosTurno}
@@ -739,6 +749,13 @@ function PainelCamareiras() {
         onClose={() => setLaundryOpen(false)}
         unidade={unidadeAtiva}
         camareiraName={nomeAutomatico ?? ""}
+      />
+
+      <RetiradaAlmoxarifadoModal
+        open={almoxarifadoOpen}
+        onClose={() => setAlmoxarifadoOpen(false)}
+        unidade={unidadeAtiva}
+        funcionarioName={nomeAutomatico ?? ""}
       />
     </div>
   );
