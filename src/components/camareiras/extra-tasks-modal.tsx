@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const TAREFAS = [
+const TAREFAS_FALLBACK = [
   "Fazer café",
   "Limpar banheiro comum",
   "Limpar o chão da área comum",
@@ -22,15 +22,26 @@ interface Props {
 export function ExtraTasksModal({ open, onClose, unidade, camareiraName }: Props) {
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [salvando, setSalvando] = useState(false);
+  const [tarefas, setTarefas] = useState<string[]>(TAREFAS_FALLBACK);
 
   useEffect(() => {
-    if (open) setChecked({});
+    if (!open) return;
+    setChecked({});
+    (async () => {
+      const { data, error } = await supabase
+        .from("extra_tasks_directory" as never)
+        .select("name")
+        .order("name");
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setTarefas((data as { name: string }[]).map((d) => d.name));
+      }
+    })();
   }, [open]);
 
   if (!open) return null;
 
   const toggle = (t: string) => setChecked((s) => ({ ...s, [t]: !s[t] }));
-  const selecionadas = TAREFAS.filter((t) => checked[t]);
+  const selecionadas = tarefas.filter((t: string) => checked[t]);
   const canSubmit = selecionadas.length > 0 && !salvando;
 
   const salvar = async () => {
@@ -77,7 +88,7 @@ export function ExtraTasksModal({ open, onClose, unidade, camareiraName }: Props
         </div>
 
         <div className="p-4 space-y-2 overflow-y-auto flex-1">
-          {TAREFAS.map((t) => {
+          {tarefas.map((t: string) => {
             const on = !!checked[t];
             return (
               <button

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-const ITENS = [
+const ITENS_FALLBACK = [
   "Protetor Travesseiro",
   "Capa de Almofada",
   "Protetor Colchão Casal / Solteiro",
@@ -49,13 +49,24 @@ interface Props {
 export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
   const [dados, setDados] = useState<Record<string, Linha>>({});
   const [salvando, setSalvando] = useState(false);
+  const [itens, setItens] = useState<string[]>(ITENS_FALLBACK);
 
   useEffect(() => {
-    if (open) setDados({});
+    if (!open) return;
+    setDados({});
+    (async () => {
+      const { data, error } = await supabase
+        .from("laundry_items_directory" as never)
+        .select("name")
+        .order("name");
+      if (!error && Array.isArray(data) && data.length > 0) {
+        setItens((data as { name: string }[]).map((d) => d.name));
+      }
+    })();
   }, [open]);
 
   const linhas = useMemo(() => {
-    return ITENS.map((item) => {
+    return itens.map((item) => {
       const d = dados[item] ?? { enviado: "", retornado: "" };
       const env = parseInt(d.enviado || "0", 10) || 0;
       const ret = parseInt(d.retornado || "0", 10) || 0;
@@ -63,7 +74,7 @@ export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
       const emFalta = diff > 0 ? diff : 0;
       return { item, enviado: d.enviado, retornado: d.retornado, envNum: env, retNum: ret, diff, emFalta };
     });
-  }, [dados]);
+  }, [dados, itens]);
 
   if (!open) return null;
 
