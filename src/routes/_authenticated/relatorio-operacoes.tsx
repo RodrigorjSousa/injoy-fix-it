@@ -65,6 +65,15 @@ type ExtraTaskLog = {
   created_at: string;
 };
 
+type PeriodChecklistLog = {
+  id: string;
+  camareira_name: string;
+  property: string;
+  period: "manha" | "tarde" | "noite";
+  completed_items: string[];
+  created_at: string;
+};
+
 type DirRow = { id: string; name: string };
 
 const MESES = [
