@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Navigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate, Navigate, redirect } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
