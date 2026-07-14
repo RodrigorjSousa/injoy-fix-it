@@ -203,6 +203,11 @@ function RecepcaoPage() {
         </div>
       </div>
 
+      <div className="p-4">
+        <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
+      </div>
+
+
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {carregando && quartos.length === 0 ? (
           <div className="col-span-full">
