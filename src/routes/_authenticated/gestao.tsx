@@ -193,6 +193,8 @@ function DashboardGestao() {
           <ArrowUpRight className="h-4 w-4 text-slate-400" />
         </Link>
 
+        <BookingReviewsCard unidade={unidadeAtiva} />
+
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
         <StatusOperacaoQuartos unidade={unidadeAtiva} />
