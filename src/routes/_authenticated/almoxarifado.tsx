@@ -315,7 +315,14 @@ function AlmoxarifadoAdmin() {
               />
             </div>
           </div>
+          <button
+            onClick={() => setShowNewItem(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+          >
+            <Plus size={14} /> Novo Item
+          </button>
         </div>
+
 
         <Tabs defaultValue="inventario" className="w-full">
           <TabsList className="grid grid-cols-3 max-w-2xl">
