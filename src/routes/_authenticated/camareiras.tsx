@@ -726,6 +726,20 @@ function PainelCamareiras() {
           roomNumber={vistoriaPara.room_number}
         />
       )}
+
+      <ExtraTasksModal
+        open={extraTasksOpen}
+        onClose={() => setExtraTasksOpen(false)}
+        unidade={unidadeAtiva}
+        camareiraName={nomeAutomatico ?? ""}
+      />
+
+      <LaundryModal
+        open={laundryOpen}
+        onClose={() => setLaundryOpen(false)}
+        unidade={unidadeAtiva}
+        camareiraName={nomeAutomatico ?? ""}
+      />
     </div>
   );
 }
