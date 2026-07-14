@@ -11,10 +11,13 @@ import {
   Search,
   BedDouble,
   ClipboardCheck,
+  GlassWater,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
+import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
@@ -94,6 +97,7 @@ const OCUPACAO_STYLE: Record<
 
 function RecepcaoPage() {
   const { unidade: unidadeAtiva } = useUnidade();
+  const { data: me } = useMe();
   const [pesquisa, setPesquisa] = useState("");
   const [quartos, setQuartos] = useState<QuartoRecepcao[]>([]);
   const [carregando, setCarregando] = useState(false);
@@ -105,6 +109,7 @@ function RecepcaoPage() {
     unidade: Unidade;
     roomNumber: string;
   } | null>(null);
+  const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
@@ -201,6 +206,14 @@ function RecepcaoPage() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
+        <button
+          onClick={() => setVendaBebidasOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <GlassWater size={18} />
+          <span className="hidden sm:inline">Frigobar</span>
+          <span className="sm:hidden">🍹</span>
+        </button>
       </div>
 
       <div className="p-4">
@@ -438,6 +451,14 @@ function RecepcaoPage() {
           roomNumber={vistoriaAlvo.roomNumber}
         />
       )}
+
+      <VendaBebidasModal
+        open={vendaBebidasOpen}
+        onClose={() => setVendaBebidasOpen(false)}
+        unidade={unidadeAtiva}
+        recepcionistaName={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+        roomsAtivos={Array.from(new Set(quartos.map((q) => padQuarto(q.quarto)))).sort()}
+      />
     </div>
   );
 }

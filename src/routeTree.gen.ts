@@ -23,6 +23,7 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
+import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
@@ -105,6 +106,11 @@ const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
   path: '/gestao',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedFrigobarRoute = AuthenticatedFrigobarRouteImport.update({
+  id: '/frigobar',
+  path: '/frigobar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
   id: '/escala',
   path: '/escala',
@@ -164,6 +170,7 @@ export interface FileRoutesByFullPath {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
+  '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
+  '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/escala': typeof AuthenticatedEscalaRoute
+  '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/_authenticated/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -239,6 +248,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/dashboard'
     | '/escala'
+    | '/frigobar'
     | '/gestao'
     | '/historico-limpeza'
     | '/historico-vistorias'
@@ -261,6 +271,7 @@ export interface FileRouteTypes {
     | '/configuracoes'
     | '/dashboard'
     | '/escala'
+    | '/frigobar'
     | '/gestao'
     | '/historico-limpeza'
     | '/historico-vistorias'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
     | '/_authenticated/escala'
+    | '/_authenticated/frigobar'
     | '/_authenticated/gestao'
     | '/_authenticated/historico-limpeza'
     | '/_authenticated/historico-vistorias'
@@ -408,6 +420,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/frigobar': {
+      id: '/_authenticated/frigobar'
+      path: '/frigobar'
+      fullPath: '/frigobar'
+      preLoaderRoute: typeof AuthenticatedFrigobarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/escala': {
       id: '/_authenticated/escala'
       path: '/escala'
@@ -482,6 +501,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
+  AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedHistoricoLimpezaRoute: typeof AuthenticatedHistoricoLimpezaRoute
   AuthenticatedHistoricoVistoriasRoute: typeof AuthenticatedHistoricoVistoriasRoute
@@ -503,6 +523,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
+  AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedHistoricoLimpezaRoute: AuthenticatedHistoricoLimpezaRoute,
   AuthenticatedHistoricoVistoriasRoute: AuthenticatedHistoricoVistoriasRoute,
