@@ -89,20 +89,43 @@ function Configuracoes() {
       toast.error("Email inválido");
       return;
     }
+    if (senhaInicial && senhaInicial.length < 6) {
+      toast.error("A senha deve ter ao menos 6 caracteres");
+      return;
+    }
     if (tipo === "tecnico" && selecionadas.length === 0) {
       toast.error("Selecione ao menos uma categoria para o técnico");
       return;
     }
+    const emailNorm = email.toLowerCase().trim();
     adicionar.mutate(
       { nome: nome.trim(), email: email.trim(), categorias: tipo === "tecnico" ? selecionadas : [] },
       {
         onSuccess: async () => {
-          // Para recepção/camareira, tenta atribuir role imediatamente se a conta já existir
+          const { data: funcRow } = await supabase
+            .from("funcionarios")
+            .select("id, user_id")
+            .eq("email", emailNorm)
+            .maybeSingle();
+          const funcId = (funcRow as { id: string; user_id: string | null } | null)?.id;
+          let userId = (funcRow as { id: string; user_id: string | null } | null)?.user_id ?? null;
+
+          if (senhaInicial && funcId) {
+            try {
+              await setCredentials({ data: { funcionarioId: funcId, password: senhaInicial } });
+              // refetch to get user_id
+              const { data: refetched } = await supabase
+                .from("funcionarios")
+                .select("user_id")
+                .eq("id", funcId)
+                .maybeSingle();
+              userId = (refetched as { user_id: string | null } | null)?.user_id ?? userId;
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
+          }
+
           if (tipo !== "tecnico") {
-            const { data } = await import("@/integrations/supabase/client").then((m) =>
-              m.supabase.from("funcionarios").select("user_id").eq("email", email.toLowerCase().trim()).maybeSingle(),
-            );
-            const userId = (data as { user_id: string | null } | null)?.user_id;
             if (userId) {
               atribuirRole.mutate({ userId, role: tipo });
               toast.success(`${nome} cadastrado(a) como ${LABEL_TIPO[tipo]}`);
@@ -113,11 +136,14 @@ function Configuracoes() {
             }
           } else {
             toast.success(`${nome} cadastrado`, {
-              description: "Quando criar conta com este email, será vinculado automaticamente.",
+              description: senhaInicial
+                ? "Senha definida. O funcionário já pode entrar."
+                : "Quando criar conta com este email, será vinculado automaticamente.",
             });
           }
           setNome("");
           setEmail("");
+          setSenhaInicial("");
           setTipo("tecnico");
           setSelecionadas([]);
         },
