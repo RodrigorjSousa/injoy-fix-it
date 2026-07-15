@@ -281,7 +281,23 @@ function EnviarSujo({
           </tbody>
         </table>
       </div>
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-3">
+        <div>
+          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
+            <AlertTriangle size={12} /> Observações do Lote (Avarias ou Manchas)
+          </label>
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="Ex.: 2 lençóis enviados com mancha de vinho para lavagem química"
+            className="w-full bg-slate-800 border border-slate-700 focus:border-amber-500 rounded-md px-3 py-2 text-sm text-white outline-none resize-none placeholder:text-slate-500"
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            Este alerta aparece para Recepção e Gestor no painel do lote.
+          </p>
+        </div>
         <button
           onClick={enviar}
           disabled={!canSubmit}
