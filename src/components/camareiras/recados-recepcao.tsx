@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageSquare, Check, User, Clock, BellRing } from "lucide-react";
+import { MessageSquare, User, Clock, BellRing } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -28,14 +28,13 @@ function tempoAtras(iso: string) {
 
 /**
  * Seção geral (topo do painel) — mostra apenas recados SEM quarto vinculado.
- * Recados de quartos específicos aparecem no próprio card do quarto.
+ * Camareiras NÃO podem remover: apenas recepção/gestor removem.
  */
 export function RecadosCamareirasSection({
   unidade,
-  camareiraName,
 }: {
   unidade: Unidade;
-  camareiraName: string;
+  camareiraName?: string;
 }) {
   const [recados, setRecados] = useState<Recado[]>([]);
   const [carregando, setCarregando] = useState(false);
@@ -87,21 +86,6 @@ export function RecadosCamareirasSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidade]);
 
-  const marcarLido = async (id: string) => {
-    const { error } = await supabase
-      .from("recados_camareiras")
-      .update({
-        read_at: new Date().toISOString(),
-        read_by: camareiraName || "Camareira",
-      })
-      .eq("id", id);
-    if (error) {
-      toast.error("Falha ao marcar como lido");
-      return;
-    }
-    setRecados((prev) => prev.filter((r) => r.id !== id));
-  };
-
   if (!carregando && recados.length === 0) return null;
 
   return (
@@ -114,6 +98,9 @@ export function RecadosCamareirasSection({
               {recados.length}
             </span>
           </h3>
+          <span className="text-[10px] font-bold text-blue-700/70 italic">
+            Apenas recepção/gestor removem
+          </span>
         </div>
         <div className="space-y-2">
           {recados.map((r) => (
@@ -130,12 +117,6 @@ export function RecadosCamareirasSection({
                     <Clock size={11} /> {tempoAtras(r.created_at)}
                   </span>
                 </div>
-                <button
-                  onClick={() => marcarLido(r.id)}
-                  className="shrink-0 inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg"
-                >
-                  <Check size={12} /> Li
-                </button>
               </div>
               <p className="text-sm text-slate-800 whitespace-pre-wrap leading-snug">
                 {r.message}
@@ -153,15 +134,15 @@ export function RecadosCamareirasSection({
 
 /**
  * Recados do quarto — piscando dentro do card para chamar atenção.
+ * Camareiras NÃO podem remover: apenas recepção/gestor removem.
  */
 export function RecadosDoQuartoSection({
   unidade,
   roomNumber,
-  camareiraName,
 }: {
   unidade: Unidade;
   roomNumber: string;
-  camareiraName: string;
+  camareiraName?: string;
 }) {
   const [recados, setRecados] = useState<Recado[]>([]);
 
@@ -209,21 +190,6 @@ export function RecadosDoQuartoSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidade, roomNumber]);
 
-  const marcarLido = async (id: string) => {
-    const { error } = await supabase
-      .from("recados_camareiras")
-      .update({
-        read_at: new Date().toISOString(),
-        read_by: camareiraName || "Camareira",
-      })
-      .eq("id", id);
-    if (error) {
-      toast.error("Falha ao marcar como lido");
-      return;
-    }
-    setRecados((prev) => prev.filter((r) => r.id !== id));
-  };
-
   if (recados.length === 0) return null;
 
   return (
@@ -246,21 +212,13 @@ export function RecadosDoQuartoSection({
             <p className="text-sm text-slate-800 whitespace-pre-wrap leading-snug font-medium">
               {r.message}
             </p>
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-[10px] text-slate-500">
-                <span className="flex items-center gap-1">
-                  <User size={10} /> {r.created_by_name}
-                </span>
-                <span className="flex items-center gap-1">
-                  <Clock size={10} /> {tempoAtras(r.created_at)}
-                </span>
-              </div>
-              <button
-                onClick={() => marcarLido(r.id)}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-2 py-1 rounded-lg"
-              >
-                <Check size={12} /> Li
-              </button>
+            <div className="flex items-center gap-2 text-[10px] text-slate-500">
+              <span className="flex items-center gap-1">
+                <User size={10} /> {r.created_by_name}
+              </span>
+              <span className="flex items-center gap-1">
+                <Clock size={10} /> {tempoAtras(r.created_at)}
+              </span>
             </div>
           </div>
         ))}
