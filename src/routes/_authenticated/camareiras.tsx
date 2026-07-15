@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
+import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import {
   EmptyState,
   ErrorState,
