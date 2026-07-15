@@ -1,7 +1,30 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2 } from "lucide-react";
+
+function gerarSenha(len = 10) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  const cryptoObj = typeof crypto !== "undefined" ? crypto : undefined;
+  if (cryptoObj?.getRandomValues) {
+    const arr = new Uint32Array(len);
+    cryptoObj.getRandomValues(arr);
+    for (let i = 0; i < len; i++) out += chars[arr[i] % chars.length];
+  } else {
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+async function copiarSenha(valor: string) {
+  try {
+    await navigator.clipboard.writeText(valor);
+    toast.success("Senha copiada");
+  } catch {
+    toast.error("Não foi possível copiar");
+  }
+}
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { adminSetFuncionarioCredentials } from "@/lib/user-management.functions";
