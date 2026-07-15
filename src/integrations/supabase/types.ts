@@ -665,6 +665,45 @@ export type Database = {
         }
         Relationships: []
       }
+      recados_camareiras: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          created_by_name: string
+          id: string
+          message: string
+          property: string
+          read_at: string | null
+          read_by: string | null
+          room_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name: string
+          id?: string
+          message: string
+          property: string
+          read_at?: string | null
+          read_by?: string | null
+          room_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          created_by_name?: string
+          id?: string
+          message?: string
+          property?: string
+          read_at?: string | null
+          read_by?: string | null
+          room_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       room_housekeeping: {
         Row: {
           arrival_time: string | null
