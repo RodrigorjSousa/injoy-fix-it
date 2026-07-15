@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
@@ -123,6 +125,27 @@ function PainelCamareiras() {
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
   const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const doCheckout = useServerFn(cloudbedsCheckoutRoom);
+
+  const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
+    const chave = `${q.property}-${q.room_number}`;
+    const ok = window.confirm(
+      `Confirmar CHECK-OUT no Cloudbeds do quarto ${q.room_number}?\n\nHóspede: ${q.guest_name ?? "—"}\n\nEsta ação é irreversível no PMS.`,
+    );
+    if (!ok) return;
+    setCheckoutLoading(chave);
+    const t = toast.loading("Fazendo check-out no Cloudbeds...");
+    try {
+      await doCheckout({ data: { property: q.property, roomNumber: q.room_number } });
+      toast.success("Check-out realizado no Cloudbeds", { id: t });
+      await sincronizar();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao fazer check-out", { id: t });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }, [doCheckout]);
 
 
 
@@ -701,6 +724,22 @@ function PainelCamareiras() {
                   <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
                 </button>
               )}
+
+              {q.property === "Ipanema" &&
+                q.guest_name &&
+                q.guest_name !== "Quarto Vazio" && (
+                  <button
+                    onClick={() => fazerCheckoutCloudbeds(q)}
+                    disabled={checkoutLoading === `${q.property}-${q.room_number}`}
+                    className="w-full py-3 rounded-xl font-black text-sm uppercase tracking-wider bg-gradient-to-br from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 text-white flex items-center justify-center gap-2 shadow-md shadow-red-500/30 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                    title="Fazer check-out do hóspede diretamente no Cloudbeds"
+                  >
+                    <LogOut size={16} />
+                    {checkoutLoading === `${q.property}-${q.room_number}`
+                      ? "Fazendo check-out..."
+                      : "Check-out no Cloudbeds"}
+                  </button>
+                )}
 
               <textarea
                 value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
