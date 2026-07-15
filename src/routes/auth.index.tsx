@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,8 +23,6 @@ export const Route = createFileRoute("/auth/")({
 
 function AuthPage() {
   const navigate = useNavigate();
-  const [mode, setMode] = useState<"signin" | "signup">("signin");
-  const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,41 +37,19 @@ function AuthPage() {
     e.preventDefault();
     setLoading(true);
     try {
-      if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            emailRedirectTo: window.location.origin,
-            data: { nome: nome.trim() || email.split("@")[0] },
-          },
-        });
-        if (error) throw error;
-        toast.success("Conta criada. Verifique seu e-mail se necessário.");
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
-        if (error) throw error;
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      if (error) throw error;
       navigate({ to: "/boas-vindas", replace: true });
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao autenticar");
+      const msg = err instanceof Error ? err.message : "Falha ao autenticar";
+      toast.error(
+        /invalid/i.test(msg)
+          ? "E-mail ou senha inválidos. Somente usuários cadastrados pelo gestor podem acessar."
+          : msg,
+      );
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleGoogle() {
-    setLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
-    });
-    if (result.error) {
-      toast.error("Falha ao entrar com Google");
-      setLoading(false);
-      return;
-    }
-    if (result.redirected) return;
-    navigate({ to: "/boas-vindas", replace: true });
   }
 
   return (
@@ -95,36 +70,7 @@ function AuthPage() {
           </div>
         </div>
 
-        <Button
-          type="button"
-          variant="outline"
-          className="w-full"
-          onClick={handleGoogle}
-          disabled={loading}
-        >
-          Entrar com Google
-        </Button>
-
-        <div className="relative text-center text-xs text-muted-foreground">
-          <span className="bg-card px-2 relative z-10">ou com e-mail</span>
-          <div className="absolute inset-x-0 top-1/2 h-px bg-border -z-0" />
-        </div>
-
         <form onSubmit={handleEmail} className="space-y-3">
-          {mode === "signup" && (
-            <div className="space-y-1.5">
-              <Label htmlFor="nome">Nome</Label>
-              <Input
-                id="nome"
-                type="text"
-                required
-                value={nome}
-                onChange={(e) => setNome(e.target.value)}
-                autoComplete="name"
-                placeholder="Seu nome completo"
-              />
-            </div>
-          )}
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail</Label>
             <Input
@@ -145,23 +91,17 @@ function AuthPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              autoComplete="current-password"
             />
           </div>
           <Button type="submit" className="w-full" disabled={loading}>
-            {mode === "signin" ? "Entrar" : "Criar conta"}
+            Entrar
           </Button>
         </form>
 
-        <button
-          type="button"
-          className="text-sm text-muted-foreground hover:text-foreground w-full text-center"
-          onClick={() => setMode(mode === "signin" ? "signup" : "signin")}
-        >
-          {mode === "signin"
-            ? "Não tem conta? Criar conta"
-            : "Já tem conta? Entrar"}
-        </button>
+        <p className="text-xs text-muted-foreground text-center">
+          Somente contas cadastradas previamente pelo gestor podem acessar o sistema.
+        </p>
 
         <Link
           to="/auth/admin"
