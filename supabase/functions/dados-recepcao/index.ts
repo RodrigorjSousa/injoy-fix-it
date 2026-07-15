@@ -306,7 +306,9 @@ serve(async (req) => {
           if (!bucket.atual && !bucket.proximo) bucket.proximo = registro
         }
         reservasPorQuarto[quarto] = bucket
+        }
       }
+
     } else if (reservasJson) {
       console.error(`[dados-recepcao] Cloudbeds reservas ${propriedade}:`, reservasJson)
     }
