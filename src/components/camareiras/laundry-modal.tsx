@@ -170,6 +170,7 @@ function EnviarSujo({
   onDone: () => void;
 }) {
   const [dados, setDados] = useState<Record<string, string>>({});
+  const [notas, setNotas] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<string | null>(null);
 
