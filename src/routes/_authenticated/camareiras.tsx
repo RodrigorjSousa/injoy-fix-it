@@ -125,6 +125,27 @@ function PainelCamareiras() {
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
   const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
+  const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const doCheckout = useServerFn(cloudbedsCheckoutRoom);
+
+  const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
+    const chave = `${q.property}-${q.room_number}`;
+    const ok = window.confirm(
+      `Confirmar CHECK-OUT no Cloudbeds do quarto ${q.room_number}?\n\nHóspede: ${q.guest_name ?? "—"}\n\nEsta ação é irreversível no PMS.`,
+    );
+    if (!ok) return;
+    setCheckoutLoading(chave);
+    const t = toast.loading("Fazendo check-out no Cloudbeds...");
+    try {
+      await doCheckout({ data: { property: q.property, roomNumber: q.room_number } });
+      toast.success("Check-out realizado no Cloudbeds", { id: t });
+      await sincronizar();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao fazer check-out", { id: t });
+    } finally {
+      setCheckoutLoading(null);
+    }
+  }, [doCheckout]);
 
 
 
