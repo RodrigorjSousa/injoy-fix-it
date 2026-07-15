@@ -243,6 +243,39 @@ export type Database = {
           },
         ]
       }
+      cloudbeds_checkout_logs: {
+        Row: {
+          camareira_id: string | null
+          camareira_name: string
+          created_at: string
+          guest_name: string | null
+          id: string
+          property: string
+          reservation_id: string | null
+          room_number: string
+        }
+        Insert: {
+          camareira_id?: string | null
+          camareira_name: string
+          created_at?: string
+          guest_name?: string | null
+          id?: string
+          property: string
+          reservation_id?: string | null
+          room_number: string
+        }
+        Update: {
+          camareira_id?: string | null
+          camareira_name?: string
+          created_at?: string
+          guest_name?: string | null
+          id?: string
+          property?: string
+          reservation_id?: string | null
+          room_number?: string
+        }
+        Relationships: []
+      }
       daily_period_status: {
         Row: {
           completed_at: string | null
