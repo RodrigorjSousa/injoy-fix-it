@@ -167,73 +167,111 @@ function BoasVindas() {
     };
   }, []);
 
-  // Métricas + status
+  // Métricas + status (fonte da verdade: hotel_metrics/Cloudbeds; faxina: room_housekeeping)
   useEffect(() => {
     let cancelled = false;
-    const carregar = async () => {
-      try {
-        const [{ data: metric }, { data: quartos }] = await Promise.all([
-          supabase
-            .from("hotel_metrics")
-            .select("*")
-            .eq("property", unidade)
-            .order("date", { ascending: false })
-            .limit(1)
-            .maybeSingle(),
-          supabase
-            .from("room_housekeeping")
-            .select("status, condition")
-            .eq("property", unidade),
-        ]);
-        if (cancelled) return;
-        const m = metric as
-          | {
-              rating?: number | null;
-              occupancy_percentage?: number | null;
-              pending_balance?: number | null;
-              pending_docs_count?: number | null;
-            }
-          | null;
-        setRating(m?.rating != null ? Number(m.rating) : unidade === "Botafogo" ? 8.6 : 7.8);
-        setMetricas({
-          taxaOcupacao: Number(m?.occupancy_percentage ?? 63),
-          receberBalcao: Number(m?.pending_balance ?? 0),
-          docsPendentes: Number(m?.pending_docs_count ?? 0),
+
+    const buscarStatus = async () => {
+      const today = new Date().toISOString().split("T")[0];
+      const [{ data: metric }, { data: quartos }] = await Promise.all([
+        supabase
+          .from("hotel_metrics")
+          .select("*")
+          .eq("property", unidade)
+          .eq("date", today)
+          .maybeSingle(),
+        supabase
+          .from("room_housekeeping")
+          .select("status, condition")
+          .eq("property", unidade),
+      ]);
+      if (cancelled) return;
+      const m = metric as
+        | {
+            rating?: number | null;
+            occupancy_percentage?: number | null;
+            pending_balance?: number | null;
+            pending_docs_count?: number | null;
+            clean_rooms?: number | null;
+            dirty_rooms?: number | null;
+            maintenance_rooms?: number | null;
+          }
+        | null;
+      setRating(m?.rating != null ? Number(m.rating) : unidade === "Botafogo" ? 8.6 : 7.8);
+      setMetricas({
+        taxaOcupacao: Number(m?.occupancy_percentage ?? 63),
+        receberBalcao: Number(m?.pending_balance ?? 0),
+        docsPendentes: Number(m?.pending_docs_count ?? 0),
+      });
+      // "Em faxina" só existe no controle local
+      const emFaxinaLocal = (quartos ?? []).filter(
+        (r: { status: string | null; condition: string | null }) =>
+          r.status === "cleaning" && r.condition !== "maintenance",
+      ).length;
+      if (m) {
+        setStatusQuartos({
+          prontos: Number(m.clean_rooms ?? 0),
+          emFaxina: emFaxinaLocal,
+          sujos: Math.max(0, Number(m.dirty_rooms ?? 0) - emFaxinaLocal),
+          bloqueados: Number(m.maintenance_rooms ?? 0),
         });
+      } else {
         setStatusQuartos(
           calcularStatus((quartos ?? []) as Array<{ status: string | null; condition: string | null }>),
         );
+      }
+    };
+
+    const carregar = async () => {
+      try {
+        await buscarStatus();
       } catch (e) {
         console.error("[BoasVindas] erro ao carregar:", e);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
+
+    // Sincroniza com Cloudbeds ao entrar e a cada 15 minutos
+    const sincronizar = async () => {
+      try {
+        await supabase.functions.invoke("consolidar-dados", { body: {} });
+      } catch (e) {
+        console.error("[BoasVindas] erro ao sincronizar Cloudbeds:", e);
+      } finally {
+        await buscarStatus();
+      }
+    };
+
     carregar();
+    sincronizar();
+    const interval = setInterval(sincronizar, 15 * 60 * 1000);
 
     const channel = supabase
       .channel(`boas-vindas-${unidade}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "room_housekeeping", filter: `property=eq.${unidade}` },
-        async () => {
-          const { data } = await supabase
-            .from("room_housekeeping")
-            .select("status, condition")
-            .eq("property", unidade);
-          if (!cancelled)
-            setStatusQuartos(
-              calcularStatus((data ?? []) as Array<{ status: string | null; condition: string | null }>),
-            );
+        () => {
+          buscarStatus().catch((e) => console.error("[BoasVindas] refresh housekeeping:", e));
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "hotel_metrics", filter: `property=eq.${unidade}` },
+        () => {
+          buscarStatus().catch((e) => console.error("[BoasVindas] refresh metrics:", e));
         },
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [unidade]);
+
 
   if (loading) {
     return (
