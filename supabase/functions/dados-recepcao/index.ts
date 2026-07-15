@@ -182,13 +182,12 @@ serve(async (req) => {
       }
     }
 
-    // Reservas ativas do dia agrupadas por quarto
-    const reservasPorQuarto: Record<string, any> = {}
+    // Reservas ativas do dia agrupadas por quarto — separando hóspede atual (in-house) e próximo (chegando hoje)
+    const reservasPorQuarto: Record<string, { atual?: any; proximo?: any }> = {}
     if (reservasJson?.success) {
       const ativos = (reservasJson.data ?? []).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
         if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
-        // Estadia ativa hoje: check-in <= hoje < check-out, OU já em check_in
         const ci = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
         const co = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
         if (s === 'checked_in') return !co || co >= hoje
@@ -214,25 +213,20 @@ serve(async (req) => {
         const saidaISO = res.endDate || roomInfo.roomCheckOut
         const status = String(res.status ?? '').toLowerCase()
 
-        // Extrai HH:MM como texto puro, SEM conversão de fuso horário.
         const formatHora = (v: unknown): string => {
           if (v === null || v === undefined) return ''
           const s = String(v).trim()
           if (!s) return ''
-          // ISO datetime: "2026-07-07T18:30:00" -> pega depois do "T"
           if (s.includes('T')) {
             const parte = s.split('T')[1]
             if (parte && parte.length >= 5) return parte.substring(0, 5)
           }
-          // "HH:MM" ou "HH:MM:SS"
           const hm = s.match(/(\d{1,2}):(\d{2})/)
           if (hm) return `${hm[1].padStart(2, '0')}:${hm[2]}`
           return ''
         }
 
         const isCheckedIn = status === 'checked_in'
-        // Para hóspedes já em check-in: hora real de check-in
-        // Para reservas aguardando: hora estimada de chegada
         const horaChegada = isCheckedIn
           ? formatHora(
               res.checkInTime ??
@@ -245,7 +239,6 @@ serve(async (req) => {
 
         const startISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
         const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
-        // In-house: já checkado OU estadia já iniciada (startDate < hoje e ainda não saiu)
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
         const registro = {
@@ -264,15 +257,21 @@ serve(async (req) => {
           statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
           checkedIn: emCasa,
           startISO,
+          chegadaHoje: startISO === hoje,
         }
 
-        // Prioriza: já em casa > check-in hoje > outras
-        const existente = reservasPorQuarto[quarto]
-        const prio = (x: any) => (x.checkedIn ? 2 : x.chegadaHoje ? 1 : 0)
-        ;(registro as any).chegadaHoje = startISO === hoje
-        if (!existente || prio(registro) > prio(existente)) {
-          reservasPorQuarto[quarto] = registro
+        const bucket = reservasPorQuarto[quarto] ?? {}
+        if (emCasa) {
+          // hóspede atual (in-house). Se houver conflito, mantém o já registrado.
+          if (!bucket.atual) bucket.atual = registro
+        } else if (registro.chegadaHoje) {
+          // próximo hóspede (chega hoje mas ainda não fez check-in)
+          if (!bucket.proximo) bucket.proximo = registro
+        } else {
+          // fallback (raro): reserva ativa que não é in-house nem chegada hoje
+          if (!bucket.atual && !bucket.proximo) bucket.proximo = registro
         }
+        reservasPorQuarto[quarto] = bucket
       }
     } else if (reservasJson) {
       console.error(`[dados-recepcao] Cloudbeds reservas ${propriedade}:`, reservasJson)
@@ -280,14 +279,15 @@ serve(async (req) => {
 
     // Monta lista final: TODOS os quartos físicos, com dados da reserva quando existir
     const listaFormatada = Object.values(quartosFisicos).map((hk) => {
-      const r = reservasPorQuarto[hk.quarto]
-      // Status de limpeza: painel das camareiras é a fonte de verdade; Cloudbeds é fallback
+      const bucket = reservasPorQuarto[hk.quarto] ?? {}
+      const r = bucket.atual ?? bucket.proximo
+      const prox = bucket.atual ? bucket.proximo : undefined
       const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
       const statusLimpeza = cam?.status ?? hk.statusLimpeza
 
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
       if (hk.bloqueado) ocupacao = 'Bloqueado'
-      else if (r?.checkedIn) ocupacao = 'Ocupado'
+      else if (bucket.atual?.checkedIn) ocupacao = 'Ocupado'
 
       return {
         id: r?.id ?? `room-${propriedade}-${hk.quarto}`,
@@ -309,6 +309,14 @@ serve(async (req) => {
         docPendente: r?.docPendente ?? false,
         statusCheckin: r?.statusCheckin ?? 'Aguardando',
         temReserva: Boolean(r),
+        // Próximo hóspede (quando há hóspede atual in-house e outra reserva chegando hoje)
+        proximoHospede: prox?.hospede ?? '',
+        proximoChegadaHora: prox?.chegadaHora ?? '',
+        proximoPax: prox?.pax ?? 0,
+        proximoPagamentoPendente: prox?.pagamentoPendente ?? false,
+        proximoPagamentoValor: prox?.pagamentoValor ?? 0,
+        proximoDocPendente: prox?.docPendente ?? false,
+        temProximoHospede: Boolean(prox),
       }
     })
 
