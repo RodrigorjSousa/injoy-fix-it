@@ -41,7 +41,7 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     const qs = new URLSearchParams({
       status: "checked_in",
       pageSize: "100",
-      includeGuestsDetails: "false",
+      includeGuestsDetails: "true",
     });
     const listRes = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
     if (!listRes.ok) {
