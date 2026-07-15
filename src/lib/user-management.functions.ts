@@ -75,8 +75,7 @@ export const adminSetFuncionarioCredentials = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await assertCallerIsManager(context.supabase as any, context.userId);
+    await assertCallerIsManager(context.supabase, context.userId);
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
