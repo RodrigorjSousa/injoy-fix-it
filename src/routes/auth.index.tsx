@@ -1,6 +1,8 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { firstTimeSetPassword } from "@/lib/user-management.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,9 +25,12 @@ export const Route = createFileRoute("/auth/")({
 
 function AuthPage() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<"signin" | "first">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const setInitialPassword = useServerFn(firstTimeSetPassword);
 
   useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -33,18 +38,27 @@ function AuthPage() {
     });
   }, [navigate]);
 
-  async function handleEmail(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) throw error;
+      if (mode === "first") {
+        if (password.length < 6) throw new Error("A senha deve ter ao menos 6 caracteres");
+        if (password !== confirmPassword) throw new Error("As senhas não coincidem");
+        await setInitialPassword({ data: { email, password } });
+        toast.success("Senha cadastrada. Entrando...");
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      }
       navigate({ to: "/boas-vindas", replace: true });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Falha ao autenticar";
       toast.error(
-        /invalid/i.test(msg)
-          ? "E-mail ou senha inválidos. Somente usuários cadastrados pelo gestor podem acessar."
+        mode === "signin" && /invalid/i.test(msg)
+          ? "E-mail ou senha inválidos. Se é seu primeiro acesso, use 'Primeiro acesso'."
           : msg,
       );
     } finally {
@@ -66,11 +80,34 @@ function AuthPage() {
           </div>
           <div>
             <h1 className="font-semibold text-lg leading-tight">Manutenção INJOY</h1>
-            <p className="text-xs text-muted-foreground">Acesso restrito aos funcionários</p>
+            <p className="text-xs text-muted-foreground">
+              {mode === "first" ? "Cadastre sua senha de acesso" : "Acesso restrito aos funcionários"}
+            </p>
           </div>
         </div>
 
-        <form onSubmit={handleEmail} className="space-y-3">
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1 text-sm">
+          <button
+            type="button"
+            onClick={() => setMode("signin")}
+            className={`rounded-md py-1.5 transition-colors ${
+              mode === "signin" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"
+            }`}
+          >
+            Entrar
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode("first")}
+            className={`rounded-md py-1.5 transition-colors ${
+              mode === "first" ? "bg-background shadow-sm font-medium" : "text-muted-foreground"
+            }`}
+          >
+            Primeiro acesso
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-1.5">
             <Label htmlFor="email">E-mail</Label>
             <Input
@@ -83,7 +120,9 @@ function AuthPage() {
             />
           </div>
           <div className="space-y-1.5">
-            <Label htmlFor="password">Senha</Label>
+            <Label htmlFor="password">
+              {mode === "first" ? "Crie uma senha" : "Senha"}
+            </Label>
             <Input
               id="password"
               type="password"
@@ -91,16 +130,32 @@ function AuthPage() {
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoComplete="current-password"
+              autoComplete={mode === "first" ? "new-password" : "current-password"}
             />
           </div>
+          {mode === "first" && (
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm">Confirmar senha</Label>
+              <Input
+                id="confirm"
+                type="password"
+                required
+                minLength={6}
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                autoComplete="new-password"
+              />
+            </div>
+          )}
           <Button type="submit" className="w-full" disabled={loading}>
-            Entrar
+            {mode === "first" ? "Cadastrar senha e entrar" : "Entrar"}
           </Button>
         </form>
 
         <p className="text-xs text-muted-foreground text-center">
-          Somente contas cadastradas previamente pelo gestor podem acessar o sistema.
+          {mode === "first"
+            ? "Seu email precisa estar previamente cadastrado pelo gestor."
+            : "Somente contas cadastradas previamente pelo gestor podem acessar."}
         </p>
 
         <Link
