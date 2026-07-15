@@ -7,6 +7,7 @@ import { DndModal } from "@/components/camareiras/dnd-modal";
 import { ExtraTasksModal } from "@/components/camareiras/extra-tasks-modal";
 import { LaundryModal } from "@/components/camareiras/laundry-modal";
 import { PeriodChecklistSection } from "@/components/camareiras/period-checklist";
+import { RecadosCamareirasSection } from "@/components/camareiras/recados-recepcao";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
@@ -405,6 +406,8 @@ function PainelCamareiras() {
       </div>
 
       <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
+
+      <RecadosCamareirasSection unidade={unidadeAtiva} camareiraName={nomeAutomatico ?? ""} />
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 

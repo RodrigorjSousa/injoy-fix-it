@@ -12,10 +12,12 @@ import {
   BedDouble,
   ClipboardCheck,
   GlassWater,
+  MessageSquarePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
+import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -117,6 +119,9 @@ function RecepcaoPage() {
     roomNumber: string;
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
+  const [recadoAlvo, setRecadoAlvo] = useState<
+    { unidade: Unidade; quarto: string | null } | null
+  >(null);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
@@ -213,6 +218,14 @@ function RecepcaoPage() {
             className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-10 pr-4 py-3 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
           />
         </div>
+        <button
+          onClick={() => setRecadoAlvo({ unidade: unidadeAtiva, quarto: null })}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <MessageSquarePlus size={18} />
+          <span className="hidden sm:inline">Recado camareira</span>
+          <span className="sm:hidden">📝</span>
+        </button>
         <button
           onClick={() => setVendaBebidasOpen(true)}
           className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30 hover:brightness-110 active:scale-95 transition-all"
@@ -490,6 +503,19 @@ function RecepcaoPage() {
                         <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
                       </button>
                     )}
+                  {q.ocupacao !== "Bloqueado" && (
+                    <button
+                      onClick={() =>
+                        setRecadoAlvo({
+                          unidade: q.unidade,
+                          quarto: padQuarto(q.quarto),
+                        })
+                      }
+                      className="w-full py-2.5 rounded-xl font-bold text-sm border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center gap-2"
+                    >
+                      <MessageSquarePlus size={16} /> Deixar recado camareira
+                    </button>
+                  )}
                 </div>
 
               </div>
@@ -514,6 +540,14 @@ function RecepcaoPage() {
         unidade={unidadeAtiva}
         recepcionistaName={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
         roomsAtivos={Array.from(new Set(quartos.map((q) => padQuarto(q.quarto)))).sort()}
+      />
+
+      <RecadoCamareiraModal
+        open={!!recadoAlvo}
+        onClose={() => setRecadoAlvo(null)}
+        unidadePadrao={recadoAlvo?.unidade ?? unidadeAtiva}
+        quarto={recadoAlvo?.quarto ?? null}
+        autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
       />
     </div>
   );
