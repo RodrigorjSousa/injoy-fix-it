@@ -9,6 +9,7 @@ import { TempoCamareirasChart } from "@/components/gestao/tempo-camareiras-chart
 import { ChamadosManutencaoAtivos } from "@/components/gestao/chamados-manutencao-ativos";
 import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quartos";
 import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
+import { CheckoutsCloudbedsCard } from "@/components/gestao/checkouts-cloudbeds-card";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
