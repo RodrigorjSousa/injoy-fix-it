@@ -7,7 +7,7 @@ import { DndModal } from "@/components/camareiras/dnd-modal";
 import { ExtraTasksModal } from "@/components/camareiras/extra-tasks-modal";
 import { LaundryModal } from "@/components/camareiras/laundry-modal";
 import { PeriodChecklistSection } from "@/components/camareiras/period-checklist";
-import { RecadosCamareirasSection } from "@/components/camareiras/recados-recepcao";
+import { RecadosCamareirasSection, RecadosDoQuartoSection } from "@/components/camareiras/recados-recepcao";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
@@ -473,6 +473,12 @@ function PainelCamareiras() {
                   })()}
                 </div>
               </div>
+
+              <RecadosDoQuartoSection
+                unidade={q.property}
+                roomNumber={q.room_number}
+                camareiraName={nomeAutomatico ?? ""}
+              />
 
               {q.blink_troca && (
                 <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
