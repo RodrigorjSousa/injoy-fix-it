@@ -385,22 +385,18 @@ serve(async (req) => {
 
     // Aplica preservação ANTES das métricas — os valores finais gravados
     // no banco são a fonte da verdade para os contadores da Gestão.
+    // REGRA: `status` (limpeza) é do app (camareiras marcam limpo/sujo/em limpeza).
+    // `condition` (bloqueio/manutenção) SEMPRE vem do Cloudbeds — é a fonte da verdade.
     const finais = consolidados
       .filter((q) => q.room_number)
       .map((q) => {
         const key = `${q.property}::${q.room_number}`
         const atual = mapaExistente.get(key)
-        // Se o quarto já existe no banco, PRESERVA status e condition locais
-        // (definidos pelas camareiras no app). Só usa os do Cloudbeds em inserts novos.
-        // Exceção: se o Cloudbeds indica bloqueio de manutenção, aplica — isso vem de OS registrada.
         const preservarStatus = atual ? atual.status ?? q.status : q.status
-        const preservarCondition = atual
-          ? q.condition === 'maintenance'
-            ? 'maintenance'
-            : atual.condition ?? q.condition
-          : q.condition
-        return { ...q, status: preservarStatus, condition: preservarCondition }
+        // condition sempre do Cloudbeds — sem preservação local
+        return { ...q, status: preservarStatus, condition: q.condition }
       })
+
 
     // Métricas do dashboard — usa os valores FINAIS (já preservados) do banco,
     // nunca o status bruto do Cloudbeds.
