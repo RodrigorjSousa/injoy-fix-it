@@ -41,7 +41,7 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     const qs = new URLSearchParams({
       status: "checked_in",
       pageSize: "100",
-      includeGuestsDetails: "false",
+      includeGuestsDetails: "true",
     });
     const listRes = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
     if (!listRes.ok) {
@@ -63,11 +63,24 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
         const n = String(rm.roomName ?? rm.roomNumber ?? "").trim();
         return n === target;
       }),
-    );
+    ) as
+      | {
+          reservationID?: string;
+          guestName?: string;
+          firstName?: string;
+          lastName?: string;
+          rooms?: Array<{ roomName?: string; roomNumber?: string }>;
+        }
+      | undefined;
 
     if (!match?.reservationID) {
       throw new Error(`Nenhuma reserva ativa (check-in) encontrada para o quarto ${target}`);
     }
+
+    const guestName =
+      match.guestName ||
+      [match.firstName, match.lastName].filter(Boolean).join(" ").trim() ||
+      null;
 
     // Aciona check-out
     const body = new URLSearchParams({
@@ -89,6 +102,35 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
           `Cloudbeds recusou o check-out (${chgRes.status}). Pode haver saldo em aberto.`,
       );
     }
+
+    // Descobre nome da camareira (profile)
+    let camareiraName = "Camareira";
+    const { data: prof } = await supabase
+      .from("profiles")
+      .select("nome")
+      .eq("id", userId)
+      .maybeSingle();
+    if (prof?.nome) camareiraName = prof.nome;
+
+    // Registra log para o painel de administração
+    await supabase.from("cloudbeds_checkout_logs" as never).insert({
+      property: data.property,
+      room_number: target,
+      guest_name: guestName,
+      reservation_id: match.reservationID,
+      camareira_id: userId,
+      camareira_name: camareiraName,
+    } as never);
+
+    // Notifica a recepção via recados_camareiras (direction to_recepcao)
+    await supabase.from("recados_camareiras").insert({
+      property: data.property,
+      room_number: target,
+      message: `Check-out realizado no Cloudbeds pela camareira ${camareiraName}. Hóspede: ${guestName ?? "—"}.`,
+      created_by: userId,
+      created_by_name: camareiraName,
+      direction: "to_recepcao",
+    });
 
     return { ok: true, reservationID: match.reservationID };
   });
