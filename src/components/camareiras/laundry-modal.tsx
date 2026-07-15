@@ -47,6 +47,7 @@ type Batch = {
   sent_at: string;
   status: string;
   items_sent: ItemSent[];
+  notes?: string | null;
 };
 
 interface Props {
