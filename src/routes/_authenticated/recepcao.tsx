@@ -518,8 +518,7 @@ function RecepcaoPage() {
                     </div>
                   )}
                   {q.ocupacao !== "Bloqueado" &&
-                    (q.assignedTask === "REVISÃO" ||
-                      q.assignedTask === "GERAL - CHECK-IN") && (
+                    isCheckInTask(q.assignedTask) && (
                       <button
                         onClick={() =>
                           setVistoriaAlvo({
