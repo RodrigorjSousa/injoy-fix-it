@@ -560,14 +560,21 @@ function RelatorioOperacoes() {
         </div>
 
         <Tabs defaultValue="registros" className="w-full">
-          <TabsList className="grid grid-cols-2 max-w-md">
+          <TabsList className="grid grid-cols-3 max-w-xl">
             <TabsTrigger value="registros">
               <ClipboardList size={14} className="mr-1" /> Registros
+            </TabsTrigger>
+            <TabsTrigger value="conta">
+              <TrendingDown size={14} className="mr-1" /> Conta Corrente
             </TabsTrigger>
             <TabsTrigger value="itens">
               <Pencil size={14} className="mr-1" /> Gerenciar Itens
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="conta" className="mt-4">
+            <LaundryDebtPanel unidade={unidade} />
+          </TabsContent>
 
           {/* Registros por mês */}
           <TabsContent value="registros" className="mt-4">
@@ -905,4 +912,213 @@ function ItemManager({
     </div>
   );
 }
+
+/* -------------------- CONTA CORRENTE DA LAVANDERIA -------------------- */
+
+type DebtRow = {
+  id: string;
+  property: string;
+  batch_id: string | null;
+  item_name: string;
+  quantity_missing: number;
+  status: "pending" | "resolved";
+  resolved_at: string | null;
+  resolved_by: string | null;
+  created_at: string;
+};
+
+function LaundryDebtPanel({ unidade }: { unidade: string }) {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const { data: debts = [], isLoading } = useQuery({
+    queryKey: ["laundry_debt", unidade],
+    queryFn: async (): Promise<DebtRow[]> => {
+      const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from("laundry_debt" as any)
+        .select("id, property, batch_id, item_name, quantity_missing, status, resolved_at, resolved_by, created_at")
+        .eq("property", unidade)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return (data as unknown as DebtRow[]) ?? [];
+    },
+  });
+
+  const pendentes = debts.filter((d) => d.status === "pending");
+  const resolvidos = debts.filter((d) => d.status === "resolved");
+  const totalPecas = pendentes.reduce((s, d) => s + d.quantity_missing, 0);
+
+  const consolidado = useMemo(() => {
+    const m = new Map<string, number>();
+    pendentes.forEach((d) => m.set(d.item_name, (m.get(d.item_name) ?? 0) + d.quantity_missing));
+    return Array.from(m.entries()).sort((a, b) => b[1] - a[1]);
+  }, [pendentes]);
+
+  const darBaixa = async (row: DebtRow) => {
+    try {
+      const { error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from("laundry_debt" as any)
+        .update({
+          status: "resolved",
+          resolved_at: new Date().toISOString(),
+          resolved_by: me?.funcionario?.nome ?? me?.email ?? "admin",
+        })
+        .eq("id", row.id);
+      if (error) throw error;
+      toast.success(`Baixa registrada: ${row.item_name}`);
+      qc.invalidateQueries({ queryKey: ["laundry_debt", unidade] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao dar baixa");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-8 text-center text-slate-500">
+        <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando conta corrente…
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="bg-red-50 border-2 border-red-200 p-5 rounded-2xl">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-red-700">
+            Peças em Aberto
+          </p>
+          <p className="text-4xl font-black text-red-700 mt-2">{totalPecas}</p>
+          <p className="text-[11px] text-red-600 mt-1">
+            Lavanderia deve ao hotel · {unidade}
+          </p>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Registros Pendentes
+          </p>
+          <p className="text-4xl font-black text-slate-800 mt-2">{pendentes.length}</p>
+        </div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+            Já Resolvidos
+          </p>
+          <p className="text-4xl font-black text-emerald-600 mt-2">{resolvidos.length}</p>
+        </div>
+      </div>
+
+      {consolidado.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl p-4">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
+            Consolidado por item
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {consolidado.map(([item, qty]) => (
+              <span
+                key={item}
+                className="text-xs font-bold bg-red-100 text-red-700 border border-red-200 rounded-lg px-3 py-1.5"
+              >
+                {item}: <span className="font-black">{qty}</span>
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="bg-white border border-red-200 rounded-2xl overflow-hidden">
+        <div className="bg-red-600 text-white px-4 py-2 text-xs font-black uppercase tracking-wider">
+          Saldo Devedor Atual
+        </div>
+        {pendentes.length === 0 ? (
+          <p className="p-6 text-center text-sm text-slate-500">
+            Nenhuma peça em aberto 🎉 A lavanderia está em dia.
+          </p>
+        ) : (
+          <div className="overflow-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-red-50 border-b border-red-100">
+                <tr className="text-[10px] uppercase tracking-wider text-red-700">
+                  <th className="text-left p-3 font-bold">Item</th>
+                  <th className="p-3 font-bold w-24 text-center">Qtd</th>
+                  <th className="p-3 font-bold">Lote</th>
+                  <th className="p-3 font-bold">Data</th>
+                  <th className="p-3 font-bold w-40">Ação</th>
+                </tr>
+              </thead>
+              <tbody>
+                {pendentes.map((d, i) => (
+                  <tr
+                    key={d.id}
+                    className={cn(
+                      "border-b border-slate-100",
+                      i % 2 === 0 ? "bg-white" : "bg-slate-50/50",
+                    )}
+                  >
+                    <td className="p-3 font-bold text-slate-800">{d.item_name}</td>
+                    <td className="p-3 text-center">
+                      <span className="inline-block bg-red-500 text-white font-black rounded-md px-2 py-1 text-xs">
+                        -{d.quantity_missing}
+                      </span>
+                    </td>
+                    <td className="p-3 text-xs font-mono text-sky-700">{d.batch_id ?? "—"}</td>
+                    <td className="p-3 text-xs text-slate-500">
+                      {formatData(d.created_at)}
+                    </td>
+                    <td className="p-3">
+                      <button
+                        onClick={() => darBaixa(d)}
+                        className="inline-flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-black uppercase tracking-wider px-3 py-1.5 rounded-lg"
+                      >
+                        <Check size={12} /> Dar Baixa
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {resolvidos.length > 0 && (
+        <details className="bg-white border border-slate-200 rounded-2xl">
+          <summary className="cursor-pointer px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-600">
+            Histórico de baixas ({resolvidos.length})
+          </summary>
+          <div className="overflow-auto border-t border-slate-100">
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50">
+                <tr className="text-[10px] uppercase tracking-wider text-slate-500">
+                  <th className="text-left p-3 font-bold">Item</th>
+                  <th className="p-3 font-bold w-24 text-center">Qtd</th>
+                  <th className="p-3 font-bold">Lote</th>
+                  <th className="p-3 font-bold">Baixado em</th>
+                  <th className="p-3 font-bold">Por</th>
+                </tr>
+              </thead>
+              <tbody>
+                {resolvidos.map((d) => (
+                  <tr key={d.id} className="border-b border-slate-100">
+                    <td className="p-3 text-slate-700">{d.item_name}</td>
+                    <td className="p-3 text-center text-slate-600 font-bold">
+                      {d.quantity_missing}
+                    </td>
+                    <td className="p-3 text-xs font-mono text-slate-500">
+                      {d.batch_id ?? "—"}
+                    </td>
+                    <td className="p-3 text-xs text-slate-500">
+                      {d.resolved_at ? formatData(d.resolved_at) : "—"}
+                    </td>
+                    <td className="p-3 text-xs text-slate-500">{d.resolved_by ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </details>
+      )}
+    </div>
+  );
+}
+
 
