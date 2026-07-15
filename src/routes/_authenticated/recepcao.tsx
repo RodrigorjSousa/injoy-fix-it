@@ -270,11 +270,27 @@ function RecepcaoPage() {
         ) : (
           quartosFiltrados.map((q) => {
             const ocupStyle = OCUPACAO_STYLE[q.ocupacao];
+            const bloqueado = q.ocupacao === "Bloqueado";
+            const motivoBloqueio = "Quarto em manutenção / fora de operação";
             return (
               <div
                 key={q.id}
-                className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 space-y-4 flex flex-col justify-between"
+                className={`relative bg-white rounded-2xl shadow-sm p-5 space-y-4 flex flex-col justify-between ${
+                  bloqueado
+                    ? "border-2 border-red-500 ring-2 ring-red-200 shadow-red-100"
+                    : "border border-slate-100"
+                }`}
               >
+                {bloqueado && (
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute -top-3 -right-3 sm:-top-4 sm:-right-4 z-10"
+                  >
+                    <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600 border-4 border-white shadow-lg flex items-center justify-center animate-pulse">
+                      <Ban size={28} strokeWidth={3} className="text-white" />
+                    </div>
+                  </div>
+                )}
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
                     <h2 className="text-xl font-black text-slate-800 tracking-tight">
