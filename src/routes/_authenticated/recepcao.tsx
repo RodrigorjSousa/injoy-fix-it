@@ -119,6 +119,9 @@ function RecepcaoPage() {
     roomNumber: string;
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
+  const [recadoAlvo, setRecadoAlvo] = useState<
+    { unidade: Unidade; quarto: string | null } | null
+  >(null);
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
