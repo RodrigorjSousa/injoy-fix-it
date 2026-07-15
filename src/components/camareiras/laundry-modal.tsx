@@ -201,6 +201,7 @@ function EnviarSujo({
         sent_by: camareiraName || "—",
         status: "transit",
         items_sent,
+        notes: notas.trim() ? notas.trim() : null,
       });
       if (error) throw error;
       setCriado(batch_id);
