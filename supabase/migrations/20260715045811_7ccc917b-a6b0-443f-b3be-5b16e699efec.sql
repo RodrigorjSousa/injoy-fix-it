@@ -1,0 +1,1 @@
+ALTER TABLE public.laundry_batches ADD COLUMN IF NOT EXISTS notes TEXT;
