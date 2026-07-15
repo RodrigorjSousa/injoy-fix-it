@@ -353,14 +353,23 @@ function PainelCamareiras() {
           <h1 className="text-xl font-bold">Camareiras</h1>
           <p className="text-xs text-slate-400">Mapa de tarefas diárias sincronizado ao Cloudbeds</p>
         </div>
-        <button
-          onClick={sincronizar}
-          disabled={syncing}
-          className="p-2 bg-slate-800 rounded-lg disabled:opacity-60"
-          aria-label="Sincronizar"
-        >
-          <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRecadoRecepcaoOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-bold text-xs sm:text-sm text-white bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-indigo-500/40 hover:brightness-110 active:scale-95 transition-all"
+          >
+            <MessageSquarePlus size={16} />
+            <span className="hidden xs:inline sm:inline">Recado recepção</span>
+          </button>
+          <button
+            onClick={sincronizar}
+            disabled={syncing}
+            className="p-2 bg-slate-800 rounded-lg disabled:opacity-60"
+            aria-label="Sincronizar"
+          >
+            <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
 
