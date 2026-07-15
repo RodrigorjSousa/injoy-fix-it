@@ -46,12 +46,8 @@ export const firstTimeSetPassword = createServerFn({ method: "POST" })
     return { ok: true as const };
   });
 
-async function assertCallerIsManager(
-  supabase: Awaited<ReturnType<typeof requireSupabaseAuth.server>> extends { supabase: infer S }
-    ? S
-    : never,
-  userId: string,
-) {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function assertCallerIsManager(supabase: any, userId: string) {
   const { data, error } = await supabase
     .from("user_roles")
     .select("role")
