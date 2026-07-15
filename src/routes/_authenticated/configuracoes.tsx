@@ -350,7 +350,109 @@ function Configuracoes() {
         funcionario={editando}
         onClose={() => setEditando(null)}
       />
+
+      <AlterarSenhaDialog
+        funcionario={alterandoSenha}
+        onClose={() => setAlterandoSenha(null)}
+      />
     </div>
+  );
+}
+
+function AlterarSenhaDialog({
+  funcionario,
+  onClose,
+}: {
+  funcionario: Funcionario | null;
+  onClose: () => void;
+}) {
+  const setCredentials = useServerFn(adminSetFuncionarioCredentials);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [lastId, setLastId] = useState<string | null>(null);
+
+  if (funcionario && funcionario.id !== lastId) {
+    setLastId(funcionario.id);
+    setEmail(funcionario.email);
+    setPassword("");
+  }
+  if (!funcionario && lastId !== null) setLastId(null);
+
+  const salvar = async () => {
+    if (!funcionario) return;
+    const emailNorm = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(emailNorm)) {
+      toast.error("Email inválido");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("A senha deve ter ao menos 6 caracteres");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setCredentials({
+        data: {
+          funcionarioId: funcionario.id,
+          password,
+          email: emailNorm !== funcionario.email ? emailNorm : undefined,
+        },
+      });
+      toast.success("Credenciais atualizadas");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Credenciais de {funcionario?.nome ?? ""}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="senha-email">Email de acesso</Label>
+            <Input
+              id="senha-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="senha-nova">Nova senha</Label>
+            <Input
+              id="senha-nova"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              autoComplete="new-password"
+              placeholder="Mínimo 6 caracteres"
+            />
+            <p className="text-xs text-muted-foreground">
+              {funcionario?.userId
+                ? "A nova senha substituirá a atual."
+                : "Ao definir a senha, a conta do funcionário será criada."}
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={saving || !password}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
