@@ -335,7 +335,7 @@ function ReceberLimpo({
     setLoading(true);
     const { data, error } = await supabase
       .from("laundry_batches" as any)
-      .select("batch_id, property, sent_by, sent_at, status, items_sent")
+      .select("batch_id, property, sent_by, sent_at, status, items_sent, notes")
       .eq("property", unidade)
       .in("status", ["transit", "partial"])
       .order("sent_at", { ascending: false });
