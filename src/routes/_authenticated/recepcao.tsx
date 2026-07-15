@@ -219,6 +219,14 @@ function RecepcaoPage() {
           />
         </div>
         <button
+          onClick={() => setRecadoAlvo({ unidade: unidadeAtiva, quarto: null })}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-blue-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <MessageSquarePlus size={18} />
+          <span className="hidden sm:inline">Recado camareira</span>
+          <span className="sm:hidden">📝</span>
+        </button>
+        <button
           onClick={() => setVendaBebidasOpen(true)}
           className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-amber-500 to-orange-600 shadow-md shadow-amber-500/30 hover:brightness-110 active:scale-95 transition-all"
         >
