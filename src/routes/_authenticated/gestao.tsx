@@ -196,6 +196,8 @@ function DashboardGestao() {
 
         <BookingReviewsCard unidade={unidadeAtiva} />
 
+        <CheckoutsCloudbedsCard unidade={unidadeAtiva} />
+
         <TempoCamareirasChart unidade={unidadeAtiva} />
 
         <StatusOperacaoQuartos unidade={unidadeAtiva} />
