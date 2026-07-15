@@ -69,7 +69,7 @@ async function generateBatchId(unidade: string): Promise<string> {
   const prefix = PREFIX[unidade] ?? "UNI";
   const like = `LOTE-${stamp}-${prefix}-%`;
   const { data } = await supabase
-    .from("laundry_batches" as never)
+    .from("laundry_batches" as any)
     .select("batch_id")
     .like("batch_id", like);
   const seq = ((data as { batch_id: string }[] | null)?.length ?? 0) + 1;
@@ -193,7 +193,7 @@ function EnviarSujo({
         .filter((l) => l.num > 0)
         .map((l) => ({ item: l.item, enviado: l.num }));
       const batch_id = await generateBatchId(unidade);
-      const { error } = await supabase.from("laundry_batches" as never).insert({
+      const { error } = await supabase.from("laundry_batches" as any).insert({
         batch_id,
         property: unidade,
         sent_by: camareiraName || "—",
@@ -315,7 +315,7 @@ function ReceberLimpo({
   const carregar = async () => {
     setLoading(true);
     const { data, error } = await supabase
-      .from("laundry_batches" as never)
+      .from("laundry_batches" as any)
       .select("batch_id, property, sent_by, sent_at, status, items_sent")
       .eq("property", unidade)
       .in("status", ["transit", "partial"])
@@ -448,7 +448,7 @@ function ContagemRetorno({
       const status = missing.length === 0 ? "completed" : "partial";
 
       const { error: e1 } = await supabase
-        .from("laundry_batches" as never)
+        .from("laundry_batches" as any)
         .update({
           received_by: camareiraName || "—",
           received_at: new Date().toISOString(),
@@ -467,7 +467,7 @@ function ContagemRetorno({
           quantity_missing: m.em_falta,
           status: "pending" as const,
         }));
-        const { error: e2 } = await supabase.from("laundry_debt" as never).insert(rows);
+        const { error: e2 } = await supabase.from("laundry_debt" as any).insert(rows);
         if (e2) throw e2;
         toast.warning(`Lote ${batch.batch_id} fechado com ${missing.length} item(ns) em falta`);
       } else {
