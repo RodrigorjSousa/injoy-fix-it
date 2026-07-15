@@ -541,6 +541,14 @@ function RecepcaoPage() {
         recepcionistaName={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
         roomsAtivos={Array.from(new Set(quartos.map((q) => padQuarto(q.quarto)))).sort()}
       />
+
+      <RecadoCamareiraModal
+        open={!!recadoAlvo}
+        onClose={() => setRecadoAlvo(null)}
+        unidadePadrao={recadoAlvo?.unidade ?? unidadeAtiva}
+        quarto={recadoAlvo?.quarto ?? null}
+        autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+      />
     </div>
   );
 }
