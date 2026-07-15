@@ -235,17 +235,39 @@ function Configuracoes() {
 
         <div className="space-y-2">
           <Label htmlFor="senha-inicial">Senha (opcional)</Label>
-          <Input
-            id="senha-inicial"
-            type="password"
-            value={senhaInicial}
-            onChange={(e) => setSenhaInicial(e.target.value)}
-            placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
-            minLength={6}
-            autoComplete="new-password"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="senha-inicial"
+              type="text"
+              value={senhaInicial}
+              onChange={(e) => setSenhaInicial(e.target.value)}
+              placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
+              minLength={6}
+              autoComplete="off"
+              className="font-mono"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Gerar senha"
+              onClick={() => setSenhaInicial(gerarSenha())}
+            >
+              <Wand2 className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Copiar senha"
+              onClick={() => senhaInicial && copiarSenha(senhaInicial)}
+              disabled={!senhaInicial}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Se preencher, o funcionário já pode entrar com esta senha. Caso contrário, ele mesmo define no primeiro acesso.
+            Se preencher, o funcionário já pode entrar com esta senha. Anote ou copie antes de salvar — não é possível ver depois.
           </p>
         </div>
 
