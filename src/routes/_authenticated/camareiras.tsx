@@ -476,12 +476,7 @@ function PainelCamareiras() {
                     title={`Estado Cloudbeds: ${q.color_code ?? "—"}`}
                   />
                   {(() => {
-                    const tarefaExibida =
-                      q.assigned_task === "TROCA"
-                        ? "TROCA + ARRUMAÇÃO"
-                        : q.assigned_task === "REVISÃO"
-                          ? "REVISÃO CHECK IN"
-                          : (q.assigned_task ?? "VERIFICAÇÃO");
+                    const tarefaExibida = formatTaskLabel(q.assigned_task);
                     return (
                       <span
                         className={cn(
