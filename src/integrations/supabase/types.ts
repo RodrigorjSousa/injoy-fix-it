@@ -524,6 +524,98 @@ export type Database = {
           },
         ]
       }
+      laundry_batches: {
+        Row: {
+          batch_id: string
+          created_at: string
+          items_received: Json | null
+          items_sent: Json
+          missing_items: Json | null
+          property: string
+          received_at: string | null
+          received_by: string | null
+          sent_at: string
+          sent_by: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id: string
+          created_at?: string
+          items_received?: Json | null
+          items_sent: Json
+          missing_items?: Json | null
+          property: string
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string
+          sent_by: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string
+          created_at?: string
+          items_received?: Json | null
+          items_sent?: Json
+          missing_items?: Json | null
+          property?: string
+          received_at?: string | null
+          received_by?: string | null
+          sent_at?: string
+          sent_by?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      laundry_debt: {
+        Row: {
+          batch_id: string | null
+          created_at: string
+          id: string
+          item_name: string
+          property: string
+          quantity_missing: number
+          resolved_at: string | null
+          resolved_by: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          property: string
+          quantity_missing: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          batch_id?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          property?: string
+          quantity_missing?: number
+          resolved_at?: string | null
+          resolved_by?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "laundry_debt_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "laundry_batches"
+            referencedColumns: ["batch_id"]
+          },
+        ]
+      }
       laundry_items_directory: {
         Row: {
           created_at: string
