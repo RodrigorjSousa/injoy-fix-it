@@ -709,7 +709,8 @@ function PainelCamareiras() {
                 className="w-full mt-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700"
               />
             </div>
-          ))
+            );
+          })
         )}
       </div>
 
