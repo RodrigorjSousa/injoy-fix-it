@@ -67,9 +67,12 @@ function Configuracoes() {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [senhaInicial, setSenhaInicial] = useState("");
   const [tipo, setTipo] = useState<TipoFuncionario>("tecnico");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
   const [editando, setEditando] = useState<Funcionario | null>(null);
+  const [alterandoSenha, setAlterandoSenha] = useState<Funcionario | null>(null);
+  const setCredentials = useServerFn(adminSetFuncionarioCredentials);
 
   // Apenas gestores e administradores
   if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
