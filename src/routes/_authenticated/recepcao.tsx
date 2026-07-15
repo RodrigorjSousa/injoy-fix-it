@@ -12,10 +12,12 @@ import {
   BedDouble,
   ClipboardCheck,
   GlassWater,
+  MessageSquarePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
+import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
