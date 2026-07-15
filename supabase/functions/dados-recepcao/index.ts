@@ -325,8 +325,11 @@ serve(async (req) => {
       const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
       const statusLimpeza = cam?.status ?? hk.statusLimpeza
 
+      // Fonte unificada de bloqueio: painel das camareiras (condition='maintenance')
+      // OU flag do Cloudbeds. Assim recepção e camareiras sempre concordam.
+      const bloqueadoUnificado = (cam?.bloqueado ?? false) || hk.bloqueado
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
-      if (hk.bloqueado) ocupacao = 'Bloqueado'
+      if (bloqueadoUnificado) ocupacao = 'Bloqueado'
       else if (bucket.atual?.checkedIn) ocupacao = 'Ocupado'
 
       return {
