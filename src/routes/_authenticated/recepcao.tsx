@@ -239,6 +239,11 @@ function RecepcaoPage() {
         </button>
       </div>
 
+      <RecadosDaCamareiraSection
+        unidade={unidadeAtiva}
+        autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+      />
+
       <div className="p-4">
         <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
       </div>
