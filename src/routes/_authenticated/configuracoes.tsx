@@ -2,7 +2,9 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
+import { adminSetFuncionarioCredentials } from "@/lib/user-management.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,9 +67,12 @@ function Configuracoes() {
 
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
+  const [senhaInicial, setSenhaInicial] = useState("");
   const [tipo, setTipo] = useState<TipoFuncionario>("tecnico");
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
   const [editando, setEditando] = useState<Funcionario | null>(null);
+  const [alterandoSenha, setAlterandoSenha] = useState<Funcionario | null>(null);
+  const setCredentials = useServerFn(adminSetFuncionarioCredentials);
 
   // Apenas gestores e administradores
   if (me && !me.isGestor && !me.isAdmin) return <Navigate to="/painel" replace />;
@@ -84,20 +89,43 @@ function Configuracoes() {
       toast.error("Email inválido");
       return;
     }
+    if (senhaInicial && senhaInicial.length < 6) {
+      toast.error("A senha deve ter ao menos 6 caracteres");
+      return;
+    }
     if (tipo === "tecnico" && selecionadas.length === 0) {
       toast.error("Selecione ao menos uma categoria para o técnico");
       return;
     }
+    const emailNorm = email.toLowerCase().trim();
     adicionar.mutate(
       { nome: nome.trim(), email: email.trim(), categorias: tipo === "tecnico" ? selecionadas : [] },
       {
         onSuccess: async () => {
-          // Para recepção/camareira, tenta atribuir role imediatamente se a conta já existir
+          const { data: funcRow } = await supabase
+            .from("funcionarios")
+            .select("id, user_id")
+            .eq("email", emailNorm)
+            .maybeSingle();
+          const funcId = (funcRow as { id: string; user_id: string | null } | null)?.id;
+          let userId = (funcRow as { id: string; user_id: string | null } | null)?.user_id ?? null;
+
+          if (senhaInicial && funcId) {
+            try {
+              await setCredentials({ data: { funcionarioId: funcId, password: senhaInicial } });
+              // refetch to get user_id
+              const { data: refetched } = await supabase
+                .from("funcionarios")
+                .select("user_id")
+                .eq("id", funcId)
+                .maybeSingle();
+              userId = (refetched as { user_id: string | null } | null)?.user_id ?? userId;
+            } catch (e) {
+              toast.error((e as Error).message);
+            }
+          }
+
           if (tipo !== "tecnico") {
-            const { data } = await import("@/integrations/supabase/client").then((m) =>
-              m.supabase.from("funcionarios").select("user_id").eq("email", email.toLowerCase().trim()).maybeSingle(),
-            );
-            const userId = (data as { user_id: string | null } | null)?.user_id;
             if (userId) {
               atribuirRole.mutate({ userId, role: tipo });
               toast.success(`${nome} cadastrado(a) como ${LABEL_TIPO[tipo]}`);
@@ -108,11 +136,14 @@ function Configuracoes() {
             }
           } else {
             toast.success(`${nome} cadastrado`, {
-              description: "Quando criar conta com este email, será vinculado automaticamente.",
+              description: senhaInicial
+                ? "Senha definida. O funcionário já pode entrar."
+                : "Quando criar conta com este email, será vinculado automaticamente.",
             });
           }
           setNome("");
           setEmail("");
+          setSenhaInicial("");
           setTipo("tecnico");
           setSelecionadas([]);
         },
@@ -177,6 +208,22 @@ function Configuracoes() {
               placeholder="maria@injoy.com.br"
             />
           </div>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="senha-inicial">Senha (opcional)</Label>
+          <Input
+            id="senha-inicial"
+            type="password"
+            value={senhaInicial}
+            onChange={(e) => setSenhaInicial(e.target.value)}
+            placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
+            minLength={6}
+            autoComplete="new-password"
+          />
+          <p className="text-xs text-muted-foreground">
+            Se preencher, o funcionário já pode entrar com esta senha. Caso contrário, ele mesmo define no primeiro acesso.
+          </p>
         </div>
 
         {tipo === "tecnico" && (
@@ -256,6 +303,14 @@ function Configuracoes() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`Alterar senha de ${f.nome}`}
+                  onClick={() => setAlterandoSenha(f)}
+                >
+                  <KeyRound className="h-4 w-4 text-muted-foreground" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label={`Editar funções de ${f.nome}`}
                   onClick={() => setEditando(f)}
                 >
@@ -295,7 +350,109 @@ function Configuracoes() {
         funcionario={editando}
         onClose={() => setEditando(null)}
       />
+
+      <AlterarSenhaDialog
+        funcionario={alterandoSenha}
+        onClose={() => setAlterandoSenha(null)}
+      />
     </div>
+  );
+}
+
+function AlterarSenhaDialog({
+  funcionario,
+  onClose,
+}: {
+  funcionario: Funcionario | null;
+  onClose: () => void;
+}) {
+  const setCredentials = useServerFn(adminSetFuncionarioCredentials);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [lastId, setLastId] = useState<string | null>(null);
+
+  if (funcionario && funcionario.id !== lastId) {
+    setLastId(funcionario.id);
+    setEmail(funcionario.email);
+    setPassword("");
+  }
+  if (!funcionario && lastId !== null) setLastId(null);
+
+  const salvar = async () => {
+    if (!funcionario) return;
+    const emailNorm = email.trim().toLowerCase();
+    if (!/^\S+@\S+\.\S+$/.test(emailNorm)) {
+      toast.error("Email inválido");
+      return;
+    }
+    if (password.length < 6) {
+      toast.error("A senha deve ter ao menos 6 caracteres");
+      return;
+    }
+    setSaving(true);
+    try {
+      await setCredentials({
+        data: {
+          funcionarioId: funcionario.id,
+          password,
+          email: emailNorm !== funcionario.email ? emailNorm : undefined,
+        },
+      });
+      toast.success("Credenciais atualizadas");
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>Credenciais de {funcionario?.nome ?? ""}</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="senha-email">Email de acesso</Label>
+            <Input
+              id="senha-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              autoComplete="off"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="senha-nova">Nova senha</Label>
+            <Input
+              id="senha-nova"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              autoComplete="new-password"
+              placeholder="Mínimo 6 caracteres"
+            />
+            <p className="text-xs text-muted-foreground">
+              {funcionario?.userId
+                ? "A nova senha substituirá a atual."
+                : "Ao definir a senha, a conta do funcionário será criada."}
+            </p>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={saving}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={saving || !password}>
+            {saving ? "Salvando..." : "Salvar"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 
