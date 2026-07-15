@@ -8,6 +8,7 @@ import { ExtraTasksModal } from "@/components/camareiras/extra-tasks-modal";
 import { LaundryModal } from "@/components/camareiras/laundry-modal";
 import { PeriodChecklistSection } from "@/components/camareiras/period-checklist";
 import { RecadosCamareirasSection, RecadosDoQuartoSection } from "@/components/camareiras/recados-recepcao";
+import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-modal";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
