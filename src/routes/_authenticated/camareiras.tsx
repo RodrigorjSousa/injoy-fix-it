@@ -122,6 +122,7 @@ function PainelCamareiras() {
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
+  const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
 
 
 
