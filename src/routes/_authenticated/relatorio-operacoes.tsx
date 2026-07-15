@@ -560,14 +560,21 @@ function RelatorioOperacoes() {
         </div>
 
         <Tabs defaultValue="registros" className="w-full">
-          <TabsList className="grid grid-cols-2 max-w-md">
+          <TabsList className="grid grid-cols-3 max-w-xl">
             <TabsTrigger value="registros">
               <ClipboardList size={14} className="mr-1" /> Registros
+            </TabsTrigger>
+            <TabsTrigger value="conta">
+              <TrendingDown size={14} className="mr-1" /> Conta Corrente
             </TabsTrigger>
             <TabsTrigger value="itens">
               <Pencil size={14} className="mr-1" /> Gerenciar Itens
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="conta" className="mt-4">
+            <LaundryDebtPanel unidade={unidade} />
+          </TabsContent>
 
           {/* Registros por mês */}
           <TabsContent value="registros" className="mt-4">
