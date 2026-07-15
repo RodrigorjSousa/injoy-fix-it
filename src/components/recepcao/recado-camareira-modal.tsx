@@ -48,6 +48,7 @@ export function RecadoCamareiraModal({
       message: texto,
       created_by: userData.user?.id ?? null,
       created_by_name: autorNome || "Recepção",
+      direction: "to_camareira",
     });
     setEnviando(false);
     if (error) {
