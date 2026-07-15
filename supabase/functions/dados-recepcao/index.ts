@@ -196,20 +196,54 @@ serve(async (req) => {
       })
 
       for (const res of ativos) {
+        const guestListObj = res.guestList ?? {}
+        const guestsAll: any[] = Object.values(guestListObj)
         const mainGuestId = res.guestID
-        const g = res.guestList?.[mainGuestId] ?? Object.values(res.guestList ?? {})[0] ?? {}
-        const assignedRooms: any[] = Array.isArray(g.rooms) ? g.rooms : []
-        const unassignedRooms: any[] = Array.isArray(g.unassignedRooms) ? g.unassignedRooms : []
-        const roomInfo = assignedRooms[0] ?? unassignedRooms[0] ?? {}
-        const quarto = String(
-          roomInfo.roomName ?? roomInfo.roomNumber ?? roomInfo.assignedRoomNumber ?? '',
-        ).trim()
-        if (!quarto) continue
+        const mainGuest = guestListObj?.[mainGuestId] ?? guestsAll[0] ?? {}
+
+        // Expande TODOS os quartos citados por qualquer hóspede da reserva.
+        // Reservas multi-quarto (ex.: mesma pessoa aluga 107 + 109) precisam
+        // gerar uma entrada por quarto, senão o segundo aparece como Livre.
+        const roomsMap = new Map<string, any>()
+        for (const gg of guestsAll.length ? guestsAll : [mainGuest]) {
+          const assigned: any[] = Array.isArray(gg?.rooms) ? gg.rooms : []
+          const unassigned: any[] = Array.isArray(gg?.unassignedRooms) ? gg.unassignedRooms : []
+          for (const info of [...assigned, ...unassigned]) {
+            const num = String(
+              info?.roomName ?? info?.roomNumber ?? info?.assignedRoomNumber ?? '',
+            ).trim()
+            if (num && !roomsMap.has(num)) roomsMap.set(num, info)
+          }
+        }
+        if (roomsMap.size === 0) continue
+
+        for (const [quarto, roomInfo] of roomsMap.entries()) {
+        // Hóspede exibido no quarto: primeiro guest cujas rooms contêm esse quarto,
+        // fallback para o principal (reservas sem split explícito).
+        const g = guestsAll.find((gg: any) => {
+          const rs: any[] = [
+            ...(Array.isArray(gg?.rooms) ? gg.rooms : []),
+            ...(Array.isArray(gg?.unassignedRooms) ? gg.unassignedRooms : []),
+          ]
+          return rs.some((info) =>
+            String(info?.roomName ?? info?.roomNumber ?? info?.assignedRoomNumber ?? '').trim() === quarto,
+          )
+        }) ?? mainGuest
 
         const nome = `${g.guestFirstName ?? ''} ${g.guestLastName ?? ''}`.trim() ||
           res.guestName || 'Hóspede'
         const docFaltando = !g.guestDocumentNumber || !g.guestCountry
-        const pax = parseInt(res.adults || 1, 10) + parseInt(res.children || 0, 10)
+        const paxNoQuarto = guestsAll.filter((gg: any) => {
+          const rs: any[] = [
+            ...(Array.isArray(gg?.rooms) ? gg.rooms : []),
+            ...(Array.isArray(gg?.unassignedRooms) ? gg.unassignedRooms : []),
+          ]
+          return rs.some((info) =>
+            String(info?.roomName ?? info?.roomNumber ?? info?.assignedRoomNumber ?? '').trim() === quarto,
+          )
+        }).length
+        const totalReserva = (parseInt(res.adults || 1, 10) || 0) + (parseInt(res.children || 0, 10) || 0)
+        const pax = paxNoQuarto > 0 ? paxNoQuarto : totalReserva
         const saidaISO = res.endDate || roomInfo.roomCheckOut
         const status = String(res.status ?? '').toLowerCase()
 
@@ -272,7 +306,9 @@ serve(async (req) => {
           if (!bucket.atual && !bucket.proximo) bucket.proximo = registro
         }
         reservasPorQuarto[quarto] = bucket
+        }
       }
+
     } else if (reservasJson) {
       console.error(`[dados-recepcao] Cloudbeds reservas ${propriedade}:`, reservasJson)
     }
