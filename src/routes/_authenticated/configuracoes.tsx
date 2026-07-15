@@ -1,7 +1,30 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2 } from "lucide-react";
+
+function gerarSenha(len = 10) {
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+  let out = "";
+  const cryptoObj = typeof crypto !== "undefined" ? crypto : undefined;
+  if (cryptoObj?.getRandomValues) {
+    const arr = new Uint32Array(len);
+    cryptoObj.getRandomValues(arr);
+    for (let i = 0; i < len; i++) out += chars[arr[i] % chars.length];
+  } else {
+    for (let i = 0; i < len; i++) out += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return out;
+}
+
+async function copiarSenha(valor: string) {
+  try {
+    await navigator.clipboard.writeText(valor);
+    toast.success("Senha copiada");
+  } catch {
+    toast.error("Não foi possível copiar");
+  }
+}
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { adminSetFuncionarioCredentials } from "@/lib/user-management.functions";
@@ -212,17 +235,39 @@ function Configuracoes() {
 
         <div className="space-y-2">
           <Label htmlFor="senha-inicial">Senha (opcional)</Label>
-          <Input
-            id="senha-inicial"
-            type="password"
-            value={senhaInicial}
-            onChange={(e) => setSenhaInicial(e.target.value)}
-            placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
-            minLength={6}
-            autoComplete="new-password"
-          />
+          <div className="flex gap-2">
+            <Input
+              id="senha-inicial"
+              type="text"
+              value={senhaInicial}
+              onChange={(e) => setSenhaInicial(e.target.value)}
+              placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
+              minLength={6}
+              autoComplete="off"
+              className="font-mono"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Gerar senha"
+              onClick={() => setSenhaInicial(gerarSenha())}
+            >
+              <Wand2 className="h-4 w-4" />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              title="Copiar senha"
+              onClick={() => senhaInicial && copiarSenha(senhaInicial)}
+              disabled={!senhaInicial}
+            >
+              <Copy className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
-            Se preencher, o funcionário já pode entrar com esta senha. Caso contrário, ele mesmo define no primeiro acesso.
+            Se preencher, o funcionário já pode entrar com esta senha. Anote ou copie antes de salvar — não é possível ver depois.
           </p>
         </div>
 
@@ -369,13 +414,17 @@ function AlterarSenhaDialog({
   const setCredentials = useServerFn(adminSetFuncionarioCredentials);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [savedPassword, setSavedPassword] = useState<string | null>(null);
   const [lastId, setLastId] = useState<string | null>(null);
 
   if (funcionario && funcionario.id !== lastId) {
     setLastId(funcionario.id);
     setEmail(funcionario.email);
     setPassword("");
+    setSavedPassword(null);
+    setShowPassword(true);
   }
   if (!funcionario && lastId !== null) setLastId(null);
 
@@ -400,7 +449,7 @@ function AlterarSenhaDialog({
         },
       });
       toast.success("Credenciais atualizadas");
-      onClose();
+      setSavedPassword(password);
     } catch (e) {
       toast.error((e as Error).message);
     } finally {
@@ -414,43 +463,106 @@ function AlterarSenhaDialog({
         <DialogHeader>
           <DialogTitle>Credenciais de {funcionario?.nome ?? ""}</DialogTitle>
         </DialogHeader>
-        <div className="space-y-4 py-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="senha-email">Email de acesso</Label>
-            <Input
-              id="senha-email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="off"
-            />
+
+        {savedPassword ? (
+          <div className="space-y-4 py-2">
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-2">
+              <p className="text-sm font-medium">Senha definida com sucesso</p>
+              <p className="text-xs text-muted-foreground">
+                Copie e envie ao funcionário agora. Depois de fechar esta janela, a senha não poderá mais ser recuperada.
+              </p>
+              <div className="flex items-center gap-2 rounded-md bg-background border p-2">
+                <code className="flex-1 font-mono text-sm select-all break-all">{savedPassword}</code>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => copiarSenha(savedPassword)}
+                  title="Copiar"
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button onClick={onClose}>Fechar</Button>
+            </DialogFooter>
           </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="senha-nova">Nova senha</Label>
-            <Input
-              id="senha-nova"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={6}
-              autoComplete="new-password"
-              placeholder="Mínimo 6 caracteres"
-            />
-            <p className="text-xs text-muted-foreground">
-              {funcionario?.userId
-                ? "A nova senha substituirá a atual."
-                : "Ao definir a senha, a conta do funcionário será criada."}
-            </p>
-          </div>
-        </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={saving}>
-            Cancelar
-          </Button>
-          <Button onClick={salvar} disabled={saving || !password}>
-            {saving ? "Salvando..." : "Salvar"}
-          </Button>
-        </DialogFooter>
+        ) : (
+          <>
+            <div className="space-y-4 py-2">
+              <div className="space-y-1.5">
+                <Label htmlFor="senha-email">Email de acesso</Label>
+                <Input
+                  id="senha-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="off"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="senha-nova">Nova senha</Label>
+                <div className="flex gap-2">
+                  <Input
+                    id="senha-nova"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={6}
+                    autoComplete="new-password"
+                    placeholder="Mínimo 6 caracteres"
+                    className="font-mono"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title={showPassword ? "Ocultar" : "Mostrar"}
+                    onClick={() => setShowPassword((v) => !v)}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Gerar senha"
+                    onClick={() => {
+                      setPassword(gerarSenha());
+                      setShowPassword(true);
+                    }}
+                  >
+                    <Wand2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="icon"
+                    title="Copiar"
+                    onClick={() => password && copiarSenha(password)}
+                    disabled={!password}
+                  >
+                    <Copy className="h-4 w-4" />
+                  </Button>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {funcionario?.userId
+                    ? "A nova senha substituirá a atual. Anote antes de salvar — não é possível ver depois."
+                    : "Ao definir a senha, a conta do funcionário será criada."}
+                </p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={onClose} disabled={saving}>
+                Cancelar
+              </Button>
+              <Button onClick={salvar} disabled={saving || !password}>
+                {saving ? "Salvando..." : "Salvar"}
+              </Button>
+            </DialogFooter>
+          </>
+        )}
       </DialogContent>
     </Dialog>
   );
