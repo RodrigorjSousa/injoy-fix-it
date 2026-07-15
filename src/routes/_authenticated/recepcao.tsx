@@ -337,6 +337,23 @@ function RecepcaoPage() {
                   </div>
                 </div>
 
+                {bloqueado && (
+                  <div className="rounded-xl border-2 border-red-500 bg-red-50 p-3 flex items-start gap-3 shadow-inner">
+                    <div className="shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
+                      <Ban size={22} strokeWidth={3} className="text-white" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black uppercase tracking-widest text-red-700">
+                        Quarto Bloqueado
+                      </p>
+                      <p className="text-sm font-bold text-red-900 leading-snug break-words">
+                        {motivoBloqueio}
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+
                 {q.blinkTroca && (
                   <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
                     ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
