@@ -404,8 +404,7 @@ function RecepcaoPage() {
                         </p>
                       </div>
 
-                      {(q.pagamentoPendente || q.docPendente) &&
-                        q.statusCheckin !== "Realizado" && (
+                      {(q.pagamentoPendente || (q.docPendente && q.pagamentoPendente)) && (
                           <div className="space-y-1.5 pt-1">
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
                               Atenção no Balcão:
@@ -413,7 +412,7 @@ function RecepcaoPage() {
                             <div className="flex flex-wrap gap-1.5">
                               {q.pagamentoPendente && (
                                 <span className="animate-pulse inline-flex items-center gap-1 text-xs font-semibold bg-red-50 border-2 border-red-300 text-red-700 px-2.5 py-1 rounded-lg">
-                                  <DollarSign size={14} /> Pagamento Pendente
+                                  <DollarSign size={14} /> RECEBER NO BALCÃO
                                   {q.pagamentoValor && q.pagamentoValor > 0 ? (
                                     <span className="ml-1 bg-red-600 text-white px-1.5 py-0.5 rounded font-black tracking-wide">
                                       {q.pagamentoValor.toLocaleString("pt-BR", {
@@ -424,9 +423,9 @@ function RecepcaoPage() {
                                   ) : null}
                                 </span>
                               )}
-                              {q.docPendente && (
+                              {q.docPendente && q.pagamentoPendente && (
                                 <span className="animate-pulse inline-flex items-center gap-1 text-xs font-semibold bg-amber-50 border-2 border-amber-300 text-amber-700 px-2.5 py-1 rounded-lg">
-                                  <FileText size={14} /> Documento em Falta
+                                  <FileText size={14} /> DOC PENDENTE
                                 </span>
                               )}
                             </div>
