@@ -815,6 +815,13 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
         funcionarioName={nomeAutomatico ?? ""}
       />
+
+      <RecadoRecepcaoModal
+        open={recadoRecepcaoOpen}
+        onClose={() => setRecadoRecepcaoOpen(false)}
+        unidade={unidadeAtiva}
+        autorNome={nomeAutomatico ?? ""}
+      />
     </div>
   );
 }
