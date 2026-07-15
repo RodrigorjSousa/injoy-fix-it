@@ -385,6 +385,55 @@ function RecepcaoPage() {
                             </div>
                           </div>
                         )}
+
+                      {q.temProximoHospede && (
+                        <div className="mt-2 rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/70 p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+                              ➡️ Próximo hóspede (chega hoje)
+                            </p>
+                            <span className="text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md">
+                              Após check-out
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
+                            <User size={15} className="text-blue-500" />
+                            <span className="truncate">{q.proximoHospede}</span>
+                            {q.proximoPax ? (
+                              <span className="text-[11px] font-normal text-blue-700 bg-white/70 px-2 py-0.5 rounded-md shrink-0 border border-blue-100">
+                                {q.proximoPax} pax
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-1 text-xs text-blue-800">
+                            <Clock size={13} className="text-blue-500" />
+                            Chegada prevista:{" "}
+                            <span className="font-semibold">{q.proximoChegadaHora || "A definir"}</span>
+                          </div>
+                          {(q.proximoPagamentoPendente || q.proximoDocPendente) && (
+                            <div className="flex flex-wrap gap-1.5 pt-0.5">
+                              {q.proximoPagamentoPendente && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-red-50 border border-red-200 text-red-700 px-2 py-0.5 rounded-md">
+                                  <DollarSign size={12} /> Pagamento pendente
+                                  {q.proximoPagamentoValor && q.proximoPagamentoValor > 0 ? (
+                                    <span className="ml-1 bg-red-600 text-white px-1 py-0.5 rounded font-black">
+                                      {q.proximoPagamentoValor.toLocaleString("pt-BR", {
+                                        style: "currency",
+                                        currency: "BRL",
+                                      })}
+                                    </span>
+                                  ) : null}
+                                </span>
+                              )}
+                              {q.proximoDocPendente && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-semibold bg-amber-50 border border-amber-200 text-amber-700 px-2 py-0.5 rounded-md">
+                                  <FileText size={12} /> Doc. em falta
+                                </span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </>
                   ) : (
                     <div className="flex items-center gap-2 text-slate-500 text-sm bg-slate-50 border border-slate-100 rounded-xl p-3">
