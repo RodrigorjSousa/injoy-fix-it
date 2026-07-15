@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
 import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
+import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
@@ -237,6 +238,11 @@ function RecepcaoPage() {
           <span className="sm:hidden">🍹</span>
         </button>
       </div>
+
+      <RecadosDaCamareiraSection
+        unidade={unidadeAtiva}
+        autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+      />
 
       <div className="p-4">
         <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />

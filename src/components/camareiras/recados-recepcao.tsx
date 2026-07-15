@@ -46,6 +46,7 @@ export function RecadosCamareirasSection({
       .from("recados_camareiras")
       .select("*")
       .eq("property", unidade)
+      .eq("direction", "to_camareira")
       .is("room_number", null)
       .is("read_at", null)
       .order("created_at", { ascending: false });
@@ -169,6 +170,7 @@ export function RecadosDoQuartoSection({
       .from("recados_camareiras")
       .select("*")
       .eq("property", unidade)
+      .eq("direction", "to_camareira")
       .eq("room_number", roomNumber)
       .is("read_at", null)
       .order("created_at", { ascending: false });

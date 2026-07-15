@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus } from "lucide-react";
 
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
@@ -8,6 +8,7 @@ import { ExtraTasksModal } from "@/components/camareiras/extra-tasks-modal";
 import { LaundryModal } from "@/components/camareiras/laundry-modal";
 import { PeriodChecklistSection } from "@/components/camareiras/period-checklist";
 import { RecadosCamareirasSection, RecadosDoQuartoSection } from "@/components/camareiras/recados-recepcao";
+import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-modal";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,6 +122,7 @@ function PainelCamareiras() {
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
+  const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
 
 
 
@@ -351,14 +353,23 @@ function PainelCamareiras() {
           <h1 className="text-xl font-bold">Camareiras</h1>
           <p className="text-xs text-slate-400">Mapa de tarefas diárias sincronizado ao Cloudbeds</p>
         </div>
-        <button
-          onClick={sincronizar}
-          disabled={syncing}
-          className="p-2 bg-slate-800 rounded-lg disabled:opacity-60"
-          aria-label="Sincronizar"
-        >
-          <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setRecadoRecepcaoOpen(true)}
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-full font-bold text-xs sm:text-sm text-white bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md shadow-indigo-500/40 hover:brightness-110 active:scale-95 transition-all"
+          >
+            <MessageSquarePlus size={16} />
+            <span className="hidden xs:inline sm:inline">Recado recepção</span>
+          </button>
+          <button
+            onClick={sincronizar}
+            disabled={syncing}
+            className="p-2 bg-slate-800 rounded-lg disabled:opacity-60"
+            aria-label="Sincronizar"
+          >
+            <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
 
@@ -803,6 +814,13 @@ function PainelCamareiras() {
         onClose={() => setAlmoxarifadoOpen(false)}
         unidade={unidadeAtiva}
         funcionarioName={nomeAutomatico ?? ""}
+      />
+
+      <RecadoRecepcaoModal
+        open={recadoRecepcaoOpen}
+        onClose={() => setRecadoRecepcaoOpen(false)}
+        unidade={unidadeAtiva}
+        autorNome={nomeAutomatico ?? ""}
       />
     </div>
   );
