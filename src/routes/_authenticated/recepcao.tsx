@@ -308,13 +308,8 @@ function RecepcaoPage() {
                       <span className={`w-2 h-2 rounded-full ${ocupStyle.dot}`}></span>
                       {ocupStyle.label}
                     </span>
-                    {q.assignedTask && (() => {
-                      const tarefaExibida =
-                        q.assignedTask === "TROCA"
-                          ? "TROCA + ARRUMAÇÃO"
-                          : q.assignedTask === "REVISÃO"
-                            ? "REVISÃO CHECK IN"
-                            : q.assignedTask;
+                    {(() => {
+                      const tarefaExibida = formatTaskLabel(q.assignedTask);
                       return (
                         <span
                           className={`inline-flex items-center text-[10px] font-black px-2.5 py-1 rounded-lg uppercase tracking-wide border ${
