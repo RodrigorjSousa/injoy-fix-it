@@ -474,6 +474,12 @@ function PainelCamareiras() {
                 </div>
               </div>
 
+              <RecadosDoQuartoSection
+                unidade={q.property}
+                roomNumber={q.room_number}
+                camareiraName={nomeAutomatico ?? ""}
+              />
+
               {q.blink_troca && (
                 <span className="w-full text-center inline-flex items-center justify-center gap-1 text-xs font-black bg-red-600 text-white py-2 rounded-xl animate-pulse tracking-widest border-2 border-white shadow-md">
                   ⚠️ TROCA NO CHECK-OUT! (ATENÇÃO)
