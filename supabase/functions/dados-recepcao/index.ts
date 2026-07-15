@@ -130,6 +130,7 @@ serve(async (req) => {
       blinkTroca: boolean
       serviceStatus: string | null
       assignedCamareira: string | null
+      bloqueado: boolean
     }
     const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
     for (const row of camareiraRows ?? []) {
@@ -140,14 +141,17 @@ serve(async (req) => {
       if (st === 'clean' || st === 'limpo' || st === 'inspected') statusLimpeza = 'Limpo'
       else if (st === 'dirty' || st === 'sujo') statusLimpeza = 'Sujo'
       else if (st === 'in_progress' || st === 'em_limpeza' || st === 'em limpeza') statusLimpeza = 'Em Limpeza'
+      const cond = String(row?.condition ?? '').toLowerCase()
       camareiraPorQuarto[key] = {
         status: statusLimpeza,
         assignedTask: row?.assigned_task ?? null,
         blinkTroca: row?.blink_troca === true,
         serviceStatus: row?.service_status ?? null,
         assignedCamareira: row?.assigned_camareira ?? null,
+        bloqueado: cond === 'maintenance',
       }
     }
+
 
 
     // Mapa de todos os quartos físicos a partir do housekeeping
