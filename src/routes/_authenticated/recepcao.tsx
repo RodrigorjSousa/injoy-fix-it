@@ -503,6 +503,19 @@ function RecepcaoPage() {
                         <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
                       </button>
                     )}
+                  {q.ocupacao !== "Bloqueado" && (
+                    <button
+                      onClick={() =>
+                        setRecadoAlvo({
+                          unidade: q.unidade,
+                          quarto: padQuarto(q.quarto),
+                        })
+                      }
+                      className="w-full py-2.5 rounded-xl font-bold text-sm border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 flex items-center justify-center gap-2"
+                    >
+                      <MessageSquarePlus size={16} /> Deixar recado camareira
+                    </button>
+                  )}
                 </div>
 
               </div>
