@@ -1030,6 +1030,45 @@ function LaundryDebtPanel({ unidade }: { unidade: string }) {
         </div>
       </div>
 
+      {batchesComNota.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl overflow-hidden">
+          <div className="bg-amber-500 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2">
+            ⚠️ Lotes com observação (avarias / manchas / instruções)
+          </div>
+          <div className="divide-y divide-amber-200">
+            {batchesComNota.map((b) => (
+              <div key={b.batch_id} className="p-3 flex items-start gap-3">
+                <div className="shrink-0">
+                  <p className="text-xs font-black text-sky-700 font-mono">{b.batch_id}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {formatData(b.sent_at)} · {b.sent_by}
+                  </p>
+                  <span
+                    className={cn(
+                      "inline-block mt-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded",
+                      b.status === "completed"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : b.status === "partial"
+                          ? "bg-amber-200 text-amber-800"
+                          : "bg-sky-100 text-sky-700",
+                    )}
+                  >
+                    {b.status === "completed"
+                      ? "Concluído"
+                      : b.status === "partial"
+                        ? "Parcial"
+                        : "Em trânsito"}
+                  </span>
+                </div>
+                <p className="text-sm text-amber-900 flex-1 leading-snug">{b.notes}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
+
       {consolidado.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-4">
           <p className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">
