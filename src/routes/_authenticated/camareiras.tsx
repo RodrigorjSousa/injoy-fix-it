@@ -436,11 +436,32 @@ function PainelCamareiras() {
             />
           </div>
         ) : (
-          filtrados.map((q) => (
+          filtrados.map((q) => {
+            const bloqueado = q.condition === "maintenance";
+            const motivoBloqueio =
+              (q.room_comment && q.room_comment.trim()) ||
+              "Quarto em manutenção / fora de operação";
+            return (
             <div
               key={`${q.property}-${q.room_number}`}
-              className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4"
+              className={cn(
+                "relative bg-white rounded-2xl p-5 shadow-sm space-y-4",
+                bloqueado
+                  ? "border-2 border-red-500 ring-2 ring-red-200 shadow-red-100"
+                  : "border border-slate-100",
+              )}
             >
+              {bloqueado && (
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute -top-3 -right-3 sm:-top-4 sm:-right-4 z-10"
+                >
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-red-600 border-4 border-white shadow-lg flex items-center justify-center animate-pulse">
+                    <Ban size={28} strokeWidth={3} className="text-white" />
+                  </div>
+                </div>
+              )}
+
               <div className="flex justify-between items-start gap-3">
                 <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight">
@@ -448,7 +469,7 @@ function PainelCamareiras() {
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">{q.room_type || "—"}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className={cn("flex items-center gap-2", bloqueado && "pr-10 sm:pr-12")}>
                   <span
                     className={cn("w-3 h-3 rounded-full", corLegenda(q.color_code))}
                     title={`Estado Cloudbeds: ${q.color_code ?? "—"}`}
@@ -473,6 +494,22 @@ function PainelCamareiras() {
                   })()}
                 </div>
               </div>
+
+              {bloqueado && (
+                <div className="rounded-xl border-2 border-red-500 bg-red-50 p-3 flex items-start gap-3 shadow-inner">
+                  <div className="shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
+                    <Ban size={22} strokeWidth={3} className="text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-red-700">
+                      Quarto Bloqueado
+                    </p>
+                    <p className="text-sm font-bold text-red-900 leading-snug break-words">
+                      {motivoBloqueio}
+                    </p>
+                  </div>
+                </div>
+              )}
 
               <RecadosDoQuartoSection
                 unidade={q.property}
