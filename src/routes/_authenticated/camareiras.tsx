@@ -407,6 +407,8 @@ function PainelCamareiras() {
 
       <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
 
+      <RecadosCamareirasSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
+
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {loading && quartos.length === 0 ? (
