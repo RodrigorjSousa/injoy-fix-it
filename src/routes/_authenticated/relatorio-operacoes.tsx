@@ -944,6 +944,29 @@ function LaundryDebtPanel({ unidade }: { unidade: string }) {
     },
   });
 
+  const { data: batchesComNota = [] } = useQuery({
+    queryKey: ["laundry_batches_notes", unidade],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from("laundry_batches" as any)
+        .select("batch_id, status, sent_by, sent_at, notes")
+        .eq("property", unidade)
+        .not("notes", "is", null)
+        .order("sent_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data as unknown as {
+        batch_id: string;
+        status: string;
+        sent_by: string;
+        sent_at: string;
+        notes: string;
+      }[]) ?? [];
+    },
+  });
+
+
   const pendentes = debts.filter((d) => d.status === "pending");
   const resolvidos = debts.filter((d) => d.status === "resolved");
   const totalPecas = pendentes.reduce((s, d) => s + d.quantity_missing, 0);
