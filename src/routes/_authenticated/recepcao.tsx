@@ -66,6 +66,13 @@ interface QuartoRecepcao {
   docPendente: boolean;
   statusCheckin: StatusCheckin;
   temReserva: boolean;
+  proximoHospede?: string;
+  proximoChegadaHora?: string;
+  proximoPax?: number;
+  proximoPagamentoPendente?: boolean;
+  proximoPagamentoValor?: number;
+  proximoDocPendente?: boolean;
+  temProximoHospede?: boolean;
 }
 
 const OCUPACAO_STYLE: Record<
