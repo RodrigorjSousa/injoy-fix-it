@@ -420,6 +420,15 @@ function ReceberLimpo({
                     </p>
                   </div>
                 </div>
+                {b.notes ? (
+                  <div className="mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                    <AlertTriangle size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-amber-200 leading-snug">
+                      <span className="font-black uppercase tracking-wider">Obs:</span>{" "}
+                      {b.notes}
+                    </p>
+                  </div>
+                ) : null}
               </button>
             );
           })}
