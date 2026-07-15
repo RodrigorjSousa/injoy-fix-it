@@ -725,6 +725,22 @@ function PainelCamareiras() {
                 </button>
               )}
 
+              {q.property === "Ipanema" &&
+                q.guest_name &&
+                q.guest_name !== "Quarto Vazio" && (
+                  <button
+                    onClick={() => fazerCheckoutCloudbeds(q)}
+                    disabled={checkoutLoading === `${q.property}-${q.room_number}`}
+                    className="w-full py-3 rounded-xl font-black text-sm uppercase tracking-wider bg-gradient-to-br from-rose-600 to-red-700 hover:from-rose-700 hover:to-red-800 text-white flex items-center justify-center gap-2 shadow-md shadow-red-500/30 disabled:opacity-60 disabled:cursor-not-allowed transition-all"
+                    title="Fazer check-out do hóspede diretamente no Cloudbeds"
+                  >
+                    <LogOut size={16} />
+                    {checkoutLoading === `${q.property}-${q.room_number}`
+                      ? "Fazendo check-out..."
+                      : "Check-out no Cloudbeds"}
+                  </button>
+                )}
+
               <textarea
                 value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
                 onChange={(e) =>
