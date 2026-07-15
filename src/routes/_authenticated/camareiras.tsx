@@ -562,7 +562,7 @@ function PainelCamareiras() {
                         ) : null}
                       </span>
                     )}
-                    {q.has_pending_docs && (
+                    {q.has_pending_docs && q.has_pending_payment && (
                       <span className="inline-flex items-center gap-1 text-[10px] font-extrabold bg-amber-50 text-amber-700 px-2 py-1 rounded-md border border-amber-200">
                         <FileText size={12} /> DOC PENDENTE
                       </span>
