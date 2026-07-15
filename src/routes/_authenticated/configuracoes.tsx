@@ -210,6 +210,22 @@ function Configuracoes() {
           </div>
         </div>
 
+        <div className="space-y-2">
+          <Label htmlFor="senha-inicial">Senha (opcional)</Label>
+          <Input
+            id="senha-inicial"
+            type="password"
+            value={senhaInicial}
+            onChange={(e) => setSenhaInicial(e.target.value)}
+            placeholder="Deixe em branco para o funcionário definir no primeiro acesso"
+            minLength={6}
+            autoComplete="new-password"
+          />
+          <p className="text-xs text-muted-foreground">
+            Se preencher, o funcionário já pode entrar com esta senha. Caso contrário, ele mesmo define no primeiro acesso.
+          </p>
+        </div>
+
         {tipo === "tecnico" && (
           <div className="space-y-2">
             <Label>Categorias atendidas</Label>
