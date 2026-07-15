@@ -13,6 +13,7 @@ import {
   ClipboardCheck,
   GlassWater,
   MessageSquarePlus,
+  Ban,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
