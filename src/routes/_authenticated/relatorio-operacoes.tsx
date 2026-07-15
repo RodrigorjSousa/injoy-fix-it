@@ -944,6 +944,29 @@ function LaundryDebtPanel({ unidade }: { unidade: string }) {
     },
   });
 
+  const { data: batchesComNota = [] } = useQuery({
+    queryKey: ["laundry_batches_notes", unidade],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        .from("laundry_batches" as any)
+        .select("batch_id, status, sent_by, sent_at, notes")
+        .eq("property", unidade)
+        .not("notes", "is", null)
+        .order("sent_at", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data as unknown as {
+        batch_id: string;
+        status: string;
+        sent_by: string;
+        sent_at: string;
+        notes: string;
+      }[]) ?? [];
+    },
+  });
+
+
   const pendentes = debts.filter((d) => d.status === "pending");
   const resolvidos = debts.filter((d) => d.status === "resolved");
   const totalPecas = pendentes.reduce((s, d) => s + d.quantity_missing, 0);
@@ -1006,6 +1029,45 @@ function LaundryDebtPanel({ unidade }: { unidade: string }) {
           <p className="text-4xl font-black text-emerald-600 mt-2">{resolvidos.length}</p>
         </div>
       </div>
+
+      {batchesComNota.length > 0 && (
+        <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl overflow-hidden">
+          <div className="bg-amber-500 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2">
+            ⚠️ Lotes com observação (avarias / manchas / instruções)
+          </div>
+          <div className="divide-y divide-amber-200">
+            {batchesComNota.map((b) => (
+              <div key={b.batch_id} className="p-3 flex items-start gap-3">
+                <div className="shrink-0">
+                  <p className="text-xs font-black text-sky-700 font-mono">{b.batch_id}</p>
+                  <p className="text-[10px] text-slate-500">
+                    {formatData(b.sent_at)} · {b.sent_by}
+                  </p>
+                  <span
+                    className={cn(
+                      "inline-block mt-1 text-[9px] font-black uppercase px-1.5 py-0.5 rounded",
+                      b.status === "completed"
+                        ? "bg-emerald-100 text-emerald-700"
+                        : b.status === "partial"
+                          ? "bg-amber-200 text-amber-800"
+                          : "bg-sky-100 text-sky-700",
+                    )}
+                  >
+                    {b.status === "completed"
+                      ? "Concluído"
+                      : b.status === "partial"
+                        ? "Parcial"
+                        : "Em trânsito"}
+                  </span>
+                </div>
+                <p className="text-sm text-amber-900 flex-1 leading-snug">{b.notes}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+
 
       {consolidado.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl p-4">

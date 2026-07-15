@@ -47,6 +47,7 @@ type Batch = {
   sent_at: string;
   status: string;
   items_sent: ItemSent[];
+  notes?: string | null;
 };
 
 interface Props {
@@ -169,6 +170,7 @@ function EnviarSujo({
   onDone: () => void;
 }) {
   const [dados, setDados] = useState<Record<string, string>>({});
+  const [notas, setNotas] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<string | null>(null);
 
@@ -199,6 +201,7 @@ function EnviarSujo({
         sent_by: camareiraName || "—",
         status: "transit",
         items_sent,
+        notes: notas.trim() ? notas.trim() : null,
       });
       if (error) throw error;
       setCriado(batch_id);
@@ -278,7 +281,23 @@ function EnviarSujo({
           </tbody>
         </table>
       </div>
-      <div className="p-4 border-t border-slate-800">
+      <div className="p-4 border-t border-slate-800 space-y-3">
+        <div>
+          <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
+            <AlertTriangle size={12} /> Observações do Lote (Avarias ou Manchas)
+          </label>
+          <textarea
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="Ex.: 2 lençóis enviados com mancha de vinho para lavagem química"
+            className="w-full bg-slate-800 border border-slate-700 focus:border-amber-500 rounded-md px-3 py-2 text-sm text-white outline-none resize-none placeholder:text-slate-500"
+          />
+          <p className="text-[10px] text-slate-500 mt-1">
+            Este alerta aparece para Recepção e Gestor no painel do lote.
+          </p>
+        </div>
         <button
           onClick={enviar}
           disabled={!canSubmit}
@@ -316,7 +335,7 @@ function ReceberLimpo({
     setLoading(true);
     const { data, error } = await supabase
       .from("laundry_batches" as any)
-      .select("batch_id, property, sent_by, sent_at, status, items_sent")
+      .select("batch_id, property, sent_by, sent_at, status, items_sent, notes")
       .eq("property", unidade)
       .in("status", ["transit", "partial"])
       .order("sent_at", { ascending: false });
@@ -401,6 +420,15 @@ function ReceberLimpo({
                     </p>
                   </div>
                 </div>
+                {b.notes ? (
+                  <div className="mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                    <AlertTriangle size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-amber-200 leading-snug">
+                      <span className="font-black uppercase tracking-wider">Obs:</span>{" "}
+                      {b.notes}
+                    </p>
+                  </div>
+                ) : null}
               </button>
             );
           })}
@@ -496,6 +524,17 @@ function ContagemRetorno({
           <p className="text-sm font-black text-sky-300">{batch.batch_id}</p>
         </div>
       </div>
+      {batch.notes ? (
+        <div className="mx-3 mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/40 rounded-lg p-3">
+          <AlertTriangle size={16} className="text-amber-300 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+              Observações do envio
+            </p>
+            <p className="text-xs text-amber-100 mt-0.5 leading-snug">{batch.notes}</p>
+          </div>
+        </div>
+      ) : null}
       <div className="overflow-auto flex-1">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 z-10">

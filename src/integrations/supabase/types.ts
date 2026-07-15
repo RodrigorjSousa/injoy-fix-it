@@ -531,6 +531,7 @@ export type Database = {
           items_received: Json | null
           items_sent: Json
           missing_items: Json | null
+          notes: string | null
           property: string
           received_at: string | null
           received_by: string | null
@@ -545,6 +546,7 @@ export type Database = {
           items_received?: Json | null
           items_sent: Json
           missing_items?: Json | null
+          notes?: string | null
           property: string
           received_at?: string | null
           received_by?: string | null
@@ -559,6 +561,7 @@ export type Database = {
           items_received?: Json | null
           items_sent?: Json
           missing_items?: Json | null
+          notes?: string | null
           property?: string
           received_at?: string | null
           received_by?: string | null
