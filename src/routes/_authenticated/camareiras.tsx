@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
+import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import {
   EmptyState,
   ErrorState,
@@ -475,12 +476,7 @@ function PainelCamareiras() {
                     title={`Estado Cloudbeds: ${q.color_code ?? "—"}`}
                   />
                   {(() => {
-                    const tarefaExibida =
-                      q.assigned_task === "TROCA"
-                        ? "TROCA + ARRUMAÇÃO"
-                        : q.assigned_task === "REVISÃO"
-                          ? "REVISÃO CHECK IN"
-                          : (q.assigned_task ?? "VERIFICAÇÃO");
+                    const tarefaExibida = formatTaskLabel(q.assigned_task);
                     return (
                       <span
                         className={cn(
@@ -686,7 +682,7 @@ function PainelCamareiras() {
                 </>
               )}
 
-              {q.property === "Ipanema" && !q.is_dnd && (q.assigned_task === "REVISÃO" || q.assigned_task === "GERAL - CHECK-IN") && (
+              {q.property === "Ipanema" && !q.is_dnd && isCheckInTask(q.assigned_task) && (
                 <button
                   onClick={() => setVistoriaPara(q)}
                   className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
