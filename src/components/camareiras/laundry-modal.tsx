@@ -524,6 +524,17 @@ function ContagemRetorno({
           <p className="text-sm font-black text-sky-300">{batch.batch_id}</p>
         </div>
       </div>
+      {batch.notes ? (
+        <div className="mx-3 mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/40 rounded-lg p-3">
+          <AlertTriangle size={16} className="text-amber-300 mt-0.5 shrink-0" />
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">
+              Observações do envio
+            </p>
+            <p className="text-xs text-amber-100 mt-0.5 leading-snug">{batch.notes}</p>
+          </div>
+        </div>
+      ) : null}
       <div className="overflow-auto flex-1">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 z-10">
