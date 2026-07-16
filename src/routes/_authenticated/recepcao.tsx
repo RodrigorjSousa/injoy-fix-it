@@ -595,25 +595,41 @@ function RecepcaoPage() {
                     </div>
                   )}
                   {q.ocupacao !== "Bloqueado" &&
-                    (vistoriadosHoje.has(padQuarto(q.quarto)) ? (
-                      <div
-                        className="w-full py-2.5 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center gap-2 transition-all duration-300 animate-fade-in"
-                      >
-                        <CheckCircle2 size={16} /> VISTORIADO
-                      </div>
-                    ) : isCheckInTask(q.assignedTask) ? (
-                      <button
-                        onClick={() =>
-                          setVistoriaAlvo({
-                            unidade: q.unidade,
-                            roomNumber: padQuarto(q.quarto),
-                          })
-                        }
-                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
-                      >
-                        <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
-                      </button>
-                    ) : null)}
+                    (() => {
+                      const v = vistoriadosHoje.get(padQuarto(q.quarto));
+                      if (v) {
+                        const hora = new Date(v.hora).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        return (
+                          <div className="w-full py-2 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex flex-col items-center justify-center gap-0.5 transition-all duration-300 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 size={16} /> VISTORIADO
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-700/80 normal-case">
+                              por {v.nome} · {hora}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (isCheckInTask(q.assignedTask)) {
+                        return (
+                          <button
+                            onClick={() =>
+                              setVistoriaAlvo({
+                                unidade: q.unidade,
+                                roomNumber: padQuarto(q.quarto),
+                              })
+                            }
+                            className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
+                          >
+                            <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
