@@ -146,20 +146,10 @@ serve(async (req) => {
             )
           }) ?? mainGuest
 
-          // Pax do quarto: nº de hóspedes cujas rooms incluem esse quarto.
-          // Se a reserva não faz split por hóspede, usa o total da reserva.
-          const paxNoQuarto = guestsAll.filter((g: any) => {
-            const rs: any[] = [
-              ...(Array.isArray(g?.rooms) ? g.rooms : []),
-              ...(Array.isArray(g?.unassignedRooms) ? g.unassignedRooms : []),
-            ]
-            return rs.some((info) =>
-              String(info?.roomName ?? info?.roomNumber ?? info?.assignedRoomNumber ?? '').trim() ===
-                roomNumber,
-            )
-          }).length
-          const totalReserva = (parseInt(r.adults ?? 1, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
-          const numberOfGuests = paxNoQuarto > 0 ? paxNoQuarto : totalReserva
+          // Pax: SEMPRE usa o valor da reserva no Cloudbeds (adults + children)
+          // como fonte da verdade, independente de split por hóspede/quarto.
+          const numberOfGuests =
+            (parseInt(r.adults ?? 0, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
 
           return {
             ...r,
