@@ -35,7 +35,7 @@ const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
   { to: "/servicos", label: "Serviços", icon: Wrench },
-  { to: "/painel", label: "Manutenção", icon: Wrench },
+  { to: "/manutencao", label: "Manutenção", icon: Wrench },
   // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
@@ -48,6 +48,7 @@ const ALL_NAV: NavItem[] = [
     icon: ShieldCheck,
     show: isAdmin,
     children: [
+      { to: "/painel", label: "PAINEL", icon: LayoutGrid },
       { to: "/dashboard", label: "DASHBOARD", icon: LayoutDashboard },
       { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
       { to: "/relatorio-operacoes", label: "LAVANDERIA", icon: ClipboardList },
@@ -81,7 +82,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Flat list for mobile bottom nav — apenas abas operacionais (máx 5).
   // Abas de administrador (Dashboard/Gestão/Equipe) ficam ocultas no mobile.
-  const MOBILE_ALLOWED = new Set(["/servicos", "/painel", "/recepcao", "/camareiras", "/chat"]);
+  const MOBILE_ALLOWED = new Set(["/servicos", "/manutencao", "/recepcao", "/camareiras", "/chat"]);
   const mobileNav: NavChild[] = nav
     .flatMap((n) =>
       n.children
