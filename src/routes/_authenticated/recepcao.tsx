@@ -657,8 +657,11 @@ function RecepcaoPage() {
           onClose={() => setVistoriaAlvo(null)}
           onSuccess={() => {
             setVistoriadosHoje((prev) => {
-              const next = new Set(prev);
-              next.add(vistoriaAlvo.roomNumber);
+              const next = new Map(prev);
+              next.set(vistoriaAlvo.roomNumber, {
+                nome: me?.funcionario?.nome ?? me?.email ?? "Recepção",
+                hora: new Date().toISOString(),
+              });
               return next;
             });
             carregar(unidadeAtiva);
