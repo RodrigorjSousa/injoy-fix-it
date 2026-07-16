@@ -126,7 +126,9 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
-  const [vistoriadosHoje, setVistoriadosHoje] = useState<Set<string>>(new Set());
+  const [vistoriadosHoje, setVistoriadosHoje] = useState<
+    Map<string, { nome: string; hora: string }>
+  >(new Map());
 
   const getCutoff = useCallback(() => {
     const now = new Date();
@@ -141,14 +143,24 @@ function RecepcaoPage() {
       const cutoff = getCutoff();
       const { data, error } = await supabase
         .from("room_inspections")
-        .select("room_number, created_at")
+        .select("room_number, inspector_name, created_at")
         .eq("property", unidade)
-        .gte("created_at", cutoff.toISOString());
+        .gte("created_at", cutoff.toISOString())
+        .order("created_at", { ascending: false });
       if (error) {
         console.error("[recepcao] vistoriados:", error);
         return;
       }
-      setVistoriadosHoje(new Set((data ?? []).map((r) => r.room_number)));
+      const map = new Map<string, { nome: string; hora: string }>();
+      (data ?? []).forEach((r) => {
+        if (!map.has(r.room_number)) {
+          map.set(r.room_number, {
+            nome: r.inspector_name ?? "Recepção",
+            hora: r.created_at,
+          });
+        }
+      });
+      setVistoriadosHoje(map);
     },
     [getCutoff],
   );
@@ -215,7 +227,7 @@ function RecepcaoPage() {
     next.setHours(23, 0, 5, 0);
     if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
     const timer = setTimeout(() => {
-      setVistoriadosHoje(new Set());
+      setVistoriadosHoje(new Map());
       carregarVistoriados(unidadeAtiva);
     }, next.getTime() - now.getTime());
 
@@ -583,25 +595,41 @@ function RecepcaoPage() {
                     </div>
                   )}
                   {q.ocupacao !== "Bloqueado" &&
-                    (vistoriadosHoje.has(padQuarto(q.quarto)) ? (
-                      <div
-                        className="w-full py-2.5 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center gap-2 transition-all duration-300 animate-fade-in"
-                      >
-                        <CheckCircle2 size={16} /> VISTORIADO
-                      </div>
-                    ) : isCheckInTask(q.assignedTask) ? (
-                      <button
-                        onClick={() =>
-                          setVistoriaAlvo({
-                            unidade: q.unidade,
-                            roomNumber: padQuarto(q.quarto),
-                          })
-                        }
-                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
-                      >
-                        <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
-                      </button>
-                    ) : null)}
+                    (() => {
+                      const v = vistoriadosHoje.get(padQuarto(q.quarto));
+                      if (v) {
+                        const hora = new Date(v.hora).toLocaleTimeString("pt-BR", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        });
+                        return (
+                          <div className="w-full py-2 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex flex-col items-center justify-center gap-0.5 transition-all duration-300 animate-fade-in">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 size={16} /> VISTORIADO
+                            </div>
+                            <span className="text-[10px] font-semibold text-emerald-700/80 normal-case">
+                              por {v.nome} · {hora}
+                            </span>
+                          </div>
+                        );
+                      }
+                      if (isCheckInTask(q.assignedTask)) {
+                        return (
+                          <button
+                            onClick={() =>
+                              setVistoriaAlvo({
+                                unidade: q.unidade,
+                                roomNumber: padQuarto(q.quarto),
+                              })
+                            }
+                            className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
+                          >
+                            <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
+                          </button>
+                        );
+                      }
+                      return null;
+                    })()}
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
@@ -629,8 +657,11 @@ function RecepcaoPage() {
           onClose={() => setVistoriaAlvo(null)}
           onSuccess={() => {
             setVistoriadosHoje((prev) => {
-              const next = new Set(prev);
-              next.add(vistoriaAlvo.roomNumber);
+              const next = new Map(prev);
+              next.set(vistoriaAlvo.roomNumber, {
+                nome: me?.funcionario?.nome ?? me?.email ?? "Recepção",
+                hora: new Date().toISOString(),
+              });
               return next;
             });
             carregar(unidadeAtiva);
