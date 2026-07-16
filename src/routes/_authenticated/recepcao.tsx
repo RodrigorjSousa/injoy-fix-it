@@ -198,6 +198,33 @@ function RecepcaoPage() {
     };
   }, [unidadeAtiva, carregar]);
 
+  useEffect(() => {
+    carregarVistoriados(unidadeAtiva);
+    const channel = supabase
+      .channel(`recepcao-inspections-${unidadeAtiva}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "room_inspections", filter: `property=eq.${unidadeAtiva}` },
+        () => carregarVistoriados(unidadeAtiva),
+      )
+      .subscribe();
+
+    // Reset at 23:00
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(23, 0, 5, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    const timer = setTimeout(() => {
+      setVistoriadosHoje(new Set());
+      carregarVistoriados(unidadeAtiva);
+    }, next.getTime() - now.getTime());
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearTimeout(timer);
+    };
+  }, [unidadeAtiva, carregarVistoriados]);
+
   const fazerCheckin = (id: string | number) => {
     setCheckinsLocais((prev) => new Set(prev).add(id));
     toast.success("Check-in realizado");
