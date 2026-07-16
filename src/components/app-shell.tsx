@@ -35,7 +35,7 @@ const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
   { to: "/servicos", label: "Serviços", icon: Wrench },
-  { to: "/painel", label: "Painel", icon: LayoutGrid },
+  { to: "/painel", label: "Manutenção", icon: Wrench },
   // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
