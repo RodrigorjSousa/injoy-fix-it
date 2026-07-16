@@ -583,7 +583,13 @@ function RecepcaoPage() {
                     </div>
                   )}
                   {q.ocupacao !== "Bloqueado" &&
-                    isCheckInTask(q.assignedTask) && (
+                    (vistoriadosHoje.has(padQuarto(q.quarto)) ? (
+                      <div
+                        className="w-full py-2.5 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center gap-2 transition-all duration-300 animate-fade-in"
+                      >
+                        <CheckCircle2 size={16} /> VISTORIADO
+                      </div>
+                    ) : isCheckInTask(q.assignedTask) ? (
                       <button
                         onClick={() =>
                           setVistoriaAlvo({
@@ -591,11 +597,11 @@ function RecepcaoPage() {
                             roomNumber: padQuarto(q.quarto),
                           })
                         }
-                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
                       >
                         <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
                       </button>
-                    )}
+                    ) : null)}
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
