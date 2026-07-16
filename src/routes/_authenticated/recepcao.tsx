@@ -126,6 +126,32 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
+  const [vistoriadosHoje, setVistoriadosHoje] = useState<Set<string>>(new Set());
+
+  const getCutoff = useCallback(() => {
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setHours(23, 0, 0, 0);
+    if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
+    return cutoff;
+  }, []);
+
+  const carregarVistoriados = useCallback(
+    async (unidade: Unidade) => {
+      const cutoff = getCutoff();
+      const { data, error } = await supabase
+        .from("room_inspections")
+        .select("room_number, created_at")
+        .eq("property", unidade)
+        .gte("created_at", cutoff.toISOString());
+      if (error) {
+        console.error("[recepcao] vistoriados:", error);
+        return;
+      }
+      setVistoriadosHoje(new Set((data ?? []).map((r) => r.room_number)));
+    },
+    [getCutoff],
+  );
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
