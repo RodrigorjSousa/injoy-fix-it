@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as ManutencaoRouteImport } from './routes/manutencao'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
@@ -34,6 +35,11 @@ import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authent
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 
+const ManutencaoRoute = ManutencaoRouteImport.update({
+  id: '/manutencao',
+  path: '/manutencao',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -163,6 +169,7 @@ const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
+  '/manutencao': typeof ManutencaoRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByFullPath {
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
 }
 export interface FileRoutesByTo {
+  '/manutencao': typeof ManutencaoRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
@@ -213,6 +221,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
+  '/manutencao': typeof ManutencaoRoute
   '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
@@ -241,6 +250,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/auth'
+    | '/manutencao'
     | '/almoxarifado'
     | '/boas-vindas'
     | '/camareiras'
@@ -264,6 +274,7 @@ export interface FileRouteTypes {
     | '/api/public/cloudbeds-webhook'
   fileRoutesByTo: FileRoutesByTo
   to:
+    | '/manutencao'
     | '/almoxarifado'
     | '/boas-vindas'
     | '/camareiras'
@@ -290,6 +301,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_authenticated'
     | '/auth'
+    | '/manutencao'
     | '/_authenticated/almoxarifado'
     | '/_authenticated/boas-vindas'
     | '/_authenticated/camareiras'
@@ -317,11 +329,19 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  ManutencaoRoute: typeof ManutencaoRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/manutencao': {
+      id: '/manutencao'
+      path: '/manutencao'
+      fullPath: '/manutencao'
+      preLoaderRoute: typeof ManutencaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -555,18 +575,9 @@ const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  ManutencaoRoute: ManutencaoRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
