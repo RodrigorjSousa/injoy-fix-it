@@ -126,6 +126,32 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
+  const [vistoriadosHoje, setVistoriadosHoje] = useState<Set<string>>(new Set());
+
+  const getCutoff = useCallback(() => {
+    const now = new Date();
+    const cutoff = new Date(now);
+    cutoff.setHours(23, 0, 0, 0);
+    if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
+    return cutoff;
+  }, []);
+
+  const carregarVistoriados = useCallback(
+    async (unidade: Unidade) => {
+      const cutoff = getCutoff();
+      const { data, error } = await supabase
+        .from("room_inspections")
+        .select("room_number, created_at")
+        .eq("property", unidade)
+        .gte("created_at", cutoff.toISOString());
+      if (error) {
+        console.error("[recepcao] vistoriados:", error);
+        return;
+      }
+      setVistoriadosHoje(new Set((data ?? []).map((r) => r.room_number)));
+    },
+    [getCutoff],
+  );
 
   const carregar = useCallback(async (unidade: Unidade) => {
     setCarregando(true);
@@ -171,6 +197,33 @@ function RecepcaoPage() {
       supabase.removeChannel(channel);
     };
   }, [unidadeAtiva, carregar]);
+
+  useEffect(() => {
+    carregarVistoriados(unidadeAtiva);
+    const channel = supabase
+      .channel(`recepcao-inspections-${unidadeAtiva}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "room_inspections", filter: `property=eq.${unidadeAtiva}` },
+        () => carregarVistoriados(unidadeAtiva),
+      )
+      .subscribe();
+
+    // Reset at 23:00
+    const now = new Date();
+    const next = new Date(now);
+    next.setHours(23, 0, 5, 0);
+    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    const timer = setTimeout(() => {
+      setVistoriadosHoje(new Set());
+      carregarVistoriados(unidadeAtiva);
+    }, next.getTime() - now.getTime());
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearTimeout(timer);
+    };
+  }, [unidadeAtiva, carregarVistoriados]);
 
   const fazerCheckin = (id: string | number) => {
     setCheckinsLocais((prev) => new Set(prev).add(id));
@@ -530,7 +583,13 @@ function RecepcaoPage() {
                     </div>
                   )}
                   {q.ocupacao !== "Bloqueado" &&
-                    isCheckInTask(q.assignedTask) && (
+                    (vistoriadosHoje.has(padQuarto(q.quarto)) ? (
+                      <div
+                        className="w-full py-2.5 rounded-xl font-bold text-sm bg-emerald-100 border border-emerald-300 text-emerald-800 flex items-center justify-center gap-2 transition-all duration-300 animate-fade-in"
+                      >
+                        <CheckCircle2 size={16} /> VISTORIADO
+                      </div>
+                    ) : isCheckInTask(q.assignedTask) ? (
                       <button
                         onClick={() =>
                           setVistoriaAlvo({
@@ -538,11 +597,11 @@ function RecepcaoPage() {
                             roomNumber: padQuarto(q.quarto),
                           })
                         }
-                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
+                        className="w-full py-2.5 rounded-xl font-bold text-sm border border-sky-200 bg-sky-50 hover:bg-sky-100 text-sky-700 flex items-center justify-center gap-2 transition-all duration-300"
                       >
                         <ClipboardCheck size={16} /> 🔍 Vistoriar Quarto
                       </button>
-                    )}
+                    ) : null)}
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
@@ -568,7 +627,15 @@ function RecepcaoPage() {
         <VistoriaModal
           open={!!vistoriaAlvo}
           onClose={() => setVistoriaAlvo(null)}
-          onSuccess={() => carregar(unidadeAtiva)}
+          onSuccess={() => {
+            setVistoriadosHoje((prev) => {
+              const next = new Set(prev);
+              next.add(vistoriaAlvo.roomNumber);
+              return next;
+            });
+            carregar(unidadeAtiva);
+            carregarVistoriados(unidadeAtiva);
+          }}
           unidade={vistoriaAlvo.unidade}
           roomNumber={vistoriaAlvo.roomNumber}
         />
