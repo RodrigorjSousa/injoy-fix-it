@@ -126,7 +126,9 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
-  const [vistoriadosHoje, setVistoriadosHoje] = useState<Set<string>>(new Set());
+  const [vistoriadosHoje, setVistoriadosHoje] = useState<
+    Map<string, { nome: string; hora: string }>
+  >(new Map());
 
   const getCutoff = useCallback(() => {
     const now = new Date();
@@ -141,14 +143,24 @@ function RecepcaoPage() {
       const cutoff = getCutoff();
       const { data, error } = await supabase
         .from("room_inspections")
-        .select("room_number, created_at")
+        .select("room_number, inspector_name, created_at")
         .eq("property", unidade)
-        .gte("created_at", cutoff.toISOString());
+        .gte("created_at", cutoff.toISOString())
+        .order("created_at", { ascending: false });
       if (error) {
         console.error("[recepcao] vistoriados:", error);
         return;
       }
-      setVistoriadosHoje(new Set((data ?? []).map((r) => r.room_number)));
+      const map = new Map<string, { nome: string; hora: string }>();
+      (data ?? []).forEach((r) => {
+        if (!map.has(r.room_number)) {
+          map.set(r.room_number, {
+            nome: r.inspector_name ?? "Recepção",
+            hora: r.created_at,
+          });
+        }
+      });
+      setVistoriadosHoje(map);
     },
     [getCutoff],
   );
