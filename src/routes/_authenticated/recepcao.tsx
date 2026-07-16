@@ -227,7 +227,7 @@ function RecepcaoPage() {
     next.setHours(23, 0, 5, 0);
     if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
     const timer = setTimeout(() => {
-      setVistoriadosHoje(new Set());
+      setVistoriadosHoje(new Map());
       carregarVistoriados(unidadeAtiva);
     }, next.getTime() - now.getTime());
 
