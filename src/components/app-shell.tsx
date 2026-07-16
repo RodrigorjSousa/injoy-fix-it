@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -35,7 +35,7 @@ const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
   { to: "/servicos", label: "Serviços", icon: Wrench },
-  { to: "/manutencao", label: "Manutenção", icon: Wrench },
+  { to: "/manutencao", label: "Manutenção", icon: Cog },
   // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
