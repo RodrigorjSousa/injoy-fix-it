@@ -627,7 +627,15 @@ function RecepcaoPage() {
         <VistoriaModal
           open={!!vistoriaAlvo}
           onClose={() => setVistoriaAlvo(null)}
-          onSuccess={() => carregar(unidadeAtiva)}
+          onSuccess={() => {
+            setVistoriadosHoje((prev) => {
+              const next = new Set(prev);
+              next.add(vistoriaAlvo.roomNumber);
+              return next;
+            });
+            carregar(unidadeAtiva);
+            carregarVistoriados(unidadeAtiva);
+          }}
           unidade={vistoriaAlvo.unidade}
           roomNumber={vistoriaAlvo.roomNumber}
         />
