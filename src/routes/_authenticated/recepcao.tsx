@@ -718,6 +718,12 @@ function RecepcaoPage() {
         unidade={unidadeAtiva}
         origem="recepcao"
       />
+
+      <TrocaTurnoModal
+        open={trocaTurnoOpen}
+        onClose={() => setTrocaTurnoOpen(false)}
+        unidade={unidadeAtiva}
+      />
     </div>
   );
 }
