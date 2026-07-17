@@ -14,6 +14,7 @@ import {
   GlassWater,
   MessageSquarePlus,
   Ban,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
