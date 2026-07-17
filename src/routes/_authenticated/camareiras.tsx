@@ -864,6 +864,15 @@ function PainelCamareiras() {
         funcionarioName={nomeAutomatico ?? ""}
       />
 
+      <SolicitarCompraModal
+        open={compraOpen}
+        onClose={() => setCompraOpen(false)}
+        unidade={unidadeAtiva}
+        origem="camareira"
+      />
+
+
+
       <RecadoRecepcaoModal
         open={recadoRecepcaoOpen}
         onClose={() => setRecadoRecepcaoOpen(false)}
