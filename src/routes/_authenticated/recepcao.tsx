@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Ban,
   ShoppingBag,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
