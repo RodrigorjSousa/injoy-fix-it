@@ -284,6 +284,7 @@ function Servicos() {
 
 function AlmoxarifadoTecnicoBotao() {
   const [open, setOpen] = useState(false);
+  const [openEstoque, setOpenEstoque] = useState(false);
   const { unidade } = useUnidade();
   const { data: me } = useMe();
   const nome = me?.funcionario?.nome || "Técnico";
@@ -305,11 +306,32 @@ function AlmoxarifadoTecnicoBotao() {
         </div>
         <ChevronRight className="h-5 w-5 opacity-80" />
       </button>
+      <button
+        onClick={() => setOpenEstoque(true)}
+        className="w-full flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-200 hover:border-purple-300 hover:bg-purple-50/40 text-slate-800 shadow-sm transition-all"
+      >
+        <div className="h-11 w-11 rounded-xl bg-purple-100 text-purple-700 grid place-items-center shrink-0">
+          <Package className="h-5 w-5" />
+        </div>
+        <div className="text-left flex-1 min-w-0">
+          <p className="text-xs font-bold uppercase tracking-widest text-purple-600">📋 Estoque Geral</p>
+          <p className="text-base font-black">Consultar estoque (somente leitura)</p>
+          <p className="text-[11px] text-slate-500">
+            Veja o que está disponível antes de solicitar retirada
+          </p>
+        </div>
+        <ChevronRight className="h-5 w-5 opacity-60" />
+      </button>
       <RetiradaAlmoxarifadoModal
         open={open}
         onClose={() => setOpen(false)}
         unidade={unidade}
         funcionarioName={nome}
+      />
+      <EstoqueGeralModal
+        open={openEstoque}
+        onClose={() => setOpenEstoque(false)}
+        unidade={unidade}
       />
     </>
   );
