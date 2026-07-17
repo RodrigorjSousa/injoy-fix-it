@@ -669,7 +669,7 @@ function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: strin
             className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="">Selecione…</option>
-            {SETORES.map((s) => {
+            {setores.map((s: string) => {
               const opts = itens.filter((i) => i.sector === s);
               if (opts.length === 0) return null;
               return (
