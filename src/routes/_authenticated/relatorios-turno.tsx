@@ -344,6 +344,45 @@ function RelatoriosTurnoPage() {
                     </span>
                     <StatusPill kind="Caixa" status={r.caixa_status} />
                     <StatusPill kind="Estoque" status={r.estoque_status} />
+                    {canEdit && (
+                      <div className="flex items-center gap-1 ml-1 no-print">
+                        <button
+                          onClick={() => setEditing(r)}
+                          className="p-1.5 rounded-lg bg-blue-100 text-blue-700 hover:bg-blue-200"
+                          aria-label="Editar"
+                          title="Editar"
+                        >
+                          <Pencil size={12} />
+                        </button>
+                        <button
+                          onClick={async () => {
+                            if (!confirm("Excluir este registro de troca de turno?")) return;
+                            setDeletingId(r.id);
+                            const { error } = await supabase
+                              .from("trocas_turno" as never)
+                              .delete()
+                              .eq("id", r.id);
+                            setDeletingId(null);
+                            if (error) {
+                              toast.error("Falha ao excluir: " + error.message);
+                              return;
+                            }
+                            toast.success("Registro excluído");
+                            qc.invalidateQueries({ queryKey: ["trocas_turno"] });
+                          }}
+                          disabled={deletingId === r.id}
+                          className="p-1.5 rounded-lg bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50"
+                          aria-label="Excluir"
+                          title="Excluir"
+                        >
+                          {deletingId === r.id ? (
+                            <Loader2 size={12} className="animate-spin" />
+                          ) : (
+                            <Trash2 size={12} />
+                          )}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
