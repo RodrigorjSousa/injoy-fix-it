@@ -387,7 +387,10 @@ function AlmoxarifadoAdmin() {
             <Package size={14} /> Setores
           </button>
           <button
-            onClick={() => setShowNewItem(true)}
+            onClick={() => {
+              setNovo((s) => ({ ...s, sector: s.sector || SETORES[0] || "" }));
+              setShowNewItem(true);
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <Plus size={14} /> Novo Item
