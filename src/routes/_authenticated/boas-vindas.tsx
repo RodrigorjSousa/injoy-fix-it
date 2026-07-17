@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Award,
   AlertTriangle,
@@ -17,11 +17,46 @@ import {
   CloudLightning,
   Thermometer,
   Navigation,
+  User as UserIcon,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import type { Unidade } from "@/lib/store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+
+type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
+type RoomRow = {
+  id: string;
+  room_number: string;
+  room_type: string | null;
+  status: string | null;
+  condition: string | null;
+  assigned_camareira: string | null;
+  guest_name: string | null;
+  updated_at: string;
+};
+function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
+  if (r.condition === "maintenance") return "bloqueados";
+  if (r.status === "clean") return "prontos";
+  if (r.status === "cleaning") return "emFaxina";
+  if (r.status === "dirty") return "sujos";
+  return null;
+}
+const STATUS_LABEL: Record<StatusKey, string> = {
+  prontos: "Quartos Prontos e Liberados",
+  emFaxina: "Quartos em Faxina",
+  sujos: "Quartos Sujos (Check-out)",
+  bloqueados: "Quartos Bloqueados (Ordem de Serviço)",
+};
 
 export const Route = createFileRoute("/_authenticated/boas-vindas")({
   component: BoasVindas,
