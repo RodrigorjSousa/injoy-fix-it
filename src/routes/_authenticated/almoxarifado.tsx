@@ -668,6 +668,66 @@ function AlmoxarifadoAdmin() {
           </div>
         </div>
       )}
+
+      {showSetores && (
+        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4" onClick={() => setShowSetores(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-slate-800">Gerenciar Setores</h3>
+                <p className="text-[11px] text-slate-500">Criar ou excluir setores em {unidade}</p>
+              </div>
+              <button onClick={() => setShowSetores(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-500">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={novoSetor}
+                onChange={(e) => setNovoSetor(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") criarSetor(); }}
+                placeholder="Ex.: Elétrica"
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={criarSetor}
+                disabled={savingSetor || !novoSetor.trim()}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              >
+                {savingSetor ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Criar
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-lg">
+              {setores.length === 0 && (
+                <div className="p-4 text-center text-sm text-slate-400">Nenhum setor cadastrado.</div>
+              )}
+              {setores.map((s) => {
+                const count = itens.filter((i) => i.sector === s.name).length;
+                return (
+                  <div key={s.id} className="flex items-center gap-2 px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
+                      <p className="text-[10px] text-slate-500">{count} item(s)</p>
+                    </div>
+                    <button
+                      onClick={() => excluirSetor(s)}
+                      disabled={deletingSetorId === s.id || count > 0}
+                      title={count > 0 ? "Exclua os itens antes" : "Excluir setor"}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deletingSetorId === s.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
