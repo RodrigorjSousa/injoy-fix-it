@@ -126,6 +126,7 @@ function RecepcaoPage() {
     roomNumber: string;
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
+  const [compraOpen, setCompraOpen] = useState(false);
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
