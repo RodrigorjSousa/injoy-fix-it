@@ -548,6 +548,10 @@ function AlmoxarifadoAdmin() {
             )}
           </TabsContent>
 
+          <TabsContent value="solicitacoes" className="mt-4">
+            <SolicitacoesCompraPanel unidade={unidade} />
+          </TabsContent>
+
           <TabsContent value="compras" className="mt-4">
             <ComprasForm itens={itens} setores={SETORES} onDone={() => qc.invalidateQueries({ queryKey: ["inv_items"] })} />
           </TabsContent>
