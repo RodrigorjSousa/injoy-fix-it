@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { useChamados, useFuncionarios, useMe, type Chamado, type Funcionario } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
+import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 
 export const Route = createFileRoute("/_authenticated/servicos")({
   component: Servicos,
