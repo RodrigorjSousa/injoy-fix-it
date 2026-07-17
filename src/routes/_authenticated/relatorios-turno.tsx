@@ -245,7 +245,7 @@ function RelatoriosTurnoPage() {
                 baixarCSV(
                   filtradas,
                   periodo,
-                  unidade === "Todas" ? "todas" : unidade.toLowerCase(),
+                  unidade.toLowerCase(),
                 )
               }
               disabled={filtradas.length === 0}
