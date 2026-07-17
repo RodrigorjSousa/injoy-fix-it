@@ -295,7 +295,7 @@ function RelatoriosTurnoPage() {
           <div className="space-y-3" id="print-area">
             <div className="hidden print:block mb-4">
               <h2 className="text-lg font-black text-slate-900">
-                Relatórios de Troca de Turno · {unidade === "Todas" ? "Todas as unidades" : `INJOY ${unidade}`}
+                Relatórios de Troca de Turno · INJOY {unidade}
               </h2>
               <p className="text-xs text-slate-600">
                 Período: {periodo} · Gerado em {new Date().toLocaleString("pt-BR")}
