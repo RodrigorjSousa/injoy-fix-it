@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Ban,
   ShoppingBag,
+  RefreshCcw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
@@ -25,6 +26,7 @@ import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-e
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
+import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -127,6 +129,7 @@ function RecepcaoPage() {
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
+  const [trocaTurnoOpen, setTrocaTurnoOpen] = useState(false);
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
@@ -314,6 +317,14 @@ function RecepcaoPage() {
           <ShoppingBag size={18} />
           <span className="hidden sm:inline">Solicitar compra</span>
           <span className="sm:hidden">🛒</span>
+        </button>
+        <button
+          onClick={() => setTrocaTurnoOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-indigo-500 to-blue-600 shadow-md shadow-indigo-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <RefreshCcw size={18} />
+          <span className="hidden sm:inline">Trocar Turno</span>
+          <span className="sm:hidden">🔄</span>
         </button>
       </div>
 
@@ -706,6 +717,12 @@ function RecepcaoPage() {
         onClose={() => setCompraOpen(false)}
         unidade={unidadeAtiva}
         origem="recepcao"
+      />
+
+      <TrocaTurnoModal
+        open={trocaTurnoOpen}
+        onClose={() => setTrocaTurnoOpen(false)}
+        unidade={unidadeAtiva}
       />
     </div>
   );
