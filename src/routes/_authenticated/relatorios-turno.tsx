@@ -274,6 +274,15 @@ function RelatoriosTurnoPage() {
               <Printer size={14} />
               Imprimir / PDF
             </button>
+            {canEdit && (
+              <button
+                onClick={() => setCreating(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-black text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                <Plus size={14} />
+                Novo registro
+              </button>
+            )}
           </div>
         </div>
 
