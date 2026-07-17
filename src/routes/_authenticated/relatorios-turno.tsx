@@ -184,7 +184,7 @@ function RelatoriosTurnoPage() {
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
               Unidade:
             </span>
-            {(["Todas", "Botafogo", "Ipanema"] as const).map((u) => {
+            {(["Botafogo", "Ipanema"] as const).map((u) => {
               const active = unidade === u;
               return (
                 <button
@@ -197,8 +197,8 @@ function RelatoriosTurnoPage() {
                       : "bg-white text-slate-600 border-slate-200 hover:border-blue-300",
                   )}
                 >
-                  {u !== "Todas" && <Building2 size={12} />}
-                  {u === "Todas" ? "Todas" : `INJOY ${u}`}
+                  <Building2 size={12} />
+                  {`INJOY ${u}`}
                 </button>
               );
             })}
