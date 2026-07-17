@@ -219,10 +219,12 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("status, condition")
-          .eq("property", unidade),
+          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at")
+          .eq("property", unidade)
+          .order("room_number", { ascending: true }),
       ]);
       if (cancelled) return;
+      setRooms((quartos ?? []) as RoomRow[]);
       const m = metric as
         | {
             rating?: number | null;
