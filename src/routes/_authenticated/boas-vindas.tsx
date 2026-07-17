@@ -699,6 +699,57 @@ function BoasVindas() {
         </div>
       )}
 
+      <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedStatus ? STATUS_LABEL[selectedStatus] : "Quartos"}</DialogTitle>
+            <DialogDescription>
+              INJOY {unidade} · {roomsSelecionados.length}{" "}
+              {roomsSelecionados.length === 1 ? "quarto" : "quartos"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            {roomsSelecionados.length === 0 ? (
+              <div className="text-center py-10 text-sm text-slate-500">
+                Nenhum quarto neste status no momento.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {roomsSelecionados.map((r) => (
+                  <li key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50">
+                    <div className="h-11 w-11 shrink-0 rounded-lg bg-white grid place-items-center font-black text-sm text-slate-900 border border-slate-200">
+                      {r.room_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-slate-900 truncate">Quarto {r.room_number}</p>
+                        {r.room_type && (
+                          <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded border">
+                            {r.room_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        {r.assigned_camareira && (
+                          <span className="inline-flex items-center gap-1">
+                            <UserIcon size={12} /> {r.assigned_camareira}
+                          </span>
+                        )}
+                        {r.guest_name && <span className="truncate">Hóspede: {r.guest_name}</span>}
+                        <span className="inline-flex items-center gap-1 text-slate-400">
+                          <Clock size={12} />
+                          {new Date(r.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest pt-4">
         INJOY Hotéis • Tecnologia e Gestão Hoteleira de Alta Performance
       </div>
