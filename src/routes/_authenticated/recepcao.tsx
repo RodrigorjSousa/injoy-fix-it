@@ -700,6 +700,13 @@ function RecepcaoPage() {
         quarto={recadoAlvo?.quarto ?? null}
         autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
       />
+
+      <SolicitarCompraModal
+        open={compraOpen}
+        onClose={() => setCompraOpen(false)}
+        unidade={unidadeAtiva}
+        origem="recepcao"
+      />
     </div>
   );
 }
