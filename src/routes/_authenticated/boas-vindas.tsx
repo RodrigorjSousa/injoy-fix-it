@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Award,
   AlertTriangle,
@@ -17,11 +17,46 @@ import {
   CloudLightning,
   Thermometer,
   Navigation,
+  User as UserIcon,
+  Clock,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import type { Unidade } from "@/lib/store";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
+
+type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
+type RoomRow = {
+  id: string;
+  room_number: string;
+  room_type: string | null;
+  status: string | null;
+  condition: string | null;
+  assigned_camareira: string | null;
+  guest_name: string | null;
+  updated_at: string;
+};
+function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
+  if (r.condition === "maintenance") return "bloqueados";
+  if (r.status === "clean") return "prontos";
+  if (r.status === "cleaning") return "emFaxina";
+  if (r.status === "dirty") return "sujos";
+  return null;
+}
+const STATUS_LABEL: Record<StatusKey, string> = {
+  prontos: "Quartos Prontos e Liberados",
+  emFaxina: "Quartos em Faxina",
+  sujos: "Quartos Sujos (Check-out)",
+  bloqueados: "Quartos Bloqueados (Ordem de Serviço)",
+};
 
 export const Route = createFileRoute("/_authenticated/boas-vindas")({
   component: BoasVindas,
@@ -78,6 +113,8 @@ function BoasVindas() {
     docsPendentes: 0,
   });
   const [statusQuartos, setStatusQuartos] = useState<StatusQuartos>(EMPTY_STATUS);
+  const [rooms, setRooms] = useState<RoomRow[]>([]);
+  const [selectedStatus, setSelectedStatus] = useState<StatusKey | null>(null);
   const [loading, setLoading] = useState(true);
   const [clima, setClima] = useState<Clima>({
     temp: null,
@@ -182,10 +219,12 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("status, condition")
-          .eq("property", unidade),
+          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at")
+          .eq("property", unidade)
+          .order("room_number", { ascending: true }),
       ]);
       if (cancelled) return;
+      setRooms((quartos ?? []) as RoomRow[]);
       const m = metric as
         | {
             rating?: number | null;
@@ -291,6 +330,11 @@ function BoasVindas() {
 
   const metaBatida = rating >= 8.0;
   const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
+
+  const roomsSelecionados = useMemo(
+    () => (selectedStatus ? rooms.filter((r) => classifyRoom(r) === selectedStatus) : []),
+    [rooms, selectedStatus],
+  );
 
   const renderIconeClima = () => {
     switch (clima.condicao) {
@@ -578,45 +622,31 @@ function BoasVindas() {
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-emerald-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                  <CheckCircle2 size={20} />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-2xl font-black text-emerald-400">{statusQuartos.prontos}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">Prontos / Liberados</p>
-                </div>
-              </div>
-
-              <div className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-amber-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                  <Flame size={20} className="animate-pulse" />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-2xl font-black text-amber-400">{statusQuartos.emFaxina}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">Em Faxina</p>
-                </div>
-              </div>
-
-              <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-red-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                  <AlertCircle size={20} />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-2xl font-black text-red-400">{statusQuartos.sujos}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">Sujos (Check-out)</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-600 text-white rounded-xl flex items-center justify-center font-bold shrink-0">
-                  <Wrench size={20} />
-                </div>
-                <div className="min-w-0">
-                  <h4 className="text-2xl font-black text-slate-300">{statusQuartos.bloqueados}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold">Bloqueados OS</p>
-                </div>
-              </div>
+              {([
+                { k: "prontos" as StatusKey, Icon: CheckCircle2, iconBg: "bg-emerald-500 text-slate-950", card: "bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-400/60", value: "text-emerald-400", label: "Prontos / Liberados", pulse: false },
+                { k: "emFaxina" as StatusKey, Icon: Flame, iconBg: "bg-amber-500 text-slate-950", card: "bg-amber-950/20 border-amber-500/20 hover:border-amber-400/60", value: "text-amber-400", label: "Em Faxina", pulse: true },
+                { k: "sujos" as StatusKey, Icon: AlertCircle, iconBg: "bg-red-500 text-slate-950", card: "bg-red-950/20 border-red-500/20 hover:border-red-400/60", value: "text-red-400", label: "Sujos (Check-out)", pulse: false },
+                { k: "bloqueados" as StatusKey, Icon: Wrench, iconBg: "bg-slate-600 text-white", card: "bg-slate-800/40 border-slate-700 hover:border-slate-500", value: "text-slate-300", label: "Bloqueados OS", pulse: false },
+              ]).map(({ k, Icon, iconBg, card, value, label, pulse }) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setSelectedStatus(k)}
+                  className={cn(
+                    "text-left rounded-2xl p-4 flex items-center gap-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
+                    card,
+                  )}
+                  aria-label={`Ver ${label}`}
+                >
+                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0", iconBg)}>
+                    <Icon size={20} className={pulse ? "animate-pulse" : undefined} />
+                  </div>
+                  <div className="min-w-0">
+                    <h4 className={cn("text-2xl font-black", value)}>{statusQuartos[k]}</h4>
+                    <p className="text-[10px] text-slate-400 font-bold">{label}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </div>
         </>
@@ -640,48 +670,85 @@ function BoasVindas() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <CheckCircle2 size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-emerald-400">{statusQuartos.prontos}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Prontos / Liberados</p>
-              </div>
-            </div>
-
-            <div className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-amber-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <Flame size={20} className="animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-amber-400">{statusQuartos.emFaxina}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Em Faxina</p>
-              </div>
-            </div>
-
-            <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-red-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <AlertCircle size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-red-400">{statusQuartos.sujos}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Sujos (Check-out)</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-600 text-white rounded-xl flex items-center justify-center font-bold shrink-0">
-                <Wrench size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-slate-300">{statusQuartos.bloqueados}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Bloqueados OS</p>
-              </div>
-            </div>
+            {([
+              { k: "prontos" as StatusKey, Icon: CheckCircle2, iconBg: "bg-emerald-500 text-slate-950", card: "bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-400/60", value: "text-emerald-400", label: "Prontos / Liberados", pulse: false },
+              { k: "emFaxina" as StatusKey, Icon: Flame, iconBg: "bg-amber-500 text-slate-950", card: "bg-amber-950/20 border-amber-500/20 hover:border-amber-400/60", value: "text-amber-400", label: "Em Faxina", pulse: true },
+              { k: "sujos" as StatusKey, Icon: AlertCircle, iconBg: "bg-red-500 text-slate-950", card: "bg-red-950/20 border-red-500/20 hover:border-red-400/60", value: "text-red-400", label: "Sujos (Check-out)", pulse: false },
+              { k: "bloqueados" as StatusKey, Icon: Wrench, iconBg: "bg-slate-600 text-white", card: "bg-slate-800/40 border-slate-700 hover:border-slate-500", value: "text-slate-300", label: "Bloqueados OS", pulse: false },
+            ]).map(({ k, Icon, iconBg, card, value, label, pulse }) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSelectedStatus(k)}
+                className={cn(
+                  "text-left rounded-2xl p-4 flex items-center gap-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
+                  card,
+                )}
+                aria-label={`Ver ${label}`}
+              >
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0", iconBg)}>
+                  <Icon size={20} className={pulse ? "animate-pulse" : undefined} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className={cn("text-2xl font-black", value)}>{statusQuartos[k]}</h4>
+                  <p className="text-[10px] text-slate-400 font-bold">{label}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
+
+      <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{selectedStatus ? STATUS_LABEL[selectedStatus] : "Quartos"}</DialogTitle>
+            <DialogDescription>
+              INJOY {unidade} · {roomsSelecionados.length}{" "}
+              {roomsSelecionados.length === 1 ? "quarto" : "quartos"}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            {roomsSelecionados.length === 0 ? (
+              <div className="text-center py-10 text-sm text-slate-500">
+                Nenhum quarto neste status no momento.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {roomsSelecionados.map((r) => (
+                  <li key={r.id} className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50">
+                    <div className="h-11 w-11 shrink-0 rounded-lg bg-white grid place-items-center font-black text-sm text-slate-900 border border-slate-200">
+                      {r.room_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-slate-900 truncate">Quarto {r.room_number}</p>
+                        {r.room_type && (
+                          <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded border">
+                            {r.room_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        {r.assigned_camareira && (
+                          <span className="inline-flex items-center gap-1">
+                            <UserIcon size={12} /> {r.assigned_camareira}
+                          </span>
+                        )}
+                        {r.guest_name && <span className="truncate">Hóspede: {r.guest_name}</span>}
+                        <span className="inline-flex items-center gap-1 text-slate-400">
+                          <Clock size={12} />
+                          {new Date(r.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <div className="text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest pt-4">
         INJOY Hotéis • Tecnologia e Gestão Hoteleira de Alta Performance
