@@ -110,7 +110,7 @@ function RelatoriosTurnoPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(2000);
-      if (unidade !== "Todas") q = q.eq("unidade", unidade);
+      q = q.eq("unidade", unidade);
       const inicio = startOfPeriodo(periodo);
       if (inicio) q = q.gte("created_at", inicio.toISOString());
       const { data, error } = await q;
