@@ -235,6 +235,53 @@ function AlmoxarifadoAdmin() {
     }
   };
 
+  const criarSetor = async () => {
+    const nome = novoSetor.trim();
+    if (!nome) { toast.error("Informe o nome do setor"); return; }
+    if (setores.some((s) => s.name.toLowerCase() === nome.toLowerCase())) {
+      toast.error("Setor já existe");
+      return;
+    }
+    setSavingSetor(true);
+    try {
+      const { error } = await supabase
+        .from("inventory_sectors" as never)
+        .insert({ property: unidade, name: nome } as never);
+      if (error) throw error;
+      toast.success("Setor criado");
+      setNovoSetor("");
+      qc.invalidateQueries({ queryKey: ["inv_sectors"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar setor");
+    } finally {
+      setSavingSetor(false);
+    }
+  };
+
+  const excluirSetor = async (setor: Sector) => {
+    const usados = itens.filter((i) => i.sector === setor.name).length;
+    if (usados > 0) {
+      toast.error(`Setor "${setor.name}" tem ${usados} item(s). Exclua ou mova os itens antes.`);
+      return;
+    }
+    if (!confirm(`Excluir o setor "${setor.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingSetorId(setor.id);
+    try {
+      const { error } = await supabase
+        .from("inventory_sectors" as never)
+        .delete()
+        .eq("id", setor.id);
+      if (error) throw error;
+      toast.success("Setor excluído");
+      qc.invalidateQueries({ queryKey: ["inv_sectors"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir setor");
+    } finally {
+      setDeletingSetorId(null);
+    }
+  };
+
+
 
   if (!isAdmin) {
     return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
