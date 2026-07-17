@@ -620,7 +620,7 @@ function AlmoxarifadoAdmin() {
 }
 
 
-function ComprasForm({ itens, onDone }: { itens: Item[]; onDone: () => void }) {
+function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: string[]; onDone: () => void }) {
   const [itemId, setItemId] = useState<string>("");
   const [qtd, setQtd] = useState<number>(0);
   const [saving, setSaving] = useState(false);
