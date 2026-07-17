@@ -670,45 +670,31 @@ function BoasVindas() {
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-emerald-950/20 border border-emerald-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-emerald-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <CheckCircle2 size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-emerald-400">{statusQuartos.prontos}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Prontos / Liberados</p>
-              </div>
-            </div>
-
-            <div className="bg-amber-950/20 border border-amber-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-amber-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <Flame size={20} className="animate-pulse" />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-amber-400">{statusQuartos.emFaxina}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Em Faxina</p>
-              </div>
-            </div>
-
-            <div className="bg-red-950/20 border border-red-500/20 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-red-500 text-slate-950 rounded-xl flex items-center justify-center font-bold shrink-0">
-                <AlertCircle size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-red-400">{statusQuartos.sujos}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Sujos (Check-out)</p>
-              </div>
-            </div>
-
-            <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 flex items-center gap-4">
-              <div className="w-10 h-10 bg-slate-600 text-white rounded-xl flex items-center justify-center font-bold shrink-0">
-                <Wrench size={20} />
-              </div>
-              <div className="min-w-0">
-                <h4 className="text-2xl font-black text-slate-300">{statusQuartos.bloqueados}</h4>
-                <p className="text-[10px] text-slate-400 font-bold">Bloqueados OS</p>
-              </div>
-            </div>
+            {([
+              { k: "prontos" as StatusKey, Icon: CheckCircle2, iconBg: "bg-emerald-500 text-slate-950", card: "bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-400/60", value: "text-emerald-400", label: "Prontos / Liberados", pulse: false },
+              { k: "emFaxina" as StatusKey, Icon: Flame, iconBg: "bg-amber-500 text-slate-950", card: "bg-amber-950/20 border-amber-500/20 hover:border-amber-400/60", value: "text-amber-400", label: "Em Faxina", pulse: true },
+              { k: "sujos" as StatusKey, Icon: AlertCircle, iconBg: "bg-red-500 text-slate-950", card: "bg-red-950/20 border-red-500/20 hover:border-red-400/60", value: "text-red-400", label: "Sujos (Check-out)", pulse: false },
+              { k: "bloqueados" as StatusKey, Icon: Wrench, iconBg: "bg-slate-600 text-white", card: "bg-slate-800/40 border-slate-700 hover:border-slate-500", value: "text-slate-300", label: "Bloqueados OS", pulse: false },
+            ]).map(({ k, Icon, iconBg, card, value, label, pulse }) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setSelectedStatus(k)}
+                className={cn(
+                  "text-left rounded-2xl p-4 flex items-center gap-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
+                  card,
+                )}
+                aria-label={`Ver ${label}`}
+              >
+                <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0", iconBg)}>
+                  <Icon size={20} className={pulse ? "animate-pulse" : undefined} />
+                </div>
+                <div className="min-w-0">
+                  <h4 className={cn("text-2xl font-black", value)}>{statusQuartos[k]}</h4>
+                  <p className="text-[10px] text-slate-400 font-bold">{label}</p>
+                </div>
+              </button>
+            ))}
           </div>
         </div>
       )}
