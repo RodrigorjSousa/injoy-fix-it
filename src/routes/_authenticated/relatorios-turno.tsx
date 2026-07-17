@@ -106,7 +106,7 @@ function baixarCSV(rows: Row[], periodo: Periodo, unidade: string) {
 function RelatoriosTurnoPage() {
   const qc = useQueryClient();
   const { data: me } = useMe();
-  const canEdit = !!me?.roles?.some((r) => r === "admin" || r === "gestor");
+  const canEdit = !!(me?.isAdmin || me?.isGestor);
   const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [periodo, setPeriodo] = useState<Periodo>("diario");
   const [busca, setBusca] = useState("");
