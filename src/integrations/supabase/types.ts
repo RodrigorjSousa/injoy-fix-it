@@ -40,6 +40,7 @@ export type Database = {
           localizacao: string
           status: string
           tecnico: string | null
+          tecnico_id: string | null
           ultima_limpeza: string | null
           unidade: Database["public"]["Enums"]["unidade"]
           updated_at: string
@@ -51,6 +52,7 @@ export type Database = {
           localizacao: string
           status?: string
           tecnico?: string | null
+          tecnico_id?: string | null
           ultima_limpeza?: string | null
           unidade: Database["public"]["Enums"]["unidade"]
           updated_at?: string
@@ -62,11 +64,20 @@ export type Database = {
           localizacao?: string
           status?: string
           tecnico?: string | null
+          tecnico_id?: string | null
           ultima_limpeza?: string | null
           unidade?: Database["public"]["Enums"]["unidade"]
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "ativos_ar_tecnico_id_fkey"
+            columns: ["tecnico_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       beverage_catalog: {
         Row: {
