@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useEffect, useMemo, useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import {
   ArrowLeft,
   RefreshCcw,
@@ -12,9 +13,14 @@ import {
   AlertTriangle,
   Inbox,
   Calendar,
+  Pencil,
+  Trash2,
+  X,
+  Save,
+  Plus,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import type { Unidade } from "@/lib/store";
+import { useMe, type Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/relatorios-turno")({
