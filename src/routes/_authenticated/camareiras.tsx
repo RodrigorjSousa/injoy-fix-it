@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -12,6 +12,7 @@ import { PeriodChecklistSection } from "@/components/camareiras/period-checklist
 import { RecadosCamareirasSection, RecadosDoQuartoSection } from "@/components/camareiras/recados-recepcao";
 import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-modal";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
+import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -124,6 +125,7 @@ function PainelCamareiras() {
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
+  const [compraOpen, setCompraOpen] = useState(false);
   const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
@@ -427,6 +429,13 @@ function PainelCamareiras() {
           >
             <Package size={16} />
             Almoxarifado
+          </button>
+          <button
+            onClick={() => setCompraOpen(true)}
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-all"
+          >
+            <ShoppingBag size={16} />
+            Solicitar Compra
           </button>
           <button
             onClick={resetarServicosTurno}
@@ -854,6 +863,15 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
         funcionarioName={nomeAutomatico ?? ""}
       />
+
+      <SolicitarCompraModal
+        open={compraOpen}
+        onClose={() => setCompraOpen(false)}
+        unidade={unidadeAtiva}
+        origem="camareira"
+      />
+
+
 
       <RecadoRecepcaoModal
         open={recadoRecepcaoOpen}

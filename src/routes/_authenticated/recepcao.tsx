@@ -14,6 +14,7 @@ import {
   GlassWater,
   MessageSquarePlus,
   Ban,
+  ShoppingBag,
 } from "lucide-react";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
@@ -22,6 +23,8 @@ import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-mod
 import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
 import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-enviados-camareira";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
+import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
+import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -123,6 +126,7 @@ function RecepcaoPage() {
     roomNumber: string;
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
+  const [compraOpen, setCompraOpen] = useState(false);
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
@@ -303,6 +307,14 @@ function RecepcaoPage() {
           <span className="hidden sm:inline">Frigobar</span>
           <span className="sm:hidden">🍹</span>
         </button>
+        <button
+          onClick={() => setCompraOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <ShoppingBag size={18} />
+          <span className="hidden sm:inline">Solicitar compra</span>
+          <span className="sm:hidden">🛒</span>
+        </button>
       </div>
 
       <RecadosDaCamareiraSection
@@ -315,8 +327,9 @@ function RecepcaoPage() {
         autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
       />
 
-      <div className="p-4">
+      <div className="p-4 space-y-4">
         <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
+        <SolicitacoesCompraPanel unidade={unidadeAtiva} />
       </div>
 
 
@@ -686,6 +699,13 @@ function RecepcaoPage() {
         unidadePadrao={recadoAlvo?.unidade ?? unidadeAtiva}
         quarto={recadoAlvo?.quarto ?? null}
         autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+      />
+
+      <SolicitarCompraModal
+        open={compraOpen}
+        onClose={() => setCompraOpen(false)}
+        unidade={unidadeAtiva}
+        origem="recepcao"
       />
     </div>
   );

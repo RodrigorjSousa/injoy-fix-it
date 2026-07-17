@@ -817,6 +817,63 @@ export type Database = {
         }
         Relationships: []
       }
+      purchase_requests: {
+        Row: {
+          category: string | null
+          created_at: string
+          id: string
+          item_name: string
+          notes: string | null
+          property: string
+          quantity: number
+          requested_by: string
+          requester_role: string
+          requester_user_id: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
+          unit: string | null
+          updated_at: string
+          urgency: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name: string
+          notes?: string | null
+          property: string
+          quantity?: number
+          requested_by: string
+          requester_role: string
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          urgency?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          id?: string
+          item_name?: string
+          notes?: string | null
+          property?: string
+          quantity?: number
+          requested_by?: string
+          requester_role?: string
+          requester_user_id?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
+          unit?: string | null
+          updated_at?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
       recados_camareiras: {
         Row: {
           created_at: string
