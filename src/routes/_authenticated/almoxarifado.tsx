@@ -55,7 +55,7 @@ type ReqHist = {
   item?: { name: string; unit_type: string };
 };
 
-const SETORES = ["Banheiro", "Limpeza", "Elétrica", "Hidráulica", "Ar Condicionado", "Cozinha"];
+type Sector = { id: string; property: string; name: string };
 
 function AlmoxarifadoAdmin() {
   const { data: me } = useMe();
@@ -68,14 +68,32 @@ function AlmoxarifadoAdmin() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showNewItem, setShowNewItem] = useState(false);
+  const [showSetores, setShowSetores] = useState(false);
+  const [novoSetor, setNovoSetor] = useState("");
+  const [savingSetor, setSavingSetor] = useState(false);
+  const [deletingSetorId, setDeletingSetorId] = useState<string | null>(null);
   const [novo, setNovo] = useState<{ name: string; sector: string; unit_type: string; current_stock: number; min_stock: number }>({
     name: "",
-    sector: SETORES[0],
+    sector: "",
     unit_type: "un",
     current_stock: 0,
     min_stock: 0,
   });
   const [creating, setCreating] = useState(false);
+
+  const { data: setores = [] } = useQuery({
+    queryKey: ["inv_sectors", unidade],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory_sectors" as never)
+        .select("*")
+        .eq("property", unidade)
+        .order("name");
+      if (error) throw error;
+      return (data as unknown as Sector[]) ?? [];
+    },
+  });
+  const SETORES = useMemo(() => setores.map((s) => s.name), [setores]);
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["inv_items", unidade],
