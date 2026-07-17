@@ -1069,6 +1069,57 @@ export type Database = {
         }
         Relationships: []
       }
+      trocas_turno: {
+        Row: {
+          caixa_obs: string | null
+          caixa_status: string
+          created_at: string
+          estoque_obs: string | null
+          estoque_status: string
+          funcionario_entrada: string
+          funcionario_saida: string
+          funcionario_saida_user_id: string | null
+          gastos_detalhes: string | null
+          id: string
+          maquina_bebidas: string | null
+          observacoes: string | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          caixa_obs?: string | null
+          caixa_status?: string
+          created_at?: string
+          estoque_obs?: string | null
+          estoque_status?: string
+          funcionario_entrada: string
+          funcionario_saida: string
+          funcionario_saida_user_id?: string | null
+          gastos_detalhes?: string | null
+          id?: string
+          maquina_bebidas?: string | null
+          observacoes?: string | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          caixa_obs?: string | null
+          caixa_status?: string
+          created_at?: string
+          estoque_obs?: string | null
+          estoque_status?: string
+          funcionario_entrada?: string
+          funcionario_saida?: string
+          funcionario_saida_user_id?: string | null
+          gastos_detalhes?: string | null
+          id?: string
+          maquina_bebidas?: string | null
+          observacoes?: string | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
