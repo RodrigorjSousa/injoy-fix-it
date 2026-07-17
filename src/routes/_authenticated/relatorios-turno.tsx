@@ -104,9 +104,15 @@ function baixarCSV(rows: Row[], periodo: Periodo, unidade: string) {
 }
 
 function RelatoriosTurnoPage() {
+  const qc = useQueryClient();
+  const { data: me } = useMe();
+  const canEdit = !!me?.roles?.some((r) => r === "admin" || r === "gestor");
   const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [periodo, setPeriodo] = useState<Periodo>("diario");
   const [busca, setBusca] = useState("");
+  const [editing, setEditing] = useState<Row | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const { data: rows = [], isLoading, refetch, isFetching } = useQuery({
     queryKey: ["trocas_turno", unidade, periodo],
