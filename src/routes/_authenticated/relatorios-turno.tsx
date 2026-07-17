@@ -98,7 +98,7 @@ function baixarCSV(rows: Row[], periodo: Periodo, unidade: string) {
 }
 
 function RelatoriosTurnoPage() {
-  const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
+  const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [periodo, setPeriodo] = useState<Periodo>("diario");
   const [busca, setBusca] = useState("");
 
