@@ -334,6 +334,12 @@ function AlmoxarifadoAdmin() {
             </div>
           </div>
           <button
+            onClick={() => setShowSetores(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+          >
+            <Package size={14} /> Setores
+          </button>
+          <button
             onClick={() => setShowNewItem(true)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
