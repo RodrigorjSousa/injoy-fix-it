@@ -331,6 +331,11 @@ function BoasVindas() {
   const metaBatida = rating >= 8.0;
   const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
 
+  const roomsSelecionados = useMemo(
+    () => (selectedStatus ? rooms.filter((r) => classifyRoom(r) === selectedStatus) : []),
+    [rooms, selectedStatus],
+  );
+
   const renderIconeClima = () => {
     switch (clima.condicao) {
       case "clear":
