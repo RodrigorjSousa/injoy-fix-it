@@ -287,6 +287,7 @@ function Servicos() {
 function AlmoxarifadoTecnicoBotao() {
   const [open, setOpen] = useState(false);
   const [openEstoque, setOpenEstoque] = useState(false);
+  const [openCompra, setOpenCompra] = useState(false);
   const { unidade } = useUnidade();
   const { data: me } = useMe();
   const nome = me?.funcionario?.nome || "Técnico";
