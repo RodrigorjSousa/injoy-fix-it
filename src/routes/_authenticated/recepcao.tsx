@@ -129,6 +129,7 @@ function RecepcaoPage() {
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
+  const [trocaTurnoOpen, setTrocaTurnoOpen] = useState(false);
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
