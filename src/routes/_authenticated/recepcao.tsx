@@ -307,6 +307,14 @@ function RecepcaoPage() {
           <span className="hidden sm:inline">Frigobar</span>
           <span className="sm:hidden">🍹</span>
         </button>
+        <button
+          onClick={() => setCompraOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-orange-500 to-amber-600 shadow-md shadow-orange-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <ShoppingBag size={18} />
+          <span className="hidden sm:inline">Solicitar compra</span>
+          <span className="sm:hidden">🛒</span>
+        </button>
       </div>
 
       <RecadosDaCamareiraSection
