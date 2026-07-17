@@ -98,7 +98,7 @@ function baixarCSV(rows: Row[], periodo: Periodo, unidade: string) {
 }
 
 function RelatoriosTurnoPage() {
-  const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
+  const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [periodo, setPeriodo] = useState<Periodo>("diario");
   const [busca, setBusca] = useState("");
 
@@ -110,7 +110,7 @@ function RelatoriosTurnoPage() {
         .select("*")
         .order("created_at", { ascending: false })
         .limit(2000);
-      if (unidade !== "Todas") q = q.eq("unidade", unidade);
+      q = q.eq("unidade", unidade);
       const inicio = startOfPeriodo(periodo);
       if (inicio) q = q.gte("created_at", inicio.toISOString());
       const { data, error } = await q;
@@ -184,7 +184,7 @@ function RelatoriosTurnoPage() {
             <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider mr-1">
               Unidade:
             </span>
-            {(["Todas", "Botafogo", "Ipanema"] as const).map((u) => {
+            {(["Botafogo", "Ipanema"] as const).map((u) => {
               const active = unidade === u;
               return (
                 <button
@@ -197,8 +197,8 @@ function RelatoriosTurnoPage() {
                       : "bg-white text-slate-600 border-slate-200 hover:border-blue-300",
                   )}
                 >
-                  {u !== "Todas" && <Building2 size={12} />}
-                  {u === "Todas" ? "Todas" : `INJOY ${u}`}
+                  <Building2 size={12} />
+                  {`INJOY ${u}`}
                 </button>
               );
             })}
@@ -245,7 +245,7 @@ function RelatoriosTurnoPage() {
                 baixarCSV(
                   filtradas,
                   periodo,
-                  unidade === "Todas" ? "todas" : unidade.toLowerCase(),
+                  unidade.toLowerCase(),
                 )
               }
               disabled={filtradas.length === 0}
@@ -295,7 +295,7 @@ function RelatoriosTurnoPage() {
           <div className="space-y-3" id="print-area">
             <div className="hidden print:block mb-4">
               <h2 className="text-lg font-black text-slate-900">
-                Relatórios de Troca de Turno · {unidade === "Todas" ? "Todas as unidades" : `INJOY ${unidade}`}
+                Relatórios de Troca de Turno · INJOY {unidade}
               </h2>
               <p className="text-xs text-slate-600">
                 Período: {periodo} · Gerado em {new Date().toLocaleString("pt-BR")}
