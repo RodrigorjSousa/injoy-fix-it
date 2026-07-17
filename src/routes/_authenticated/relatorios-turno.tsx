@@ -414,6 +414,276 @@ function RelatoriosTurnoPage() {
           </div>
         )}
       </div>
+
+      {(editing || creating) && (
+        <EditModal
+          row={editing}
+          unidade={unidade}
+          nomeUsuario={me?.funcionario?.nome || me?.email || ""}
+          userId={me?.userId ?? null}
+          onClose={() => {
+            setEditing(null);
+            setCreating(false);
+          }}
+          onSaved={() => {
+            setEditing(null);
+            setCreating(false);
+            qc.invalidateQueries({ queryKey: ["trocas_turno"] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type StatusKey = "batendo" | "divergente";
+
+function EditModal({
+  row,
+  unidade,
+  nomeUsuario,
+  userId,
+  onClose,
+  onSaved,
+}: {
+  row: Row | null;
+  unidade: Unidade;
+  nomeUsuario: string;
+  userId: string | null;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const isEdit = !!row;
+  const [funcSaida, setFuncSaida] = useState(row?.funcionario_saida ?? nomeUsuario);
+  const [funcEntrada, setFuncEntrada] = useState(row?.funcionario_entrada ?? "");
+  const [caixaStatus, setCaixaStatus] = useState<StatusKey>(
+    (row?.caixa_status as StatusKey) ?? "batendo",
+  );
+  const [caixaObs, setCaixaObs] = useState(row?.caixa_obs ?? "");
+  const [estoqueStatus, setEstoqueStatus] = useState<StatusKey>(
+    (row?.estoque_status as StatusKey) ?? "batendo",
+  );
+  const [estoqueObs, setEstoqueObs] = useState(row?.estoque_obs ?? "");
+  const [gastos, setGastos] = useState(row?.gastos_detalhes ?? "");
+  const [bebidas, setBebidas] = useState(row?.maquina_bebidas ?? "");
+  const [obs, setObs] = useState(row?.observacoes ?? "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    // trap escape
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const salvar = async () => {
+    if (!funcSaida.trim() || !funcEntrada.trim()) {
+      toast.error("Preencha quem sai e quem entra do turno.");
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      unidade,
+      funcionario_saida: funcSaida.trim().slice(0, 120),
+      funcionario_entrada: funcEntrada.trim().slice(0, 120),
+      caixa_status: caixaStatus,
+      caixa_obs: caixaObs.trim().slice(0, 500) || null,
+      estoque_status: estoqueStatus,
+      estoque_obs: estoqueObs.trim().slice(0, 500) || null,
+      gastos_detalhes: gastos.trim().slice(0, 1000) || null,
+      maquina_bebidas: bebidas.trim().slice(0, 500) || null,
+      observacoes: obs.trim().slice(0, 4000) || null,
+    };
+    let error;
+    if (isEdit && row) {
+      ({ error } = await supabase
+        .from("trocas_turno" as never)
+        .update(payload as never)
+        .eq("id", row.id));
+    } else {
+      ({ error } = await supabase
+        .from("trocas_turno" as never)
+        .insert({ ...payload, funcionario_saida_user_id: userId } as never));
+    }
+    setSaving(false);
+    if (error) {
+      toast.error("Falha ao salvar: " + error.message);
+      return;
+    }
+    toast.success(isEdit ? "Registro atualizado" : "Registro criado");
+    onSaved();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 p-0 sm:p-4 no-print">
+      <div className="bg-white w-full sm:max-w-xl sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[95vh] flex flex-col">
+        <div className="flex items-center justify-between p-4 border-b border-slate-200">
+          <div>
+            <p className="text-[11px] font-bold text-indigo-600 uppercase tracking-wider">
+              {isEdit ? "Editar" : "Novo"} · INJOY {unidade}
+            </p>
+            <h3 className="text-base font-black text-slate-900">
+              {isEdit ? "Editar troca de turno" : "Criar registro de troca de turno"}
+            </h3>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
+            aria-label="Fechar"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="overflow-y-auto flex-1 p-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <LabeledInput label="Saindo do turno" value={funcSaida} onChange={setFuncSaida} />
+            <LabeledInput label="Assumindo o turno" value={funcEntrada} onChange={setFuncEntrada} />
+          </div>
+
+          <StatusBlock
+            titulo="💰 Status do Caixa"
+            status={caixaStatus}
+            onStatus={setCaixaStatus}
+            obs={caixaObs}
+            onObs={setCaixaObs}
+          />
+          <StatusBlock
+            titulo="📦 Status do Estoque"
+            status={estoqueStatus}
+            onStatus={setEstoqueStatus}
+            obs={estoqueObs}
+            onObs={setEstoqueObs}
+          />
+
+          <LabeledTextarea label="💸 Gastos do Turno" value={gastos} onChange={setGastos} rows={2} />
+          <LabeledInput label="🥤 Máquina de Bebidas" value={bebidas} onChange={setBebidas} />
+          <LabeledTextarea
+            label="📝 Atividades / Observações"
+            value={obs}
+            onChange={setObs}
+            rows={5}
+          />
+        </div>
+
+        <div className="p-4 border-t border-slate-200 flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl font-black text-sm uppercase tracking-wider bg-slate-100 text-slate-700 hover:bg-slate-200"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={salvar}
+            disabled={saving}
+            className="flex-1 py-2.5 rounded-xl font-black text-sm uppercase tracking-wider bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+            Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LabeledInput({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+        {label}
+      </label>
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500"
+      />
+    </div>
+  );
+}
+
+function LabeledTextarea({
+  label,
+  value,
+  onChange,
+  rows = 3,
+}: {
+  label: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows?: number;
+}) {
+  return (
+    <div>
+      <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
+        {label}
+      </label>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        rows={rows}
+        className="mt-1 w-full bg-white border border-slate-200 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-indigo-500 resize-none"
+      />
+    </div>
+  );
+}
+
+function StatusBlock({
+  titulo,
+  status,
+  onStatus,
+  obs,
+  onObs,
+}: {
+  titulo: string;
+  status: StatusKey;
+  onStatus: (s: StatusKey) => void;
+  obs: string;
+  onObs: (v: string) => void;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 space-y-2">
+      <p className="text-xs font-black text-slate-700">{titulo}</p>
+      <div className="grid grid-cols-2 gap-2">
+        {(["batendo", "divergente"] as const).map((k) => {
+          const active = status === k;
+          const isOk = k === "batendo";
+          return (
+            <button
+              key={k}
+              type="button"
+              onClick={() => onStatus(k)}
+              className={cn(
+                "py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all border",
+                active
+                  ? isOk
+                    ? "bg-emerald-500 text-white border-emerald-500"
+                    : "bg-red-500 text-white border-red-500"
+                  : "bg-white text-slate-500 border-slate-200 hover:border-slate-300",
+              )}
+            >
+              {k === "batendo" ? "Batendo" : "Divergente"}
+            </button>
+          );
+        })}
+      </div>
+      <textarea
+        value={obs}
+        onChange={(e) => onObs(e.target.value)}
+        rows={2}
+        placeholder="Observações (opcional)"
+        className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-indigo-500 resize-none"
+      />
     </div>
   );
 }
