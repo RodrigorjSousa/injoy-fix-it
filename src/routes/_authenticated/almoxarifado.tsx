@@ -55,7 +55,7 @@ type ReqHist = {
   item?: { name: string; unit_type: string };
 };
 
-const SETORES = ["Banheiro", "Limpeza", "Elétrica", "Hidráulica", "Ar Condicionado", "Cozinha"];
+type Sector = { id: string; property: string; name: string };
 
 function AlmoxarifadoAdmin() {
   const { data: me } = useMe();
@@ -68,14 +68,32 @@ function AlmoxarifadoAdmin() {
   const [savingId, setSavingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showNewItem, setShowNewItem] = useState(false);
+  const [showSetores, setShowSetores] = useState(false);
+  const [novoSetor, setNovoSetor] = useState("");
+  const [savingSetor, setSavingSetor] = useState(false);
+  const [deletingSetorId, setDeletingSetorId] = useState<string | null>(null);
   const [novo, setNovo] = useState<{ name: string; sector: string; unit_type: string; current_stock: number; min_stock: number }>({
     name: "",
-    sector: SETORES[0],
+    sector: "",
     unit_type: "un",
     current_stock: 0,
     min_stock: 0,
   });
   const [creating, setCreating] = useState(false);
+
+  const { data: setores = [] } = useQuery({
+    queryKey: ["inv_sectors", unidade],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("inventory_sectors" as never)
+        .select("*")
+        .eq("property", unidade)
+        .order("name");
+      if (error) throw error;
+      return (data as unknown as Sector[]) ?? [];
+    },
+  });
+  const SETORES = useMemo(() => setores.map((s) => s.name), [setores]);
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["inv_items", unidade],
@@ -217,6 +235,53 @@ function AlmoxarifadoAdmin() {
     }
   };
 
+  const criarSetor = async () => {
+    const nome = novoSetor.trim();
+    if (!nome) { toast.error("Informe o nome do setor"); return; }
+    if (setores.some((s) => s.name.toLowerCase() === nome.toLowerCase())) {
+      toast.error("Setor já existe");
+      return;
+    }
+    setSavingSetor(true);
+    try {
+      const { error } = await supabase
+        .from("inventory_sectors" as never)
+        .insert({ property: unidade, name: nome } as never);
+      if (error) throw error;
+      toast.success("Setor criado");
+      setNovoSetor("");
+      qc.invalidateQueries({ queryKey: ["inv_sectors"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao criar setor");
+    } finally {
+      setSavingSetor(false);
+    }
+  };
+
+  const excluirSetor = async (setor: Sector) => {
+    const usados = itens.filter((i) => i.sector === setor.name).length;
+    if (usados > 0) {
+      toast.error(`Setor "${setor.name}" tem ${usados} item(s). Exclua ou mova os itens antes.`);
+      return;
+    }
+    if (!confirm(`Excluir o setor "${setor.name}"? Esta ação não pode ser desfeita.`)) return;
+    setDeletingSetorId(setor.id);
+    try {
+      const { error } = await supabase
+        .from("inventory_sectors" as never)
+        .delete()
+        .eq("id", setor.id);
+      if (error) throw error;
+      toast.success("Setor excluído");
+      qc.invalidateQueries({ queryKey: ["inv_sectors"] });
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao excluir setor");
+    } finally {
+      setDeletingSetorId(null);
+    }
+  };
+
+
 
   if (!isAdmin) {
     return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
@@ -316,7 +381,16 @@ function AlmoxarifadoAdmin() {
             </div>
           </div>
           <button
-            onClick={() => setShowNewItem(true)}
+            onClick={() => setShowSetores(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
+          >
+            <Package size={14} /> Setores
+          </button>
+          <button
+            onClick={() => {
+              setNovo((s) => ({ ...s, sector: s.sector || SETORES[0] || "" }));
+              setShowNewItem(true);
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
             <Plus size={14} /> Novo Item
@@ -470,7 +544,7 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="compras" className="mt-4">
-            <ComprasForm itens={itens} onDone={() => qc.invalidateQueries({ queryKey: ["inv_items"] })} />
+            <ComprasForm itens={itens} setores={SETORES} onDone={() => qc.invalidateQueries({ queryKey: ["inv_items"] })} />
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">
@@ -597,12 +671,72 @@ function AlmoxarifadoAdmin() {
           </div>
         </div>
       )}
+
+      {showSetores && (
+        <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4" onClick={() => setShowSetores(false)}>
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-5" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-base font-black text-slate-800">Gerenciar Setores</h3>
+                <p className="text-[11px] text-slate-500">Criar ou excluir setores em {unidade}</p>
+              </div>
+              <button onClick={() => setShowSetores(false)} className="h-8 w-8 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-500">
+                <X size={16} />
+              </button>
+            </div>
+
+            <div className="flex gap-2 mb-4">
+              <input
+                type="text"
+                value={novoSetor}
+                onChange={(e) => setNovoSetor(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") criarSetor(); }}
+                placeholder="Ex.: Elétrica"
+                className="flex-1 border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              />
+              <button
+                onClick={criarSetor}
+                disabled={savingSetor || !novoSetor.trim()}
+                className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-60"
+              >
+                {savingSetor ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Criar
+              </button>
+            </div>
+
+            <div className="max-h-72 overflow-y-auto divide-y divide-slate-100 border border-slate-200 rounded-lg">
+              {setores.length === 0 && (
+                <div className="p-4 text-center text-sm text-slate-400">Nenhum setor cadastrado.</div>
+              )}
+              {setores.map((s) => {
+                const count = itens.filter((i) => i.sector === s.name).length;
+                return (
+                  <div key={s.id} className="flex items-center gap-2 px-3 py-2">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{s.name}</p>
+                      <p className="text-[10px] text-slate-500">{count} item(s)</p>
+                    </div>
+                    <button
+                      onClick={() => excluirSetor(s)}
+                      disabled={deletingSetorId === s.id || count > 0}
+                      title={count > 0 ? "Exclua os itens antes" : "Excluir setor"}
+                      className="inline-flex items-center justify-center h-8 w-8 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      {deletingSetorId === s.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 
-function ComprasForm({ itens, onDone }: { itens: Item[]; onDone: () => void }) {
+function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: string[]; onDone: () => void }) {
   const [itemId, setItemId] = useState<string>("");
   const [qtd, setQtd] = useState<number>(0);
   const [saving, setSaving] = useState(false);
@@ -651,7 +785,7 @@ function ComprasForm({ itens, onDone }: { itens: Item[]; onDone: () => void }) {
             className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
           >
             <option value="">Selecione…</option>
-            {SETORES.map((s) => {
+            {setores.map((s: string) => {
               const opts = itens.filter((i) => i.sector === s);
               if (opts.length === 0) return null;
               return (

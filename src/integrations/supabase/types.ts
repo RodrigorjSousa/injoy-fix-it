@@ -557,6 +557,30 @@ export type Database = {
           },
         ]
       }
+      inventory_sectors: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          property: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          property: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          property?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       laundry_batches: {
         Row: {
           batch_id: string
