@@ -9,12 +9,14 @@ import {
   History,
   Save,
   ShoppingCart,
+  ShoppingBag,
   Building2,
   Loader2,
   Search,
   Trash2,
   X,
 } from "lucide-react";
+import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
 import type { Unidade } from "@/lib/store";
