@@ -318,14 +318,16 @@ function RecepcaoPage() {
           <span className="hidden sm:inline">Solicitar compra</span>
           <span className="sm:hidden">🛒</span>
         </button>
-        <button
-          onClick={() => setTrocaTurnoOpen(true)}
-          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-indigo-500 to-blue-600 shadow-md shadow-indigo-500/30 hover:brightness-110 active:scale-95 transition-all"
-        >
-          <RefreshCcw size={18} />
-          <span className="hidden sm:inline">Trocar Turno</span>
-          <span className="sm:hidden">🔄</span>
-        </button>
+        {unidadeAtiva === "Botafogo" && (
+          <button
+            onClick={() => setTrocaTurnoOpen(true)}
+            className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-indigo-500 to-blue-600 shadow-md shadow-indigo-500/30 hover:brightness-110 active:scale-95 transition-all"
+          >
+            <RefreshCcw size={18} />
+            <span className="hidden sm:inline">Trocar Turno</span>
+            <span className="sm:hidden">🔄</span>
+          </button>
+        )}
       </div>
 
       <RecadosDaCamareiraSection
