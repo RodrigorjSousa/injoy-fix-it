@@ -84,9 +84,11 @@ type ChamadoRow = {
   responsavel_id: string | null;
   foto_antes: string | null;
   foto_depois: string | null;
+  midias: unknown;
   criado_por: string | null;
   created_at: string;
 };
+
 type AtivoRow = {
   id: string;
   unidade: Unidade;
