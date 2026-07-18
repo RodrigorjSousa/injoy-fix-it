@@ -22,6 +22,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
+import { useMe } from "@/lib/store";
+
 
 type Props = {
   unidade: Unidade;
@@ -30,6 +32,9 @@ type Props = {
 type ChamadosCounts = { abertos: number; andamento: number; concluidos: number };
 
 export function PainelControleRapido({ unidade }: Props) {
+  const { data: me } = useMe();
+  const isGestor = !!me && (me.isGestor || me.isAdmin);
+
   const [chamados, setChamados] = useState<ChamadosCounts>({
     abertos: 7,
     andamento: 0,
@@ -156,7 +161,8 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
 
-        {/* CARD 2 - Vistoria da Recepção */}
+        {/* CARD 2 - Vistoria da Recepção (apenas Gestor/Admin) */}
+        {isGestor && (
         <button
           type="button"
           onClick={() => setVistoriaOpen(true)}
@@ -184,6 +190,7 @@ export function PainelControleRapido({ unidade }: Props) {
             />
           </div>
         </button>
+        )}
 
         {/* CARD 3 - Troca de Turnos */}
         <Link to="/relatorios-turno" className={cardBase}>
@@ -212,7 +219,8 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
 
-        {/* CARD 4 - Ponto Pontomais */}
+        {/* CARD 4 - Ponto Pontomais (apenas Gestor/Admin) */}
+        {isGestor && (
         <Link to="/controle-ponto" className={cardBase}>
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -233,6 +241,7 @@ export function PainelControleRapido({ unidade }: Props) {
             Sincronizado com Pontomais
           </div>
         </Link>
+        )}
 
         {/* CARD 5 - Bonificação Recepção */}
         <button
