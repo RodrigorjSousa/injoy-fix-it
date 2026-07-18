@@ -34,7 +34,6 @@ import {
 } from "@/components/ui/dialog";
 import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { cn } from "@/lib/utils";
-import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
 type RoomRow = {
