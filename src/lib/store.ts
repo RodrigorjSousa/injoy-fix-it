@@ -363,13 +363,15 @@ export function useCriarChamado(
   opts?: UseMutationOptions<
     string,
     Error,
-    { unidade: Unidade; categoria: Categoria; descricao: string; responsavelId: string | null }
+    { unidade: Unidade; categoria: Categoria; descricao: string; responsavelId: string | null; midias?: Midia[] }
   >,
 ) {
   const invalidate = useInvalidate([["chamados"]]);
   return useMutation({
     mutationFn: async (input) => {
       const { data: u } = await supabase.auth.getUser();
+      const midias = input.midias ?? [];
+      const primeiraFoto = midias.find((m) => m.type === "photo")?.url ?? null;
       const { data, error } = await supabase
         .from("chamados")
         .insert({
@@ -377,6 +379,8 @@ export function useCriarChamado(
           categoria: input.categoria,
           descricao: input.descricao,
           responsavel_id: input.responsavelId,
+          foto_antes: primeiraFoto,
+          midias: midias as unknown as never,
           criado_por: u.user?.id ?? null,
         })
         .select("id")
@@ -384,6 +388,7 @@ export function useCriarChamado(
       if (error) throw error;
       return data.id as string;
     },
+
     onSuccess: (...a) => {
       invalidate();
       opts?.onSuccess?.(...a);
