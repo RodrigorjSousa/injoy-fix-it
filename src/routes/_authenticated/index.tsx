@@ -101,22 +101,23 @@ function NovoChamado() {
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const tecnicosDaCategoria = useMemo(
-    () => (categoria ? funcionarios.filter((f) => f.categorias.includes(categoria)) : []),
-    [categoria, funcionarios],
-  );
+  const tecnicosDaCategoria = useMemo(() => {
+    if (!categoria) return [];
+    const daCategoria = funcionarios.filter((f) => f.categorias.includes(categoria));
+    // Fallback: se nenhum técnico está vinculado a essa categoria,
+    // exibe todos os funcionários para que o gestor/recepção
+    // consiga sempre direcionar o chamado.
+    return daCategoria.length > 0 ? daCategoria : funcionarios;
+  }, [categoria, funcionarios]);
 
-  // Auto-seleciona se houver apenas 1 técnico; reseta se mudar categoria.
+  // Reseta a seleção sempre que a categoria muda.
+  // Não auto-seleciona: a escolha do técnico é SEMPRE obrigatória.
   useEffect(() => {
-    if (tecnicosDaCategoria.length === 1) {
-      setTecnicoId(tecnicosDaCategoria[0].id);
-    } else {
-      setTecnicoId(null);
-    }
-  }, [categoria, tecnicosDaCategoria]);
+    setTecnicoId(null);
+  }, [categoria]);
 
   const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
-  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
+  const precisaEscolherTecnico = !!categoria && !tecnicoId;
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
@@ -125,10 +126,11 @@ function NovoChamado() {
     !!unidade &&
     quartoOk &&
     !!categoria &&
-    !precisaEscolherTecnico &&
+    !!responsavel &&
     descricao.trim().length > 3 &&
     !criar.isPending &&
     !uploading;
+
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
@@ -295,58 +297,49 @@ function NovoChamado() {
       </section>
 
 
-      {categoria && tecnicosDaCategoria.length >= 2 && (
+      {categoria && (
         <section className="space-y-3">
           <StepLabel
             n={precisaQuarto ? 6 : 5}
-            title="Selecione o técnico"
+            title="Selecione o técnico responsável"
           />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {tecnicosDaCategoria.map((t) => {
-              const active = tecnicoId === t.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  onClick={() => setTecnicoId(t.id)}
-                  className={cn(
-                    "rounded-xl border bg-card p-3 text-left transition-all",
-                    "hover:border-primary/50 hover:shadow-sm",
-                    active && "border-primary ring-2 ring-primary/30 bg-primary/5",
-                  )}
-                >
-                  <div className="font-semibold truncate">{t.nome}</div>
-                  <div className="text-xs text-muted-foreground truncate">
-                    {t.categorias.join(" · ")}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-          {precisaEscolherTecnico && (
+          {tecnicosDaCategoria.length === 0 ? (
+            <Card className="p-4 bg-amber-50 border-amber-200 text-sm text-amber-800">
+              Nenhum funcionário cadastrado. Cadastre técnicos em Configurações antes de abrir um chamado.
+            </Card>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {tecnicosDaCategoria.map((t) => {
+                const active = tecnicoId === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTecnicoId(t.id)}
+                    className={cn(
+                      "rounded-xl border bg-card p-3 text-left transition-all",
+                      "hover:border-primary/50 hover:shadow-sm",
+                      active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                    )}
+                  >
+                    <div className="font-semibold truncate">{t.nome}</div>
+                    <div className="text-xs text-muted-foreground truncate">
+                      {t.categorias.length > 0 ? t.categorias.join(" · ") : "Sem categorias vinculadas"}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {precisaEscolherTecnico && tecnicosDaCategoria.length > 0 && (
             <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-              Escolha o técnico que deve atender este chamado.
+              Selecione obrigatoriamente o técnico que deve atender este chamado.
             </p>
           )}
         </section>
       )}
 
-      {categoria && tecnicosDaCategoria.length < 2 && (
-        <Card className="p-4 flex items-center justify-between gap-3 bg-accent/20 border-accent/40">
-          <div className="min-w-0">
-            <div className="text-xs text-muted-foreground">Responsável</div>
-            <div className="font-semibold truncate">
-              {responsavel ? responsavel.nome : "Nenhum técnico cadastrado para esta categoria"}
-            </div>
-          </div>
-          {responsavel && (
-            <Badge variant="outline" className="shrink-0">
-              {responsavel.categorias.length} categorias
-            </Badge>
-          )}
-        </Card>
-      )}
 
 
       <div className="sticky bottom-20 lg:bottom-6 lg:static z-10">
