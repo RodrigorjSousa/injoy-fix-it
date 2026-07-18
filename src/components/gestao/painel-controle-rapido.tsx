@@ -161,7 +161,8 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
 
-        {/* CARD 2 - Vistoria da Recepção */}
+        {/* CARD 2 - Vistoria da Recepção (apenas Gestor/Admin) */}
+        {isGestor && (
         <button
           type="button"
           onClick={() => setVistoriaOpen(true)}
@@ -189,6 +190,7 @@ export function PainelControleRapido({ unidade }: Props) {
             />
           </div>
         </button>
+        )}
 
         {/* CARD 3 - Troca de Turnos */}
         <Link to="/relatorios-turno" className={cardBase}>
