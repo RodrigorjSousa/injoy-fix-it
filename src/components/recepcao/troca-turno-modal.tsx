@@ -82,8 +82,8 @@ export function TrocaTurnoModal({ open, onClose, unidade }: Props) {
       <div className="bg-slate-900 border border-slate-800 w-full sm:max-w-xl sm:rounded-2xl rounded-t-2xl shadow-2xl max-h-[95vh] flex flex-col">
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 grid place-items-center text-white">
-              <RefreshCcw size={18} />
+            <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-orange-500 grid place-items-center text-white shadow-md shadow-indigo-500/30">
+              <TrocaTurnoIcon size={22} />
             </div>
             <div>
               <p className="text-[11px] font-bold text-indigo-400 uppercase tracking-wider">
