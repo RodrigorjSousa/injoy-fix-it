@@ -154,6 +154,12 @@ function ControlePontoPage() {
           </p>
         </div>
         <button
+          onClick={() => setAdicionando(true)}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold"
+        >
+          <Plus size={16} /> Adicionar
+        </button>
+        <button
           onClick={sincronizar}
           disabled={syncing || funcionariosUnidade.length === 0}
           className="inline-flex items-center gap-2 px-3 py-2 bg-blue-700 hover:bg-blue-600 disabled:opacity-60 rounded-lg text-sm font-semibold"
