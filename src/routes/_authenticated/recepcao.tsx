@@ -283,6 +283,12 @@ function RecepcaoPage() {
         </button>
       </div>
 
+      <div className="px-4 pt-4">
+        <RecadosGestorAlert setor="recepcao" unidade={unidadeAtiva} />
+      </div>
+
+
+
 
       <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-2">
         <div className="relative flex-1">
