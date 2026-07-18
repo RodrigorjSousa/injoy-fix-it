@@ -35,7 +35,7 @@ import {
 import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
-import { ReservasHojeButton } from "@/components/gestao/reservas-hoje-button";
+
 import { AtividadesHojePanel } from "@/components/gestao/atividades-hoje-panel";
 import { cn } from "@/lib/utils";
 
@@ -400,7 +400,7 @@ function BoasVindas() {
             <Megaphone className="h-5 w-5" />
             📣 Recador do Gestor
           </button>
-          <ReservasHojeButton unidade={unidade} />
+          
         </div>
       )}
 
