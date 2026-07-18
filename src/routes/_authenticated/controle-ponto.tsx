@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, RefreshCw, Clock, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock, Calendar as CalendarIcon, Pencil, X, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -16,6 +16,7 @@ type Funcionario = {
   id: string;
   nome: string;
   email: string;
+  cpf: string | null;
   categorias: string[];
 };
 
