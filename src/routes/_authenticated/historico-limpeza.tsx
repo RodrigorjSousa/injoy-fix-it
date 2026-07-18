@@ -344,11 +344,16 @@ function HistoricoLimpezaPage() {
                       className="shrink-0"
                       aria-label="Ampliar foto"
                     >
-                      <img
-                        src={r.photo_url}
+                      <InspectionImage
+                        stored={r.photo_url}
                         alt="Placa Não Perturbe"
                         className="w-16 h-16 rounded-lg object-cover border border-red-300"
                         loading="lazy"
+                        fallback={
+                          <div className="w-16 h-16 rounded-lg bg-red-50 border border-red-200 grid place-items-center text-red-500">
+                            <ImageIcon size={18} />
+                          </div>
+                        }
                       />
                     </button>
                   ) : isDnd ? (
