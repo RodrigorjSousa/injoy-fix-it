@@ -67,7 +67,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       includeGuestsDetails: "true",
       includeAllRooms: "true",
     });
-    const res = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
+    const res = await cloudbedsFetch(property, `/getReservationsWithRateDetails?${qs.toString()}`);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
