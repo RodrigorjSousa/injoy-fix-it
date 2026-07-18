@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   AlertCircle,
+  Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -19,6 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
+import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 
 type Props = {
   unidade: Unidade;
