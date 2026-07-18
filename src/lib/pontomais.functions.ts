@@ -1,7 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { fetchPontomaisRegistros } from "./pontomais.server";
+import { ensurePontomaisTokenConfigured, fetchPontomaisRegistros } from "./pontomais.server";
 
 const syncSchema = z.object({
   funcionarioIds: z.array(z.string().uuid()).optional(),
@@ -13,6 +13,8 @@ export const syncPontomais = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => syncSchema.parse(input))
   .handler(async ({ data, context }) => {
+    ensurePontomaisTokenConfigured();
+
     const { supabase, userId } = context;
 
     // Verify caller is admin or gestor (RLS on user_roles scopes to auth.uid())
