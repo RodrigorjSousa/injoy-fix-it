@@ -40,15 +40,17 @@ export const Route = createFileRoute("/_authenticated/")({
     categoria: (typeof s.categoria === "string" ? (s.categoria as Categoria) : undefined) as
       | Categoria
       | undefined,
+    abrir: s.abrir === "1" || s.abrir === 1 ? 1 : undefined,
   }),
   beforeLoad: ({ search }) => {
-    // Raiz autenticada abre a tela de Boas-Vindas para todos os cargos
-    // (gestor, recepção, camareiras, técnicos). Quando há categoria na URL,
-    // mantém a tela de abertura de chamado (usada por deep-links).
-    if (!search.categoria) {
+    // Raiz autenticada abre a tela de Boas-Vindas por padrão.
+    // Mantém a tela de abertura de chamado quando há `categoria` (deep-link)
+    // ou `abrir=1` (botão "Abrir chamado" no catálogo de serviços).
+    if (!search.categoria && !search.abrir) {
       throw redirect({ to: "/boas-vindas", replace: true });
     }
   },
+
   component: NovoChamado,
 });
 
