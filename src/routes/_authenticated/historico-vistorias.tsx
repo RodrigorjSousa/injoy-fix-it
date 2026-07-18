@@ -574,8 +574,8 @@ function Lightbox({
         className="flex flex-col items-center gap-3 max-w-full max-h-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={current.url}
+        <InspectionImage
+          stored={current.url}
           alt={current.caption ?? "Imagem"}
           className="max-h-[80vh] max-w-full rounded-xl shadow-2xl object-contain"
         />
