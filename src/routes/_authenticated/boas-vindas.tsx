@@ -738,6 +738,8 @@ function BoasVindas() {
         </div>
       )}
 
+      <PainelControleRapido unidade={unidade} />
+
       <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
