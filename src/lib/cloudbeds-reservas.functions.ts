@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const inputSchema = z.object({
   property: z.enum(["Ipanema", "Botafogo"]),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export type ReservaHoje = {
