@@ -660,8 +660,8 @@ function PainelCamareiras() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 bg-red-50 border-2 border-red-500 rounded-xl p-3">
                     {q.dnd_photo_url ? (
-                      <img
-                        src={q.dnd_photo_url}
+                      <InspectionImage
+                        stored={q.dnd_photo_url}
                         alt="Placa Não Perturbe"
                         className="w-14 h-14 rounded-lg object-cover border border-red-200"
                       />
