@@ -265,8 +265,9 @@ export function PainelControleRapido({ unidade }: Props) {
               {formatBRL(totalBonif)}
             </p>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-2">
-              Saldo do mês
+              Saldo acumulado neste mês
             </p>
+
           </div>
           <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500">
             <ArrowUpRight className="h-3.5 w-3.5" />
