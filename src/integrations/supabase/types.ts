@@ -79,6 +79,65 @@ export type Database = {
           },
         ]
       }
+      auditorias_almoxarifado: {
+        Row: {
+          concluido_em: string | null
+          created_at: string
+          funcionario_id: string
+          funcionario_nome: string
+          gestor_id: string | null
+          gestor_nome: string | null
+          id: string
+          iniciado_em: string | null
+          prazo_ate: string | null
+          relatorio_final: string | null
+          status: string
+          tempo_limite: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          concluido_em?: string | null
+          created_at?: string
+          funcionario_id: string
+          funcionario_nome: string
+          gestor_id?: string | null
+          gestor_nome?: string | null
+          id?: string
+          iniciado_em?: string | null
+          prazo_ate?: string | null
+          relatorio_final?: string | null
+          status?: string
+          tempo_limite: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          concluido_em?: string | null
+          created_at?: string
+          funcionario_id?: string
+          funcionario_nome?: string
+          gestor_id?: string | null
+          gestor_nome?: string | null
+          id?: string
+          iniciado_em?: string | null
+          prazo_ate?: string | null
+          relatorio_final?: string | null
+          status?: string
+          tempo_limite?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "auditorias_almoxarifado_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       beverage_catalog: {
         Row: {
           created_at: string
