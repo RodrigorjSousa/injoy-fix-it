@@ -349,6 +349,39 @@ export type Database = {
         }
         Relationships: []
       }
+      config_bonificacao: {
+        Row: {
+          created_at: string
+          id: string
+          penalidade_1_ruim: number
+          penalidade_2_ruins: number
+          updated_at: string
+          valor_elogio: number
+          valor_nota_10: number
+          valor_nota_9: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          penalidade_1_ruim?: number
+          penalidade_2_ruins?: number
+          updated_at?: string
+          valor_elogio?: number
+          valor_nota_10?: number
+          valor_nota_9?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          penalidade_1_ruim?: number
+          penalidade_2_ruins?: number
+          updated_at?: string
+          valor_elogio?: number
+          valor_nota_10?: number
+          valor_nota_9?: number
+        }
+        Relationships: []
+      }
       daily_period_status: {
         Row: {
           completed_at: string | null
@@ -1074,6 +1107,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      registros_bonificacao: {
+        Row: {
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          nome_hospede: string
+          nota_funcionarios: number
+          nota_geral: number
+          observacao: string | null
+          teve_elogio: boolean
+          unidade: string
+          updated_at: string
+          valor_calculado: number
+        }
+        Insert: {
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          nome_hospede: string
+          nota_funcionarios: number
+          nota_geral: number
+          observacao?: string | null
+          teve_elogio?: boolean
+          unidade: string
+          updated_at?: string
+          valor_calculado?: number
+        }
+        Update: {
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          nome_hospede?: string
+          nota_funcionarios?: number
+          nota_geral?: number
+          observacao?: string | null
+          teve_elogio?: boolean
+          unidade?: string
+          updated_at?: string
+          valor_calculado?: number
+        }
+        Relationships: []
       }
       room_housekeeping: {
         Row: {
