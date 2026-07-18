@@ -1,7 +1,6 @@
 // Server-only helpers for Pontomais API integration.
 
-const PONTOMAIS_BASE_URL =
-  process.env.PONTOMAIS_BASE_URL || "https://api.pontomais.com.br/external_api/v1";
+const DEFAULT_PONTOMAIS_BASE_URL = "https://api.pontomais.com.br/external_api/v1";
 
 export type PontomaisRegistro = {
   entrada?: string | null;
@@ -58,10 +57,23 @@ function friendlyErrorMessage(status: number, body: string): string {
   }
 }
 
+function getPontomaisBaseUrl(): string {
+  return (process.env.PONTOMAIS_BASE_URL || DEFAULT_PONTOMAIS_BASE_URL).replace(/\/$/, "");
+}
+
+function getPontomaisToken(): string {
+  // Em Workers/Lovable Cloud, variáveis de ambiente devem ser lidas durante a
+  // execução da requisição. Nunca em escopo de módulo, senão podem virar undefined.
+  const token = process.env.PONTOMAIS_API_TOKEN?.trim();
+  if (!token) {
+    throw new Error("PONTOMAIS_API_TOKEN não configurado");
+  }
+  return token;
+}
+
 function authHeaders(token: string): Record<string, string> {
-  // Pontomais external_api/v1 autentica APENAS via o cabeçalho `access-token`.
-  // Enviar `Authorization: Bearer` (ou outras variantes) em conjunto faz a API
-  // responder 403 com {"error":"Token inválido!"}.
+  // Pontomais external_api/v1 autentica via o cabeçalho `access-token`.
+  // Mantemos a credencial em toda chamada HTTP feita à Pontomais.
   return {
     "access-token": token,
     "Content-Type": "application/json",
@@ -70,9 +82,10 @@ function authHeaders(token: string): Record<string, string> {
 }
 
 async function pontomaisGet(url: string, token: string): Promise<any> {
+  const headers = authHeaders(token);
   let res: Response;
   try {
-    res = await fetch(url, { method: "GET", headers: authHeaders(token) });
+    res = await fetch(url, { method: "GET", headers });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[pontomais] network error", { url, error: msg });
@@ -85,6 +98,7 @@ async function pontomaisGet(url: string, token: string): Promise<any> {
       url,
       status: res.status,
       statusText: res.statusText,
+      hasAccessTokenHeader: Boolean(headers["access-token"]),
       body: text.slice(0, 500),
     });
     throw new PontomaisApiError(res.status, text, friendlyErrorMessage(res.status, text));
@@ -126,7 +140,7 @@ async function resolveEmployeeId(params: {
 
   for (const path of attempts) {
     try {
-      const payload = await pontomaisGet(`${PONTOMAIS_BASE_URL}${path}`, token);
+      const payload = await pontomaisGet(`${getPontomaisBaseUrl()}${path}`, token);
       const list: any[] =
         payload?.employees ?? payload?.data ?? payload?.records ?? (Array.isArray(payload) ? payload : []);
       if (!Array.isArray(list) || list.length === 0) continue;
@@ -160,10 +174,7 @@ export async function fetchPontomaisRegistros(params: {
   startDate: string;
   endDate: string;
 }): Promise<Record<string, PontomaisRegistro>> {
-  const token = process.env.PONTOMAIS_API_TOKEN;
-  if (!token) {
-    throw new Error("PONTOMAIS_API_TOKEN não configurado");
-  }
+  const token = getPontomaisToken();
 
   const cleanCpf = sanitizeCpf(params.cpf);
   const cleanEmail = params.email?.trim().toLowerCase() || null;
@@ -195,7 +206,7 @@ export async function fetchPontomaisRegistros(params: {
   // Ransack fallback in case the API expects filter[] syntax:
   query.set("q[employee_id_eq]", String(employeeId));
 
-  const url = `${PONTOMAIS_BASE_URL}/time_cards?${query.toString()}`;
+  const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
   const payload = await pontomaisGet(url, token);
 
   const rows: any[] = payload?.time_cards ?? payload?.data ?? payload?.registros ?? [];
