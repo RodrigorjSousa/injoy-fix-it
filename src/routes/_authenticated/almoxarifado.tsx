@@ -403,7 +403,7 @@ function AlmoxarifadoAdmin() {
 
 
         <Tabs defaultValue="inventario" className="w-full">
-          <TabsList className="grid grid-cols-4 max-w-2xl">
+          <TabsList className="grid grid-cols-5 max-w-3xl">
             <TabsTrigger value="inventario">
               <Package size={14} className="mr-1" /> Inventário
             </TabsTrigger>
@@ -412,6 +412,9 @@ function AlmoxarifadoAdmin() {
             </TabsTrigger>
             <TabsTrigger value="compras">
               <ShoppingCart size={14} className="mr-1" /> Compras
+            </TabsTrigger>
+            <TabsTrigger value="auditoria">
+              <ClipboardList size={14} className="mr-1" /> Auditoria
             </TabsTrigger>
             <TabsTrigger value="historico">
               <History size={14} className="mr-1" /> Histórico
