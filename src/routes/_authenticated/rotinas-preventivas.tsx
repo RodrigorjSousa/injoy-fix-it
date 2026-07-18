@@ -216,13 +216,13 @@ function RotinasPreventivasPage() {
   const marcados = useMemo(() => Object.values(checks).filter(Boolean).length, [checks]);
   const podeConfirmar = tecnico.trim().length > 0 && marcados === totalChecks;
 
-  const nomeUsuario = me?.funcionario?.nome ?? me?.email?.split("@")[0] ?? "";
+  const TECNICO_PADRAO = "Rodrigo Sousa - CFT 09413001707";
 
   function abrir(item: Item) {
     setSelecionado(item);
     setChecks({});
     setObs("");
-    setTecnico(nomeUsuario);
+    setTecnico(TECNICO_PADRAO);
   }
 
   function confirmar() {
