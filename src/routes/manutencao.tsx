@@ -5,6 +5,7 @@ import { Cog, Package, ShoppingBag } from "lucide-react";
 import { EstoqueGeralView } from "@/components/almoxarifado/estoque-geral-view";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { useUnidade } from "@/lib/unidade-context";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
