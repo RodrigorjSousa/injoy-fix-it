@@ -160,9 +160,13 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
                 <div className="flex items-center justify-center py-12 text-slate-400 gap-2">
                   <Loader2 className="animate-spin h-5 w-5" /> Consultando Cloudbeds…
                 </div>
+              ) : error ? (
+                <div className="text-center py-8 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  {error}
+                </div>
               ) : reservas && reservas.length === 0 ? (
                 <p className="text-center text-slate-400 py-8 text-sm">
-                  Sem reservas com check-in hoje.
+                  Nenhum check-in encontrado para esta data.
                 </p>
               ) : reservas ? (
                 <div className="overflow-x-auto rounded-xl border border-white/10">
