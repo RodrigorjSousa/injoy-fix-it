@@ -257,12 +257,20 @@ function ControlePontoPage() {
                         <td className="text-center font-mono">{formatTime(r?.almoco_retorno ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.saida ?? null)}</td>
                         <td className="text-center">
-                          <button
-                            onClick={() => setEditando(f)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                          >
-                            <Pencil size={12} /> Editar
-                          </button>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => setEditando(f)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              <Pencil size={12} /> Editar
+                            </button>
+                            <button
+                              onClick={() => excluir(f)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 size={12} /> Excluir
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
