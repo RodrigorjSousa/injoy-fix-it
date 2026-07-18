@@ -155,7 +155,7 @@ export function useChamados() {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -178,7 +178,7 @@ export function useChamado(id: string) {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
         )
         .eq("id", id)
         .maybeSingle();
