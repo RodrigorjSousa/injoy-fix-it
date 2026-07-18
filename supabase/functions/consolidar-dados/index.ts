@@ -3,17 +3,57 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apiKey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apiKey, content-type, x-cron-secret',
+}
+
+async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
+  const cronSecret = Deno.env.get('CRON_SHARED_SECRET')
+  const provided = req.headers.get('x-cron-secret')
+  if (cronSecret && provided && provided === cronSecret) return { ok: true }
+
+  const authHeader = req.headers.get('authorization') ?? ''
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return { ok: false, status: 401, message: 'Não autenticado' }
+  }
+  const token = authHeader.slice(7).trim()
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+  const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  if (!SUPABASE_URL || !ANON || !token) {
+    return { ok: false, status: 401, message: 'Não autenticado' }
+  }
+  const authed = createClient(SUPABASE_URL, ANON, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data: userRes, error: userErr } = await authed.auth.getUser(token)
+  if (userErr || !userRes?.user) {
+    return { ok: false, status: 401, message: 'Sessão inválida' }
+  }
+  const { data: roles } = await authed.from('user_roles').select('role').eq('user_id', userRes.user.id)
+  const allowed = new Set(['admin', 'gestor', 'recepcao', 'camareira', 'funcionario'])
+  if (!(roles ?? []).some((r: { role: string }) => allowed.has(r.role))) {
+    return { ok: false, status: 403, message: 'Sem permissão' }
+  }
+  return { ok: true }
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
+
+  const authz = await authorizeRequest(req)
+  if (!authz.ok) {
+    return new Response(JSON.stringify({ error: authz.message ?? 'Não autorizado' }), {
+      status: authz.status ?? 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
 
   try {
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
+
 
     const apiKeyIpanema = Deno.env.get('CLOUDBEDS_API_KEY_IPANEMA')
     const apiKeyBotafogo = Deno.env.get('CLOUDBEDS_API_KEY_BOTAFOGO')
