@@ -219,7 +219,8 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
 
-        {/* CARD 4 - Ponto Pontomais */}
+        {/* CARD 4 - Ponto Pontomais (apenas Gestor/Admin) */}
+        {isGestor && (
         <Link to="/controle-ponto" className={cardBase}>
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
@@ -240,6 +241,7 @@ export function PainelControleRapido({ unidade }: Props) {
             Sincronizado com Pontomais
           </div>
         </Link>
+        )}
 
         {/* CARD 5 - Bonificação Recepção */}
         <button
