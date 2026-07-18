@@ -1,0 +1,1 @@
+REVOKE ALL ON FUNCTION public.sync_rotinas_locais_ultima_execucao() FROM PUBLIC, anon, authenticated;
