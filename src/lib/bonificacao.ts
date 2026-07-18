@@ -108,6 +108,25 @@ export function useRegistrosBonificacaoMes(unidade: Unidade) {
   });
 }
 
+export function useRegistrosBonificacaoPorMes(unidade: Unidade, ano: number, mes: number) {
+  return useQuery({
+    queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes],
+    queryFn: async (): Promise<RegistroBonificacao[]> => {
+      const { inicio, fim } = inicioFimMes(new Date(ano, mes, 1));
+      const { data, error } = await supabase
+        .from("registros_bonificacao")
+        .select("*")
+        .eq("unidade", unidade)
+        .gte("data", inicio)
+        .lte("data", fim)
+        .order("data", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as RegistroBonificacao[];
+    },
+  });
+}
+
+
 export function useCriarRegistroBonificacao() {
   const qc = useQueryClient();
   return useMutation({
