@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -6,6 +7,33 @@ const corsHeaders = {
 }
 
 const API_BASE = "https://hotels.cloudbeds.com/api/v1.2"
+
+async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
+  const authHeader = req.headers.get('authorization') ?? ''
+  if (!authHeader.toLowerCase().startsWith('bearer ')) {
+    return { ok: false, status: 401, message: 'Não autenticado' }
+  }
+  const token = authHeader.slice(7).trim()
+  const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
+  const ANON = Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+  if (!SUPABASE_URL || !ANON || !token) {
+    return { ok: false, status: 401, message: 'Não autenticado' }
+  }
+  const authed = createClient(SUPABASE_URL, ANON, {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+  const { data: userRes, error: userErr } = await authed.auth.getUser(token)
+  if (userErr || !userRes?.user) {
+    return { ok: false, status: 401, message: 'Sessão inválida' }
+  }
+  const { data: roles } = await authed.from('user_roles').select('role').eq('user_id', userRes.user.id)
+  const allowed = new Set(['admin', 'gestor', 'recepcao', 'camareira', 'funcionario'])
+  if (!(roles ?? []).some((r: { role: string }) => allowed.has(r.role))) {
+    return { ok: false, status: 403, message: 'Sem permissão' }
+  }
+  return { ok: true }
+}
 
 async function cb(path: string, apiKey: string) {
   const res = await fetch(`${API_BASE}${path}`, {
@@ -23,7 +51,16 @@ async function cb(path: string, apiKey: string) {
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
+  const authz = await authorizeRequest(req)
+  if (!authz.ok) {
+    return new Response(JSON.stringify({ error: authz.message ?? 'Não autorizado' }), {
+      status: authz.status ?? 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    })
+  }
+
   try {
+
     const url = new URL(req.url)
     const propriedade = url.searchParams.get('property')
     if (!propriedade) throw new Error("Propriedade não especificada.")
