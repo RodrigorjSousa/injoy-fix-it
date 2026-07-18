@@ -33,6 +33,7 @@ import {
   DialogDescription,
 } from "@/components/ui/dialog";
 import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
+import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
@@ -403,6 +404,9 @@ function BoasVindas() {
         gestorNome={primeiroNome}
         gestorId={me?.userId ?? ""}
       />
+
+      <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+
 
 
       {visaoCompleta ? (
