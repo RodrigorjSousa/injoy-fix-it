@@ -127,7 +127,8 @@ function NovoChamado() {
     !!categoria &&
     !precisaEscolherTecnico &&
     descricao.trim().length > 3 &&
-    !criar.isPending;
+    !criar.isPending &&
+    !uploading;
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
@@ -140,7 +141,9 @@ function NovoChamado() {
         categoria,
         descricao: descricaoFinal,
         responsavelId: responsavel?.id ?? null,
+        midias,
       },
+
       {
         onSuccess: () => {
           toast.success("Chamado aberto com sucesso", {
