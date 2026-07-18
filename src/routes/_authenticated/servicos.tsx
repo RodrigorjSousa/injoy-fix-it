@@ -23,6 +23,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 
 export const Route = createFileRoute("/_authenticated/servicos")({
   component: Servicos,
