@@ -58,6 +58,103 @@ function friendlyErrorMessage(status: number, body: string): string {
   }
 }
 
+function authHeaders(token: string): Record<string, string> {
+  return {
+    // Cover common Pontomais auth header variants.
+    Authorization: `Bearer ${token}`,
+    "access-token": token,
+    access_token: token,
+    "api-token": token,
+    "Content-Type": "application/json",
+    Accept: "application/json",
+  };
+}
+
+async function pontomaisGet(url: string, token: string): Promise<any> {
+  let res: Response;
+  try {
+    res = await fetch(url, { method: "GET", headers: authHeaders(token) });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[pontomais] network error", { url, error: msg });
+    throw new Error(`Falha de rede ao contatar a Pontomais: ${msg}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    console.error("[pontomais] non-2xx response", {
+      url,
+      status: res.status,
+      statusText: res.statusText,
+      body: text.slice(0, 500),
+    });
+    throw new PontomaisApiError(res.status, text, friendlyErrorMessage(res.status, text));
+  }
+
+  try {
+    return await res.json();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[pontomais] invalid JSON", { url, error: msg });
+    throw new Error("Resposta da Pontomais em formato inesperado (JSON inválido).");
+  }
+}
+
+/**
+ * Resolve the internal Pontomais employee_id by CPF (preferred) or email.
+ * Uses the /employees listing endpoint with ransack-style filters — never
+ * pass the CPF as a path segment (that returns 404 because it is not the
+ * internal numeric ID).
+ */
+async function resolveEmployeeId(params: {
+  cpf: string | null;
+  email: string | null;
+  token: string;
+}): Promise<number | string | null> {
+  const { cpf, email, token } = params;
+
+  const attempts: string[] = [];
+  if (cpf) {
+    // Ransack filter — Pontomais accepts q[cpf_eq]. Also try plain cpf= as fallback.
+    attempts.push(`/employees?q[cpf_eq]=${encodeURIComponent(cpf)}&per_page=1`);
+    attempts.push(`/employees?cpf=${encodeURIComponent(cpf)}&per_page=1`);
+    attempts.push(`/employees?search=${encodeURIComponent(cpf)}&per_page=1`);
+  }
+  if (email) {
+    attempts.push(`/employees?q[email_eq]=${encodeURIComponent(email)}&per_page=1`);
+    attempts.push(`/employees?email=${encodeURIComponent(email)}&per_page=1`);
+  }
+
+  for (const path of attempts) {
+    try {
+      const payload = await pontomaisGet(`${PONTOMAIS_BASE_URL}${path}`, token);
+      const list: any[] =
+        payload?.employees ?? payload?.data ?? payload?.records ?? (Array.isArray(payload) ? payload : []);
+      if (!Array.isArray(list) || list.length === 0) continue;
+
+      const matcher = (row: any) => {
+        const rowCpf = String(row?.cpf ?? row?.document ?? "").replace(/\D/g, "");
+        const rowEmail = String(row?.email ?? "").toLowerCase();
+        if (cpf && rowCpf === cpf) return true;
+        if (email && rowEmail === email) return true;
+        return false;
+      };
+
+      const hit = list.find(matcher) ?? list[0];
+      const id = hit?.id ?? hit?.employee_id ?? hit?.employeeId;
+      if (id !== undefined && id !== null) return id;
+    } catch (err) {
+      if (err instanceof PontomaisApiError && err.status === 404) {
+        // 404 on this filter path just means no match — try the next variant.
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  return null;
+}
+
 export async function fetchPontomaisRegistros(params: {
   cpf?: string | null;
   email?: string | null;
@@ -78,53 +175,29 @@ export async function fetchPontomaisRegistros(params: {
     );
   }
 
+  const employeeId = await resolveEmployeeId({
+    cpf: cleanCpf,
+    email: cleanEmail,
+    token,
+  });
+
+  if (!employeeId) {
+    throw new PontomaisApiError(
+      404,
+      "",
+      `Funcionário não localizado na Pontomais (CPF/e-mail sem correspondência).`,
+    );
+  }
+
   const query = new URLSearchParams();
   query.set("start_date", params.startDate);
   query.set("end_date", params.endDate);
-  if (cleanCpf) query.set("cpf", cleanCpf);
-  if (cleanEmail) query.set("email", cleanEmail);
+  query.set("employee_id", String(employeeId));
+  // Ransack fallback in case the API expects filter[] syntax:
+  query.set("q[employee_id_eq]", String(employeeId));
 
   const url = `${PONTOMAIS_BASE_URL}/time_cards?${query.toString()}`;
-
-  let res: Response;
-  try {
-    res = await fetch(url, {
-      method: "GET",
-      headers: {
-        // Cover common Pontomais auth header variants.
-        Authorization: `Bearer ${token}`,
-        "access-token": token,
-        access_token: token,
-        "api-token": token,
-        "Content-Type": "application/json",
-        Accept: "application/json",
-      },
-    });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[pontomais] network error", { url, error: msg });
-    throw new Error(`Falha de rede ao contatar a Pontomais: ${msg}`);
-  }
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    console.error("[pontomais] non-2xx response", {
-      url,
-      status: res.status,
-      statusText: res.statusText,
-      body: text.slice(0, 500),
-    });
-    throw new PontomaisApiError(res.status, text, friendlyErrorMessage(res.status, text));
-  }
-
-  let payload: any;
-  try {
-    payload = await res.json();
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.error("[pontomais] invalid JSON", { url, error: msg });
-    throw new Error("Resposta da Pontomais em formato inesperado (JSON inválido).");
-  }
+  const payload = await pontomaisGet(url, token);
 
   const rows: any[] = payload?.time_cards ?? payload?.data ?? payload?.registros ?? [];
   const byDate: Record<string, PontomaisRegistro> = {};
