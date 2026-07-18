@@ -49,6 +49,7 @@ function ControlePontoPage() {
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [editando, setEditando] = useState<Funcionario | null>(null);
 
   const syncFn = useServerFn(syncPontomais);
 
