@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, redirect } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { toast } from "sonner";
 import {
@@ -11,12 +11,18 @@ import {
   PaintRoller,
   MapPin,
   ArrowRight,
+  Camera,
+  Video,
+  X,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
+import { compressImage } from "@/lib/image-compression";
 import {
   CATEGORIAS,
   UNIDADES,
@@ -24,8 +30,10 @@ import {
   useFuncionarios,
   useMe,
   type Categoria,
+  type Midia,
   type Unidade,
 } from "@/lib/store";
+
 
 export const Route = createFileRoute("/_authenticated/")({
   validateSearch: (s: Record<string, unknown>) => ({
