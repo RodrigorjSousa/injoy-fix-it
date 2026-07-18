@@ -16,6 +16,10 @@ import {
   PlusCircle,
   Package,
   ShoppingBag,
+  ConciergeBell,
+  BedDouble,
+  Cog,
+  CalendarCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChamados, useFuncionarios, useMe, type Chamado, type Funcionario } from "@/lib/store";
