@@ -59,12 +59,11 @@ function friendlyErrorMessage(status: number, body: string): string {
 }
 
 function authHeaders(token: string): Record<string, string> {
+  // Pontomais external_api/v1 autentica APENAS via o cabeçalho `access-token`.
+  // Enviar `Authorization: Bearer` (ou outras variantes) em conjunto faz a API
+  // responder 403 com {"error":"Token inválido!"}.
   return {
-    // Cover common Pontomais auth header variants.
-    Authorization: `Bearer ${token}`,
     "access-token": token,
-    access_token: token,
-    "api-token": token,
     "Content-Type": "application/json",
     Accept: "application/json",
   };
