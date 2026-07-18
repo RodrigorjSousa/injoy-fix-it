@@ -36,7 +36,7 @@ import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-m
 import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
 
-import { AtividadesHojePanel } from "@/components/gestao/atividades-hoje-panel";
+
 import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
