@@ -36,6 +36,7 @@ import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-m
 import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
 import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
+import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
 
 
 import { cn } from "@/lib/utils";
@@ -736,6 +737,8 @@ function BoasVindas() {
           </div>
         </div>
       )}
+
+      <PainelControleRapido unidade={unidade} />
 
       <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
         <DialogContent className="max-w-lg">
