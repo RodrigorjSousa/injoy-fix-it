@@ -298,9 +298,10 @@ function NovoChamado() {
       {categoria && tecnicosDaCategoria.length >= 2 && (
         <section className="space-y-3">
           <StepLabel
-            n={precisaQuarto ? 5 : 4}
+            n={precisaQuarto ? 6 : 5}
             title="Selecione o técnico"
           />
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {tecnicosDaCategoria.map((t) => {
               const active = tecnicoId === t.id;
