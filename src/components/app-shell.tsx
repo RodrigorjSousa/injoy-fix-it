@@ -87,7 +87,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   // Flat list for mobile bottom nav — apenas abas operacionais (máx 5).
   // Abas de administrador (Dashboard/Gestão/Equipe) ficam ocultas no mobile.
-  const MOBILE_ALLOWED = new Set(["/servicos", "/manutencao", "/recepcao", "/camareiras", "/chat"]);
+  const MOBILE_ALLOWED = new Set(["/servicos", "/manutencao", "/recepcao", "/camareiras", "/painel", "/chat"]);
   const mobileNav: NavChild[] = nav
     .flatMap((n) =>
       n.children
