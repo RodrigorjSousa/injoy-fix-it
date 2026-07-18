@@ -101,22 +101,23 @@ function NovoChamado() {
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const tecnicosDaCategoria = useMemo(
-    () => (categoria ? funcionarios.filter((f) => f.categorias.includes(categoria)) : []),
-    [categoria, funcionarios],
-  );
+  const tecnicosDaCategoria = useMemo(() => {
+    if (!categoria) return [];
+    const daCategoria = funcionarios.filter((f) => f.categorias.includes(categoria));
+    // Fallback: se nenhum técnico está vinculado a essa categoria,
+    // exibe todos os funcionários para que o gestor/recepção
+    // consiga sempre direcionar o chamado.
+    return daCategoria.length > 0 ? daCategoria : funcionarios;
+  }, [categoria, funcionarios]);
 
-  // Auto-seleciona se houver apenas 1 técnico; reseta se mudar categoria.
+  // Reseta a seleção sempre que a categoria muda.
+  // Não auto-seleciona: a escolha do técnico é SEMPRE obrigatória.
   useEffect(() => {
-    if (tecnicosDaCategoria.length === 1) {
-      setTecnicoId(tecnicosDaCategoria[0].id);
-    } else {
-      setTecnicoId(null);
-    }
-  }, [categoria, tecnicosDaCategoria]);
+    setTecnicoId(null);
+  }, [categoria]);
 
   const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
-  const precisaEscolherTecnico = tecnicosDaCategoria.length >= 2 && !tecnicoId;
+  const precisaEscolherTecnico = !!categoria && !tecnicoId;
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
@@ -125,10 +126,11 @@ function NovoChamado() {
     !!unidade &&
     quartoOk &&
     !!categoria &&
-    !precisaEscolherTecnico &&
+    !!responsavel &&
     descricao.trim().length > 3 &&
     !criar.isPending &&
     !uploading;
+
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
