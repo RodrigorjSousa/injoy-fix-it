@@ -19,6 +19,7 @@ import {
   Navigation,
   User as UserIcon,
   Clock,
+  Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
@@ -31,6 +32,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
@@ -116,6 +118,7 @@ function BoasVindas() {
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<StatusKey | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openRecador, setOpenRecador] = useState(false);
   const [clima, setClima] = useState<Clima>({
     temp: null,
     condicao: "loading",
@@ -382,6 +385,25 @@ function BoasVindas() {
           ))}
         </div>
       </div>
+
+      {visaoCompleta && (
+        <button
+          type="button"
+          onClick={() => setOpenRecador(true)}
+          className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all border-2 border-red-400 animate-pulse"
+        >
+          <Megaphone className="h-5 w-5" />
+          📣 Recador do Gestor
+        </button>
+      )}
+
+      <RecadorGestorModal
+        open={openRecador}
+        onOpenChange={setOpenRecador}
+        gestorNome={primeiroNome}
+        gestorId={me?.userId ?? ""}
+      />
+
 
       {visaoCompleta ? (
         <>

@@ -5,6 +5,7 @@ import { Cog, Package, ShoppingBag } from "lucide-react";
 import { EstoqueGeralView } from "@/components/almoxarifado/estoque-geral-view";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { useUnidade } from "@/lib/unidade-context";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -22,6 +23,7 @@ function ManutencaoPage() {
   return (
     <AppShell>
       <div className="space-y-6">
+        <RecadosGestorAlert setor="manutencao" unidade={unidade} />
         <header className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center">
             <Cog className="h-5 w-5" />

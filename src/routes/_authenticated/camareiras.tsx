@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
   EmptyState,
   ErrorState,
@@ -396,6 +397,13 @@ function PainelCamareiras() {
           </button>
         </div>
       </div>
+
+      <div className="px-4 pt-4">
+        <RecadosGestorAlert setor="camareiras" unidade={unidadeAtiva} />
+      </div>
+
+
+
 
 
       <div className="p-4 bg-white border-b space-y-3">

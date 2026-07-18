@@ -33,6 +33,7 @@ import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
   EmptyState,
   ErrorState,
@@ -281,6 +282,12 @@ function RecepcaoPage() {
           <RefreshCw size={18} className={carregando ? "animate-spin" : ""} />
         </button>
       </div>
+
+      <div className="px-4 pt-4">
+        <RecadosGestorAlert setor="recepcao" unidade={unidadeAtiva} />
+      </div>
+
+
 
 
       <div className="p-4 bg-white border-b border-slate-200 flex items-center gap-2">

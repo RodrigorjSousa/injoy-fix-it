@@ -23,6 +23,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 
 export const Route = createFileRoute("/_authenticated/servicos")({
   component: Servicos,
@@ -146,9 +147,11 @@ function tecnicosDe(funcs: Funcionario[], categoria: string) {
 function Servicos() {
   const { data: chamados = [] } = useChamados();
   const { data: funcionarios = [] } = useFuncionarios();
+  const { unidade } = useUnidade();
 
   return (
     <div className="space-y-6">
+      <RecadosGestorAlert setor="manutencao" unidade={unidade} />
       <header>
         <Badge variant="secondary" className="mb-3 rounded-full">
           <Wrench className="h-3 w-3 mr-1" /> Serviços
