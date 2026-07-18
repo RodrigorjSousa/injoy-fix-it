@@ -15,16 +15,16 @@ export const syncPontomais = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Verify caller is admin or gestor
-    const { data: isGestor } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "gestor",
-    });
-    const { data: isAdmin } = await supabase.rpc("has_role", {
-      _user_id: userId,
-      _role: "admin",
-    });
-    if (!isGestor && !isAdmin) {
+    // Verify caller is admin or gestor (RLS on user_roles scopes to auth.uid())
+    const { data: roles, error: rolesErr } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (rolesErr) throw new Error(rolesErr.message);
+    const isAllowed = (roles ?? []).some(
+      (r: { role: string }) => r.role === "gestor" || r.role === "admin",
+    );
+    if (!isAllowed) {
       throw new Error("Apenas gestores podem sincronizar o ponto");
     }
 
