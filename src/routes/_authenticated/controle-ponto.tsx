@@ -56,7 +56,7 @@ function ControlePontoPage() {
     setLoading(true);
     try {
       const [{ data: fs, error: fErr }, { data: rs, error: rErr }] = await Promise.all([
-        supabase.from("funcionarios").select("id, nome, email, categorias").order("nome"),
+        supabase.from("funcionarios").select("id, nome, email, cpf, categorias").order("nome"),
         supabase
           .from("registro_ponto_pontomais")
           .select("*")
