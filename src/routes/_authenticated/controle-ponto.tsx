@@ -296,6 +296,17 @@ function ControlePontoPage() {
           }}
         />
       )}
+
+      {adicionando && (
+        <AdicionarFuncionarioModal
+          unidade={unidade}
+          onClose={() => setAdicionando(false)}
+          onSaved={() => {
+            setAdicionando(false);
+            carregar();
+          }}
+        />
+      )}
     </div>
   );
 }
