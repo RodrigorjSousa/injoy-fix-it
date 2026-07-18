@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "rotinas_locais_update_staff" ON public.rotinas_locais;
