@@ -115,6 +115,8 @@ const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado =
   responsavelId: r.responsavel_id,
   fotoAntes: r.foto_antes,
   fotoDepois: r.foto_depois,
+  midias: Array.isArray(r.midias) ? (r.midias as Midia[]) : [],
+
   criadoEm: r.created_at,
   criadoPor: r.criado_por,
   criadoPorNome: nomeCriador,
