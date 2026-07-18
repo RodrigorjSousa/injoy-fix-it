@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
+import { InspectionImage } from "@/components/InspectionImage";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/historico-vistorias")({
