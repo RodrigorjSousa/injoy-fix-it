@@ -411,9 +411,12 @@ function RecepcaoPage() {
                 )}
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                      Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
-                    </h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                        Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
+                      </h2>
+                      <NaoPerturbeBadge active={!!q.isDnd} />
+                    </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
                       INJOY {q.unidade}
                     </p>
