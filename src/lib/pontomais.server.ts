@@ -58,7 +58,18 @@ function friendlyErrorMessage(status: number, body: string): string {
 }
 
 function getPontomaisBaseUrl(): string {
-  return (process.env.PONTOMAIS_BASE_URL || DEFAULT_PONTOMAIS_BASE_URL).replace(/\/$/, "");
+  const configured = process.env.PONTOMAIS_BASE_URL?.trim().replace(/\/$/, "");
+  if (!configured) return DEFAULT_PONTOMAIS_BASE_URL;
+
+  const isExternalApi =
+    configured.includes("/external_api/v1") || configured.includes("/api/external");
+
+  if (!isExternalApi) {
+    console.warn("[pontomais] PONTOMAIS_BASE_URL ignorada por não apontar para a API externa pública");
+    return DEFAULT_PONTOMAIS_BASE_URL;
+  }
+
+  return configured;
 }
 
 function getPontomaisToken(): string {
@@ -92,13 +103,11 @@ async function tokenFingerprint(token: string): Promise<string> {
 }
 
 function authHeaders(token: string): Record<string, string> {
-  // Pontomais external_api/v1 autentica via o cabeçalho `access-token`.
-  // Mantemos a credencial em toda chamada HTTP feita à Pontomais.
+  // Token da Conta / External API: enviar APENAS o token puro no header access-token.
+  // Authorization: Bearer causa 403 "Token inválido!" nesse tipo de credencial.
   return {
     "Content-Type": "application/json",
     "access-token": token,
-    Authorization: `Bearer ${token}`,
-    Accept: "application/json",
   };
 }
 
@@ -107,7 +116,7 @@ async function pontomaisGet(url: string, token: string): Promise<any> {
   console.log("[pontomais] enviando token configurado", {
     tokenFingerprint: await tokenFingerprint(token),
     hasAccessTokenHeader: Boolean(headers["access-token"]),
-    hasAuthorizationHeader: Boolean(headers.Authorization),
+    hasAuthorizationHeader: false,
   });
   let res: Response;
   try {
