@@ -108,10 +108,12 @@ function ControlePontoPage() {
       });
       const errored = (res.results ?? []).filter((r) => r.error);
       if (errored.length > 0) {
-        toast.warning(
-          `${errored.length} funcionário(s) com erro. Verifique cadastro (CPF/e-mail).`,
-          { id: t },
+        const first = errored[0];
+        toast.error(
+          `${errored.length} funcionário(s) com erro. Ex.: ${first.nome} — ${first.error}`,
+          { id: t, duration: 8000 },
         );
+        console.error("[controle-ponto] erros de sync", errored);
       } else {
         toast.success("Ponto atualizado com sucesso", { id: t });
       }

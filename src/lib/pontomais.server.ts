@@ -1,6 +1,4 @@
 // Server-only helpers for Pontomais API integration.
-// The base URL and endpoint paths can be tuned to match the actual
-// Pontomais API contract used by the account.
 
 const PONTOMAIS_BASE_URL =
   process.env.PONTOMAIS_BASE_URL || "https://api.pontomais.com.br/external_api/v1";
@@ -12,9 +10,18 @@ export type PontomaisRegistro = {
   saida?: string | null;
 };
 
+export class PontomaisApiError extends Error {
+  status: number;
+  body: string;
+  constructor(status: number, body: string, message?: string) {
+    super(message ?? `Pontomais API ${status}`);
+    this.status = status;
+    this.body = body;
+  }
+}
+
 function toTime(value: unknown): string | null {
   if (!value || typeof value !== "string") return null;
-  // Accept "HH:MM", "HH:MM:SS", or ISO timestamps and return HH:MM:SS
   const iso = value.includes("T") ? new Date(value) : null;
   if (iso && !isNaN(iso.getTime())) {
     return iso.toISOString().substring(11, 19);
@@ -24,49 +31,102 @@ function toTime(value: unknown): string | null {
   return `${m[1]}:${m[2]}:${m[3] ?? "00"}`;
 }
 
-/**
- * Fetch time entries from Pontomais for a given identifier (CPF or email)
- * within a date range. Returns a map of date (YYYY-MM-DD) -> registro.
- *
- * The Pontomais external API returns time_cards with punches; we reduce
- * the punches per day into the 4 canonical slots.
- */
+function sanitizeCpf(cpf: string | null | undefined): string | null {
+  if (!cpf) return null;
+  const digits = cpf.replace(/\D/g, "");
+  return digits.length === 11 ? digits : null;
+}
+
+function friendlyErrorMessage(status: number, body: string): string {
+  const snippet = body ? ` — ${body.slice(0, 200)}` : "";
+  switch (status) {
+    case 400:
+      return `Requisição inválida enviada à Pontomais (400). Verifique CPF/e-mail e período.${snippet}`;
+    case 401:
+      return `Token da Pontomais não autorizado (401). Verifique PONTOMAIS_API_TOKEN.${snippet}`;
+    case 403:
+      return `Acesso negado pela Pontomais (403). Confirme permissões do token.${snippet}`;
+    case 404:
+      return `Funcionário/registro não encontrado na Pontomais (404).${snippet}`;
+    case 422:
+      return `Parâmetros rejeitados pela Pontomais (422).${snippet}`;
+    case 429:
+      return `Limite de requisições atingido na Pontomais (429). Tente novamente em instantes.${snippet}`;
+    default:
+      if (status >= 500) return `Pontomais indisponível (${status}). Tente novamente.${snippet}`;
+      return `Erro Pontomais (${status}).${snippet}`;
+  }
+}
+
 export async function fetchPontomaisRegistros(params: {
   cpf?: string | null;
   email?: string | null;
-  startDate: string; // YYYY-MM-DD
-  endDate: string; // YYYY-MM-DD
+  startDate: string;
+  endDate: string;
 }): Promise<Record<string, PontomaisRegistro>> {
   const token = process.env.PONTOMAIS_API_TOKEN;
   if (!token) {
     throw new Error("PONTOMAIS_API_TOKEN não configurado");
   }
 
+  const cleanCpf = sanitizeCpf(params.cpf);
+  const cleanEmail = params.email?.trim().toLowerCase() || null;
+
+  if (!cleanCpf && !cleanEmail) {
+    throw new Error(
+      "Funcionário sem CPF válido (11 dígitos) ou e-mail cadastrado para vincular ao Pontomais.",
+    );
+  }
+
   const query = new URLSearchParams();
   query.set("start_date", params.startDate);
   query.set("end_date", params.endDate);
-  if (params.cpf) query.set("cpf", params.cpf);
-  if (params.email) query.set("email", params.email);
+  if (cleanCpf) query.set("cpf", cleanCpf);
+  if (cleanEmail) query.set("email", cleanEmail);
 
   const url = `${PONTOMAIS_BASE_URL}/time_cards?${query.toString()}`;
-  const res = await fetch(url, {
-    method: "GET",
-    headers: {
-      Authorization: `Bearer ${token}`,
-      access_token: token,
-      "Content-Type": "application/json",
-    },
-  });
+
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      method: "GET",
+      headers: {
+        // Cover common Pontomais auth header variants.
+        Authorization: `Bearer ${token}`,
+        "access-token": token,
+        access_token: token,
+        "api-token": token,
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
+    });
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[pontomais] network error", { url, error: msg });
+    throw new Error(`Falha de rede ao contatar a Pontomais: ${msg}`);
+  }
 
   if (!res.ok) {
     const text = await res.text().catch(() => "");
-    throw new Error(`Pontomais API ${res.status}: ${text.slice(0, 300)}`);
+    console.error("[pontomais] non-2xx response", {
+      url,
+      status: res.status,
+      statusText: res.statusText,
+      body: text.slice(0, 500),
+    });
+    throw new PontomaisApiError(res.status, text, friendlyErrorMessage(res.status, text));
   }
 
-  const payload = (await res.json().catch(() => ({}))) as any;
-  const rows: any[] =
-    payload?.time_cards ?? payload?.data ?? payload?.registros ?? [];
+  let payload: any;
+  try {
+    payload = await res.json();
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.error("[pontomais] invalid JSON", { url, error: msg });
+    throw new Error("Resposta da Pontomais em formato inesperado (JSON inválido).");
+  }
 
+  const rows: any[] = payload?.time_cards ?? payload?.data ?? payload?.registros ?? [];
   const byDate: Record<string, PontomaisRegistro> = {};
 
   for (const row of rows) {
@@ -75,7 +135,6 @@ export async function fetchPontomaisRegistros(params: {
     if (!date) continue;
     const key = String(date).substring(0, 10);
 
-    // Try structured fields first
     const structured: PontomaisRegistro = {
       entrada: toTime(row?.entrada ?? row?.check_in ?? row?.entry),
       almoco_saida: toTime(row?.almoco_saida ?? row?.lunch_out ?? row?.break_start),
@@ -93,7 +152,6 @@ export async function fetchPontomaisRegistros(params: {
       continue;
     }
 
-    // Fall back to punches array (chronological)
     const punches: string[] = (row?.punches ?? row?.time_entries ?? [])
       .map((p: any) => toTime(p?.time ?? p?.hora ?? p))
       .filter(Boolean) as string[];
