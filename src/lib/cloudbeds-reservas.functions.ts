@@ -98,7 +98,16 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     if (json.success === false) throw new Error("Cloudbeds retornou erro");
 
     const rows: ReservaHoje[] = [];
-    for (const r of json.data ?? []) {
+    const rawList = json.data ?? [];
+    if (rawList.length > 0) {
+      try {
+        console.log("[chegadas-hoje] hoje=", hoje, "sample=", JSON.stringify(rawList[0]).slice(0, 1500));
+      } catch {}
+    } else {
+      console.log("[chegadas-hoje] hoje=", hoje, "sem reservas retornadas");
+    }
+    for (const r of rawList) {
+
       const rec = r as {
         reservationID?: string | number;
         guestName?: string;
