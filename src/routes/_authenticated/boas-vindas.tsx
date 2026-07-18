@@ -408,6 +408,8 @@ function BoasVindas() {
 
       <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
 
+      <AuditoriaFuncionarioCard unidade={unidade} />
+
 
 
       {visaoCompleta ? (
