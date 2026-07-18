@@ -733,11 +733,13 @@ function RecepcaoPage() {
       />
 
       {unidadeAtiva === "Botafogo" && (
-        <TrocaTurnoModal
-          open={trocaTurnoOpen}
-          onClose={() => setTrocaTurnoOpen(false)}
-          unidade="Botafogo"
-        />
+        <>
+          <TrocaTurnoModal
+            open={trocaTurnoOpen}
+            onClose={() => setTrocaTurnoOpen(false)}
+            unidade="Botafogo"
+          />
+        </>
       )}
     </div>
   );
