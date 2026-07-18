@@ -20,11 +20,29 @@ export type ReservaHoje = {
   criancas: number;
 };
 
+const HOTEL_TIME_ZONE = "America/Sao_Paulo";
+
 function todayISO() {
-  const d = new Date();
-  const off = d.getTimezoneOffset();
-  const local = new Date(d.getTime() - off * 60_000);
-  return local.toISOString().slice(0, 10);
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: HOTEL_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return `${year}-${month}-${day}`;
+}
+
+function dateOnly(value: unknown): string {
+  if (typeof value !== "string") return "";
+  const trimmed = value.trim();
+  const isoMatch = trimmed.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (isoMatch) return isoMatch[1];
+  const brMatch = trimmed.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+  if (brMatch) return `${brMatch[3]}-${brMatch[2]}-${brMatch[1]}`;
+  return trimmed.slice(0, 10);
 }
 
 function diffNoites(ci: string, co: string): number {
@@ -100,11 +118,20 @@ export const getReservasHoje = createServerFn({ method: "POST" })
         grandTotal?: number | string;
         balanceTotal?: number | string;
         totalRate?: number | string;
+        checkInDate?: string;
+        checkinDate?: string;
+        checkin_date?: string;
+        checkIn?: string;
         rooms?: Array<{
           roomName?: string;
           roomNumber?: string;
           startDate?: string;
           endDate?: string;
+          checkInDate?: string;
+          checkinDate?: string;
+          checkin_date?: string;
+          checkIn?: string;
+          checkin?: string;
           subtotal?: number | string;
           total?: number | string;
           roomTotal?: number | string;
@@ -129,7 +156,17 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       const rateio = roomsArr.length > 0 ? recTotal / roomsArr.length : 0;
 
       for (const room of roomsArr) {
-        const ci = String((room && room.startDate) || rec.startDate || rec.checkin || "");
+        const ci = dateOnly(
+          (room && (room.startDate || room.checkInDate || room.checkinDate || room.checkin_date || room.checkIn || room.checkin)) ||
+            rec.startDate ||
+            rec.checkInDate ||
+            rec.checkinDate ||
+            rec.checkin_date ||
+            rec.checkIn ||
+            rec.checkin ||
+            "",
+        );
+        if (ci !== hoje) continue;
         const co = String((room && room.endDate) || rec.endDate || rec.checkout || "");
         const receitaRoom =
           room &&
@@ -140,7 +177,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           reservationID: rid,
           hospede: (room && room.guestName) || nomeBase,
           quarto: String((room && (room.roomName || room.roomNumber)) || "—"),
-          checkIn: ci.slice(0, 10),
+          checkIn: ci,
           checkOut: co.slice(0, 10),
           noites,
           receita,
@@ -152,7 +189,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     }
 
     const EXCLUDED = new Set(["canceled", "cancelled", "cancelada", "checked_out", "checkedout", "no_show"]);
-    const filtered = rows.filter((r) => !EXCLUDED.has((r.status || "").toLowerCase()));
+    const filtered = rows.filter((r) => r.checkIn === hoje && !EXCLUDED.has((r.status || "").toLowerCase()));
     const totalReceita = filtered.reduce((s, r) => s + r.receita, 0);
     return { reservas: filtered, totalReceita, data: hoje };
   });
