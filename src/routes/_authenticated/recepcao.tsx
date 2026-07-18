@@ -27,6 +27,7 @@ import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
+import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
