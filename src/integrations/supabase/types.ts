@@ -213,6 +213,7 @@ export type Database = {
           foto_antes: string | null
           foto_depois: string | null
           id: string
+          midias: Json
           responsavel_id: string | null
           status: Database["public"]["Enums"]["chamado_status"]
           unidade: Database["public"]["Enums"]["unidade"]
@@ -226,6 +227,7 @@ export type Database = {
           foto_antes?: string | null
           foto_depois?: string | null
           id?: string
+          midias?: Json
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           unidade: Database["public"]["Enums"]["unidade"]
@@ -239,6 +241,7 @@ export type Database = {
           foto_antes?: string | null
           foto_depois?: string | null
           id?: string
+          midias?: Json
           responsavel_id?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           unidade?: Database["public"]["Enums"]["unidade"]

@@ -37,6 +37,8 @@ export interface Funcionario {
   userId: string | null;
 }
 
+export type Midia = { type: "photo" | "video"; url: string };
+
 export interface Chamado {
   id: string;
   unidade: Unidade;
@@ -46,10 +48,12 @@ export interface Chamado {
   responsavelId: string | null;
   fotoAntes: string | null;
   fotoDepois: string | null;
+  midias: Midia[];
   criadoEm: string;
   criadoPor: string | null;
   criadoPorNome: string | null;
 }
+
 
 
 export interface AtivoAr {
@@ -80,9 +84,11 @@ type ChamadoRow = {
   responsavel_id: string | null;
   foto_antes: string | null;
   foto_depois: string | null;
+  midias: unknown;
   criado_por: string | null;
   created_at: string;
 };
+
 type AtivoRow = {
   id: string;
   unidade: Unidade;
@@ -109,6 +115,8 @@ const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado =
   responsavelId: r.responsavel_id,
   fotoAntes: r.foto_antes,
   fotoDepois: r.foto_depois,
+  midias: Array.isArray(r.midias) ? (r.midias as Midia[]) : [],
+
   criadoEm: r.created_at,
   criadoPor: r.criado_por,
   criadoPorNome: nomeCriador,
@@ -147,7 +155,7 @@ export function useChamados() {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -170,7 +178,7 @@ export function useChamado(id: string) {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
         )
         .eq("id", id)
         .maybeSingle();
@@ -355,13 +363,15 @@ export function useCriarChamado(
   opts?: UseMutationOptions<
     string,
     Error,
-    { unidade: Unidade; categoria: Categoria; descricao: string; responsavelId: string | null }
+    { unidade: Unidade; categoria: Categoria; descricao: string; responsavelId: string | null; midias?: Midia[] }
   >,
 ) {
   const invalidate = useInvalidate([["chamados"]]);
   return useMutation({
     mutationFn: async (input) => {
       const { data: u } = await supabase.auth.getUser();
+      const midias = input.midias ?? [];
+      const primeiraFoto = midias.find((m) => m.type === "photo")?.url ?? null;
       const { data, error } = await supabase
         .from("chamados")
         .insert({
@@ -369,6 +379,8 @@ export function useCriarChamado(
           categoria: input.categoria,
           descricao: input.descricao,
           responsavel_id: input.responsavelId,
+          foto_antes: primeiraFoto,
+          midias: midias as unknown as never,
           criado_por: u.user?.id ?? null,
         })
         .select("id")
@@ -376,6 +388,7 @@ export function useCriarChamado(
       if (error) throw error;
       return data.id as string;
     },
+
     onSuccess: (...a) => {
       invalidate();
       opts?.onSuccess?.(...a);
