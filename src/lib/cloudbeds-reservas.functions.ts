@@ -65,8 +65,9 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       checkInTo: hoje,
       pageSize: "100",
       includeGuestsDetails: "true",
+      includeAllRooms: "true",
     });
-    const res = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
+    const res = await cloudbedsFetch(property, `/getReservationsWithRateDetails?${qs.toString()}`);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
       throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
@@ -95,6 +96,9 @@ export const getReservasHoje = createServerFn({ method: "POST" })
         total?: number | string;
         balance?: number | string;
         totalCost?: number | string;
+        grandTotal?: number | string;
+        balanceTotal?: number | string;
+        totalRate?: number | string;
         rooms?: Array<{
           roomName?: string;
           roomNumber?: string;
@@ -103,6 +107,9 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           subtotal?: number | string;
           total?: number | string;
           roomTotal?: number | string;
+          grandTotal?: number | string;
+          totalRate?: number | string;
+          roomRate?: number | string;
           adults?: number;
           children?: number;
           guestName?: string;
@@ -116,16 +123,17 @@ export const getReservasHoje = createServerFn({ method: "POST" })
         "Hóspede";
       const status = String(rec.status ?? "");
       const roomsArr = Array.isArray(rec.rooms) && rec.rooms.length > 0 ? rec.rooms : [null];
+      const recTotal =
+        Number(rec.grandTotal ?? rec.total ?? rec.totalCost ?? rec.balanceTotal ?? rec.totalRate ?? 0) || 0;
+      const rateio = roomsArr.length > 0 ? recTotal / roomsArr.length : 0;
 
       for (const room of roomsArr) {
         const ci = String((room && room.startDate) || rec.startDate || rec.checkin || "");
         const co = String((room && room.endDate) || rec.endDate || rec.checkout || "");
-        const receitaRaw =
-          (room && (room.roomTotal ?? room.total ?? room.subtotal)) ??
-          rec.total ??
-          rec.totalCost ??
-          0;
-        const receita = Number(receitaRaw) || 0;
+        const receitaRoom =
+          room &&
+          (room.grandTotal ?? room.roomTotal ?? room.total ?? room.subtotal ?? room.totalRate ?? room.roomRate);
+        const receita = Number(receitaRoom ?? rateio) || 0;
         const noites = diffNoites(ci, co);
         rows.push({
           reservationID: rid,

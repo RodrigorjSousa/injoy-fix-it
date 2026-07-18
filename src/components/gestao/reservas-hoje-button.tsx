@@ -56,7 +56,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
         className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-teal-600 via-emerald-500 to-teal-500 text-white font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all border-2 border-teal-400"
       >
         <CalendarCheck className="h-5 w-5" />
-        Reservas de hoje · {unidade}
+        Check-in do dia · {unidade}
       </button>
 
       {open && (
@@ -71,7 +71,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <div>
                 <h3 className="text-lg font-black text-white">
-                  Reservas de hoje · INJOY {unidade}
+                  Check-in do dia · INJOY {unidade}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {dataRef ? `Referência: ${fmtData(dataRef)}` : "Puxando do Cloudbeds…"}
