@@ -128,59 +128,123 @@ export function AuditoriaDesignarPanel({ unidade }: { unidade: Unidade }) {
     }
   };
 
-  const imprimirOrdem = (a: Auditoria) => {
+  const imprimirOrdem = async (a: Auditoria) => {
     const prazoTxt = a.prazo_ate
       ? new Date(a.prazo_ate).toLocaleString("pt-BR")
       : a.tempo_limite;
-    const w = window.open("", "_blank", "width=800,height=900");
+
+    let itens: { name: string; sector: string; unit_type: string }[] = [];
+    try {
+      const { data, error } = await supabase
+        .from("inventory_items" as never)
+        .select("name, sector, unit_type")
+        .eq("property", a.unidade)
+        .order("sector")
+        .order("name");
+      if (error) throw error;
+      itens = (data as unknown as typeof itens) ?? [];
+    } catch (err) {
+      toast.error("Não foi possível carregar itens do almoxarifado");
+      console.error(err);
+    }
+
+    const w = window.open("", "_blank", "width=900,height=1000");
     if (!w) {
       toast.error("Habilite pop-ups para imprimir");
       return;
     }
-    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Ordem de Auditoria — ${a.funcionario_nome}</title>
+
+    const escapeHtml = (s: string) =>
+      s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+    const linhasTabela = itens.length > 0
+      ? itens
+          .map(
+            (it) => `
+      <tr>
+        <td class="c-item">${escapeHtml(it.name)}</td>
+        <td class="c-cat">${escapeHtml(it.sector)}<div class="unit">${escapeHtml(it.unit_type || "")}</div></td>
+        <td class="c-count"><div class="count-box"></div></td>
+        <td class="c-obs"><div class="obs-line"></div></td>
+      </tr>`,
+          )
+          .join("")
+      : `<tr><td colspan="4" style="text-align:center;padding:24px;color:#555;font-style:italic;">
+          Nenhum item cadastrado no almoxarifado desta unidade.
+        </td></tr>`;
+
+    w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>Ordem de Auditoria — ${escapeHtml(a.funcionario_nome)}</title>
 <style>
-  body{font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:#0f172a;padding:40px;line-height:1.5;}
-  h1{margin:0;font-size:22px;letter-spacing:.5px;}
-  .sub{color:#475569;font-size:13px;}
-  .box{border:2px solid #0f172a;border-radius:12px;padding:20px;margin-top:24px;}
-  .row{display:flex;justify-content:space-between;gap:16px;margin:8px 0;}
-  .label{font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#64748b;font-weight:700;}
-  .val{font-size:16px;font-weight:700;}
-  .notes{margin-top:32px;border-top:1px dashed #94a3b8;padding-top:12px;}
-  .lines{margin-top:12px;}
-  .line{border-bottom:1px solid #cbd5e1;height:28px;}
-  .sign{margin-top:60px;display:flex;justify-content:space-between;gap:40px;}
-  .sign div{flex:1;text-align:center;border-top:1px solid #0f172a;padding-top:6px;font-size:12px;color:#334155;}
-  @media print{ body{padding:20px;} }
+  *{box-sizing:border-box;}
+  body{font-family:"Times New Roman",Georgia,serif;color:#000;padding:24px 28px;line-height:1.4;background:#fff;}
+  h1{margin:0;font-size:22px;letter-spacing:1px;font-weight:900;}
+  .sub{font-size:12px;color:#000;letter-spacing:.5px;}
+  .header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px double #000;padding-bottom:10px;margin-bottom:14px;}
+  .meta{border:1.5px solid #000;padding:10px 12px;margin-bottom:14px;}
+  .meta-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;}
+  .label{font-size:10px;text-transform:uppercase;letter-spacing:.15em;font-weight:700;color:#000;}
+  .val{font-size:13px;font-weight:700;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-top:6px;}
+  thead th{border:1.5px solid #000;background:#f0f0f0;padding:8px 6px;font-size:11px;text-transform:uppercase;letter-spacing:.08em;text-align:left;}
+  tbody td{border:1px solid #000;padding:8px 6px;font-size:12px;vertical-align:middle;}
+  .c-item{width:34%;font-weight:600;}
+  .c-cat{width:22%;}
+  .c-cat .unit{font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.05em;margin-top:2px;}
+  .c-count{width:16%;}
+  .c-obs{width:28%;}
+  .count-box{border:1.5px solid #000;height:26px;background:#fff;}
+  .obs-line{border-bottom:1px solid #000;height:22px;}
+  .sign{margin-top:36px;display:flex;justify-content:space-between;gap:60px;page-break-inside:avoid;}
+  .sign div{flex:1;text-align:center;border-top:1.5px solid #000;padding-top:6px;font-size:11px;}
+  tbody tr{page-break-inside:avoid;}
+  thead{display:table-header-group;}
+  @page{size:A4;margin:14mm 12mm;}
+  @media print{
+    body{padding:0;}
+    .no-print{display:none !important;}
+  }
 </style></head><body>
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+  <div class="header">
     <div>
       <h1>INJOY HOTÉIS</h1>
       <div class="sub">Ordem de Auditoria de Almoxarifado</div>
     </div>
-    <div style="text-align:right;font-size:12px;color:#475569;">
+    <div style="text-align:right;font-size:11px;">
       Emitido em<br><strong>${new Date().toLocaleString("pt-BR")}</strong>
     </div>
   </div>
-  <div class="box">
-    <div class="row"><div><div class="label">Unidade</div><div class="val">INJOY ${a.unidade}</div></div>
-      <div><div class="label">Status</div><div class="val">${STATUS_STYLE[a.status].label}</div></div></div>
-    <div class="row"><div><div class="label">Funcionário Escalado</div><div class="val">${a.funcionario_nome}</div></div>
-      <div><div class="label">Designado por</div><div class="val">${a.gestor_nome ?? "-"}</div></div></div>
-    <div class="row"><div><div class="label">Tempo de Responsabilidade</div><div class="val">${a.tempo_limite}</div></div>
-      <div><div class="label">Prazo Limite</div><div class="val">${prazoTxt}</div></div></div>
-  </div>
-  <div class="notes">
-    <div class="label">Anotações e Contagem Manual</div>
-    <div class="lines">
-      ${Array.from({ length: 14 }).map(() => '<div class="line"></div>').join("")}
+
+  <div class="meta">
+    <div class="meta-grid">
+      <div><div class="label">Unidade</div><div class="val">INJOY ${escapeHtml(a.unidade)}</div></div>
+      <div><div class="label">Auditor Escalado</div><div class="val">${escapeHtml(a.funcionario_nome)}</div></div>
+      <div><div class="label">Designado por</div><div class="val">${escapeHtml(a.gestor_nome ?? "-")}</div></div>
+      <div><div class="label">Data de Emissão</div><div class="val">${new Date().toLocaleDateString("pt-BR")}</div></div>
+      <div><div class="label">Tempo de Responsabilidade</div><div class="val">${escapeHtml(a.tempo_limite)}</div></div>
+      <div><div class="label">Prazo de Entrega</div><div class="val">${escapeHtml(prazoTxt)}</div></div>
     </div>
   </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th class="c-item">Item / Insumo</th>
+        <th class="c-cat">Categoria / Setor</th>
+        <th class="c-count">Contagem Física</th>
+        <th class="c-obs">Divergência / Observações</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${linhasTabela}
+    </tbody>
+  </table>
+
   <div class="sign">
-    <div>Assinatura do Funcionário</div>
+    <div>Assinatura do Auditor</div>
     <div>Assinatura do Gestor</div>
   </div>
-  <script>window.onload=()=>{window.print();};</script>
+
+  <script>window.onload=()=>{setTimeout(()=>window.print(),200);};</script>
 </body></html>`);
     w.document.close();
   };
