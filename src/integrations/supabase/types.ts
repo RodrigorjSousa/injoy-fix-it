@@ -424,6 +424,7 @@ export type Database = {
       funcionarios: {
         Row: {
           categorias: string[]
+          cpf: string | null
           created_at: string
           email: string
           id: string
@@ -433,6 +434,7 @@ export type Database = {
         }
         Insert: {
           categorias?: string[]
+          cpf?: string | null
           created_at?: string
           email: string
           id?: string
@@ -442,6 +444,7 @@ export type Database = {
         }
         Update: {
           categorias?: string[]
+          cpf?: string | null
           created_at?: string
           email?: string
           id?: string
@@ -1024,6 +1027,53 @@ export type Database = {
           unidade?: string
         }
         Relationships: []
+      }
+      registro_ponto_pontomais: {
+        Row: {
+          almoco_retorno: string | null
+          almoco_saida: string | null
+          created_at: string
+          data: string
+          entrada: string | null
+          funcionario_id: string
+          id: string
+          saida: string | null
+          ultima_atualizacao: string
+          updated_at: string
+        }
+        Insert: {
+          almoco_retorno?: string | null
+          almoco_saida?: string | null
+          created_at?: string
+          data: string
+          entrada?: string | null
+          funcionario_id: string
+          id?: string
+          saida?: string | null
+          ultima_atualizacao?: string
+          updated_at?: string
+        }
+        Update: {
+          almoco_retorno?: string | null
+          almoco_saida?: string | null
+          created_at?: string
+          data?: string
+          entrada?: string | null
+          funcionario_id?: string
+          id?: string
+          saida?: string | null
+          ultima_atualizacao?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registro_ponto_pontomais_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       room_housekeeping: {
         Row: {
