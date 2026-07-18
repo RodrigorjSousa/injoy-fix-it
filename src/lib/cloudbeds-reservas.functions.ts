@@ -151,6 +151,8 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       }
     }
 
-    const totalReceita = rows.reduce((s, r) => s + r.receita, 0);
-    return { reservas: rows, totalReceita, data: hoje };
+    const EXCLUDED = new Set(["canceled", "cancelled", "cancelada", "checked_out", "checkedout", "no_show"]);
+    const filtered = rows.filter((r) => !EXCLUDED.has((r.status || "").toLowerCase()));
+    const totalReceita = filtered.reduce((s, r) => s + r.receita, 0);
+    return { reservas: filtered, totalReceita, data: hoje };
   });
