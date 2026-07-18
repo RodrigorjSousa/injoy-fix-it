@@ -92,7 +92,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={carregar}
+                  onClick={() => carregar()}
                   disabled={loading}
                   className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 disabled:opacity-50"
                   aria-label="Atualizar"
@@ -108,6 +108,30 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
                   <X size={16} />
                 </button>
               </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row sm:items-end gap-3 p-5 pb-0">
+              <div className="flex-1 min-w-0">
+                <label htmlFor="checkin-date" className="block text-[10px] uppercase text-slate-400 font-bold mb-1">
+                  Data do Check-in
+                </label>
+                <input
+                  id="checkin-date"
+                  type="date"
+                  value={dataSelecionada}
+                  onChange={(e) => setDataSelecionada(e.target.value)}
+                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 [color-scheme:dark]"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => carregar()}
+                disabled={loading || !dataSelecionada}
+                className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gradient-to-r from-teal-600 to-emerald-500 text-white font-bold text-sm shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+              >
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarCheck className="h-4 w-4" />}
+                Buscar Check-ins
+              </button>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3 p-5">
