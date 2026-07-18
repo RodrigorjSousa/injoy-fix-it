@@ -98,7 +98,16 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     if (json.success === false) throw new Error("Cloudbeds retornou erro");
 
     const rows: ReservaHoje[] = [];
-    for (const r of json.data ?? []) {
+    const rawList = json.data ?? [];
+    if (rawList.length > 0) {
+      try {
+        console.log("[chegadas-hoje] hoje=", hoje, "sample=", JSON.stringify(rawList[0]).slice(0, 1500));
+      } catch {}
+    } else {
+      console.log("[chegadas-hoje] hoje=", hoje, "sem reservas retornadas");
+    }
+    for (const r of rawList) {
+
       const rec = r as {
         reservationID?: string | number;
         guestName?: string;
@@ -156,18 +165,22 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       const rateio = roomsArr.length > 0 ? recTotal / roomsArr.length : 0;
 
       for (const room of roomsArr) {
-        const ci = dateOnly(
-          (room && (room.startDate || room.checkInDate || room.checkinDate || room.checkin_date || room.checkIn || room.checkin)) ||
-            rec.startDate ||
-            rec.checkInDate ||
-            rec.checkinDate ||
-            rec.checkin_date ||
-            rec.checkIn ||
-            rec.checkin ||
-            "",
-        );
-        if (ci !== hoje) continue;
+        const candidates: unknown[] = [
+          room && (room.startDate || room.checkInDate || room.checkinDate || room.checkin_date || room.checkIn || room.checkin),
+          rec.startDate,
+          rec.checkInDate,
+          rec.checkinDate,
+          rec.checkin_date,
+          rec.checkIn,
+          rec.checkin,
+          (rec as Record<string, unknown>)["arrivalDate"],
+          (rec as Record<string, unknown>)["arrival_date"],
+        ];
+        const matched = candidates.find((c) => typeof c === "string" && (c as string).slice(0, 10) === hoje);
+        if (!matched) continue;
+        const ci = hoje;
         const co = String((room && room.endDate) || rec.endDate || rec.checkout || "");
+
         const receitaRoom =
           room &&
           (room.grandTotal ?? room.roomTotal ?? room.total ?? room.subtotal ?? room.totalRate ?? room.roomRate);
