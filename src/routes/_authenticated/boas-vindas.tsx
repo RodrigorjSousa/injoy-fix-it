@@ -386,6 +386,25 @@ function BoasVindas() {
         </div>
       </div>
 
+      {visaoCompleta && (
+        <button
+          type="button"
+          onClick={() => setOpenRecador(true)}
+          className="w-full md:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-gradient-to-r from-red-600 via-red-500 to-orange-500 text-white font-black text-sm uppercase tracking-wider shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all border-2 border-red-400 animate-pulse"
+        >
+          <Megaphone className="h-5 w-5" />
+          📣 Recador do Gestor
+        </button>
+      )}
+
+      <RecadorGestorModal
+        open={openRecador}
+        onOpenChange={setOpenRecador}
+        gestorNome={primeiroNome}
+        gestorId={me?.userId ?? ""}
+      />
+
+
       {visaoCompleta ? (
         <>
           {/* ========== LAYOUT GESTOR/ADMIN (CLÁSSICO) ========== */}
