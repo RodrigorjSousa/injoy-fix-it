@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -13,8 +13,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { toast } from "sonner";
-import { Settings, Trash2, Trophy } from "lucide-react";
+import { CalendarDays, FileBarChart2, Settings, Trash2, Trophy } from "lucide-react";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -24,7 +31,10 @@ import {
   useCriarRegistroBonificacao,
   useExcluirRegistroBonificacao,
   useRegistrosBonificacaoMes,
+  useRegistrosBonificacaoPorMes,
   useSalvarConfigBonificacao,
+  type ConfigBonificacao,
+  type RegistroBonificacao,
 } from "@/lib/bonificacao";
 import { cn } from "@/lib/utils";
 
@@ -34,20 +44,25 @@ type Props = {
   unidade: Unidade;
 };
 
+const MESES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
+];
+
 export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
   const { data: me } = useMe();
   const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
   const { data: cfg } = useConfigBonificacao();
-  const { data: registros = [] } = useRegistrosBonificacaoMes(unidade);
+  const { data: registrosMes = [] } = useRegistrosBonificacaoMes(unidade);
 
-  const total = useMemo(
-    () => registros.reduce((sum, r) => sum + Number(r.valor_calculado), 0),
-    [registros],
+  const totalMes = useMemo(
+    () => registrosMes.reduce((sum, r) => sum + Number(r.valor_calculado), 0),
+    [registrosMes],
   );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[92vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-emerald-500" />
@@ -58,52 +73,77 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex items-center justify-between rounded-xl border bg-muted/40 px-4 py-3">
-          <div>
-            <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
-              Saldo do Mês
-            </p>
-            <p
-              className={cn(
-                "text-2xl font-black",
-                total >= 0 ? "text-emerald-600" : "text-red-600",
-              )}
-            >
-              {formatBRL(total)}
-            </p>
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {registros.length} avaliação{registros.length === 1 ? "" : "s"}
-          </p>
-        </div>
-
-        <Tabs defaultValue="registrar" className="mt-2">
-          <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-3" : "grid-cols-2")}>
-            <TabsTrigger value="registrar">Registrar</TabsTrigger>
-            <TabsTrigger value="historico">Histórico</TabsTrigger>
+        <Tabs defaultValue="mes" className="mt-2">
+          <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-3" : "grid-cols-1")}>
+            <TabsTrigger value="mes">
+              <CalendarDays className="h-4 w-4 mr-1" /> Mês Vigente
+            </TabsTrigger>
             {isAdminGestor && (
-              <TabsTrigger value="config">
-                <Settings className="h-4 w-4 mr-1" /> Configurações
+              <TabsTrigger value="relatorios">
+                <FileBarChart2 className="h-4 w-4 mr-1" /> Relatórios
+              </TabsTrigger>
+            )}
+            {isAdminGestor && (
+              <TabsTrigger value="regras">
+                <Settings className="h-4 w-4 mr-1" /> Regras
               </TabsTrigger>
             )}
           </TabsList>
 
-          <TabsContent value="registrar" className="mt-4">
+          <TabsContent value="mes" className="mt-4 space-y-4">
+            <SaldoBanner
+              total={totalMes}
+              count={registrosMes.length}
+              titulo="Saldo do Mês Vigente"
+            />
             <FormRegistro unidade={unidade} />
-          </TabsContent>
-
-          <TabsContent value="historico" className="mt-4">
-            <HistoricoTabela registros={registros} podeExcluir={isAdminGestor} />
+            <div>
+              <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
+                Avaliações deste mês
+              </h3>
+              <HistoricoTabela registros={registrosMes} podeExcluir={isAdminGestor} />
+            </div>
           </TabsContent>
 
           {isAdminGestor && (
-            <TabsContent value="config" className="mt-4">
+            <TabsContent value="relatorios" className="mt-4">
+              <RelatoriosTab unidade={unidade} />
+            </TabsContent>
+          )}
+
+          {isAdminGestor && (
+            <TabsContent value="regras" className="mt-4">
               <ConfiguracoesForm cfg={cfg ?? null} />
             </TabsContent>
           )}
         </Tabs>
       </DialogContent>
     </Dialog>
+  );
+}
+
+/* -------------------------------- Banner ---------------------------------- */
+
+function SaldoBanner({ total, count, titulo }: { total: number; count: number; titulo: string }) {
+  return (
+    <div className="flex items-center justify-between rounded-xl border bg-muted/40 px-4 py-3">
+      <div>
+        <p className="text-[11px] font-bold uppercase tracking-wide text-muted-foreground">
+          {titulo}
+        </p>
+        <p
+          className={cn(
+            "text-2xl font-black",
+            total >= 0 ? "text-emerald-600" : "text-red-600",
+          )}
+        >
+          {formatBRL(total)}
+        </p>
+      </div>
+      <p className="text-xs text-muted-foreground">
+        {count} avaliação{count === 1 ? "" : "s"}
+      </p>
+    </div>
   );
 }
 
@@ -160,7 +200,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={onSubmit} className="space-y-4 rounded-xl border p-4">
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div className="space-y-1.5">
           <Label htmlFor="bonif-data">Data</Label>
@@ -241,9 +281,69 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
       </div>
 
       <Button type="submit" className="w-full" disabled={criar.isPending || !cfg}>
-        {criar.isPending ? "Registrando..." : "Registrar Avaliação"}
+        {criar.isPending ? "Salvando..." : "Salvar Avaliação"}
       </Button>
     </form>
+  );
+}
+
+/* -------------------------------- Relatórios ------------------------------ */
+
+function RelatoriosTab({ unidade }: { unidade: Unidade }) {
+  const now = new Date();
+  const [ano, setAno] = useState<number>(now.getFullYear());
+  const [mes, setMes] = useState<number>(now.getMonth());
+
+  const anos = useMemo(() => {
+    const atual = now.getFullYear();
+    return [atual, atual - 1, atual - 2, atual - 3];
+  }, [now]);
+
+  const { data: registros = [], isLoading } = useRegistrosBonificacaoPorMes(unidade, ano, mes);
+  const total = useMemo(
+    () => registros.reduce((s, r) => s + Number(r.valor_calculado), 0),
+    [registros],
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div className="space-y-1.5">
+          <Label>Mês</Label>
+          <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {MESES.map((nome, idx) => (
+                <SelectItem key={idx} value={String(idx)}>{nome}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-1.5">
+          <Label>Ano</Label>
+          <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              {anos.map((a) => (
+                <SelectItem key={a} value={String(a)}>{a}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <SaldoBanner
+        total={total}
+        count={registros.length}
+        titulo={`Saldo · ${MESES[mes]}/${ano}`}
+      />
+
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">Carregando...</p>
+      ) : (
+        <HistoricoTabela registros={registros} podeExcluir={true} />
+      )}
+    </div>
   );
 }
 
@@ -253,7 +353,7 @@ function HistoricoTabela({
   registros,
   podeExcluir,
 }: {
-  registros: ReturnType<typeof useRegistrosBonificacaoMes>["data"];
+  registros: RegistroBonificacao[] | undefined;
   podeExcluir: boolean;
 }) {
   const excluir = useExcluirRegistroBonificacao();
@@ -262,7 +362,7 @@ function HistoricoTabela({
   if (list.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Nenhuma avaliação registrada neste mês.
+        Nenhuma avaliação registrada neste período.
       </div>
     );
   }
@@ -333,7 +433,7 @@ function HistoricoTabela({
 
 /* ------------------------------ Configurações ----------------------------- */
 
-function ConfiguracoesForm({ cfg }: { cfg: import("@/lib/bonificacao").ConfigBonificacao | null }) {
+function ConfiguracoesForm({ cfg }: { cfg: ConfigBonificacao | null }) {
   const salvar = useSalvarConfigBonificacao();
   const [n10, setN10] = useState("");
   const [n9, setN9] = useState("");
@@ -341,7 +441,7 @@ function ConfiguracoesForm({ cfg }: { cfg: import("@/lib/bonificacao").ConfigBon
   const [p2, setP2] = useState("");
   const [ve, setVe] = useState("");
 
-  useMemo(() => {
+  useEffect(() => {
     if (cfg) {
       setN10(String(cfg.valor_nota_10));
       setN9(String(cfg.valor_nota_9));
