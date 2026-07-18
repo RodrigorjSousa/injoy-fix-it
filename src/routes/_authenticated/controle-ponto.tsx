@@ -50,8 +50,17 @@ function ControlePontoPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [editando, setEditando] = useState<Funcionario | null>(null);
+  const [adicionando, setAdicionando] = useState(false);
 
   const syncFn = useServerFn(syncPontomais);
+
+  const excluir = useCallback(async (f: Funcionario) => {
+    if (!confirm(`Excluir o funcionário "${f.nome}"? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("funcionarios").delete().eq("id", f.id);
+    if (error) return toast.error(error.message);
+    toast.success("Funcionário excluído");
+    setFuncionarios((prev) => prev.filter((x) => x.id !== f.id));
+  }, []);
 
   const carregar = useCallback(async () => {
     setLoading(true);
