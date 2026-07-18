@@ -63,17 +63,11 @@ export function AuditoriaDesignarPanel({ unidade }: { unidade: Unidade }) {
       const { data, error } = await supabase
         .from("auditorias_almoxarifado" as never)
         .select("*")
-        .eq("property_placeholder", "x")
-        .order("created_at", { ascending: false });
-      if (error && !error.message.includes("property_placeholder")) throw error;
-      const { data: d2, error: e2 } = await supabase
-        .from("auditorias_almoxarifado" as never)
-        .select("*")
         .eq("unidade", unidade)
         .order("created_at", { ascending: false })
         .limit(100);
-      if (e2) throw e2;
-      return (d2 as unknown as Auditoria[]) ?? [];
+      if (error) throw error;
+      return (data as unknown as Auditoria[]) ?? [];
     },
     refetchInterval: 30000,
   });
