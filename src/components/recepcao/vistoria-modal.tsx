@@ -6,13 +6,13 @@ import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 
-const CHECKLIST_ITEMS = [
+const FALLBACK_CHECKLIST_ITEMS = [
   "Ar condicionado testado e gelando",
   "Enxoval completo e cama montada",
   "Banheiro higienizado e com papel/toalhas",
   "Quarto cheiroso e sem poeira",
   "Controle remoto e TV funcionando",
-] as const;
+];
 
 type ChecklistState = Record<string, boolean>;
 
