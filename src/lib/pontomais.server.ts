@@ -64,25 +64,51 @@ function getPontomaisBaseUrl(): string {
 function getPontomaisToken(): string {
   // Em Workers/Lovable Cloud, variáveis de ambiente devem ser lidas durante a
   // execução da requisição. Nunca em escopo de módulo, senão podem virar undefined.
-  const token = process.env.PONTOMAIS_API_TOKEN?.trim();
+  const token = normalizeToken(process.env.PONTOMAIS_API_TOKEN);
   if (!token) {
-    throw new Error("PONTOMAIS_API_TOKEN não configurado");
+    throw new Error(
+      "A chave da Pontomais (Secret) não foi configurada ou não foi encontrada no Supabase",
+    );
   }
   return token;
+}
+
+export function ensurePontomaisTokenConfigured(): void {
+  getPontomaisToken();
+}
+
+function normalizeToken(value: string | undefined): string | null {
+  const token = value?.trim().replace(/^Bearer\s+/i, "").replace(/^['\"]|['\"]$/g, "");
+  return token || null;
+}
+
+async function tokenFingerprint(token: string): Promise<string> {
+  const data = new TextEncoder().encode(token);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .slice(0, 4)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 function authHeaders(token: string): Record<string, string> {
   // Pontomais external_api/v1 autentica via o cabeçalho `access-token`.
   // Mantemos a credencial em toda chamada HTTP feita à Pontomais.
   return {
-    "access-token": token,
     "Content-Type": "application/json",
+    "access-token": token,
+    Authorization: `Bearer ${token}`,
     Accept: "application/json",
   };
 }
 
 async function pontomaisGet(url: string, token: string): Promise<any> {
   const headers = authHeaders(token);
+  console.log("[pontomais] enviando token configurado", {
+    tokenFingerprint: await tokenFingerprint(token),
+    hasAccessTokenHeader: Boolean(headers["access-token"]),
+    hasAuthorizationHeader: Boolean(headers.Authorization),
+  });
   let res: Response;
   try {
     res = await fetch(url, { method: "GET", headers });
