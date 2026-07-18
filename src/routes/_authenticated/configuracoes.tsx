@@ -390,6 +390,8 @@ function Configuracoes() {
 
       <PeriodItemsManager />
 
+      <VistoriaChecklistManager />
+
       {me?.isAdmin && <GestoresAdmin />}
 
       <EditarFuncoesDialog
