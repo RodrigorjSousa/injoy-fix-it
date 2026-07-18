@@ -280,6 +280,21 @@ function NovoChamado() {
         />
       </section>
 
+      <section className="space-y-3">
+        <StepLabel
+          n={precisaQuarto ? 5 : 4}
+          title="Anexar fotos ou vídeo (opcional)"
+        />
+        <MediaCapture
+          midias={midias}
+          onAdd={(m) => setMidias((prev) => [...prev, m])}
+          onRemove={(url) => setMidias((prev) => prev.filter((m) => m.url !== url))}
+          uploading={uploading}
+          setUploading={setUploading}
+        />
+      </section>
+
+
       {categoria && tecnicosDaCategoria.length >= 2 && (
         <section className="space-y-3">
           <StepLabel
