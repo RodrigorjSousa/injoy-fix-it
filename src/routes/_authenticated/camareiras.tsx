@@ -14,6 +14,7 @@ import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-mod
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
@@ -660,8 +661,8 @@ function PainelCamareiras() {
                 <div className="space-y-3">
                   <div className="flex items-center gap-3 bg-red-50 border-2 border-red-500 rounded-xl p-3">
                     {q.dnd_photo_url ? (
-                      <img
-                        src={q.dnd_photo_url}
+                      <InspectionImage
+                        stored={q.dnd_photo_url}
                         alt="Placa Não Perturbe"
                         className="w-14 h-14 rounded-lg object-cover border border-red-200"
                       />

@@ -18,6 +18,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
+import { InspectionImage } from "@/components/InspectionImage";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/historico-vistorias")({
@@ -372,8 +373,8 @@ function HistoricoVistoriasPage() {
                         onClick={() => setLightbox({ images: recepcaoFotos, index: 0 })}
                         className="shrink-0"
                       >
-                        <img
-                          src={r.photo_url}
+                        <InspectionImage
+                          stored={r.photo_url}
                           alt="Vistoria"
                           className="h-16 w-16 rounded-lg object-cover border border-slate-200"
                         />
@@ -494,8 +495,8 @@ function PhotoGroup({
               className="relative shrink-0 snap-start group"
               aria-label="Abrir imagem"
             >
-              <img
-                src={p.url}
+              <InspectionImage
+                stored={p.url}
                 alt={p.caption ?? title}
                 loading="lazy"
                 className="h-20 w-20 rounded-lg object-cover border border-slate-200 group-hover:border-blue-500 transition-colors"
@@ -573,8 +574,8 @@ function Lightbox({
         className="flex flex-col items-center gap-3 max-w-full max-h-full"
         onClick={(e) => e.stopPropagation()}
       >
-        <img
-          src={current.url}
+        <InspectionImage
+          stored={current.url}
           alt={current.caption ?? "Imagem"}
           className="max-h-[80vh] max-w-full rounded-xl shadow-2xl object-contain"
         />
