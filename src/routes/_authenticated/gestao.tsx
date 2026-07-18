@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, TrendingUp, Building2, RefreshCw, ClipboardList, ShieldCheck, RefreshCcw } from "lucide-react";
+import { ArrowUpRight, TrendingUp, Building2, RefreshCw, ClipboardList, ShieldCheck, RefreshCcw, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
