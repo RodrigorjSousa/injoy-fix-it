@@ -20,24 +20,36 @@ function fmtData(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
+function todayISO() {
+  const d = new Date();
+  const off = d.getTimezoneOffset();
+  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10);
+}
+
 export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [reservas, setReservas] = useState<ReservaHoje[] | null>(null);
   const [totalReceita, setTotalReceita] = useState(0);
   const [dataRef, setDataRef] = useState<string>("");
+  const [dataSelecionada, setDataSelecionada] = useState<string>(todayISO());
   const call = useServerFn(getReservasHoje);
 
-  async function carregar() {
+  async function carregar(dateISO?: string) {
+    const alvo = dateISO ?? dataSelecionada;
     setLoading(true);
+    setError(null);
     try {
-      const res = await call({ data: { property: unidade } });
+      const res = await call({ data: { property: unidade, date: alvo } });
       setReservas(res.reservas);
       setTotalReceita(res.totalReceita);
       setDataRef(res.data);
     } catch (err) {
       console.error("[reservas-hoje]", err);
-      toast.error(err instanceof Error ? err.message : "Falha ao consultar Cloudbeds");
+      const msg = err instanceof Error ? err.message : "Falha ao consultar Cloudbeds";
+      setError(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
