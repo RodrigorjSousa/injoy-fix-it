@@ -33,6 +33,7 @@ import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
   EmptyState,
   ErrorState,
