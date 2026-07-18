@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
+import { InspectionImage } from "@/components/InspectionImage";
 
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
   component: HistoricoLimpezaPage,
