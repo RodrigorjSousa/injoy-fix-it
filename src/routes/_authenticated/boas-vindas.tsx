@@ -405,6 +405,9 @@ function BoasVindas() {
         gestorId={me?.userId ?? ""}
       />
 
+      <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+
+
 
       {visaoCompleta ? (
         <>
