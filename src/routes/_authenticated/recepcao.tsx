@@ -320,12 +320,15 @@ function RecepcaoPage() {
         </button>
         {unidadeAtiva === "Botafogo" && (
           <button
+            type="button"
             onClick={() => setTrocaTurnoOpen(true)}
-            className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-indigo-500 to-blue-600 shadow-md shadow-indigo-500/30 hover:brightness-110 active:scale-95 transition-all"
+            title="Trocar Turno"
+            aria-label="Trocar Turno"
+            className="group shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-blue-500 via-indigo-500 to-orange-500 shadow-md shadow-indigo-500/30 hover:brightness-110 hover:shadow-lg hover:shadow-indigo-500/40 active:scale-95 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:brightness-100"
           >
-            <RefreshCcw size={18} />
+            <TrocaTurnoIcon size={20} className="transition-transform group-hover:rotate-180 duration-500" />
             <span className="hidden sm:inline">Trocar Turno</span>
-            <span className="sm:hidden">🔄</span>
+            <span className="sm:hidden">Turno</span>
           </button>
         )}
       </div>
