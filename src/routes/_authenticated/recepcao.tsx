@@ -15,8 +15,8 @@ import {
   MessageSquarePlus,
   Ban,
   ShoppingBag,
-  RefreshCcw,
 } from "lucide-react";
+import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
