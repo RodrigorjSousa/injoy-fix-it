@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowLeft, RefreshCw, Clock, Calendar as CalendarIcon, Pencil, X, Save } from "lucide-react";
+import { ArrowLeft, RefreshCw, Clock, Calendar as CalendarIcon, Pencil, X, Save, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useServerFn } from "@tanstack/react-start";
@@ -50,8 +50,17 @@ function ControlePontoPage() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [editando, setEditando] = useState<Funcionario | null>(null);
+  const [adicionando, setAdicionando] = useState(false);
 
   const syncFn = useServerFn(syncPontomais);
+
+  const excluir = useCallback(async (f: Funcionario) => {
+    if (!confirm(`Excluir o funcionário "${f.nome}"? Esta ação não pode ser desfeita.`)) return;
+    const { error } = await supabase.from("funcionarios").delete().eq("id", f.id);
+    if (error) return toast.error(error.message);
+    toast.success("Funcionário excluído");
+    setFuncionarios((prev) => prev.filter((x) => x.id !== f.id));
+  }, []);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -144,6 +153,12 @@ function ControlePontoPage() {
             Registros da Pontomais · INJOY {unidade}
           </p>
         </div>
+        <button
+          onClick={() => setAdicionando(true)}
+          className="inline-flex items-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-sm font-semibold"
+        >
+          <Plus size={16} /> Adicionar
+        </button>
         <button
           onClick={sincronizar}
           disabled={syncing || funcionariosUnidade.length === 0}
@@ -242,12 +257,20 @@ function ControlePontoPage() {
                         <td className="text-center font-mono">{formatTime(r?.almoco_retorno ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.saida ?? null)}</td>
                         <td className="text-center">
-                          <button
-                            onClick={() => setEditando(f)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                          >
-                            <Pencil size={12} /> Editar
-                          </button>
+                          <div className="inline-flex items-center gap-1">
+                            <button
+                              onClick={() => setEditando(f)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                            >
+                              <Pencil size={12} /> Editar
+                            </button>
+                            <button
+                              onClick={() => excluir(f)}
+                              className="inline-flex items-center gap-1 rounded-lg border border-red-200 px-2 py-1 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 size={12} /> Excluir
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -269,6 +292,17 @@ function ControlePontoPage() {
           onClose={() => setEditando(null)}
           onSaved={() => {
             setEditando(null);
+            carregar();
+          }}
+        />
+      )}
+
+      {adicionando && (
+        <AdicionarFuncionarioModal
+          unidade={unidade}
+          onClose={() => setAdicionando(false)}
+          onSaved={() => {
+            setAdicionando(false);
             carregar();
           }}
         />
@@ -381,6 +415,128 @@ function EditarFuncionarioModal({
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-blue-700 text-white hover:bg-blue-600 disabled:opacity-60"
           >
             <Save size={14} /> Salvar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AdicionarFuncionarioModal({
+  unidade,
+  onClose,
+  onSaved,
+}: {
+  unidade: Unidade;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [categoria, setCategoria] = useState<string>(unidade.toLowerCase());
+  const [saving, setSaving] = useState(false);
+
+  const salvar = async () => {
+    const nomeT = nome.trim();
+    const emailT = email.trim().toLowerCase();
+    const cpfT = cpf.replace(/\D/g, "").trim();
+    if (!nomeT) return toast.error("Nome obrigatório");
+    if (!/^\S+@\S+\.\S+$/.test(emailT)) return toast.error("E-mail inválido");
+    if (cpfT && cpfT.length !== 11) return toast.error("CPF deve ter 11 dígitos");
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("funcionarios").insert({
+        nome: nomeT,
+        email: emailT,
+        cpf: cpfT || null,
+        categorias: categoria ? [categoria] : [],
+      });
+      if (error) throw error;
+      toast.success("Funcionário adicionado");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao adicionar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+          <h3 className="font-black text-slate-900">Adicionar funcionário</h3>
+          <button onClick={onClose} className="p-1 text-slate-500 hover:text-slate-800">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">Nome</span>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">E-mail</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">
+              CPF <span className="text-slate-400 font-normal">(somente números)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={14}
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              placeholder="00000000000"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">Unidade</span>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="botafogo">INJOY Botafogo</option>
+              <option value="ipanema">INJOY Ipanema</option>
+            </select>
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 p-4 border-t border-slate-100">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={salvar}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60"
+          >
+            <Save size={14} /> Adicionar
           </button>
         </div>
       </div>
