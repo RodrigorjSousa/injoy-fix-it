@@ -930,6 +930,42 @@ export type Database = {
         }
         Relationships: []
       }
+      recados_gestor: {
+        Row: {
+          created_at: string
+          gestor_id: string | null
+          gestor_nome: string
+          id: string
+          mensagem: string
+          midia_tipo: string | null
+          midia_url: string | null
+          setor: string
+          unidade: string
+        }
+        Insert: {
+          created_at?: string
+          gestor_id?: string | null
+          gestor_nome: string
+          id?: string
+          mensagem: string
+          midia_tipo?: string | null
+          midia_url?: string | null
+          setor: string
+          unidade: string
+        }
+        Update: {
+          created_at?: string
+          gestor_id?: string | null
+          gestor_nome?: string
+          id?: string
+          mensagem?: string
+          midia_tipo?: string | null
+          midia_url?: string | null
+          setor?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       room_housekeeping: {
         Row: {
           arrival_time: string | null
