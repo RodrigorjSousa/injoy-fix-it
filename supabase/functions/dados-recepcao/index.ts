@@ -379,6 +379,7 @@ serve(async (req) => {
         blinkTroca: cam?.blinkTroca ?? false,
         serviceStatus: cam?.serviceStatus ?? null,
         assignedCamareira: cam?.assignedCamareira ?? null,
+        isDnd: cam?.isDnd ?? false,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
