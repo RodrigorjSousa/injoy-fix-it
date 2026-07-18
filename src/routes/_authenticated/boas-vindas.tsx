@@ -400,7 +400,7 @@ function BoasVindas() {
             <Megaphone className="h-5 w-5" />
             📣 Recador do Gestor
           </button>
-          <ReservasHojeButton unidade={unidade} />
+          
         </div>
       )}
 
