@@ -1,0 +1,1 @@
+CREATE POLICY tt_select_recepcao ON public.trocas_turno FOR SELECT TO authenticated USING (private.has_role(auth.uid(), 'recepcao'::app_role));
