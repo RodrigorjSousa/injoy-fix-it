@@ -17,6 +17,7 @@ import {
   X,
 } from "lucide-react";
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
+import { AuditoriaDesignarPanel } from "@/components/almoxarifado/auditoria-designar-panel";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
 import type { Unidade } from "@/lib/store";
