@@ -32,10 +32,14 @@ const podeRecepcao = (me: Me) => isAdmin(me) || !!me?.isRecepcao;
 const podeCamareira = (me: Me) => isAdmin(me) || !!me?.isCamareira;
 const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
 
+// Manutenção: apenas admin/gestor e funcionários da manutenção (técnicos)
+const podeManutencao = (me: Me) =>
+  isAdmin(me) || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira);
+
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
   { to: "/servicos", label: "Serviços", icon: Wrench },
-  { to: "/manutencao", label: "Manutenção", icon: Cog },
+  { to: "/manutencao", label: "Manutenção", icon: Cog, show: podeManutencao },
   // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
   { to: "/painel", label: "PAINEL", icon: LayoutGrid, show: (me: Me) => !isAdmin(me) && !!me?.isRecepcao },
