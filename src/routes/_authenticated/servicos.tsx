@@ -156,12 +156,26 @@ function Servicos() {
         <Badge variant="secondary" className="mb-3 rounded-full">
           <Wrench className="h-3 w-3 mr-1" /> Serviços
         </Badge>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
-          Catálogo de serviços
-        </h1>
-        <p className="text-muted-foreground mt-1">
-          Escolha uma categoria para ver os chamados correspondentes.
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">
+              Catálogo de serviços
+            </h1>
+            <p className="text-muted-foreground mt-1">
+              Escolha uma categoria para ver os chamados correspondentes.
+            </p>
+          </div>
+          <Button
+            asChild
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold shadow-md w-full sm:w-auto"
+          >
+            <Link to="/">
+              <PlusCircle className="h-5 w-5 mr-2" />
+              Abrir chamado
+            </Link>
+          </Button>
+        </div>
       </header>
 
       <AlmoxarifadoTecnicoBotao />
