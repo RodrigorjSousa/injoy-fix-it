@@ -395,11 +395,13 @@ function PainelCamareiras() {
           >
             <RefreshCw size={18} className={syncing ? "animate-spin" : ""} />
           </button>
+        </div>
       </div>
 
       <div className="px-4 pt-4">
         <RecadosGestorAlert setor="camareiras" unidade={unidadeAtiva} />
       </div>
+
 
 
 
