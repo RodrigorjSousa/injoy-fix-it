@@ -4,6 +4,7 @@ import { z } from "zod";
 
 const inputSchema = z.object({
   property: z.enum(["Ipanema", "Botafogo"]),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
 
 export type ReservaHoje = {
@@ -58,7 +59,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
 
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
-    const hoje = todayISO();
+    const hoje = data.date ?? todayISO();
 
     const qs = new URLSearchParams({
       checkInFrom: hoje,
