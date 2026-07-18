@@ -35,6 +35,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
+import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import {
   EmptyState,
   ErrorState,
@@ -86,6 +87,7 @@ interface QuartoRecepcao {
   proximoPagamentoValor?: number;
   proximoDocPendente?: boolean;
   temProximoHospede?: boolean;
+  isDnd?: boolean;
 }
 
 const OCUPACAO_STYLE: Record<
@@ -409,9 +411,12 @@ function RecepcaoPage() {
                 )}
                 <div className="flex justify-between items-start gap-3">
                   <div className="min-w-0">
-                    <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                      Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
-                    </h2>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h2 className="text-xl font-black text-slate-800 tracking-tight">
+                        Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
+                      </h2>
+                      <NaoPerturbeBadge active={!!q.isDnd} />
+                    </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
                       INJOY {q.unidade}
                     </p>

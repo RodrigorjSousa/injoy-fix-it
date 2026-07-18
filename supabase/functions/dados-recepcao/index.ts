@@ -123,7 +123,7 @@ serve(async (req) => {
       if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return [] as any[]
       try {
         const res = await fetch(
-          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task,blink_troca,service_status,assigned_camareira`,
+          `${SUPABASE_URL}/rest/v1/room_housekeeping?property=eq.${encodeURIComponent(propriedade)}&select=room_number,status,condition,assigned_task,blink_troca,service_status,assigned_camareira,is_dnd`,
           {
             headers: {
               apikey: SUPABASE_SERVICE_ROLE_KEY,
@@ -168,6 +168,7 @@ serve(async (req) => {
       serviceStatus: string | null
       assignedCamareira: string | null
       bloqueado: boolean
+      isDnd: boolean
     }
     const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
     for (const row of camareiraRows ?? []) {
@@ -186,6 +187,7 @@ serve(async (req) => {
         serviceStatus: row?.service_status ?? null,
         assignedCamareira: row?.assigned_camareira ?? null,
         bloqueado: cond === 'maintenance',
+        isDnd: row?.is_dnd === true,
       }
     }
 
@@ -377,6 +379,7 @@ serve(async (req) => {
         blinkTroca: cam?.blinkTroca ?? false,
         serviceStatus: cam?.serviceStatus ?? null,
         assignedCamareira: cam?.assignedCamareira ?? null,
+        isDnd: cam?.isDnd ?? false,
         ocupacao,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
