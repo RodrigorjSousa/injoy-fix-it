@@ -168,6 +168,7 @@ serve(async (req) => {
       serviceStatus: string | null
       assignedCamareira: string | null
       bloqueado: boolean
+      isDnd: boolean
     }
     const camareiraPorQuarto: Record<string, CamareiraInfo> = {}
     for (const row of camareiraRows ?? []) {
@@ -186,6 +187,7 @@ serve(async (req) => {
         serviceStatus: row?.service_status ?? null,
         assignedCamareira: row?.assigned_camareira ?? null,
         bloqueado: cond === 'maintenance',
+        isDnd: row?.is_dnd === true,
       }
     }
 
