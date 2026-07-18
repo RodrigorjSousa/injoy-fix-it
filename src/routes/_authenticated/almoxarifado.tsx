@@ -561,6 +561,10 @@ function AlmoxarifadoAdmin() {
             <ComprasForm itens={itens} setores={SETORES} onDone={() => qc.invalidateQueries({ queryKey: ["inv_items"] })} />
           </TabsContent>
 
+          <TabsContent value="auditoria" className="mt-4">
+            <AuditoriaDesignarPanel unidade={unidade} />
+          </TabsContent>
+
           <TabsContent value="historico" className="mt-4">
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
