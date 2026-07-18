@@ -421,3 +421,125 @@ function EditarFuncionarioModal({
     </div>
   );
 }
+
+function AdicionarFuncionarioModal({
+  unidade,
+  onClose,
+  onSaved,
+}: {
+  unidade: Unidade;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [cpf, setCpf] = useState("");
+  const [categoria, setCategoria] = useState<string>(unidade.toLowerCase());
+  const [saving, setSaving] = useState(false);
+
+  const salvar = async () => {
+    const nomeT = nome.trim();
+    const emailT = email.trim().toLowerCase();
+    const cpfT = cpf.replace(/\D/g, "").trim();
+    if (!nomeT) return toast.error("Nome obrigatório");
+    if (!/^\S+@\S+\.\S+$/.test(emailT)) return toast.error("E-mail inválido");
+    if (cpfT && cpfT.length !== 11) return toast.error("CPF deve ter 11 dígitos");
+
+    setSaving(true);
+    try {
+      const { error } = await supabase.from("funcionarios").insert({
+        nome: nomeT,
+        email: emailT,
+        cpf: cpfT || null,
+        categorias: categoria ? [categoria] : [],
+      });
+      if (error) throw error;
+      toast.success("Funcionário adicionado");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao adicionar");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-slate-900/60 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+          <h3 className="font-black text-slate-900">Adicionar funcionário</h3>
+          <button onClick={onClose} className="p-1 text-slate-500 hover:text-slate-800">
+            <X size={18} />
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">Nome</span>
+            <input
+              type="text"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">E-mail</span>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">
+              CPF <span className="text-slate-400 font-normal">(somente números)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              maxLength={14}
+              value={cpf}
+              onChange={(e) => setCpf(e.target.value)}
+              placeholder="00000000000"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
+            />
+          </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">Unidade</span>
+            <select
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm outline-none focus:border-blue-500"
+            >
+              <option value="botafogo">INJOY Botafogo</option>
+              <option value="ipanema">INJOY Ipanema</option>
+            </select>
+          </label>
+        </div>
+        <div className="flex justify-end gap-2 p-4 border-t border-slate-100">
+          <button
+            onClick={onClose}
+            disabled={saving}
+            className="px-4 py-2 rounded-lg text-sm font-semibold text-slate-600 hover:bg-slate-50"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={salvar}
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold bg-emerald-600 text-white hover:bg-emerald-500 disabled:opacity-60"
+          >
+            <Save size={14} /> Adicionar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
