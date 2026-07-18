@@ -6,45 +6,27 @@ const emailSchema = z.string().trim().toLowerCase().email();
 const passwordSchema = z.string().min(6).max(200);
 
 /**
- * Primeiro acesso: um funcionário pré-cadastrado pelo gestor
- * define sua própria senha na tela de login.
- * Só funciona se existir um registro em `funcionarios` com esse email
- * E o user ainda não existir em auth.users.
+ * Fluxo de primeiro acesso desabilitado por segurança.
+ *
+ * Anteriormente qualquer pessoa que soubesse o e-mail de um funcionário
+ * pré-cadastrado poderia criar a conta e definir a senha (account takeover),
+ * já que a posse do e-mail não era verificada.
+ *
+ * O gestor/admin agora define a senha inicial via
+ * `adminSetFuncionarioCredentials` e a comunica ao funcionário. Se for
+ * necessário reativar o autoatendimento no futuro, exija OTP/magic link
+ * enviado ao próprio e-mail como prova de posse antes de criar o usuário.
  */
 export const firstTimeSetPassword = createServerFn({ method: "POST" })
   .inputValidator((input) =>
     z.object({ email: emailSchema, password: passwordSchema }).parse(input),
   )
-  .handler(async ({ data }) => {
-    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-
-    const { data: func, error: fErr } = await supabaseAdmin
-      .from("funcionarios")
-      .select("id, nome, email, user_id")
-      .eq("email", data.email)
-      .maybeSingle();
-    if (fErr) throw new Error(fErr.message);
-    if (!func) {
-      throw new Error(
-        "Email não cadastrado. Solicite ao gestor que cadastre seu email antes do primeiro acesso.",
-      );
-    }
-    if (func.user_id) {
-      throw new Error(
-        "Este email já possui conta. Use a opção 'Entrar' ou peça ao gestor para redefinir sua senha.",
-      );
-    }
-
-    const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
-      email: data.email,
-      password: data.password,
-      email_confirm: true,
-      user_metadata: { nome: func.nome },
-    });
-    if (cErr || !created?.user) throw new Error(cErr?.message ?? "Falha ao criar usuário");
-
-    return { ok: true as const };
+  .handler(async () => {
+    throw new Error(
+      "Primeiro acesso indisponível. Peça ao gestor para cadastrar sua senha inicial.",
+    );
   });
+
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function assertCallerIsManager(supabase: any, userId: string) {
