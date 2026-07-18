@@ -35,6 +35,7 @@ import {
 import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
+import { ReservasHojeButton } from "@/components/gestao/reservas-hoje-button";
 import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
