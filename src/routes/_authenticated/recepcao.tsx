@@ -352,6 +352,7 @@ function RecepcaoPage() {
       />
 
       <div className="p-4 space-y-4">
+        {unidadeAtiva === "Botafogo" && <HistoricoTrocasTurno unidade={unidadeAtiva} />}
         <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
         <SolicitacoesCompraPanel unidade={unidadeAtiva} />
       </div>
