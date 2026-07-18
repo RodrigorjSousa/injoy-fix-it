@@ -35,6 +35,7 @@ import {
 import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
+import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 
 
 import { cn } from "@/lib/utils";
@@ -416,6 +417,8 @@ function BoasVindas() {
       <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
 
       <AuditoriaFuncionarioCard unidade={unidade} />
+
+      {visaoCompleta && <ChegadasHojeCards unidade={unidade} />}
 
 
 
