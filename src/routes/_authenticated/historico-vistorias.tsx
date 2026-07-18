@@ -373,8 +373,8 @@ function HistoricoVistoriasPage() {
                         onClick={() => setLightbox({ images: recepcaoFotos, index: 0 })}
                         className="shrink-0"
                       >
-                        <img
-                          src={r.photo_url}
+                        <InspectionImage
+                          stored={r.photo_url}
                           alt="Vistoria"
                           className="h-16 w-16 rounded-lg object-cover border border-slate-200"
                         />
