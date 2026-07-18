@@ -85,6 +85,9 @@ function NovoChamado() {
   const [categoria, setCategoria] = useState<Categoria | null>(categoriaFromUrl ?? null);
   const [tecnicoId, setTecnicoId] = useState<string | null>(null);
   const [descricao, setDescricao] = useState("");
+  const [midias, setMidias] = useState<Midia[]>([]);
+  const [uploading, setUploading] = useState(false);
+
 
   // Sync when navigating to /?categoria=...
   useEffect(() => {
