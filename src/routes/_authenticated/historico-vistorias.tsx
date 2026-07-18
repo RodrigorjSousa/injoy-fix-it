@@ -495,8 +495,8 @@ function PhotoGroup({
               className="relative shrink-0 snap-start group"
               aria-label="Abrir imagem"
             >
-              <img
-                src={p.url}
+              <InspectionImage
+                stored={p.url}
                 alt={p.caption ?? title}
                 loading="lazy"
                 className="h-20 w-20 rounded-lg object-cover border border-slate-200 group-hover:border-blue-500 transition-colors"
