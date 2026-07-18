@@ -28,6 +28,7 @@ import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
+import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
@@ -134,6 +135,12 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedControlePontoRoute =
+  AuthenticatedControlePontoRouteImport.update({
+    id: '/controle-ponto',
+    path: '/controle-ponto',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedConfiguracoesRoute =
   AuthenticatedConfiguracoesRouteImport.update({
     id: '/configuracoes',
@@ -182,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
@@ -207,6 +215,7 @@ export interface FileRoutesByTo {
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
@@ -236,6 +245,7 @@ export interface FileRoutesById {
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
@@ -266,6 +276,7 @@ export interface FileRouteTypes {
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
+    | '/controle-ponto'
     | '/dashboard'
     | '/escala'
     | '/frigobar'
@@ -291,6 +302,7 @@ export interface FileRouteTypes {
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
+    | '/controle-ponto'
     | '/dashboard'
     | '/escala'
     | '/frigobar'
@@ -319,6 +331,7 @@ export interface FileRouteTypes {
     | '/_authenticated/camareiras'
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
+    | '/_authenticated/controle-ponto'
     | '/_authenticated/dashboard'
     | '/_authenticated/escala'
     | '/_authenticated/frigobar'
@@ -481,6 +494,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDashboardRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/controle-ponto': {
+      id: '/_authenticated/controle-ponto'
+      path: '/controle-ponto'
+      fullPath: '/controle-ponto'
+      preLoaderRoute: typeof AuthenticatedControlePontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/configuracoes': {
       id: '/_authenticated/configuracoes'
       path: '/configuracoes'
@@ -539,6 +559,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCamareirasRoute: typeof AuthenticatedCamareirasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
+  AuthenticatedControlePontoRoute: typeof AuthenticatedControlePontoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
@@ -562,6 +583,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCamareirasRoute: AuthenticatedCamareirasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
+  AuthenticatedControlePontoRoute: AuthenticatedControlePontoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
