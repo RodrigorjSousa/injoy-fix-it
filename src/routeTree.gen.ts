@@ -26,6 +26,7 @@ import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_a
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
+import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
 import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
@@ -125,6 +126,12 @@ const AuthenticatedFrigobarRoute = AuthenticatedFrigobarRouteImport.update({
   path: '/frigobar',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedEstoqueGeralRoute =
+  AuthenticatedEstoqueGeralRouteImport.update({
+    id: '/estoque-geral',
+    path: '/estoque-geral',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
   id: '/escala',
   path: '/escala',
@@ -192,6 +199,7 @@ export interface FileRoutesByFullPath {
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
+  '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
@@ -218,6 +226,7 @@ export interface FileRoutesByTo {
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/escala': typeof AuthenticatedEscalaRoute
+  '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
@@ -248,6 +257,7 @@ export interface FileRoutesById {
   '/_authenticated/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/escala': typeof AuthenticatedEscalaRoute
+  '/_authenticated/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
   '/_authenticated/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
@@ -279,6 +289,7 @@ export interface FileRouteTypes {
     | '/controle-ponto'
     | '/dashboard'
     | '/escala'
+    | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
     | '/historico-limpeza'
@@ -305,6 +316,7 @@ export interface FileRouteTypes {
     | '/controle-ponto'
     | '/dashboard'
     | '/escala'
+    | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
     | '/historico-limpeza'
@@ -334,6 +346,7 @@ export interface FileRouteTypes {
     | '/_authenticated/controle-ponto'
     | '/_authenticated/dashboard'
     | '/_authenticated/escala'
+    | '/_authenticated/estoque-geral'
     | '/_authenticated/frigobar'
     | '/_authenticated/gestao'
     | '/_authenticated/historico-limpeza'
@@ -480,6 +493,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedFrigobarRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/estoque-geral': {
+      id: '/_authenticated/estoque-geral'
+      path: '/estoque-geral'
+      fullPath: '/estoque-geral'
+      preLoaderRoute: typeof AuthenticatedEstoqueGeralRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/escala': {
       id: '/_authenticated/escala'
       path: '/escala'
@@ -562,6 +582,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedControlePontoRoute: typeof AuthenticatedControlePontoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
   AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
+  AuthenticatedEstoqueGeralRoute: typeof AuthenticatedEstoqueGeralRoute
   AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
   AuthenticatedHistoricoLimpezaRoute: typeof AuthenticatedHistoricoLimpezaRoute
@@ -586,6 +607,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedControlePontoRoute: AuthenticatedControlePontoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
   AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
+  AuthenticatedEstoqueGeralRoute: AuthenticatedEstoqueGeralRoute,
   AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
   AuthenticatedHistoricoLimpezaRoute: AuthenticatedHistoricoLimpezaRoute,
@@ -625,13 +647,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
