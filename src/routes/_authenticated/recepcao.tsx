@@ -86,6 +86,7 @@ interface QuartoRecepcao {
   proximoPagamentoValor?: number;
   proximoDocPendente?: boolean;
   temProximoHospede?: boolean;
+  isDnd?: boolean;
 }
 
 const OCUPACAO_STYLE: Record<
