@@ -19,6 +19,7 @@ import {
   Navigation,
   User as UserIcon,
   Clock,
+  Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
@@ -31,6 +32,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { RecadorGestorModal } from "@/components/recados-gestor/recador-gestor-modal";
 import { cn } from "@/lib/utils";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
