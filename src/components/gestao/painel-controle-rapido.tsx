@@ -32,6 +32,9 @@ type Props = {
 type ChamadosCounts = { abertos: number; andamento: number; concluidos: number };
 
 export function PainelControleRapido({ unidade }: Props) {
+  const { data: me } = useMe();
+  const isGestor = !!me && (me.isGestor || me.isAdmin);
+
   const [chamados, setChamados] = useState<ChamadosCounts>({
     abertos: 7,
     andamento: 0,
