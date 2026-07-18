@@ -65,6 +65,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       checkInTo: hoje,
       pageSize: "100",
       includeGuestsDetails: "true",
+      includeAllRooms: "true",
     });
     const res = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
     if (!res.ok) {
