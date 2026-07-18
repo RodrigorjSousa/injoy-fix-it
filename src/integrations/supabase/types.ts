@@ -1250,6 +1250,30 @@ export type Database = {
         }
         Relationships: []
       }
+      vistoria_checklist_items: {
+        Row: {
+          created_at: string
+          id: string
+          item_name: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_name: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_name?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

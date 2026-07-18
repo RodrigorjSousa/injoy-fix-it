@@ -6,13 +6,13 @@ import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 
-const CHECKLIST_ITEMS = [
+const FALLBACK_CHECKLIST_ITEMS = [
   "Ar condicionado testado e gelando",
   "Enxoval completo e cama montada",
   "Banheiro higienizado e com papel/toalhas",
   "Quarto cheiroso e sem poeira",
   "Controle remoto e TV funcionando",
-] as const;
+];
 
 type ChecklistState = Record<string, boolean>;
 
@@ -31,8 +31,9 @@ export function VistoriaModal({
   unidade,
   roomNumber,
 }: VistoriaModalProps) {
+  const [items, setItems] = useState<string[]>(FALLBACK_CHECKLIST_ITEMS);
   const [checklist, setChecklist] = useState<ChecklistState>(() =>
-    Object.fromEntries(CHECKLIST_ITEMS.map((i) => [i, false])),
+    Object.fromEntries(FALLBACK_CHECKLIST_ITEMS.map((i) => [i, false])),
   );
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -40,11 +41,26 @@ export function VistoriaModal({
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (open) {
-      setChecklist(Object.fromEntries(CHECKLIST_ITEMS.map((i) => [i, false])));
-      setFile(null);
-      setPreviewUrl(null);
-    }
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase
+        .from("vistoria_checklist_items" as never)
+        .select("item_name, sort_order")
+        .order("sort_order", { ascending: true });
+      if (cancelled) return;
+      const list =
+        !error && data && (data as unknown as { item_name: string }[]).length > 0
+          ? (data as unknown as { item_name: string }[]).map((r) => r.item_name)
+          : FALLBACK_CHECKLIST_ITEMS;
+      setItems(list);
+      setChecklist(Object.fromEntries(list.map((i) => [i, false])));
+    })();
+    setFile(null);
+    setPreviewUrl(null);
+    return () => {
+      cancelled = true;
+    };
   }, [open]);
 
   useEffect(() => {
@@ -59,11 +75,12 @@ export function VistoriaModal({
 
   if (!open) return null;
 
-  const allChecked = CHECKLIST_ITEMS.every((i) => checklist[i]);
+  const allChecked = items.length > 0 && items.every((i) => checklist[i]);
   const canSubmit = allChecked && !!file && !enviando;
 
   const toggleItem = (item: string) =>
     setChecklist((prev) => ({ ...prev, [item]: !prev[item] }));
+
 
   const handleSubmit = async () => {
     if (!canSubmit || !file) return;
@@ -157,7 +174,7 @@ export function VistoriaModal({
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Checklist obrigatório
             </p>
-            {CHECKLIST_ITEMS.map((item) => {
+            {items.map((item) => {
               const checked = checklist[item];
               return (
                 <label
