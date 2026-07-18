@@ -14,6 +14,7 @@ import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-mod
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
