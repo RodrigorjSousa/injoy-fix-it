@@ -174,7 +174,7 @@ export function VistoriaModal({
             <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Checklist obrigatório
             </p>
-            {CHECKLIST_ITEMS.map((item) => {
+            {items.map((item) => {
               const checked = checklist[item];
               return (
                 <label
