@@ -439,8 +439,8 @@ function HistoricoLimpezaPage() {
           >
             <X size={20} />
           </button>
-          <img
-            src={fotoAberta}
+          <InspectionImage
+            stored={fotoAberta}
             alt="Foto ampliada"
             className="max-w-full max-h-full rounded-xl shadow-2xl"
             onClick={(e) => e.stopPropagation()}
