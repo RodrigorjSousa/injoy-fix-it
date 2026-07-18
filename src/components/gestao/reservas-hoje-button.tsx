@@ -71,7 +71,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
             <div className="flex items-center justify-between p-5 border-b border-white/10">
               <div>
                 <h3 className="text-lg font-black text-white">
-                  Reservas de hoje · INJOY {unidade}
+                  Check-in do dia · INJOY {unidade}
                 </h3>
                 <p className="text-xs text-slate-400">
                   {dataRef ? `Referência: ${fmtData(dataRef)}` : "Puxando do Cloudbeds…"}
