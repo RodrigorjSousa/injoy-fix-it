@@ -37,6 +37,8 @@ export interface Funcionario {
   userId: string | null;
 }
 
+export type Midia = { type: "photo" | "video"; url: string };
+
 export interface Chamado {
   id: string;
   unidade: Unidade;
@@ -46,10 +48,12 @@ export interface Chamado {
   responsavelId: string | null;
   fotoAntes: string | null;
   fotoDepois: string | null;
+  midias: Midia[];
   criadoEm: string;
   criadoPor: string | null;
   criadoPorNome: string | null;
 }
+
 
 
 export interface AtivoAr {
