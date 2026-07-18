@@ -8,6 +8,7 @@ import {
   ArrowUpRight,
   CheckCircle2,
   AlertCircle,
+  Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -19,6 +20,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
+import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
+import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 
 type Props = {
   unidade: Unidade;
@@ -37,6 +40,12 @@ export function PainelControleRapido({ unidade }: Props) {
   const [trocasNovas, setTrocasNovas] = useState<number>(0);
   const [funcionariosCount, setFuncionariosCount] = useState<number>(0);
   const [vistoriaOpen, setVistoriaOpen] = useState(false);
+  const [bonifOpen, setBonifOpen] = useState(false);
+  const { data: registrosBonif = [] } = useRegistrosBonificacaoMes(unidade);
+  const totalBonif = useMemo(
+    () => registrosBonif.reduce((s, r) => s + Number(r.valor_calculado), 0),
+    [registrosBonif],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -224,7 +233,41 @@ export function PainelControleRapido({ unidade }: Props) {
             Sincronizado com Pontomais
           </div>
         </Link>
+
+        {/* CARD 5 - Bonificação Recepção */}
+        <button
+          type="button"
+          onClick={() => setBonifOpen(true)}
+          className={cn(cardBase, "text-left")}
+        >
+          <div className="flex items-start justify-between">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+              Bonificação Recepção
+            </p>
+            <Trophy className="h-5 w-5 text-emerald-400" />
+          </div>
+          <div className="mt-4">
+            <p
+              className={cn(
+                "text-3xl font-black leading-none",
+                totalBonif >= 0 ? "text-emerald-400" : "text-red-400",
+              )}
+            >
+              {formatBRL(totalBonif)}
+            </p>
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-2">
+              Saldo do mês
+            </p>
+          </div>
+          <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500">
+            <ArrowUpRight className="h-3.5 w-3.5" />
+            {registrosBonif.length} avaliação{registrosBonif.length === 1 ? "" : "s"} registrada{registrosBonif.length === 1 ? "" : "s"}
+          </div>
+        </button>
       </div>
+
+      <BonificacaoPanelModal open={bonifOpen} onOpenChange={setBonifOpen} unidade={unidade} />
+
 
       {/* Modal Vistoria */}
       <Dialog open={vistoriaOpen} onOpenChange={setVistoriaOpen}>
