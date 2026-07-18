@@ -1209,6 +1209,23 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_my_incoming_shift: {
+        Args: { _unidade: string }
+        Returns: {
+          caixa_obs: string
+          caixa_status: string
+          created_at: string
+          estoque_obs: string
+          estoque_status: string
+          funcionario_entrada: string
+          funcionario_saida: string
+          gastos_detalhes: string
+          id: string
+          maquina_bebidas: string
+          observacoes: string
+          unidade: string
+        }[]
+      }
       get_recepcao_user_ids: {
         Args: never
         Returns: {
