@@ -404,6 +404,8 @@ function BoasVindas() {
         </div>
       )}
 
+      {visaoCompleta && <AtividadesHojePanel unidade={unidade} />}
+
       <RecadorGestorModal
         open={openRecador}
         onOpenChange={setOpenRecador}
