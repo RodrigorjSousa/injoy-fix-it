@@ -23,6 +23,7 @@ function ManutencaoPage() {
   return (
     <AppShell>
       <div className="space-y-6">
+        <RecadosGestorAlert setor="manutencao" unidade={unidade} />
         <header className="flex items-center gap-3">
           <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center">
             <Cog className="h-5 w-5" />
