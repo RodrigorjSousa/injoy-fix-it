@@ -421,7 +421,7 @@ function RotinasPreventivasPage() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-3 w-3 mr-1" /> Atrasado
+                        <Sparkles className="h-3 w-3 mr-1" /> Revisar
                       </>
                     )}
                   </Badge>
@@ -434,7 +434,7 @@ function RotinasPreventivasPage() {
                     onClick={() => abrir(it)}
                   >
                     <ClipboardCheck className="h-4 w-4 mr-2" />
-                    Abrir Checklist & Registrar
+                    Checklist & Registrar
                   </Button>
                   {isAdminOrGestor && (
                     <Button
