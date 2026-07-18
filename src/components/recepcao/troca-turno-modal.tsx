@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { X, Loader2, Send, RefreshCcw, Check, AlertTriangle } from "lucide-react";
+import { X, Loader2, Send, Check, AlertTriangle } from "lucide-react";
+import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
