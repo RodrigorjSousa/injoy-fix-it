@@ -768,6 +768,21 @@ function RecepcaoPage() {
         origem="recepcao"
       />
 
+      {receberSaldoAlvo && (
+        <ReceberSaldoModal
+          open={!!receberSaldoAlvo}
+          onClose={() => setReceberSaldoAlvo(null)}
+          onSuccess={() => carregar(unidadeAtiva)}
+          unidade={receberSaldoAlvo.unidade}
+          reservationId={receberSaldoAlvo.reservationId}
+          guestName={receberSaldoAlvo.guestName}
+          saldoDevedor={receberSaldoAlvo.saldoDevedor}
+          quarto={receberSaldoAlvo.quarto}
+          receivedBy={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+        />
+      )}
+
+
       {unidadeAtiva === "Botafogo" && (
         <>
           <TrocaTurnoModal
