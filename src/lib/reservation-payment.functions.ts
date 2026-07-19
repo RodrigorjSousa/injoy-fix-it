@@ -64,12 +64,14 @@ export const postReservationPayment = createServerFn({ method: "POST" })
     });
 
     const rawText = await res.text().catch(() => "");
-    let json: { success?: boolean; message?: string; [k: string]: unknown } = {};
+    let parsed: Record<string, unknown> = {};
     try {
-      json = rawText ? JSON.parse(rawText) : {};
+      parsed = rawText ? (JSON.parse(rawText) as Record<string, unknown>) : {};
     } catch {
       // resposta não-JSON
     }
+    const json = parsed as { success?: boolean; message?: string };
+    const cloudbedsResponse = JSON.parse(JSON.stringify(parsed)) as Record<string, unknown>;
 
     if (!res.ok || json.success === false) {
       throw new Error(
