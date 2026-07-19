@@ -776,6 +776,7 @@ function EditarFuncoesDialog({
   const saving =
     atualizar.isPending ||
     atualizarNome.isPending ||
+    atualizarTelas.isPending ||
     atribuirRole.isPending ||
     removerRole.isPending ||
     tornarGestor.isPending ||
