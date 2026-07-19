@@ -268,8 +268,8 @@ function PainelPreventiva({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="w-full space-y-5">
+      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Total"
           value={totals.total}
