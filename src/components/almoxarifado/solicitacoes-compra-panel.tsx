@@ -351,6 +351,9 @@ export function SolicitacoesCompraPanel({
           })}
         </ul>
       )}
+        </div>
+      </div>
     </div>
   );
 }
+
