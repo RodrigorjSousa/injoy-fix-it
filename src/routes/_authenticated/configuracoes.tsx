@@ -645,6 +645,7 @@ function EditarFuncoesDialog({
   const { data: me } = useMe();
   const atualizar = useAtualizarCategoriasFuncionario();
   const atualizarNome = useAtualizarNomeFuncionario();
+  const atualizarTelas = useAtualizarTelasFuncionario();
   const atribuirRole = useAtribuirRole();
   const removerRole = useRemoverRole();
   const tornarGestor = useTornarGestor();
