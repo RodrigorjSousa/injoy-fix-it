@@ -372,11 +372,11 @@ function PainelPreventiva({
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
-                className="w-full"
+                className="w-full text-sm mt-auto"
                 onClick={() => setSelected({ category: loc.category, name: loc.name })}
               >
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Abrir Checklist
+                <ClipboardCheck className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Abrir Checklist</span>
               </Button>
             </Card>
           );
