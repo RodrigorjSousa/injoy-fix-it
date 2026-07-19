@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { AppShell } from "@/components/app-shell";
 import {
   Cog,
   ClipboardCheck,
@@ -174,29 +173,28 @@ function ManutencaoPage() {
   const [tab, setTab] = useState<string>("painel");
 
   return (
-    <AppShell>
-      <div className="flex-1 w-full h-full p-4 md:p-8 overflow-x-hidden" style={{ minWidth: '100%' }}>
-        <div className="w-full max-w-7xl mx-auto flex flex-col gap-8">
-          <div className="w-full">
-            <span className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full">
-              Manutenção preventiva • Recorrente
-            </span>
-            <h1 className="text-3xl font-bold mt-4">Manutenção</h1>
-            <p className="text-muted-foreground mt-1">
-              Agendamento recorrente por local — {unidade}
-            </p>
-          </div>
+    <div className="flex-1 flex flex-col w-full h-full p-4 md:p-8 items-start justify-start bg-slate-50 overflow-x-hidden">
+      <div className="w-full flex flex-col gap-8 items-start justify-start">
+        <div className="w-full flex flex-col items-start">
+          <span className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full">
+            Manutenção preventiva • Recorrente
+          </span>
+          <h1 className="text-3xl font-bold mt-4">Manutenção</h1>
+          <p className="text-muted-foreground mt-1">
+            Agendamento recorrente por local — {unidade}
+          </p>
+        </div>
 
-          <PainelPreventiva
-            unidade={unidade}
-            tasks={tasksQ.data ?? []}
-            logs={logsQ.data ?? []}
-            loading={tasksQ.isLoading || logsQ.isLoading}
-            me={me}
-          />
+        <PainelPreventiva
+          unidade={unidade}
+          tasks={tasksQ.data ?? []}
+          logs={logsQ.data ?? []}
+          loading={tasksQ.isLoading || logsQ.isLoading}
+          me={me}
+        />
 
-          {isAdmin && (
-            <Tabs value={tab} onValueChange={setTab} className="w-full">
+        {isAdmin && (
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
             <TabsList>
               <TabsTrigger value="painel">
                 <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
@@ -210,10 +208,9 @@ function ManutencaoPage() {
               <AdminTarefas tasks={tasksQ.data ?? []} />
             </TabsContent>
           </Tabs>
-          )}
-        </div>
+        )}
       </div>
-    </AppShell>
+    </div>
   );
 }
 
