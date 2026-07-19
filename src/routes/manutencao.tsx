@@ -567,8 +567,8 @@ function ChecklistModal({
       if (error) throw error;
       return rows.length;
     },
-    onSuccess: (n) => {
-      toast.success(`${n} tarefa(s) registrada(s)`);
+    onSuccess: () => {
+      toast.success("Manutenção registrada com sucesso! Prazos atualizados.");
       qc.invalidateQueries({ queryKey: ["preventive_logs"] });
       setChecked({});
       setNotes("");
