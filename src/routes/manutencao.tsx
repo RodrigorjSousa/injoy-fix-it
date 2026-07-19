@@ -342,25 +342,28 @@ function PainelPreventiva({
                 )}
                 aria-hidden
               />
-              <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    "h-11 w-11 rounded-xl grid place-items-center shrink-0",
-                    loc.health === "em-dia" && "bg-success/10 text-success",
-                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
-                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1 pr-6">
-                  <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
-                  <div className="font-semibold truncate">{loc.name}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <MapPin className="h-3 w-3" />
-                    {unidade}
+              <div className="flex justify-between items-start gap-4 w-full">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "h-11 w-11 rounded-xl grid place-items-center shrink-0",
+                      loc.health === "em-dia" && "bg-success/10 text-success",
+                      loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+                      loc.health === "atrasado" && "bg-destructive/10 text-destructive",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
+                    <div className="font-semibold truncate">{loc.name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" />
+                      {unidade}
+                    </div>
                   </div>
                 </div>
+                <StatusBadge health={loc.health} />
               </div>
 
               <div className="space-y-1.5 text-xs">
@@ -394,8 +397,8 @@ function PainelPreventiva({
                     ({pendentes} pend.)
                   </span>
                 </div>
-                <StatusBadge health={loc.health} />
               </div>
+
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
