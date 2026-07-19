@@ -336,26 +336,29 @@ function PainelPreventiva({
               key={loc.name}
               className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
             >
-              {/* 1. CABEÇALHO DO CARD - GRID 3 COLUNAS */}
-              <div className="grid grid-cols-[auto_1fr_auto] gap-3 w-full items-start">
-                <div className={cn("p-2 rounded-lg mt-1", iconTone)}>
-                  <Icon className="w-5 h-5" />
+              {/* CABEÇALHO DO CARD CIRÚRGICO */}
+              <div className="flex w-full justify-between items-start gap-3">
+                <div className="flex gap-3 items-start min-w-0 flex-1">
+                  <div className={cn("p-2 rounded-lg shrink-0 mt-0.5", iconTone)}>
+                    <Icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                      {loc.category}
+                    </span>
+                    <h3 className="text-lg font-bold text-slate-900 truncate whitespace-nowrap leading-tight">
+                      {loc.name}
+                    </h3>
+                    <span className="text-xs text-muted-foreground mt-1">
+                      {unidade}
+                    </span>
+                  </div>
                 </div>
-                <div className="flex flex-col min-w-0">
-                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {loc.category}
-                  </span>
-                  <h3 className="text-lg font-bold text-foreground whitespace-normal break-words leading-tight mt-0.5">
-                    {loc.name}
-                  </h3>
-                  <span className="text-xs text-muted-foreground mt-1">
-                    {unidade}
-                  </span>
-                </div>
-                <div className="pt-1">
+                <div className="shrink-0 pt-0.5">
                   <StatusBadge health={loc.health} />
                 </div>
               </div>
+
 
               {/* 2. CORPO */}
               <div className="flex flex-col gap-2.5 text-sm text-muted-foreground mt-1">
