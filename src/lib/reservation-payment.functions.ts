@@ -101,8 +101,7 @@ export const postReservationPayment = createServerFn({ method: "POST" })
     }
 
     return {
-      ok: true,
-      cloudbedsResponse,
+      ok: true as const,
       paymentId: inserted?.id ?? null,
       createdAt: inserted?.created_at ?? null,
     };
