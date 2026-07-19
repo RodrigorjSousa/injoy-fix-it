@@ -568,13 +568,21 @@ function ChecklistModal({
       return rows.length;
     },
     onSuccess: () => {
-      toast.success("Manutenção registrada com sucesso! Prazos atualizados.");
+      toast.success("Checklist salvo com sucesso!");
       qc.invalidateQueries({ queryKey: ["preventive_logs"] });
+      qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
       setChecked({});
       setNotes("");
       onOpenChange(false);
     },
-    onError: (e: Error) => toast.error(e.message),
+    onError: (e: Error) => {
+      if (e.message === "Marque ao menos uma tarefa" || e.message === "Informe o técnico") {
+        toast.error(e.message);
+      } else {
+        toast.error("Erro ao salvar manutenção. Tente novamente.");
+      }
+    },
+
   });
 
   function renderStatusLabel(s: LocationTaskStatus) {
