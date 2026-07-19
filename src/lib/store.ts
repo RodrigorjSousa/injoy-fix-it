@@ -29,12 +29,30 @@ export const CATEGORIAS: Categoria[] = [
   "Marcenaria",
 ];
 
+export type TelaPermitida =
+  | "servicos"
+  | "manutencao"
+  | "recepcao"
+  | "camareiras"
+  | "preventiva"
+  | "painel";
+
+export const TELAS_PERMITIDAS: { key: TelaPermitida; label: string }[] = [
+  { key: "servicos", label: "Serviços" },
+  { key: "manutencao", label: "Manutenção" },
+  { key: "recepcao", label: "Recepção" },
+  { key: "camareiras", label: "Camareiras" },
+  { key: "preventiva", label: "Preventiva AC" },
+  { key: "painel", label: "Painel" },
+];
+
 export interface Funcionario {
   id: string;
   nome: string;
   email: string;
   categorias: Categoria[];
   userId: string | null;
+  telasPermitidas: TelaPermitida[] | null;
 }
 
 export type Midia = { type: "photo" | "video"; url: string };
