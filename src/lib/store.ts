@@ -124,6 +124,7 @@ const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
   email: r.email,
   categorias: (r.categorias ?? []) as Categoria[],
   userId: r.user_id,
+  telasPermitidas: (r.telas_permitidas ?? null) as TelaPermitida[] | null,
 });
 const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado => ({
   id: r.id,
