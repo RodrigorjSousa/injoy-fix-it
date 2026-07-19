@@ -555,6 +555,26 @@ function RecepcaoPage() {
                                 </span>
                               )}
                             </div>
+                            {q.pagamentoPendente &&
+                              q.reservationId &&
+                              q.pagamentoValor &&
+                              q.pagamentoValor > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReceberSaldoAlvo({
+                                      unidade: q.unidade,
+                                      reservationId: q.reservationId as string,
+                                      guestName: q.hospede,
+                                      saldoDevedor: q.pagamentoValor ?? 0,
+                                      quarto: padQuarto(q.quarto),
+                                    })
+                                  }
+                                  className="w-full mt-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-black text-white bg-gradient-to-br from-emerald-500 to-green-600 shadow-md shadow-emerald-500/30 hover:brightness-110 active:scale-[.98] transition-all"
+                                >
+                                  <DollarSign size={16} /> 💵 Receber saldo
+                                </button>
+                              )}
                           </div>
                         )}
 
