@@ -127,20 +127,8 @@ function NovoChamado() {
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const tecnicosDaCategoria = useMemo(() => {
-    if (!categoria) return [];
-    const daCategoria = funcionarios.filter((f) => f.categorias.includes(categoria));
-    // Fallback: se nenhum técnico está vinculado a essa categoria,
-    // exibe todos os funcionários para que o gestor/recepção
-    // consiga sempre direcionar o chamado.
-    return daCategoria.length > 0 ? daCategoria : funcionarios;
-  }, [categoria, funcionarios]);
 
-  // Reseta a seleção sempre que a categoria muda.
-  // Não auto-seleciona: a escolha do técnico é SEMPRE obrigatória.
-  useEffect(() => {
-    setTecnicoId(null);
-  }, [categoria]);
+
 
   // Busca todos os técnicos via RPC segura (mostra id/nome/categorias para
   // qualquer usuário autenticado). Usada para resolver o nome escolhido
