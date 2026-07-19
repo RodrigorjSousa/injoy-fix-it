@@ -14,6 +14,7 @@ type Beverage = {
   price: number;
   current_stock: number;
   min_stock: number;
+  cloudbeds_item_id: string | null;
 };
 
 type PaymentMethod = "PIX" | "Dinheiro" | "Cartão de Crédito" | "Cartão de Débito" | "Lançar no Quarto";
