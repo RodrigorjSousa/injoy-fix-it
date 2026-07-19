@@ -163,6 +163,9 @@ function DashboardGestao() {
           </div>
         </div>
 
+        <RecebimentosBalcaoCard unidade={unidadeAtiva} />
+
+
         <Link
           to="/controle-ponto"
           className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-500 transition-colors"
