@@ -299,8 +299,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </header>
 
       {/* Main */}
-      <main className="lg:pl-64 pb-24 lg:pb-0">
-        <div className={pathname === "/manutencao" ? "w-full" : "mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 py-6 lg:py-10"}>{children}</div>
+      <main className={cn("lg:pl-64 pb-24 lg:pb-0", pathname === "/manutencao" && "flex-1 w-full")}>
+        <div className={pathname === "/manutencao" ? "flex-1 w-full" : "mx-auto max-w-6xl px-4 sm:px-6 lg:px-10 py-6 lg:py-10"}>{children}</div>
       </main>
 
       {/* Mobile bottom nav */}
