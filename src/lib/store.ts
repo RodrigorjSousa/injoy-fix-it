@@ -504,6 +504,21 @@ export function useAtualizarNomeFuncionario() {
   });
 }
 
+export function useAtualizarTelasFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"], ["me"]]);
+  return useMutation({
+    mutationFn: async (input: { id: string; telas: TelaPermitida[] | null }) => {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ telas_permitidas: input.telas })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
+
 export function useRemoverFuncionario() {
 
   const invalidate = useInvalidate([["funcionarios"]]);
