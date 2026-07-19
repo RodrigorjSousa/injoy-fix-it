@@ -888,7 +888,55 @@ function EditarFuncoesDialog({
               </p>
             )}
           </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Telas disponíveis
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {telasCustom
+                    ? "Selecione manualmente as abas que este funcionário verá."
+                    : "Usando o padrão do perfil de acesso."}
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={telasCustom}
+                  onCheckedChange={(v) => {
+                    const on = v === true;
+                    setTelasCustom(on);
+                    if (on && telas.length === 0) setTelas(initialTelas ?? []);
+                  }}
+                />
+                <span>Personalizar</span>
+              </label>
+            </div>
+            {telasCustom && (
+              <div className="flex flex-wrap gap-2">
+                {TELAS_PERMITIDAS.map((t) => {
+                  const active = telas.includes(t.key);
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => toggleTela(t.key)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        active
+                          ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                          : "bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>
