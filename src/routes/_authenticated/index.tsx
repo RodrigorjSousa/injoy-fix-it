@@ -148,7 +148,7 @@ function NovoChamado() {
   // Reseta a seleção ao trocar de categoria — escolha é sempre obrigatória.
   useEffect(() => {
     setTecnicoNome(null);
-    setTecnicoId(null);
+    
   }, [categoria]);
 
   const responsavel = useMemo(() => {
