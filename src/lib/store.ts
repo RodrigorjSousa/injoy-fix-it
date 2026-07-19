@@ -160,7 +160,7 @@ export function useFuncionarios() {
     queryFn: async (): Promise<Funcionario[]> => {
       const { data, error } = await supabase
         .from("funcionarios")
-        .select("id, nome, email, categorias, user_id")
+        .select("id, nome, email, categorias, user_id, telas_permitidas")
         .order("nome");
       if (error) throw error;
       return (data ?? []).map((r) => mapFuncionario(r as FuncionarioRow));
@@ -255,7 +255,7 @@ export function useMe() {
         supabase.from("user_roles").select("role").eq("user_id", u.user.id),
         supabase
           .from("funcionarios")
-          .select("id, nome, email, categorias, user_id")
+          .select("id, nome, email, categorias, user_id, telas_permitidas")
           .eq("user_id", u.user.id)
           .maybeSingle(),
       ]);
