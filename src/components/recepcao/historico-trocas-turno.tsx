@@ -203,6 +203,8 @@ export function HistoricoTrocasTurno({ unidade }: Props) {
           })}
         </ul>
       )}
+        </div>
+      </div>
     </div>
   );
 }
