@@ -142,8 +142,36 @@ function NovoChamado() {
     setTecnicoId(null);
   }, [categoria]);
 
-  const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
-  const precisaEscolherTecnico = !!categoria && !tecnicoId;
+  // Busca todos os técnicos via RPC segura (mostra id/nome/categorias para
+  // qualquer usuário autenticado). Usada para resolver o nome escolhido
+  // no dropdown para o UUID gravado em `responsavel_id`.
+  const { data: todosTecnicos = [] } = useQuery({
+    queryKey: ["list-tecnicos"],
+    queryFn: async (): Promise<TecnicoRPC[]> => {
+      const { data, error } = await supabase.rpc("list_tecnicos" as never);
+      if (error) throw error;
+      return (data ?? []) as TecnicoRPC[];
+    },
+  });
+
+  const nomesDisponiveis = useMemo(() => nomesTecnicosDaCategoria(categoria), [categoria]);
+  const [tecnicoNome, setTecnicoNome] = useState<string | null>(null);
+
+  // Reseta a seleção ao trocar de categoria — escolha é sempre obrigatória.
+  useEffect(() => {
+    setTecnicoNome(null);
+    setTecnicoId(null);
+  }, [categoria]);
+
+  const responsavel = useMemo(() => {
+    if (!tecnicoNome) return null;
+    const norm = (s: string) => s.trim().toLowerCase();
+    return (
+      todosTecnicos.find((t) => norm(t.nome) === norm(tecnicoNome)) ||
+      funcionarios.find((f) => norm(f.nome) === norm(tecnicoNome)) ||
+      null
+    );
+  }, [tecnicoNome, todosTecnicos, funcionarios]);
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
@@ -152,10 +180,11 @@ function NovoChamado() {
     !!unidade &&
     quartoOk &&
     !!categoria &&
-    !!responsavel &&
+    !!tecnicoNome &&
     descricao.trim().length > 3 &&
     !criar.isPending &&
     !uploading;
+
 
 
   const submit = () => {
