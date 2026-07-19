@@ -140,6 +140,7 @@ export type Database = {
       }
       beverage_catalog: {
         Row: {
+          cloudbeds_item_id: string | null
           created_at: string
           current_stock: number
           id: string
@@ -150,6 +151,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          cloudbeds_item_id?: string | null
           created_at?: string
           current_stock?: number
           id?: string
@@ -160,6 +162,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          cloudbeds_item_id?: string | null
           created_at?: string
           current_stock?: number
           id?: string

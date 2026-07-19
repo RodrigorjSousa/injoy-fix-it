@@ -14,12 +14,15 @@ import {
   History,
   BarChart3,
   Filter,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/lib/unidade-context";
 import { cn } from "@/lib/utils";
 import { ErrorState, friendlyError } from "@/components/ui/data-state";
+import { useServerFn } from "@tanstack/react-start";
+import { syncCloudbedsItems } from "@/lib/cloudbeds-pdv.functions";
 
 export const Route = createFileRoute("/_authenticated/frigobar")({
   component: FrigobarPage,
@@ -301,6 +304,23 @@ function CatalogoTab({
   const [form, setForm] = useState<Partial<Beverage>>({});
   const [novo, setNovo] = useState(false);
   const [novoForm, setNovoForm] = useState({ name: "", price: 0, current_stock: 0, min_stock: 5 });
+  const [sincronizando, setSincronizando] = useState(false);
+  const sync = useServerFn(syncCloudbedsItems);
+
+  const sincronizarCloudbeds = async () => {
+    setSincronizando(true);
+    try {
+      const res = await sync({ data: { property: unidade as "Ipanema" | "Botafogo" } });
+      toast.success("Catálogo e preços atualizados com sucesso!", {
+        description: `${res.updated} atualizados · ${res.created} criados · ${res.totalCloudbeds} itens no Cloudbeds`,
+      });
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao sincronizar com o Cloudbeds");
+    } finally {
+      setSincronizando(false);
+    }
+  };
 
   const iniciarEdicao = (b: Beverage) => {
     setEditando(b.id);
@@ -346,16 +366,31 @@ function CatalogoTab({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-2">
         <p className="text-sm text-muted-foreground">
           {bebidas.length} bebidas cadastradas em <span className="font-bold">INJOY {unidade}</span>
         </p>
-        <button
-          onClick={() => setNovo((v) => !v)}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-sm shadow-md hover:brightness-110"
-        >
-          <Plus size={16} /> Nova bebida
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={sincronizarCloudbeds}
+            disabled={sincronizando}
+            className={cn(
+              "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm shadow-md transition-all",
+              sincronizando
+                ? "bg-slate-500 cursor-not-allowed"
+                : "bg-gradient-to-br from-sky-500 to-indigo-600 hover:brightness-110",
+            )}
+          >
+            <RefreshCw size={16} className={cn(sincronizando && "animate-spin")} />
+            {sincronizando ? "Sincronizando…" : "Sincronizar Preços com Cloudbeds"}
+          </button>
+          <button
+            onClick={() => setNovo((v) => !v)}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-br from-amber-500 to-orange-600 text-white font-bold text-sm shadow-md hover:brightness-110"
+          >
+            <Plus size={16} /> Nova bebida
+          </button>
+        </div>
       </div>
 
       {novo && (
