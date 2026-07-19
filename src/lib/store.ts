@@ -263,6 +263,7 @@ export interface UsuarioComRole {
   isAdmin: boolean;
   isRecepcao: boolean;
   isCamareira: boolean;
+  isFuncionario: boolean;
 }
 
 export function useUsuariosComRoles() {
@@ -290,11 +291,13 @@ export function useUsuariosComRoles() {
           isAdmin: rs.includes("admin"),
           isRecepcao: rs.includes("recepcao"),
           isCamareira: rs.includes("camareira"),
+          isFuncionario: rs.includes("funcionario"),
         };
       });
     },
   });
 }
+
 
 export function useTornarGestor() {
   const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
