@@ -62,6 +62,8 @@ type Ocupacao = "Livre" | "Ocupado" | "Bloqueado";
 
 interface QuartoRecepcao {
   id: number | string;
+  reservationId: string | null;
+  proximoReservationId?: string | null;
   unidade: Unidade;
   quarto: string;
   tipoQuarto: string;
