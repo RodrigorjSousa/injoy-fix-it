@@ -175,48 +175,51 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="w-full flex-1 p-4 md:p-6 flex flex-col gap-6 items-start justify-start">
-        <header className="flex items-center gap-3 w-full">
-          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-            <Wrench className="h-5 w-5" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
-            <p className="text-sm text-muted-foreground truncate">
-              Agendamento recorrente por local — {unidade}
-            </p>
-          </div>
-        </header>
+      <div className="w-full flex-1 flex flex-col p-6 md:p-8 overflow-x-hidden items-start justify-start">
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-8">
+          <header className="flex items-center gap-3 w-full">
+            <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
+              <Wrench className="h-5 w-5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
+              <p className="text-sm text-muted-foreground truncate">
+                Agendamento recorrente por local — {unidade}
+              </p>
+            </div>
+          </header>
 
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="painel">
-              <Cog className="h-4 w-4 mr-1.5" /> Painel
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin">
-                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList>
+              <TabsTrigger value="painel">
+                <Cog className="h-4 w-4 mr-1.5" /> Painel
               </TabsTrigger>
-            )}
-          </TabsList>
+              {isAdmin && (
+                <TabsTrigger value="admin">
+                  <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="painel" className="mt-6">
-            <PainelPreventiva
-              unidade={unidade}
-              tasks={tasksQ.data ?? []}
-              logs={logsQ.data ?? []}
-              loading={tasksQ.isLoading || logsQ.isLoading}
-              me={me}
-            />
-          </TabsContent>
-          {isAdmin && (
-            <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} />
+            <TabsContent value="painel" className="mt-6">
+              <PainelPreventiva
+                unidade={unidade}
+                tasks={tasksQ.data ?? []}
+                logs={logsQ.data ?? []}
+                loading={tasksQ.isLoading || logsQ.isLoading}
+                me={me}
+              />
             </TabsContent>
-          )}
-        </Tabs>
+            {isAdmin && (
+              <TabsContent value="admin" className="mt-6">
+                <AdminTarefas tasks={tasksQ.data ?? []} />
+              </TabsContent>
+            )}
+          </Tabs>
+        </div>
       </div>
     </AppShell>
+
   );
 }
 
