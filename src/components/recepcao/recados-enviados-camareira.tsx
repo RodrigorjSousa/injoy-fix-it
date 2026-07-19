@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageSquare, Check, User, Clock, DoorOpen } from "lucide-react";
+import { MessageSquare, Check, User, Clock, DoorOpen, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
