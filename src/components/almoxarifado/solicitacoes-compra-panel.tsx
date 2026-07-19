@@ -200,8 +200,15 @@ export function SolicitacoesCompraPanel({
         </div>
       </button>
 
-
+      <div
+        className={cn(
+          "grid transition-all duration-300 ease-in-out",
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="overflow-hidden">
       <div className="px-3 py-2 border-b border-slate-100 flex flex-wrap gap-1.5">
+
         {TABS.map((t) => {
           const active = filtro === t.key;
           return (
