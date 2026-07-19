@@ -447,6 +447,7 @@ function StatCard({
   value,
   tone,
   border,
+  activeBorder,
   active,
   onClick,
   pulse,
@@ -454,7 +455,8 @@ function StatCard({
   label: string;
   value: number;
   tone: string;
-  border: string;
+  border?: string;
+  activeBorder?: string;
   active?: boolean;
   onClick?: () => void;
   pulse?: boolean;
@@ -468,7 +470,7 @@ function StatCard({
         "hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <Card className={cn("p-4 h-full border-2", border, active && "shadow-md ring-2 ring-offset-1 ring-primary/30")}>
+      <Card className={cn("p-4 h-full", border, active && activeBorder, active && "shadow-md")}>
         <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
           {label}
         </div>
