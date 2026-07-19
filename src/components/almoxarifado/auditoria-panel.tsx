@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useState } from "react";
-import { Check, Ban, Package, Loader2, Inbox } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Ban, Package, Loader2, Inbox, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
@@ -92,9 +92,30 @@ export function AuditoriaAlmoxarifadoPanel({ unidade }: { unidade: "Botafogo" | 
     }
   };
 
+  const hasPending = pendentes.length > 0;
+  const [isOpen, setIsOpen] = useState(false);
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (hasPending && !autoOpened) {
+      setIsOpen(true);
+      setAutoOpened(true);
+    }
+    if (!hasPending) setAutoOpened(false);
+  }, [hasPending, autoOpened]);
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+    <div
+      className={cn(
+        "bg-white rounded-2xl border shadow-sm transition-colors",
+        hasPending ? "border-red-300 ring-1 ring-red-200" : "border-slate-200",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors text-left"
+      >
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-purple-100 text-purple-700 grid place-items-center">
             <Package size={16} />
@@ -104,73 +125,95 @@ export function AuditoriaAlmoxarifadoPanel({ unidade }: { unidade: "Botafogo" | 
             <p className="text-[11px] text-slate-500">Fila de retiradas aguardando aprovação</p>
           </div>
         </div>
-        <span className="text-[11px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-          {pendentes.length} pendentes
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "text-[11px] font-bold px-2 py-0.5 rounded-full",
+              hasPending
+                ? "bg-red-500 text-white animate-pulse"
+                : "bg-slate-100 text-slate-500",
+            )}
+          >
+            {pendentes.length} pendentes
+          </span>
+          <ChevronDown
+            size={18}
+            className={cn("text-slate-500 transition-transform", isOpen && "rotate-180")}
+          />
+        </div>
+      </button>
 
-      {isLoading ? (
-        <div className="p-8 text-center text-slate-500">
-          <Loader2 className="animate-spin inline mr-2" size={16} />
-          Carregando…
+      <div
+        className={cn(
+          "grid transition-all duration-300 ease-in-out",
+          isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+        )}
+      >
+        <div className="overflow-hidden">
+          {isLoading ? (
+            <div className="p-8 text-center text-slate-500">
+              <Loader2 className="animate-spin inline mr-2" size={16} />
+              Carregando…
+            </div>
+          ) : pendentes.length === 0 ? (
+            <div className="p-8 text-center text-slate-400">
+              <Inbox className="mx-auto mb-2" size={28} />
+              <p className="text-sm">Nenhuma solicitação pendente.</p>
+            </div>
+          ) : (
+            <ul className="divide-y divide-slate-100">
+              {pendentes.map((r) => {
+                const busy = busyId === r.id;
+                return (
+                  <li key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-slate-800">
+                        <span className="font-black">{r.requested_by}</span> solicitou{" "}
+                        <span className="font-black text-purple-700">
+                          {r.quantity} {r.item?.unit_type ?? ""}
+                        </span>{" "}
+                        de{" "}
+                        <span className="font-black">{r.item?.name ?? "Item removido"}</span>
+                        {r.purpose ? (
+                          <>
+                            {" "}para <span className="font-bold text-blue-700">{r.purpose}</span>
+                          </>
+                        ) : null}
+                        .
+                      </p>
+                      <p className="text-[11px] text-slate-500 mt-1">
+                        {new Date(r.created_at).toLocaleString("pt-BR")} · Estoque atual:{" "}
+                        {r.item?.current_stock ?? "?"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <button
+                        onClick={() => aprovar(r)}
+                        disabled={busy}
+                        className={cn(
+                          "inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-black text-white",
+                          "bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50",
+                        )}
+                      >
+                        {busy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+                        Aprovar
+                      </button>
+                      <button
+                        onClick={() => recusar(r)}
+                        disabled={busy}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-black text-white bg-red-500 hover:bg-red-600 disabled:opacity-50"
+                      >
+                        <Ban size={12} />
+                        Recusar
+                      </button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
-      ) : pendentes.length === 0 ? (
-        <div className="p-8 text-center text-slate-400">
-          <Inbox className="mx-auto mb-2" size={28} />
-          <p className="text-sm">Nenhuma solicitação pendente.</p>
-        </div>
-      ) : (
-        <ul className="divide-y divide-slate-100">
-          {pendentes.map((r) => {
-            const busy = busyId === r.id;
-            return (
-              <li key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center gap-3">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-slate-800">
-                    <span className="font-black">{r.requested_by}</span> solicitou{" "}
-                    <span className="font-black text-purple-700">
-                      {r.quantity} {r.item?.unit_type ?? ""}
-                    </span>{" "}
-                    de{" "}
-                    <span className="font-black">{r.item?.name ?? "Item removido"}</span>
-                    {r.purpose ? (
-                      <>
-                        {" "}para <span className="font-bold text-blue-700">{r.purpose}</span>
-                      </>
-                    ) : null}
-                    .
-                  </p>
-                  <p className="text-[11px] text-slate-500 mt-1">
-                    {new Date(r.created_at).toLocaleString("pt-BR")} · Estoque atual:{" "}
-                    {r.item?.current_stock ?? "?"}
-                  </p>
-                </div>
-                <div className="flex gap-2 shrink-0">
-                  <button
-                    onClick={() => aprovar(r)}
-                    disabled={busy}
-                    className={cn(
-                      "inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-black text-white",
-                      "bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50",
-                    )}
-                  >
-                    {busy ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                    Aprovar
-                  </button>
-                  <button
-                    onClick={() => recusar(r)}
-                    disabled={busy}
-                    className="inline-flex items-center gap-1 px-3 py-2 rounded-lg text-xs font-black text-white bg-red-500 hover:bg-red-600 disabled:opacity-50"
-                  >
-                    <Ban size={12} />
-                    Recusar
-                  </button>
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+      </div>
     </div>
   );
 }
