@@ -175,48 +175,51 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <header className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva · Recorrente</Badge>
-            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Manutenção</h1>
-            <p className="text-muted-foreground mt-1">
-              Agendamento recorrente por local — {unidade}
-            </p>
-          </div>
-        </header>
+      <div className="flex-1 w-full h-full overflow-y-auto bg-slate-50 p-4 md:p-8">
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
+          <header className="flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva · Recorrente</Badge>
+              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Manutenção</h1>
+              <p className="text-muted-foreground mt-1">
+                Agendamento recorrente por local — {unidade}
+              </p>
+            </div>
+          </header>
 
-        <Tabs value={tab} onValueChange={setTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="painel">
-              <Cog className="h-4 w-4 mr-1.5" /> Painel
-            </TabsTrigger>
-            {isAdmin && (
-              <TabsTrigger value="admin">
-                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+          <Tabs value={tab} onValueChange={setTab} className="w-full">
+            <TabsList>
+              <TabsTrigger value="painel">
+                <Cog className="h-4 w-4 mr-1.5" /> Painel
               </TabsTrigger>
-            )}
-          </TabsList>
+              {isAdmin && (
+                <TabsTrigger value="admin">
+                  <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+                </TabsTrigger>
+              )}
+            </TabsList>
 
-          <TabsContent value="painel" className="mt-6">
-            <PainelPreventiva
-              unidade={unidade}
-              tasks={tasksQ.data ?? []}
-              logs={logsQ.data ?? []}
-              loading={tasksQ.isLoading || logsQ.isLoading}
-              me={me}
-            />
-          </TabsContent>
-          {isAdmin && (
-            <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} />
+            <TabsContent value="painel" className="mt-6">
+              <PainelPreventiva
+                unidade={unidade}
+                tasks={tasksQ.data ?? []}
+                logs={logsQ.data ?? []}
+                loading={tasksQ.isLoading || logsQ.isLoading}
+                me={me}
+              />
             </TabsContent>
-          )}
-        </Tabs>
+            {isAdmin && (
+              <TabsContent value="admin" className="mt-6">
+                <AdminTarefas tasks={tasksQ.data ?? []} />
+              </TabsContent>
+            )}
+          </Tabs>
+        </div>
       </div>
     </AppShell>
   );
 }
+
 
 
 function PainelPreventiva({
@@ -268,7 +271,7 @@ function PainelPreventiva({
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total"
           value={totals.total}
@@ -314,7 +317,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -339,25 +342,28 @@ function PainelPreventiva({
                 )}
                 aria-hidden
               />
-              <div className="flex items-start gap-3">
-                <div
-                  className={cn(
-                    "h-11 w-11 rounded-xl grid place-items-center shrink-0",
-                    loc.health === "em-dia" && "bg-success/10 text-success",
-                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
-                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                  )}
-                >
-                  <Icon className="h-5 w-5" />
-                </div>
-                <div className="min-w-0 flex-1 pr-6">
-                  <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
-                  <div className="font-semibold truncate">{loc.name}</div>
-                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <MapPin className="h-3 w-3" />
-                    {unidade}
+              <div className="flex justify-between items-start gap-4 w-full">
+                <div className="flex items-start gap-3 min-w-0">
+                  <div
+                    className={cn(
+                      "h-11 w-11 rounded-xl grid place-items-center shrink-0",
+                      loc.health === "em-dia" && "bg-success/10 text-success",
+                      loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+                      loc.health === "atrasado" && "bg-destructive/10 text-destructive",
+                    )}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
+                    <div className="font-semibold truncate">{loc.name}</div>
+                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" />
+                      {unidade}
+                    </div>
                   </div>
                 </div>
+                <StatusBadge health={loc.health} />
               </div>
 
               <div className="space-y-1.5 text-xs">
@@ -391,8 +397,8 @@ function PainelPreventiva({
                     ({pendentes} pend.)
                   </span>
                 </div>
-                <StatusBadge health={loc.health} />
               </div>
+
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
