@@ -682,9 +682,10 @@ function ChecklistModal({
           <Button
             onClick={() => submit.mutate()}
             disabled={submit.isPending || marcados === 0 || !tecnico.trim()}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Salvar ({marcados})
+            Salvar Manutenção{marcados > 0 ? ` (${marcados})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
