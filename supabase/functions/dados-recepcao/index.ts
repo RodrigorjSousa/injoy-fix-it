@@ -371,6 +371,8 @@ serve(async (req) => {
 
       return {
         id: r?.id ?? `room-${propriedade}-${hk.quarto}`,
+        reservationId: bucket.atual?.id ? String(bucket.atual.id) : null,
+        proximoReservationId: prox?.id ? String(prox.id) : null,
         quarto: hk.quarto,
         tipoQuarto: r?.tipoQuartoReserva || hk.tipoQuarto,
         unidade: propriedade,

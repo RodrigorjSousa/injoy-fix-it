@@ -28,6 +28,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
+import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -62,6 +63,8 @@ type Ocupacao = "Livre" | "Ocupado" | "Bloqueado";
 
 interface QuartoRecepcao {
   id: number | string;
+  reservationId: string | null;
+  proximoReservationId?: string | null;
   unidade: Unidade;
   quarto: string;
   tipoQuarto: string;
@@ -137,6 +140,13 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
+  const [receberSaldoAlvo, setReceberSaldoAlvo] = useState<{
+    unidade: Unidade;
+    reservationId: string;
+    guestName: string;
+    saldoDevedor: number;
+    quarto: string;
+  } | null>(null);
   const [vistoriadosHoje, setVistoriadosHoje] = useState<
     Map<string, { nome: string; hora: string }>
   >(new Map());
@@ -545,6 +555,26 @@ function RecepcaoPage() {
                                 </span>
                               )}
                             </div>
+                            {q.pagamentoPendente &&
+                              q.reservationId &&
+                              q.pagamentoValor &&
+                              q.pagamentoValor > 0 && (
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setReceberSaldoAlvo({
+                                      unidade: q.unidade,
+                                      reservationId: q.reservationId as string,
+                                      guestName: q.hospede,
+                                      saldoDevedor: q.pagamentoValor ?? 0,
+                                      quarto: padQuarto(q.quarto),
+                                    })
+                                  }
+                                  className="w-full mt-1 inline-flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-sm font-black text-white bg-gradient-to-br from-emerald-500 to-green-600 shadow-md shadow-emerald-500/30 hover:brightness-110 active:scale-[.98] transition-all"
+                                >
+                                  <DollarSign size={16} /> 💵 Receber saldo
+                                </button>
+                              )}
                           </div>
                         )}
 
@@ -737,6 +767,21 @@ function RecepcaoPage() {
         unidade={unidadeAtiva}
         origem="recepcao"
       />
+
+      {receberSaldoAlvo && (
+        <ReceberSaldoModal
+          open={!!receberSaldoAlvo}
+          onClose={() => setReceberSaldoAlvo(null)}
+          onSuccess={() => carregar(unidadeAtiva)}
+          unidade={receberSaldoAlvo.unidade}
+          reservationId={receberSaldoAlvo.reservationId}
+          guestName={receberSaldoAlvo.guestName}
+          saldoDevedor={receberSaldoAlvo.saldoDevedor}
+          quarto={receberSaldoAlvo.quarto}
+          receivedBy={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
+        />
+      )}
+
 
       {unidadeAtiva === "Botafogo" && (
         <>

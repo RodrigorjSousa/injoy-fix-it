@@ -1156,6 +1156,45 @@ export type Database = {
         }
         Relationships: []
       }
+      reservation_payments: {
+        Row: {
+          amount: number
+          cloudbeds_response: Json | null
+          created_at: string
+          guest_name: string
+          id: string
+          payment_method: string
+          property: string
+          received_by: string
+          received_by_user_id: string | null
+          reservation_id: string
+        }
+        Insert: {
+          amount: number
+          cloudbeds_response?: Json | null
+          created_at?: string
+          guest_name: string
+          id?: string
+          payment_method: string
+          property: string
+          received_by: string
+          received_by_user_id?: string | null
+          reservation_id: string
+        }
+        Update: {
+          amount?: number
+          cloudbeds_response?: Json | null
+          created_at?: string
+          guest_name?: string
+          id?: string
+          payment_method?: string
+          property?: string
+          received_by?: string
+          received_by_user_id?: string | null
+          reservation_id?: string
+        }
+        Relationships: []
+      }
       room_housekeeping: {
         Row: {
           arrival_time: string | null
