@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/app-shell";
-import { Cog, ClipboardCheck, Snowflake, ArrowRight } from "lucide-react";
+import { Cog, ArrowRight } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { useUnidade } from "@/lib/unidade-context";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
@@ -15,24 +15,14 @@ export const Route = createFileRoute("/manutencao")({
   component: ManutencaoPage,
 });
 
-const SUBMODULOS = [
-  {
-    to: "/rotinas-preventivas",
-    titulo: "Rotinas Preventivas",
-    descricao:
-      "Pinturas, limpezas profundas, rejuntes, ralos, fachada e jardim de inverno.",
-    icon: ClipboardCheck,
-    tone: "bg-primary/10 text-primary",
-  },
-  {
-    to: "/preventiva",
-    titulo: "Ar Condicionado (PMOC)",
-    descricao:
-      "Controle de limpeza técnica de aparelhos em conformidade com o PMOC.",
-    icon: Snowflake,
-    tone: "bg-sky-500/10 text-sky-600 dark:text-sky-400",
-  },
-] as const;
+const SUBMODULOS: {
+  to: string;
+  titulo: string;
+  descricao: string;
+  icon: typeof Cog;
+  tone: string;
+}[] = [];
+
 
 function ManutencaoPage() {
   const { unidade } = useUnidade();
