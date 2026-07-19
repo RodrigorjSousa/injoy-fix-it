@@ -325,7 +325,10 @@ export function useTornarGestor() {
     mutationFn: async (userId: string) => {
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: userId, role: "gestor" });
+        .upsert(
+          { user_id: userId, role: "gestor" },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
       if (error) throw error;
     },
     onSuccess: invalidate,
