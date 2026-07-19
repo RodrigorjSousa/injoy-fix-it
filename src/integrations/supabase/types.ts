@@ -911,6 +911,89 @@ export type Database = {
         }
         Relationships: []
       }
+      preventive_logs: {
+        Row: {
+          category: string
+          completed_at: string
+          created_at: string
+          frequency_days: number
+          id: string
+          location_name: string
+          next_due_date: string | null
+          notes: string | null
+          property: string
+          task_id: string
+          technician_name: string
+          technician_user_id: string | null
+        }
+        Insert: {
+          category: string
+          completed_at?: string
+          created_at?: string
+          frequency_days: number
+          id?: string
+          location_name: string
+          next_due_date?: string | null
+          notes?: string | null
+          property: string
+          task_id: string
+          technician_name: string
+          technician_user_id?: string | null
+        }
+        Update: {
+          category?: string
+          completed_at?: string
+          created_at?: string
+          frequency_days?: number
+          id?: string
+          location_name?: string
+          next_due_date?: string | null
+          notes?: string | null
+          property?: string
+          task_id?: string
+          technician_name?: string
+          technician_user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "preventive_logs_task_id_fkey"
+            columns: ["task_id"]
+            isOneToOne: false
+            referencedRelation: "preventive_tasks"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      preventive_tasks: {
+        Row: {
+          active: boolean
+          category: string
+          created_at: string
+          frequency_days: number
+          id: string
+          task_name: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          category: string
+          created_at?: string
+          frequency_days: number
+          id?: string
+          task_name: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          category?: string
+          created_at?: string
+          frequency_days?: number
+          id?: string
+          task_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
