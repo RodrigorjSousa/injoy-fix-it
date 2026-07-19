@@ -461,7 +461,31 @@ export function useAtualizarCategoriasFuncionario() {
   });
 }
 
+export function useAtualizarNomeFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"], ["usuarios_roles"], ["me"]]);
+  return useMutation({
+    mutationFn: async (input: { id: string; nome: string; userId?: string | null }) => {
+      const nome = input.nome.trim();
+      if (!nome) throw new Error("Nome não pode ficar vazio");
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ nome })
+        .eq("id", input.id);
+      if (error) throw error;
+      if (input.userId) {
+        const { error: e2 } = await supabase
+          .from("profiles")
+          .update({ nome })
+          .eq("id", input.userId);
+        if (e2) throw e2;
+      }
+    },
+    onSuccess: invalidate,
+  });
+}
+
 export function useRemoverFuncionario() {
+
   const invalidate = useInvalidate([["funcionarios"]]);
   return useMutation({
     mutationFn: async (id: string) => {
