@@ -33,6 +33,30 @@ import {
   type Midia,
   type Unidade,
 } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+
+// Mapa fixo de técnicos por categoria — garante que a lista sempre apareça
+// para qualquer perfil (recepção, camareiras, manutenção, gestão),
+// independentemente das regras de RLS.
+const TECNICOS_POR_CATEGORIA: Record<string, string[]> = {
+  "Elétrica": ["Cristiano", "Rodrigo"],
+  "Ar condicionado": ["Cristiano", "Rodrigo"],
+  "Automação": ["Cristiano", "Rodrigo"],
+  "Hidráulica": ["Cristiano", "Walter"],
+  "Pintura": ["Cristiano", "Walter"],
+  "Marcenaria": ["Cristiano", "Walter"],
+  "Alvenaria": ["Cristiano", "Walter"],
+};
+const TECNICOS_FALLBACK = ["Cristiano", "Rodrigo", "Walter"];
+
+function nomesTecnicosDaCategoria(categoria: string | null): string[] {
+  if (!categoria) return [];
+  const key = Object.keys(TECNICOS_POR_CATEGORIA).find((k) => categoria.includes(k));
+  return key ? TECNICOS_POR_CATEGORIA[key] : TECNICOS_FALLBACK;
+}
+
+type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
+
 
 
 export const Route = createFileRoute("/_authenticated/")({
