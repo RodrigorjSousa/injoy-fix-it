@@ -41,7 +41,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
