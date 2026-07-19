@@ -65,11 +65,16 @@ export function HistoricoTrocasTurno({ unidade }: Props) {
 
   return (
     <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 sm:p-5">
-      <div className="flex items-center gap-3 mb-4">
+      <button
+        type="button"
+        onClick={() => setAberto((v) => !v)}
+        aria-expanded={aberto}
+        className="w-full flex items-center gap-3 mb-2 cursor-pointer hover:bg-white/5 rounded-xl p-1 -m-1 transition-colors text-left"
+      >
         <div className="h-10 w-10 shrink-0 rounded-xl bg-gradient-to-br from-blue-500 via-indigo-500 to-orange-500 grid place-items-center text-white shadow-lg shadow-indigo-500/30">
           <TrocaTurnoIcon size={20} />
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <h3 className="text-sm font-black text-white uppercase tracking-wider">
             Trocas de Turno
           </h3>
@@ -77,7 +82,17 @@ export function HistoricoTrocasTurno({ unidade }: Props) {
             Histórico dos turnos anteriores em {unidade}
           </p>
         </div>
-      </div>
+        <ChevronDown
+          size={20}
+          className={`shrink-0 text-slate-300 transition-transform duration-300 ${aberto ? "rotate-180" : ""}`}
+        />
+      </button>
+
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${aberto ? "grid-rows-[1fr] opacity-100 mt-2" : "grid-rows-[0fr] opacity-0"}`}
+      >
+        <div className="overflow-hidden">
+
 
       {isLoading ? (
         <p className="text-xs text-slate-500 py-4 text-center">Carregando…</p>
