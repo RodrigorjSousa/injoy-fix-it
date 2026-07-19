@@ -733,6 +733,9 @@ function EditarFuncoesDialog({
       if (categoriasChanged) {
         await atualizar.mutateAsync({ id: funcionario.id, categorias: sel });
       }
+      if (telasChanged) {
+        await atualizarTelas.mutateAsync({ id: funcionario.id, telas: desiredTelas });
+      }
       if (rolesChanged && funcionario.userId) {
         if (rolCamareira !== currentRoles.camareira) {
           if (rolCamareira) {
