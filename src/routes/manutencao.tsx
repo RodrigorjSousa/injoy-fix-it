@@ -331,32 +331,56 @@ function PainelPreventiva({
               : loc.health === "vence-breve"
                 ? "bg-amber-500/10 text-amber-600"
                 : "bg-destructive/10 text-destructive";
+          const statusTone =
+            loc.health === "em-dia"
+              ? "bg-success/10 text-success border-success/30"
+              : loc.health === "vence-breve"
+                ? "bg-amber-500/15 text-amber-600 border-amber-500/30"
+                : "bg-destructive/15 text-destructive border-destructive/30";
+          const StatusIcon = loc.health === "em-dia" ? CheckCircle2 : loc.health === "vence-breve" ? Clock : AlertTriangle;
+          const statusLabel = loc.health === "em-dia" ? "EM DIA" : loc.health === "vence-breve" ? "VENCE EM BREVE" : "ATRASADO";
           return (
             <div
               key={loc.name}
               className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
             >
-              {/* CABEÇALHO DO CARD CIRÚRGICO */}
-              <div className="flex w-full justify-between items-start gap-3">
-                <div className="flex gap-3 items-start min-w-0 flex-1">
-                  <div className={cn("p-2 rounded-lg shrink-0 mt-0.5", iconTone)}>
+              {/* CABEÇALHO DO CARD - ESTRUTURA À PROVA DE FALHAS */}
+              <div className="flex flex-row items-start justify-between w-full gap-2">
+                
+                {/* Bloco da Esquerda: Ícone + Textos */}
+                <div className="flex flex-row items-start gap-3">
+                  
+                  {/* Ícone */}
+                  <div className={cn("flex-shrink-0 p-2 rounded-lg mt-0.5", iconTone)}>
                     <Icon className="w-5 h-5" />
                   </div>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">
+                  
+                  {/* Textos */}
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                       {loc.category}
                     </span>
-                    <h3 className="text-lg font-bold text-slate-900 truncate whitespace-nowrap leading-tight">
+                    
+                    {/* Título sem truncate para impedir o erro do 'Q...' */}
+                    <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap mt-0.5">
                       {loc.name}
                     </h3>
-                    <span className="text-xs text-muted-foreground mt-1">
+                    
+                    <span className="text-xs text-muted-foreground mt-0.5">
                       {unidade}
                     </span>
                   </div>
+
                 </div>
-                <div className="shrink-0 pt-0.5">
-                  <StatusBadge health={loc.health} />
+
+                {/* Bloco da Direita: Badge */}
+                <div className="flex-shrink-0">
+                  <span className={cn("inline-flex items-center gap-1 px-2 py-1.5 rounded-full text-[10px] font-bold border whitespace-nowrap", statusTone)}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusLabel}
+                  </span>
                 </div>
+
               </div>
 
 
