@@ -344,44 +344,39 @@ function NovoChamado() {
         <section className="space-y-3">
           <StepLabel
             n={precisaQuarto ? 6 : 5}
-            title="Selecione o técnico responsável"
+            title="Técnico Responsável *"
           />
 
-          {tecnicosDaCategoria.length === 0 ? (
-            <Card className="p-4 bg-amber-50 border-amber-200 text-sm text-amber-800">
-              Nenhum funcionário cadastrado. Cadastre técnicos em Configurações antes de abrir um chamado.
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {tecnicosDaCategoria.map((t) => {
-                const active = tecnicoId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTecnicoId(t.id)}
-                    className={cn(
-                      "rounded-xl border bg-card p-3 text-left transition-all",
-                      "hover:border-primary/50 hover:shadow-sm",
-                      active && "border-primary ring-2 ring-primary/30 bg-primary/5",
-                    )}
-                  >
-                    <div className="font-semibold truncate">{t.nome}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {t.categorias.length > 0 ? t.categorias.join(" · ") : "Sem categorias vinculadas"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {precisaEscolherTecnico && tecnicosDaCategoria.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {nomesDisponiveis.map((nome) => {
+              const active = tecnicoNome === nome;
+              return (
+                <button
+                  key={nome}
+                  type="button"
+                  onClick={() => setTecnicoNome(nome)}
+                  className={cn(
+                    "rounded-xl border bg-card p-3 text-left transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                  )}
+                >
+                  <div className="font-semibold truncate">🛠️ {nome}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    Técnico de {categoria}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {!tecnicoNome && (
             <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
               Selecione obrigatoriamente o técnico que deve atender este chamado.
             </p>
           )}
         </section>
       )}
+
 
 
 
