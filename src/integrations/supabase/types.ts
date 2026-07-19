@@ -1561,6 +1561,14 @@ export type Database = {
           nome: string
         }[]
       }
+      list_tecnicos: {
+        Args: never
+        Returns: {
+          categorias: string[]
+          id: string
+          nome: string
+        }[]
+      }
     }
     Enums: {
       app_role:
