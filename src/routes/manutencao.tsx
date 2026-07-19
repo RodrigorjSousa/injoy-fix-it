@@ -175,53 +175,49 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="w-full flex-1 flex flex-col p-6 md:p-8 overflow-x-hidden items-start justify-start">
-        <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8">
-          <header className="flex items-center gap-3 w-full">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-              <Wrench className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
-              <p className="text-sm text-muted-foreground truncate">
-                Agendamento recorrente por local — {unidade}
-              </p>
-            </div>
-          </header>
+      <div className="space-y-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva · Recorrente</Badge>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Manutenção</h1>
+            <p className="text-muted-foreground mt-1">
+              Agendamento recorrente por local — {unidade}
+            </p>
+          </div>
+        </header>
 
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="painel">
-                <Cog className="h-4 w-4 mr-1.5" /> Painel
-              </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="admin">
-                  <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
-                </TabsTrigger>
-              )}
-            </TabsList>
-
-            <TabsContent value="painel" className="mt-6">
-              <PainelPreventiva
-                unidade={unidade}
-                tasks={tasksQ.data ?? []}
-                logs={logsQ.data ?? []}
-                loading={tasksQ.isLoading || logsQ.isLoading}
-                me={me}
-              />
-            </TabsContent>
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="painel">
+              <Cog className="h-4 w-4 mr-1.5" /> Painel
+            </TabsTrigger>
             {isAdmin && (
-              <TabsContent value="admin" className="mt-6">
-                <AdminTarefas tasks={tasksQ.data ?? []} />
-              </TabsContent>
+              <TabsTrigger value="admin">
+                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+              </TabsTrigger>
             )}
-          </Tabs>
-        </div>
+          </TabsList>
+
+          <TabsContent value="painel" className="mt-6">
+            <PainelPreventiva
+              unidade={unidade}
+              tasks={tasksQ.data ?? []}
+              logs={logsQ.data ?? []}
+              loading={tasksQ.isLoading || logsQ.isLoading}
+              me={me}
+            />
+          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="admin" className="mt-6">
+              <AdminTarefas tasks={tasksQ.data ?? []} />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </AppShell>
-
   );
 }
+
 
 function PainelPreventiva({
   unidade,
