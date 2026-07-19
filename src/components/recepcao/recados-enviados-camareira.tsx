@@ -152,6 +152,8 @@ export function RecadosEnviadosCamareiraSection({
               </p>
             </div>
           ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
