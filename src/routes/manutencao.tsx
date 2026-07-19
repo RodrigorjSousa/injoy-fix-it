@@ -175,53 +175,49 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="w-full flex-1 flex flex-col p-6 md:p-8 overflow-x-hidden items-start justify-start">
-        <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8">
-          <header className="flex items-center gap-3 w-full">
-            <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
-              <Wrench className="h-5 w-5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
-              <p className="text-sm text-muted-foreground truncate">
-                Agendamento recorrente por local — {unidade}
-              </p>
-            </div>
-          </header>
+      <div className="space-y-6">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva · Recorrente</Badge>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Manutenção</h1>
+            <p className="text-muted-foreground mt-1">
+              Agendamento recorrente por local — {unidade}
+            </p>
+          </div>
+        </header>
 
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="painel">
-                <Cog className="h-4 w-4 mr-1.5" /> Painel
-              </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="admin">
-                  <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
-                </TabsTrigger>
-              )}
-            </TabsList>
-
-            <TabsContent value="painel" className="mt-6">
-              <PainelPreventiva
-                unidade={unidade}
-                tasks={tasksQ.data ?? []}
-                logs={logsQ.data ?? []}
-                loading={tasksQ.isLoading || logsQ.isLoading}
-                me={me}
-              />
-            </TabsContent>
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="painel">
+              <Cog className="h-4 w-4 mr-1.5" /> Painel
+            </TabsTrigger>
             {isAdmin && (
-              <TabsContent value="admin" className="mt-6">
-                <AdminTarefas tasks={tasksQ.data ?? []} />
-              </TabsContent>
+              <TabsTrigger value="admin">
+                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+              </TabsTrigger>
             )}
-          </Tabs>
-        </div>
+          </TabsList>
+
+          <TabsContent value="painel" className="mt-6">
+            <PainelPreventiva
+              unidade={unidade}
+              tasks={tasksQ.data ?? []}
+              logs={logsQ.data ?? []}
+              loading={tasksQ.isLoading || logsQ.isLoading}
+              me={me}
+            />
+          </TabsContent>
+          {isAdmin && (
+            <TabsContent value="admin" className="mt-6">
+              <AdminTarefas tasks={tasksQ.data ?? []} />
+            </TabsContent>
+          )}
+        </Tabs>
       </div>
     </AppShell>
-
   );
 }
+
 
 function PainelPreventiva({
   unidade,
@@ -266,57 +262,13 @@ function PainelPreventiva({
 
   const filtered = locationsWithStatus.filter((l) => filter === "todos" || l.health === filter);
 
-  // Desktop-only: user-adjustable columns + zoom (persisted)
-  const [cols, setCols] = useState<number>(() => {
-    if (typeof window === "undefined") return 2;
-    const v = Number(window.localStorage.getItem("pv-cols"));
-    return v >= 1 && v <= 4 ? v : 2;
-  });
-  const [zoom, setZoom] = useState<number>(() => {
-    if (typeof window === "undefined") return 100;
-    const v = Number(window.localStorage.getItem("pv-zoom"));
-    return v >= 70 && v <= 160 ? v : 100;
-  });
-  useEffect(() => {
-    try { window.localStorage.setItem("pv-cols", String(cols)); } catch {}
-  }, [cols]);
-  useEffect(() => {
-    try { window.localStorage.setItem("pv-zoom", String(zoom)); } catch {}
-  }, [zoom]);
-
   if (loading) {
     return <Card className="p-8 text-center text-sm text-muted-foreground">Carregando…</Card>;
   }
 
   return (
-    <div className="w-full space-y-5" style={{ zoom: `${zoom}%` } as React.CSSProperties}>
-      {/* Controles desktop: colunas + zoom */}
-      <div className="hidden lg:flex items-center justify-end gap-4 flex-wrap">
-        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Colunas</span>
-          {[1, 2, 3, 4].map((n) => (
-            <button
-              key={n}
-              onClick={() => setCols(n)}
-              className={cn(
-                "h-7 w-7 rounded-md text-xs font-semibold transition",
-                cols === n ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Zoom</span>
-          <button onClick={() => setZoom((z) => Math.max(70, z - 10))} className="h-7 w-7 rounded-md text-sm font-bold hover:bg-muted">−</button>
-          <span className="text-xs font-semibold tabular-nums w-10 text-center">{zoom}%</span>
-          <button onClick={() => setZoom((z) => Math.min(160, z + 10))} className="h-7 w-7 rounded-md text-sm font-bold hover:bg-muted">+</button>
-          <button onClick={() => setZoom(100)} className="ml-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2">reset</button>
-        </div>
-      </div>
-
-      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           label="Total"
           value={totals.total}
@@ -358,10 +310,8 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div
-        className="w-full grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 lg:[grid-template-columns:repeat(var(--pv-cols),minmax(0,1fr))]"
-        style={{ ["--pv-cols" as string]: cols } as React.CSSProperties}
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
 
         {filtered.map((loc) => {
           const lastLog = loc.status
