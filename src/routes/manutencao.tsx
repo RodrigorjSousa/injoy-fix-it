@@ -311,7 +311,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -322,26 +322,30 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "p-4 space-y-3 border-2 transition",
+                "p-4 space-y-3 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
               )}
             >
-              <div className="flex items-start gap-3">
-                <div className={cn(
-                  "h-10 w-10 rounded-xl grid place-items-center shrink-0",
-                  loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                  loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
-                  loc.health === "em-dia" && "bg-success/10 text-success",
-                )}>
-                  {loc.category === "Quarto" ? <MapPin className="h-5 w-5" /> : <Cog className="h-5 w-5" />}
+              <div className="flex justify-between items-start gap-3 w-full">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl grid place-items-center shrink-0",
+                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
+                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+                    loc.health === "em-dia" && "bg-success/10 text-success",
+                  )}>
+                    {loc.category === "Quarto" ? <MapPin className="h-5 w-5" /> : <Cog className="h-5 w-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground truncate">{loc.category}</div>
+                    <div className="font-semibold break-words">{loc.name}</div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground">{loc.category}</div>
-                  <div className="font-semibold truncate">{loc.name}</div>
+                <div className="shrink-0">
+                  <StatusBadge health={loc.health} />
                 </div>
-                <StatusBadge health={loc.health} />
               </div>
 
               <div className="space-y-1 text-xs text-muted-foreground">
