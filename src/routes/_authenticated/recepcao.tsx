@@ -140,6 +140,13 @@ function RecepcaoPage() {
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
   >(null);
+  const [receberSaldoAlvo, setReceberSaldoAlvo] = useState<{
+    unidade: Unidade;
+    reservationId: string;
+    guestName: string;
+    saldoDevedor: number;
+    quarto: string;
+  } | null>(null);
   const [vistoriadosHoje, setVistoriadosHoje] = useState<
     Map<string, { nome: string; hora: string }>
   >(new Map());
