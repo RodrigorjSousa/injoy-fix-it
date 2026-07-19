@@ -304,6 +304,23 @@ function CatalogoTab({
   const [form, setForm] = useState<Partial<Beverage>>({});
   const [novo, setNovo] = useState(false);
   const [novoForm, setNovoForm] = useState({ name: "", price: 0, current_stock: 0, min_stock: 5 });
+  const [sincronizando, setSincronizando] = useState(false);
+  const sync = useServerFn(syncCloudbedsItems);
+
+  const sincronizarCloudbeds = async () => {
+    setSincronizando(true);
+    try {
+      const res = await sync({ data: { property: unidade as "Ipanema" | "Botafogo" } });
+      toast.success("Catálogo e preços atualizados com sucesso!", {
+        description: `${res.updated} atualizados · ${res.created} criados · ${res.totalCloudbeds} itens no Cloudbeds`,
+      });
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao sincronizar com o Cloudbeds");
+    } finally {
+      setSincronizando(false);
+    }
+  };
 
   const iniciarEdicao = (b: Beverage) => {
     setEditando(b.id);
