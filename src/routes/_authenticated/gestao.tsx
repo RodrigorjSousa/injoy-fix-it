@@ -10,6 +10,7 @@ import { ChamadosManutencaoAtivos } from "@/components/gestao/chamados-manutenca
 import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quartos";
 import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
 import { CheckoutsCloudbedsCard } from "@/components/gestao/checkouts-cloudbeds-card";
+import { RecebimentosBalcaoCard } from "@/components/gestao/recebimentos-balcao-card";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
