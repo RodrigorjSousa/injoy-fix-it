@@ -145,9 +145,30 @@ export function SolicitacoesCompraPanel({
     { key: "todos", label: "Todas" },
   ];
 
+  const hasPending = counts.pending > 0;
+  const [isOpen, setIsOpen] = useState(false);
+  const [autoOpened, setAutoOpened] = useState(false);
+  useEffect(() => {
+    if (hasPending && !autoOpened) {
+      setIsOpen(true);
+      setAutoOpened(true);
+    }
+    if (!hasPending) setAutoOpened(false);
+  }, [hasPending, autoOpened]);
+
   return (
-    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between p-4 border-b border-slate-100">
+    <div
+      className={cn(
+        "bg-white rounded-2xl border shadow-sm transition-colors",
+        hasPending ? "border-red-300 ring-1 ring-red-200" : "border-slate-200",
+      )}
+    >
+      <button
+        type="button"
+        onClick={() => setIsOpen((v) => !v)}
+        aria-expanded={isOpen}
+        className="w-full flex items-center justify-between p-4 border-b border-slate-100 cursor-pointer hover:bg-slate-50 transition-colors text-left"
+      >
         <div className="flex items-center gap-2">
           <div className="h-9 w-9 rounded-xl bg-amber-100 text-amber-700 grid place-items-center">
             <ShoppingBag size={16} />
@@ -161,10 +182,24 @@ export function SolicitacoesCompraPanel({
             </p>
           </div>
         </div>
-        <span className="text-[11px] font-bold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
-          {counts.pending} pendente(s)
-        </span>
-      </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              "text-[11px] font-bold px-2 py-0.5 rounded-full",
+              hasPending
+                ? "bg-red-500 text-white animate-pulse"
+                : "bg-slate-100 text-slate-500",
+            )}
+          >
+            {counts.pending} pendente(s)
+          </span>
+          <ChevronDown
+            size={18}
+            className={cn("text-slate-500 transition-transform", isOpen && "rotate-180")}
+          />
+        </div>
+      </button>
+
 
       <div className="px-3 py-2 border-b border-slate-100 flex flex-wrap gap-1.5">
         {TABS.map((t) => {
