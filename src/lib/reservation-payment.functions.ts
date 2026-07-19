@@ -90,7 +90,7 @@ export const postReservationPayment = createServerFn({ method: "POST" })
         payment_method: data.paymentMethod,
         received_by: data.receivedBy,
         received_by_user_id: userId,
-        cloudbeds_response: json,
+        cloudbeds_response: cloudbedsResponse as unknown as never,
       })
       .select("id, created_at")
       .single();
