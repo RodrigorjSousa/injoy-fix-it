@@ -46,9 +46,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   CATEGORIAS,
+  TELAS_PERMITIDAS,
   useAdicionarFuncionario,
   useAtualizarCategoriasFuncionario,
   useAtualizarNomeFuncionario,
+  useAtualizarTelasFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
@@ -59,6 +61,7 @@ import {
   useRemoverRole,
   type Categoria,
   type Funcionario,
+  type TelaPermitida,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
@@ -642,6 +645,7 @@ function EditarFuncoesDialog({
   const { data: me } = useMe();
   const atualizar = useAtualizarCategoriasFuncionario();
   const atualizarNome = useAtualizarNomeFuncionario();
+  const atualizarTelas = useAtualizarTelasFuncionario();
   const atribuirRole = useAtribuirRole();
   const removerRole = useRemoverRole();
   const tornarGestor = useTornarGestor();
@@ -666,9 +670,12 @@ function EditarFuncoesDialog({
   const [rolRecepcao, setRolRecepcao] = useState(false);
   const [rolGestor, setRolGestor] = useState(false);
   const [rolTecnico, setRolTecnico] = useState(false);
+  const [telasCustom, setTelasCustom] = useState(false);
+  const [telas, setTelas] = useState<TelaPermitida[]>([]);
 
   const initialCategorias = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
   const initialNome = funcionario?.nome ?? "";
+  const initialTelas = useMemo(() => funcionario?.telasPermitidas ?? null, [funcionario]);
 
   // Sync state when opening a new funcionario
   const [lastId, setLastId] = useState<string | null>(null);
@@ -680,6 +687,8 @@ function EditarFuncoesDialog({
     setRolRecepcao(currentRoles.recepcao);
     setRolGestor(currentRoles.gestor);
     setRolTecnico(currentRoles.tecnico);
+    setTelasCustom(Array.isArray(funcionario.telasPermitidas));
+    setTelas(funcionario.telasPermitidas ?? []);
   }
   if (!funcionario && lastId !== null) {
     setLastId(null);
@@ -695,10 +704,21 @@ function EditarFuncoesDialog({
     rolRecepcao !== currentRoles.recepcao ||
     rolGestor !== currentRoles.gestor ||
     rolTecnico !== currentRoles.tecnico;
-  const changed = nomeChanged || categoriasChanged || rolesChanged;
+  const desiredTelas: TelaPermitida[] | null = telasCustom ? telas : null;
+  const telasChanged = (() => {
+    const a = initialTelas;
+    const b = desiredTelas;
+    if (a === null && b === null) return false;
+    if (a === null || b === null) return true;
+    if (a.length !== b.length) return true;
+    return a.some((t) => !b.includes(t)) || b.some((t) => !a.includes(t));
+  })();
+  const changed = nomeChanged || categoriasChanged || rolesChanged || telasChanged;
 
   const toggle = (c: Categoria) =>
     setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  const toggleTela = (t: TelaPermitida) =>
+    setTelas((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const salvar = async () => {
     if (!funcionario) return;
@@ -712,6 +732,9 @@ function EditarFuncoesDialog({
       }
       if (categoriasChanged) {
         await atualizar.mutateAsync({ id: funcionario.id, categorias: sel });
+      }
+      if (telasChanged) {
+        await atualizarTelas.mutateAsync({ id: funcionario.id, telas: desiredTelas });
       }
       if (rolesChanged && funcionario.userId) {
         if (rolCamareira !== currentRoles.camareira) {
@@ -753,6 +776,7 @@ function EditarFuncoesDialog({
   const saving =
     atualizar.isPending ||
     atualizarNome.isPending ||
+    atualizarTelas.isPending ||
     atribuirRole.isPending ||
     removerRole.isPending ||
     tornarGestor.isPending ||
@@ -864,7 +888,55 @@ function EditarFuncoesDialog({
               </p>
             )}
           </div>
+
+          <div className="border-t pt-4">
+            <div className="flex items-center justify-between mb-2">
+              <div>
+                <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                  Telas disponíveis
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {telasCustom
+                    ? "Selecione manualmente as abas que este funcionário verá."
+                    : "Usando o padrão do perfil de acesso."}
+                </p>
+              </div>
+              <label className="flex items-center gap-2 text-xs cursor-pointer">
+                <Checkbox
+                  checked={telasCustom}
+                  onCheckedChange={(v) => {
+                    const on = v === true;
+                    setTelasCustom(on);
+                    if (on && telas.length === 0) setTelas(initialTelas ?? []);
+                  }}
+                />
+                <span>Personalizar</span>
+              </label>
+            </div>
+            {telasCustom && (
+              <div className="flex flex-wrap gap-2">
+                {TELAS_PERMITIDAS.map((t) => {
+                  const active = telas.includes(t.key);
+                  return (
+                    <button
+                      key={t.key}
+                      type="button"
+                      onClick={() => toggleTela(t.key)}
+                      className={`rounded-full border px-3 py-1.5 text-sm transition-colors ${
+                        active
+                          ? "bg-indigo-100 text-indigo-700 border-indigo-200"
+                          : "bg-background hover:border-primary/40"
+                      }`}
+                    >
+                      {t.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </div>
+
 
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={saving}>

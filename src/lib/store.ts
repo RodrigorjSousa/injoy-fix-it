@@ -29,12 +29,30 @@ export const CATEGORIAS: Categoria[] = [
   "Marcenaria",
 ];
 
+export type TelaPermitida =
+  | "servicos"
+  | "manutencao"
+  | "recepcao"
+  | "camareiras"
+  | "preventiva"
+  | "painel";
+
+export const TELAS_PERMITIDAS: { key: TelaPermitida; label: string }[] = [
+  { key: "servicos", label: "Serviços" },
+  { key: "manutencao", label: "Manutenção" },
+  { key: "recepcao", label: "Recepção" },
+  { key: "camareiras", label: "Camareiras" },
+  { key: "preventiva", label: "Preventiva AC" },
+  { key: "painel", label: "Painel" },
+];
+
 export interface Funcionario {
   id: string;
   nome: string;
   email: string;
   categorias: Categoria[];
   userId: string | null;
+  telasPermitidas: TelaPermitida[] | null;
 }
 
 export type Midia = { type: "photo" | "video"; url: string };
@@ -74,6 +92,7 @@ type FuncionarioRow = {
   email: string;
   categorias: string[] | null;
   user_id: string | null;
+  telas_permitidas: string[] | null;
 };
 type ChamadoRow = {
   id: string;
@@ -105,6 +124,7 @@ const mapFuncionario = (r: FuncionarioRow): Funcionario => ({
   email: r.email,
   categorias: (r.categorias ?? []) as Categoria[],
   userId: r.user_id,
+  telasPermitidas: (r.telas_permitidas ?? null) as TelaPermitida[] | null,
 });
 const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado => ({
   id: r.id,
@@ -140,7 +160,7 @@ export function useFuncionarios() {
     queryFn: async (): Promise<Funcionario[]> => {
       const { data, error } = await supabase
         .from("funcionarios")
-        .select("id, nome, email, categorias, user_id")
+        .select("id, nome, email, categorias, user_id, telas_permitidas")
         .order("nome");
       if (error) throw error;
       return (data ?? []).map((r) => mapFuncionario(r as FuncionarioRow));
@@ -235,7 +255,7 @@ export function useMe() {
         supabase.from("user_roles").select("role").eq("user_id", u.user.id),
         supabase
           .from("funcionarios")
-          .select("id, nome, email, categorias, user_id")
+          .select("id, nome, email, categorias, user_id, telas_permitidas")
           .eq("user_id", u.user.id)
           .maybeSingle(),
       ]);
@@ -483,6 +503,21 @@ export function useAtualizarNomeFuncionario() {
     onSuccess: invalidate,
   });
 }
+
+export function useAtualizarTelasFuncionario() {
+  const invalidate = useInvalidate([["funcionarios"], ["me"]]);
+  return useMutation({
+    mutationFn: async (input: { id: string; telas: TelaPermitida[] | null }) => {
+      const { error } = await supabase
+        .from("funcionarios")
+        .update({ telas_permitidas: input.telas })
+        .eq("id", input.id);
+      if (error) throw error;
+    },
+    onSuccess: invalidate,
+  });
+}
+
 
 export function useRemoverFuncionario() {
 
