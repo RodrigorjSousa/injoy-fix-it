@@ -109,7 +109,7 @@ function NovoChamado() {
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(categoriaFromUrl ?? null);
-  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
+  
   const [descricao, setDescricao] = useState("");
   const [midias, setMidias] = useState<Midia[]>([]);
   const [uploading, setUploading] = useState(false);
