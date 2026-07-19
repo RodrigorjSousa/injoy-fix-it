@@ -36,6 +36,7 @@ export function RecadosEnviadosCamareiraSection({
   autorNome: string;
 }) {
   const [recados, setRecados] = useState<Recado[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const carregar = async () => {
     const { data, error } = await supabase
