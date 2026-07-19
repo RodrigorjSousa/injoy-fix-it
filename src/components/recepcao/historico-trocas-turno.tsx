@@ -45,6 +45,7 @@ interface Props {
 
 export function HistoricoTrocasTurno({ unidade }: Props) {
   const [expandido, setExpandido] = useState<string | null>(null);
+  const [aberto, setAberto] = useState(false);
   const { data, isLoading } = useQuery({
     queryKey: ["trocas_turno_historico", unidade],
     queryFn: async (): Promise<Troca[]> => {
