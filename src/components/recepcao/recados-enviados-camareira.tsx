@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { MessageSquare, Check, User, Clock, DoorOpen } from "lucide-react";
+import { MessageSquare, Check, User, Clock, DoorOpen, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -36,6 +36,7 @@ export function RecadosEnviadosCamareiraSection({
   autorNome: string;
 }) {
   const [recados, setRecados] = useState<Recado[]>([]);
+  const [isOpen, setIsOpen] = useState(false);
 
   const carregar = async () => {
     const { data, error } = await supabase
@@ -94,13 +95,28 @@ export function RecadosEnviadosCamareiraSection({
   return (
     <div className="px-4 pt-3">
       <div className="rounded-2xl border-2 border-blue-200 bg-blue-50/60 p-3 space-y-2">
-        <h3 className="text-sm font-black text-blue-900 flex items-center gap-2 uppercase tracking-wide">
-          <MessageSquare size={16} /> Recados enviados às camareiras
-          <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full">
-            {recados.length}
-          </span>
-        </h3>
-        <div className="space-y-2">
+        <button
+          type="button"
+          onClick={() => setIsOpen((v) => !v)}
+          className="w-full flex items-center gap-2 cursor-pointer hover:bg-blue-100/60 rounded-lg px-1 py-1 transition-colors"
+          aria-expanded={isOpen}
+        >
+          <h3 className="text-sm font-black text-blue-900 flex items-center gap-2 uppercase tracking-wide">
+            <MessageSquare size={16} /> Recados enviados às camareiras
+            <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full">
+              {recados.length}
+            </span>
+          </h3>
+          <ChevronDown
+            size={18}
+            className={`ml-auto text-blue-800 transition-transform duration-300 ${isOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        <div
+          className={`grid transition-all duration-300 ease-in-out ${isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0"}`}
+        >
+          <div className="overflow-hidden">
+            <div className="space-y-2 pt-1">
           {recados.map((r) => (
             <div
               key={r.id}
@@ -136,6 +152,8 @@ export function RecadosEnviadosCamareiraSection({
               </p>
             </div>
           ))}
+            </div>
+          </div>
         </div>
       </div>
     </div>
