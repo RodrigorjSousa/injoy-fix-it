@@ -28,6 +28,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
+import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
