@@ -325,84 +325,96 @@ function PainelPreventiva({
             .filter((d): d is Date => !!d)
             .sort((a, b) => a.getTime() - b.getTime())[0];
           const Icon = loc.category === "Quarto" ? MapPin : Wrench;
+          const iconTone =
+            loc.health === "em-dia"
+              ? "bg-success/10 text-success"
+              : loc.health === "vence-breve"
+                ? "bg-amber-500/10 text-amber-600"
+                : "bg-destructive/10 text-destructive";
           return (
-            <Card key={loc.name} className="w-full p-4 space-y-3 relative overflow-hidden">
-              <span
-                className={cn(
-                  "absolute top-4 right-4 h-3.5 w-3.5 rounded-full ring-4",
-                  loc.health === "em-dia" && "bg-success ring-success/20",
-                  loc.health === "vence-breve" && "bg-amber-500 ring-amber-500/20",
-                  loc.health === "atrasado" && "bg-destructive ring-destructive/20 animate-pulse",
-                )}
-                aria-hidden
-              />
-              <div className="flex justify-between items-start gap-4 w-full">
-                <div className="flex items-start gap-3 min-w-0">
-                  <div
-                    className={cn(
-                      "h-11 w-11 rounded-xl grid place-items-center shrink-0",
-                      loc.health === "em-dia" && "bg-success/10 text-success",
-                      loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
-                      loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
+            <div
+              key={loc.name}
+              className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
+            >
+              {/* 1. CABEÇALHO */}
+              <div className="flex items-start justify-between w-full gap-3">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className={cn("p-2 rounded-lg shrink-0 mt-1", iconTone)}>
+                    <Icon className="w-5 h-5" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
-                    <div className="font-semibold truncate">{loc.name}</div>
-                    <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                      <MapPin className="h-3 w-3" />
+                  <div className="flex flex-col min-w-0 flex-1">
+                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                      {loc.category}
+                    </span>
+                    <h3 className="text-lg font-bold text-foreground truncate">
+                      {loc.name}
+                    </h3>
+                    <span className="text-xs text-muted-foreground mt-0.5">
                       {unidade}
-                    </div>
+                    </span>
                   </div>
                 </div>
-                <StatusBadge health={loc.health} />
+                <div className="shrink-0">
+                  <StatusBadge health={loc.health} />
+                </div>
               </div>
 
-              <div className="space-y-1.5 text-xs">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Última:{" "}
-                  <span className="text-foreground font-medium">
-                    {lastLog ? lastLog.toLocaleDateString("pt-BR") : "—"}
+              {/* 2. CORPO */}
+              <div className="flex flex-col gap-2.5 text-sm text-muted-foreground mt-1">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar className="w-4 h-4 text-muted-foreground/70 shrink-0" />
+                  <span className="truncate">
+                    Última: {lastLog ? lastLog.toLocaleDateString("pt-BR") : "—"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Wrench className="h-3.5 w-3.5" />
-                  Técnico: <span className="text-foreground font-medium">{lastTech}</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <Wrench className="w-4 h-4 text-muted-foreground/70 shrink-0" />
+                  <span className="truncate">
+                    Técnico:{" "}
+                    <strong className="font-semibold text-foreground">{lastTech}</strong>
+                  </span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
+                <div className="flex items-center gap-2 min-w-0">
                   {loc.health === "atrasado" ? (
-                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                    <AlertTriangle className="w-4 h-4 text-destructive shrink-0" />
                   ) : (
-                    <Clock className="h-3.5 w-3.5" />
+                    <Clock
+                      className={cn(
+                        "w-4 h-4 shrink-0",
+                        loc.health === "vence-breve"
+                          ? "text-amber-500"
+                          : "text-muted-foreground/70",
+                      )}
+                    />
                   )}
-                  Próxima:{" "}
                   <span
                     className={cn(
-                      "font-medium",
-                      loc.health === "atrasado" ? "text-destructive" : "text-foreground",
+                      "truncate font-medium",
+                      loc.health === "atrasado"
+                        ? "text-destructive"
+                        : loc.health === "vence-breve"
+                          ? "text-amber-600"
+                          : "text-foreground",
                     )}
                   >
-                    {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}
-                  </span>
-                  <span className="text-foreground/60">
-                    ({pendentes} pend.)
+                    Próxima: {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}{" "}
+                    <span className="text-xs font-normal opacity-70">
+                      ({pendentes} pend.)
+                    </span>
                   </span>
                 </div>
               </div>
 
-
+              {/* 3. BOTÃO */}
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
-                className="w-full"
+                className="w-full mt-2"
                 onClick={() => setSelected({ category: loc.category, name: loc.name })}
               >
                 <ClipboardCheck className="h-4 w-4 mr-2" />
                 Abrir Checklist
               </Button>
-            </Card>
+            </div>
           );
         })}
       </div>
