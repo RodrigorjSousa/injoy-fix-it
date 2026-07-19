@@ -175,14 +175,14 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <header className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center">
+      <div className="w-full flex-1 p-4 md:p-6 flex flex-col gap-6 items-start justify-start">
+        <header className="flex items-center gap-3 w-full">
+          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
             <Wrench className="h-5 w-5" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight">Manutenção Preventiva</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
+            <p className="text-sm text-muted-foreground truncate">
               Agendamento recorrente por local — {unidade}
             </p>
           </div>
