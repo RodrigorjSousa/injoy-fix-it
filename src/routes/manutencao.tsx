@@ -314,7 +314,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -325,7 +325,7 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "w-full min-w-[280px] p-4 space-y-3 border-2 transition flex flex-col",
+                "w-full min-w-0 p-4 space-y-3 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
