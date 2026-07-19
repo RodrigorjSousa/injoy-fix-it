@@ -103,13 +103,41 @@ export function VendaBebidasModal({ open, onClose, unidade, recepcionistaName, r
 
   const pagamentoLabel = pagamento === "Lançar no Quarto" ? "Lançado na conta do quarto" : `Recebido em ${pagamento}`;
 
-  const podeConfirmar = totalItens > 0 && !enviando && (pagamento !== "Lançar no Quarto" || quarto.trim().length > 0);
+  const isFiado = pagamento === "Lançar no Quarto";
+  const podeConfirmar = totalItens > 0 && !enviando && (!isFiado || quarto.trim().length > 0);
+
+  const postCharge = useServerFn(postCloudbedsCharge);
 
   const confirmar = async () => {
     if (!podeConfirmar) return;
     setEnviando(true);
     try {
       const items = bebidas.filter((b) => (carrinho[b.id] ?? 0) > 0);
+
+      // Lançamento na conta do quarto: PRIMEIRO chama o Cloudbeds.
+      // Só continua com estoque + log se o Cloudbeds aceitar.
+      if (isFiado) {
+        const semVinculo = items.filter((b) => !b.cloudbeds_item_id);
+        if (semVinculo.length > 0) {
+          throw new Error(
+            `Estes itens ainda não estão vinculados ao Cloudbeds: ${semVinculo.map((i) => i.name).join(", ")}. Sincronize o catálogo antes de lançar no quarto.`,
+          );
+        }
+        await postCharge({
+          data: {
+            property: unidade,
+            roomNumber: quarto.trim(),
+            items: items.map((b) => ({
+              beverage_id: b.id,
+              cloudbeds_item_id: b.cloudbeds_item_id as string,
+              name: b.name,
+              quantity: carrinho[b.id],
+              unit_price: Number(b.price),
+            })),
+          },
+        });
+      }
+
       const salesRows = items.map((b) => ({
         property: unidade,
         product_id: b.id,
@@ -142,6 +170,7 @@ export function VendaBebidasModal({ open, onClose, unidade, recepcionistaName, r
       setEnviando(false);
     }
   };
+
 
   if (!open) return null;
 
