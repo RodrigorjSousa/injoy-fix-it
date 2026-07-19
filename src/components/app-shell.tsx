@@ -27,22 +27,54 @@ const isAdmin = (me: Me) => !!me && (me.isGestor || me.isAdmin);
 const isTecnicoAC = (me: Me) =>
   !!me && me.isFuncionario && !!me.funcionario?.categorias?.includes("Ar condicionado");
 
-// Abas condicionais por papel
-const podeRecepcao = (me: Me) => isAdmin(me) || !!me?.isRecepcao;
-const podeCamareira = (me: Me) => isAdmin(me) || !!me?.isCamareira;
-const podePreventiva = (me: Me) => isAdmin(me) || isTecnicoAC(me);
+// Permissões individuais por funcionário (definidas em EQUIPE).
+// Se o funcionário tiver `telasPermitidas` configurado, ele passa a valer sobre as regras de papel.
+type TelaKey = "servicos" | "manutencao" | "recepcao" | "camareiras" | "preventiva" | "painel";
+const temPermissaoIndividual = (me: Me, tela: TelaKey) => {
+  const lista = me?.funcionario?.telasPermitidas;
+  if (!lista) return null; // não configurado — usa fallback por papel
+  return lista.includes(tela);
+};
 
-// Manutenção: apenas admin/gestor e funcionários da manutenção (técnicos)
-const podeManutencao = (me: Me) =>
-  isAdmin(me) || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira);
+// Abas condicionais por papel (fallback quando não há permissão individual)
+const podeRecepcao = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "recepcao");
+  if (ind !== null) return ind || isAdmin(me);
+  return isAdmin(me) || !!me?.isRecepcao;
+};
+const podeCamareira = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "camareiras");
+  if (ind !== null) return ind || isAdmin(me);
+  return isAdmin(me) || !!me?.isCamareira;
+};
+const podePreventiva = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "preventiva");
+  if (ind !== null) return ind || isAdmin(me);
+  return isAdmin(me) || isTecnicoAC(me);
+};
+const podeServicos = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "servicos");
+  if (ind !== null) return ind || isAdmin(me);
+  return true;
+};
+const podeManutencao = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "manutencao");
+  if (ind !== null) return ind || isAdmin(me);
+  return isAdmin(me) || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira);
+};
+const podePainel = (me: Me) => {
+  const ind = temPermissaoIndividual(me, "painel");
+  if (ind !== null) return ind && !isAdmin(me);
+  return !isAdmin(me) && (!!me?.isRecepcao || !!me?.isCamareira || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira));
+};
 
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
-  { to: "/servicos", label: "Serviços", icon: Wrench },
+  { to: "/servicos", label: "Serviços", icon: Wrench, show: podeServicos },
   { to: "/manutencao", label: "Manutenção", icon: Cog, show: podeManutencao },
   // Condicionais
   { to: "/recepcao", label: "Recepção", icon: ConciergeBell, show: podeRecepcao },
-  { to: "/painel", label: "PAINEL", icon: LayoutGrid, show: (me: Me) => !isAdmin(me) && (!!me?.isRecepcao || !!me?.isCamareira || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira)) },
+  { to: "/painel", label: "PAINEL", icon: LayoutGrid, show: podePainel },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
   // Comum a todos
