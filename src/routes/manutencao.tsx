@@ -188,7 +188,7 @@ function ManutencaoPage() {
           </div>
         </header>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList>
             <TabsTrigger value="painel">
               <Cog className="h-4 w-4 mr-1.5" /> Painel
