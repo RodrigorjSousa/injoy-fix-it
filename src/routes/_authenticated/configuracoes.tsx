@@ -48,6 +48,7 @@ import {
   CATEGORIAS,
   useAdicionarFuncionario,
   useAtualizarCategoriasFuncionario,
+  useAtualizarNomeFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
