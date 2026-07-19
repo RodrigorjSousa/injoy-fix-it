@@ -670,9 +670,12 @@ function EditarFuncoesDialog({
   const [rolRecepcao, setRolRecepcao] = useState(false);
   const [rolGestor, setRolGestor] = useState(false);
   const [rolTecnico, setRolTecnico] = useState(false);
+  const [telasCustom, setTelasCustom] = useState(false);
+  const [telas, setTelas] = useState<TelaPermitida[]>([]);
 
   const initialCategorias = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
   const initialNome = funcionario?.nome ?? "";
+  const initialTelas = useMemo(() => funcionario?.telasPermitidas ?? null, [funcionario]);
 
   // Sync state when opening a new funcionario
   const [lastId, setLastId] = useState<string | null>(null);
@@ -684,6 +687,8 @@ function EditarFuncoesDialog({
     setRolRecepcao(currentRoles.recepcao);
     setRolGestor(currentRoles.gestor);
     setRolTecnico(currentRoles.tecnico);
+    setTelasCustom(Array.isArray(funcionario.telasPermitidas));
+    setTelas(funcionario.telasPermitidas ?? []);
   }
   if (!funcionario && lastId !== null) {
     setLastId(null);
