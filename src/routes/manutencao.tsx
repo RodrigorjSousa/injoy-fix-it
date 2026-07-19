@@ -176,7 +176,7 @@ function ManutencaoPage() {
   return (
     <AppShell>
       <div className="w-full flex-1 flex flex-col p-6 md:p-8 overflow-x-hidden items-start justify-start">
-        <div className="w-full max-w-7xl mx-auto flex flex-col gap-8">
+        <div className="w-full max-w-[1600px] mx-auto flex flex-col gap-8">
           <header className="flex items-center gap-3 w-full">
             <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
               <Wrench className="h-5 w-5" />
@@ -314,7 +314,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 2xl:grid-cols-3 gap-x-8 gap-y-8">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
