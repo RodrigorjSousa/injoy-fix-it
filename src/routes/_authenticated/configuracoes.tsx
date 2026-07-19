@@ -48,6 +48,7 @@ import {
   CATEGORIAS,
   useAdicionarFuncionario,
   useAtualizarCategoriasFuncionario,
+  useAtualizarNomeFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
@@ -640,6 +641,7 @@ function EditarFuncoesDialog({
 }) {
   const { data: me } = useMe();
   const atualizar = useAtualizarCategoriasFuncionario();
+  const atualizarNome = useAtualizarNomeFuncionario();
   const atribuirRole = useAtribuirRole();
   const removerRole = useRemoverRole();
   const tornarGestor = useTornarGestor();
@@ -647,31 +649,43 @@ function EditarFuncoesDialog({
   const { data: usuariosRoles = [] } = useUsuariosComRoles();
 
   const currentRoles = useMemo(() => {
-    if (!funcionario?.userId) return { recepcao: false, camareira: false, gestor: false };
+    if (!funcionario?.userId)
+      return { recepcao: false, camareira: false, gestor: false, tecnico: false };
     const u = usuariosRoles.find((x) => x.userId === funcionario.userId);
-    return { recepcao: !!u?.isRecepcao, camareira: !!u?.isCamareira, gestor: !!u?.isGestor };
+    return {
+      recepcao: !!u?.isRecepcao,
+      camareira: !!u?.isCamareira,
+      gestor: !!u?.isGestor,
+      tecnico: !!u?.isFuncionario,
+    };
   }, [funcionario, usuariosRoles]);
 
+  const [nome, setNome] = useState("");
   const [sel, setSel] = useState<Categoria[]>([]);
   const [rolCamareira, setRolCamareira] = useState(false);
   const [rolRecepcao, setRolRecepcao] = useState(false);
   const [rolGestor, setRolGestor] = useState(false);
+  const [rolTecnico, setRolTecnico] = useState(false);
 
   const initialCategorias = useMemo(() => funcionario?.categorias ?? [], [funcionario]);
+  const initialNome = funcionario?.nome ?? "";
 
   // Sync state when opening a new funcionario
   const [lastId, setLastId] = useState<string | null>(null);
   if (funcionario && funcionario.id !== lastId) {
     setLastId(funcionario.id);
+    setNome(funcionario.nome);
     setSel(funcionario.categorias);
     setRolCamareira(currentRoles.camareira);
     setRolRecepcao(currentRoles.recepcao);
     setRolGestor(currentRoles.gestor);
+    setRolTecnico(currentRoles.tecnico);
   }
   if (!funcionario && lastId !== null) {
     setLastId(null);
   }
 
+  const nomeChanged = nome.trim() !== initialNome.trim() && nome.trim().length > 0;
   const categoriasChanged =
     sel.length !== initialCategorias.length ||
     sel.some((c) => !initialCategorias.includes(c)) ||
@@ -679,8 +693,9 @@ function EditarFuncoesDialog({
   const rolesChanged =
     rolCamareira !== currentRoles.camareira ||
     rolRecepcao !== currentRoles.recepcao ||
-    rolGestor !== currentRoles.gestor;
-  const changed = categoriasChanged || rolesChanged;
+    rolGestor !== currentRoles.gestor ||
+    rolTecnico !== currentRoles.tecnico;
+  const changed = nomeChanged || categoriasChanged || rolesChanged;
 
   const toggle = (c: Categoria) =>
     setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -688,6 +703,13 @@ function EditarFuncoesDialog({
   const salvar = async () => {
     if (!funcionario) return;
     try {
+      if (nomeChanged) {
+        await atualizarNome.mutateAsync({
+          id: funcionario.id,
+          nome: nome.trim(),
+          userId: funcionario.userId,
+        });
+      }
       if (categoriasChanged) {
         await atualizar.mutateAsync({ id: funcionario.id, categorias: sel });
       }
@@ -706,6 +728,13 @@ function EditarFuncoesDialog({
             await removerRole.mutateAsync({ userId: funcionario.userId, role: "recepcao" });
           }
         }
+        if (rolTecnico !== currentRoles.tecnico) {
+          if (rolTecnico) {
+            await atribuirRole.mutateAsync({ userId: funcionario.userId, role: "funcionario" });
+          } else {
+            await removerRole.mutateAsync({ userId: funcionario.userId, role: "funcionario" });
+          }
+        }
         if (rolGestor !== currentRoles.gestor) {
           if (rolGestor) {
             await tornarGestor.mutateAsync(funcionario.userId);
@@ -714,7 +743,7 @@ function EditarFuncoesDialog({
           }
         }
       }
-      toast.success("Funções atualizadas");
+      toast.success("Cadastro atualizado");
       onClose();
     } catch (e) {
       toast.error((e as Error).message);
@@ -723,6 +752,7 @@ function EditarFuncoesDialog({
 
   const saving =
     atualizar.isPending ||
+    atualizarNome.isPending ||
     atribuirRole.isPending ||
     removerRole.isPending ||
     tornarGestor.isPending ||
@@ -734,10 +764,20 @@ function EditarFuncoesDialog({
     <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Editar Funções de {funcionario?.nome ?? ""}</DialogTitle>
+          <DialogTitle>Editar {funcionario?.nome ?? ""}</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-2">
+          <div className="space-y-1.5">
+            <Label htmlFor="edit-nome">Nome</Label>
+            <Input
+              id="edit-nome"
+              value={nome}
+              onChange={(e) => setNome(e.target.value)}
+              placeholder="Nome completo"
+            />
+          </div>
+
           <div>
             <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
               Categorias técnicas
@@ -768,6 +808,18 @@ function EditarFuncoesDialog({
               Perfil de acesso
             </div>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                disabled={rolesDisabled}
+                onClick={() => setRolTecnico((v) => !v)}
+                className={`rounded-full border px-3 py-1.5 text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                  rolTecnico
+                    ? "bg-sky-100 text-sky-700 border-sky-200"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                Técnico
+              </button>
               <button
                 type="button"
                 disabled={rolesDisabled}
