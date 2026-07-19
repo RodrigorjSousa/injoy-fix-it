@@ -567,8 +567,8 @@ function ChecklistModal({
       if (error) throw error;
       return rows.length;
     },
-    onSuccess: (n) => {
-      toast.success(`${n} tarefa(s) registrada(s)`);
+    onSuccess: () => {
+      toast.success("Manutenção registrada com sucesso! Prazos atualizados.");
       qc.invalidateQueries({ queryKey: ["preventive_logs"] });
       setChecked({});
       setNotes("");
@@ -592,11 +592,11 @@ function ChecklistModal({
       <DialogContent className="w-[min(42rem,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <ClipboardCheck className="h-5 w-5 text-primary" />
-            Checklist — {location?.name}
+            <ClipboardCheck className="h-5 w-5 text-teal-600" />
+            Checklist de Manutenção
           </DialogTitle>
           <DialogDescription>
-            {location?.category} · {property} · {new Date().toLocaleDateString("pt-BR")}
+            {location?.name} - {property} · {new Date().toLocaleDateString("pt-BR")}
           </DialogDescription>
         </DialogHeader>
 
@@ -682,9 +682,10 @@ function ChecklistModal({
           <Button
             onClick={() => submit.mutate()}
             disabled={submit.isPending || marcados === 0 || !tecnico.trim()}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
-            Salvar ({marcados})
+            Salvar Manutenção{marcados > 0 ? ` (${marcados})` : ""}
           </Button>
         </DialogFooter>
       </DialogContent>
