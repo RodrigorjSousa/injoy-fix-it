@@ -336,25 +336,23 @@ function PainelPreventiva({
               key={loc.name}
               className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
             >
-              {/* 1. CABEÇALHO */}
-              <div className="flex items-start justify-between w-full gap-3">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className={cn("p-2 rounded-lg shrink-0 mt-1", iconTone)}>
-                    <Icon className="w-5 h-5" />
-                  </div>
-                  <div className="flex flex-col min-w-0 flex-1">
-                    <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                      {loc.category}
-                    </span>
-                    <h3 className="text-lg font-bold text-foreground truncate">
-                      {loc.name}
-                    </h3>
-                    <span className="text-xs text-muted-foreground mt-0.5">
-                      {unidade}
-                    </span>
-                  </div>
+              {/* 1. CABEÇALHO DO CARD - GRID 3 COLUNAS */}
+              <div className="grid grid-cols-[auto_1fr_auto] gap-3 w-full items-start">
+                <div className={cn("p-2 rounded-lg mt-1", iconTone)}>
+                  <Icon className="w-5 h-5" />
                 </div>
-                <div className="shrink-0">
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    {loc.category}
+                  </span>
+                  <h3 className="text-lg font-bold text-foreground whitespace-normal break-words leading-tight mt-0.5">
+                    {loc.name}
+                  </h3>
+                  <span className="text-xs text-muted-foreground mt-1">
+                    {unidade}
+                  </span>
+                </div>
+                <div className="pt-1">
                   <StatusBadge health={loc.health} />
                 </div>
               </div>
