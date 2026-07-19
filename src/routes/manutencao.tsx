@@ -175,45 +175,42 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="flex-1 w-full h-full overflow-y-auto bg-slate-50 p-4 md:p-8">
-        <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
-          <header className="flex flex-wrap items-end justify-between gap-4">
-            <div>
-              <Badge variant="secondary" className="mb-3 rounded-full">Manutenção preventiva · Recorrente</Badge>
-              <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Manutenção</h1>
-              <p className="text-muted-foreground mt-1">
-                Agendamento recorrente por local — {unidade}
-              </p>
-            </div>
-          </header>
+      <div className="flex-1 w-full h-full p-4 md:p-8 overflow-x-hidden" style={{ minWidth: '100%' }}>
+        <div className="w-full max-w-7xl mx-auto flex flex-col gap-8">
+          <div className="w-full">
+            <span className="text-sm font-medium text-teal-600 bg-teal-50 px-3 py-1 rounded-full">
+              Manutenção preventiva • Recorrente
+            </span>
+            <h1 className="text-3xl font-bold mt-4">Manutenção</h1>
+            <p className="text-muted-foreground mt-1">
+              Agendamento recorrente por local — {unidade}
+            </p>
+          </div>
 
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <PainelPreventiva
+            unidade={unidade}
+            tasks={tasksQ.data ?? []}
+            logs={logsQ.data ?? []}
+            loading={tasksQ.isLoading || logsQ.isLoading}
+            me={me}
+          />
+
+          {isAdmin && (
+            <Tabs value={tab} onValueChange={setTab} className="w-full">
             <TabsList>
               <TabsTrigger value="painel">
-                <Cog className="h-4 w-4 mr-1.5" /> Painel
+                <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
               </TabsTrigger>
-              {isAdmin && (
-                <TabsTrigger value="admin">
-                  <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
-                </TabsTrigger>
-              )}
+              <TabsTrigger value="admin">
+                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+              </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="painel" className="mt-6">
-              <PainelPreventiva
-                unidade={unidade}
-                tasks={tasksQ.data ?? []}
-                logs={logsQ.data ?? []}
-                loading={tasksQ.isLoading || logsQ.isLoading}
-                me={me}
-              />
+            <TabsContent value="painel" className="mt-6" />
+            <TabsContent value="admin" className="mt-6">
+              <AdminTarefas tasks={tasksQ.data ?? []} />
             </TabsContent>
-            {isAdmin && (
-              <TabsContent value="admin" className="mt-6">
-                <AdminTarefas tasks={tasksQ.data ?? []} />
-              </TabsContent>
-            )}
           </Tabs>
+          )}
         </div>
       </div>
     </AppShell>
@@ -270,7 +267,7 @@ function PainelPreventiva({
   }
 
   return (
-    <div className="space-y-6">
+    <>
       <div className="w-full grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total"
@@ -317,7 +314,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -332,7 +329,7 @@ function PainelPreventiva({
             .sort((a, b) => a.getTime() - b.getTime())[0];
           const Icon = loc.category === "Quarto" ? MapPin : Wrench;
           return (
-            <Card key={loc.name} className="p-4 space-y-3 relative overflow-hidden">
+            <Card key={loc.name} className="w-full p-4 space-y-3 relative overflow-hidden">
               <span
                 className={cn(
                   "absolute top-4 right-4 h-3.5 w-3.5 rounded-full ring-4",
@@ -422,7 +419,7 @@ function PainelPreventiva({
         logs={logs}
         defaultTechnician="Cristiano"
       />
-    </div>
+    </>
   );
 }
 
