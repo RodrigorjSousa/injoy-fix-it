@@ -704,10 +704,21 @@ function EditarFuncoesDialog({
     rolRecepcao !== currentRoles.recepcao ||
     rolGestor !== currentRoles.gestor ||
     rolTecnico !== currentRoles.tecnico;
-  const changed = nomeChanged || categoriasChanged || rolesChanged;
+  const desiredTelas: TelaPermitida[] | null = telasCustom ? telas : null;
+  const telasChanged = (() => {
+    const a = initialTelas;
+    const b = desiredTelas;
+    if (a === null && b === null) return false;
+    if (a === null || b === null) return true;
+    if (a.length !== b.length) return true;
+    return a.some((t) => !b.includes(t)) || b.some((t) => !a.includes(t));
+  })();
+  const changed = nomeChanged || categoriasChanged || rolesChanged || telasChanged;
 
   const toggle = (c: Categoria) =>
     setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
+  const toggleTela = (t: TelaPermitida) =>
+    setTelas((prev) => (prev.includes(t) ? prev.filter((x) => x !== t) : [...prev, t]));
 
   const salvar = async () => {
     if (!funcionario) return;
