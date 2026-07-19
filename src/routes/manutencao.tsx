@@ -325,7 +325,7 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "p-4 space-y-3 border-2 transition flex flex-col",
+                "w-full min-w-[280px] p-4 space-y-3 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
@@ -343,13 +343,14 @@ function PainelPreventiva({
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-xs text-muted-foreground truncate">{loc.category}</div>
-                    <div className="font-semibold break-words">{loc.name}</div>
+                    <h3 className="font-bold text-lg truncate">{loc.name}</h3>
                   </div>
                 </div>
-                <div className="shrink-0">
+                <div className="shrink-0 whitespace-nowrap">
                   <StatusBadge health={loc.health} />
                 </div>
               </div>
+
 
               <div className="space-y-1 text-xs text-muted-foreground">
                 <div className="flex items-center gap-1.5">
