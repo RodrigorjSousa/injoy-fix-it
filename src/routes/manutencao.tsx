@@ -355,7 +355,7 @@ function PainelPreventiva({
                   <div className="font-semibold truncate">{loc.name}</div>
                   <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
                     <MapPin className="h-3 w-3" />
-                    {property}
+                    {unidade}
                   </div>
                 </div>
               </div>
@@ -557,7 +557,7 @@ function ChecklistModal({
             Checklist — {location?.name}
           </DialogTitle>
           <DialogDescription>
-            {location?.category} · {property} · {new Date().toLocaleDateString("pt-BR")}
+            {location?.category} · {unidade} · {new Date().toLocaleDateString("pt-BR")}
           </DialogDescription>
         </DialogHeader>
 
