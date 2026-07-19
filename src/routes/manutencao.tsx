@@ -273,7 +273,8 @@ function PainelPreventiva({
           label="Total"
           value={totals.total}
           tone="bg-primary/10 text-primary"
-          border="border-primary/40"
+          border="border-2 border-primary/60"
+          activeBorder="border-primary"
           active={filter === "todos"}
           onClick={() => setFilter("todos")}
         />
@@ -281,7 +282,8 @@ function PainelPreventiva({
           label="Em dia"
           value={totals.emDia}
           tone="bg-success/15 text-success"
-          border="border-success/40"
+          border="border-2 border-success/60"
+          activeBorder="border-success"
           active={filter === "em-dia"}
           onClick={() => setFilter("em-dia")}
         />
@@ -289,7 +291,8 @@ function PainelPreventiva({
           label="Vence em breve"
           value={totals.venceBreve}
           tone="bg-amber-500/15 text-amber-600"
-          border="border-amber-500/40"
+          border="border-2 border-amber-500/60"
+          activeBorder="border-amber-500"
           active={filter === "vence-breve"}
           onClick={() => setFilter("vence-breve")}
         />
@@ -297,7 +300,8 @@ function PainelPreventiva({
           label="A fazer"
           value={totals.atrasados}
           tone="bg-destructive/15 text-destructive"
-          border="border-destructive/40"
+          border="border-2 border-destructive/60"
+          activeBorder="border-destructive"
           active={filter === "atrasado"}
           onClick={() => setFilter("atrasado")}
           pulse={totals.atrasados > 0}
@@ -311,75 +315,92 @@ function PainelPreventiva({
       )}
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-
-
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
             .filter((d): d is Date => !!d)
             .sort((a, b) => b.getTime() - a.getTime())[0];
-          const lastTech = loc.status.find((s) => s.lastCompletedAt && s.lastCompletedAt.getTime() === lastLog?.getTime())?.lastTechnician;
+          const lastTech =
+            loc.status.find((s) => s.lastCompletedAt && s.lastCompletedAt.getTime() === lastLog?.getTime())?.lastTechnician ?? "Cristiano";
+          const pendentes = loc.status.filter((s) => (s.daysToDue ?? 0) < 0).length;
+          const proxima = loc.status
+            .map((s) => s.nextDue)
+            .filter((d): d is Date => !!d)
+            .sort((a, b) => a.getTime() - b.getTime())[0];
+          const Icon = loc.category === "Quarto" ? MapPin : Wrench;
           return (
-            <Card
-              key={loc.name}
-              className={cn(
-                "w-full h-full min-w-0 p-5 space-y-4 border-2 transition flex flex-col",
-                loc.health === "atrasado" && "border-destructive/60",
-                loc.health === "vence-breve" && "border-amber-500/60",
-                loc.health === "em-dia" && "border-success/50",
-              )}
-            >
-              <div className="flex justify-between items-start gap-3 w-full">
-                <div className="flex items-start gap-3 min-w-0 flex-1">
-                  <div className={cn(
-                    "h-10 w-10 rounded-xl grid place-items-center shrink-0",
-                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+            <Card key={loc.name} className="p-4 space-y-3 relative overflow-hidden">
+              <span
+                className={cn(
+                  "absolute top-4 right-4 h-3.5 w-3.5 rounded-full ring-4",
+                  loc.health === "em-dia" && "bg-success ring-success/20",
+                  loc.health === "vence-breve" && "bg-amber-500 ring-amber-500/20",
+                  loc.health === "atrasado" && "bg-destructive ring-destructive/20 animate-pulse",
+                )}
+                aria-hidden
+              />
+              <div className="flex items-start gap-3">
+                <div
+                  className={cn(
+                    "h-11 w-11 rounded-xl grid place-items-center shrink-0",
                     loc.health === "em-dia" && "bg-success/10 text-success",
-                  )}>
-                    {loc.category === "Quarto" ? <MapPin className="h-5 w-5" /> : <Cog className="h-5 w-5" />}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs text-muted-foreground truncate">{loc.category}</div>
-                    <h3 className="font-bold text-lg truncate">{loc.name}</h3>
-                  </div>
+                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
+                  )}
+                >
+                  <Icon className="h-5 w-5" />
                 </div>
-                <div className="shrink-0 whitespace-nowrap">
-                  <StatusBadge health={loc.health} />
+                <div className="min-w-0 flex-1 pr-6">
+                  <div className="font-mono text-[11px] text-muted-foreground">{loc.category}</div>
+                  <div className="font-semibold truncate">{loc.name}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                    <MapPin className="h-3 w-3" />
+                    {unidade}
+                  </div>
                 </div>
               </div>
 
-
-              <div className="space-y-2 text-sm text-muted-foreground">
-                <div className="flex items-center gap-2">
-                  <Calendar className="h-4 w-4 shrink-0" />
-                  <span>Última:</span>
-                  <span className="text-foreground font-medium truncate">
+              <div className="space-y-1.5 text-xs">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Última:{" "}
+                  <span className="text-foreground font-medium">
                     {lastLog ? lastLog.toLocaleDateString("pt-BR") : "—"}
                   </span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Wrench className="h-4 w-4 shrink-0" />
-                  <span>Técnico:</span>
-                  <span className="text-foreground font-medium truncate">{lastTech ?? "—"}</span>
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <Wrench className="h-3.5 w-3.5" />
+                  Técnico: <span className="text-foreground font-medium">{lastTech}</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 shrink-0" />
-                  <span>Tarefas pendentes:</span>
-                  <span className={cn("font-medium", loc.health === "atrasado" ? "text-destructive" : "text-foreground")}>
-                    {loc.status.filter((s) => (s.daysToDue ?? 0) < 0).length}
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  {loc.health === "atrasado" ? (
+                    <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
+                  ) : (
+                    <Clock className="h-3.5 w-3.5" />
+                  )}
+                  Próxima:{" "}
+                  <span
+                    className={cn(
+                      "font-medium",
+                      loc.health === "atrasado" ? "text-destructive" : "text-foreground",
+                    )}
+                  >
+                    {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}
+                  </span>
+                  <span className="text-foreground/60">
+                    ({pendentes} pend.)
                   </span>
                 </div>
+                <StatusBadge health={loc.health} />
               </div>
-
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
-                className="w-full text-sm mt-auto"
+                className="w-full"
                 onClick={() => setSelected({ category: loc.category, name: loc.name })}
               >
-                <ClipboardCheck className="h-4 w-4 mr-2 shrink-0" />
-                <span className="truncate">Abrir Checklist</span>
+                <ClipboardCheck className="h-4 w-4 mr-2" />
+                Abrir Checklist
               </Button>
             </Card>
           );
@@ -393,7 +414,7 @@ function PainelPreventiva({
         property={unidade}
         tasks={tasks}
         logs={logs}
-        defaultTechnician={me?.funcionario?.nome ?? me?.email ?? ""}
+        defaultTechnician="Cristiano"
       />
     </div>
   );
@@ -426,6 +447,7 @@ function StatCard({
   value,
   tone,
   border,
+  activeBorder,
   active,
   onClick,
   pulse,
@@ -433,7 +455,8 @@ function StatCard({
   label: string;
   value: number;
   tone: string;
-  border: string;
+  border?: string;
+  activeBorder?: string;
   active?: boolean;
   onClick?: () => void;
   pulse?: boolean;
@@ -447,7 +470,7 @@ function StatCard({
         "hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-ring",
       )}
     >
-      <Card className={cn("p-4 h-full border-2", border, active && "shadow-md ring-2 ring-offset-1 ring-primary/30")}>
+      <Card className={cn("p-4 h-full", border, active && activeBorder, active && "shadow-md")}>
         <div className={cn("inline-flex px-2 py-0.5 rounded-md text-[11px] font-semibold mb-2", tone)}>
           {label}
         </div>
