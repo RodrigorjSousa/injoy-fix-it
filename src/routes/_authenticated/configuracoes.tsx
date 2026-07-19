@@ -46,9 +46,11 @@ import {
 } from "@/components/ui/dialog";
 import {
   CATEGORIAS,
+  TELAS_PERMITIDAS,
   useAdicionarFuncionario,
   useAtualizarCategoriasFuncionario,
   useAtualizarNomeFuncionario,
+  useAtualizarTelasFuncionario,
   useFuncionarios,
   useMe,
   useRemoverFuncionario,
@@ -59,6 +61,7 @@ import {
   useRemoverRole,
   type Categoria,
   type Funcionario,
+  type TelaPermitida,
 } from "@/lib/store";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
