@@ -399,20 +399,20 @@ function PainelPreventiva({
 function StatusBadge({ health }: { health: LocationHealth }) {
   if (health === "atrasado") {
     return (
-      <Badge className="bg-destructive/15 text-destructive border-destructive/30" variant="outline">
+      <Badge className="shrink-0 bg-destructive/15 text-destructive border-destructive/30 whitespace-nowrap" variant="outline">
         <AlertTriangle className="h-3 w-3 mr-1" /> ATRASADO
       </Badge>
     );
   }
   if (health === "vence-breve") {
     return (
-      <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">
+      <Badge className="shrink-0 bg-amber-500/15 text-amber-600 border-amber-500/30 whitespace-nowrap" variant="outline">
         <Clock className="h-3 w-3 mr-1" /> VENCE EM BREVE
       </Badge>
     );
   }
   return (
-    <Badge className="bg-success/10 text-success border-success/30" variant="outline">
+    <Badge className="shrink-0 bg-success/10 text-success border-success/30 whitespace-nowrap" variant="outline">
       <CheckCircle2 className="h-3 w-3 mr-1" /> EM DIA
     </Badge>
   );
