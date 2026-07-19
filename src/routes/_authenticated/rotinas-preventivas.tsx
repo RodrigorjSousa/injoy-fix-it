@@ -216,13 +216,13 @@ function RotinasPreventivasPage() {
   const marcados = useMemo(() => Object.values(checks).filter(Boolean).length, [checks]);
   const podeConfirmar = tecnico.trim().length > 0 && marcados === totalChecks;
 
-  const TECNICO_PADRAO = "Rodrigo Sousa - CFT 09413001707";
+  const nomeUsuario = me?.funcionario?.nome ?? me?.email?.split("@")[0] ?? "";
 
   function abrir(item: Item) {
     setSelecionado(item);
     setChecks({});
     setObs("");
-    setTecnico(TECNICO_PADRAO);
+    setTecnico(nomeUsuario);
   }
 
   function confirmar() {
@@ -421,7 +421,7 @@ function RotinasPreventivasPage() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="h-3 w-3 mr-1" /> Revisar
+                        <Sparkles className="h-3 w-3 mr-1" /> Atrasado
                       </>
                     )}
                   </Badge>
@@ -434,7 +434,7 @@ function RotinasPreventivasPage() {
                     onClick={() => abrir(it)}
                   >
                     <ClipboardCheck className="h-4 w-4 mr-2" />
-                    Checklist & Registrar
+                    Abrir Checklist & Registrar
                   </Button>
                   {isAdminOrGestor && (
                     <Button
