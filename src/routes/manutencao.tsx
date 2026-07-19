@@ -800,7 +800,7 @@ function TaskEditor({
 
 // helper: reset form when target task changes
 function useMemoResetTask(task: PreventiveTask | null, fn: () => void) {
-  useMemo(() => {
+  useEffect(() => {
     fn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
