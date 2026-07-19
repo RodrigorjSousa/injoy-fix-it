@@ -262,57 +262,13 @@ function PainelPreventiva({
 
   const filtered = locationsWithStatus.filter((l) => filter === "todos" || l.health === filter);
 
-  // Desktop-only: user-adjustable columns + zoom (persisted)
-  const [cols, setCols] = useState<number>(() => {
-    if (typeof window === "undefined") return 2;
-    const v = Number(window.localStorage.getItem("pv-cols"));
-    return v >= 1 && v <= 4 ? v : 2;
-  });
-  const [zoom, setZoom] = useState<number>(() => {
-    if (typeof window === "undefined") return 100;
-    const v = Number(window.localStorage.getItem("pv-zoom"));
-    return v >= 70 && v <= 160 ? v : 100;
-  });
-  useEffect(() => {
-    try { window.localStorage.setItem("pv-cols", String(cols)); } catch {}
-  }, [cols]);
-  useEffect(() => {
-    try { window.localStorage.setItem("pv-zoom", String(zoom)); } catch {}
-  }, [zoom]);
-
   if (loading) {
     return <Card className="p-8 text-center text-sm text-muted-foreground">Carregando…</Card>;
   }
 
   return (
-    <div className="w-full space-y-5" style={{ zoom: `${zoom}%` } as React.CSSProperties}>
-      {/* Controles desktop: colunas + zoom */}
-      <div className="hidden lg:flex items-center justify-end gap-4 flex-wrap">
-        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Colunas</span>
-          {[1, 2, 3, 4].map((n) => (
-            <button
-              key={n}
-              onClick={() => setCols(n)}
-              className={cn(
-                "h-7 w-7 rounded-md text-xs font-semibold transition",
-                cols === n ? "bg-primary text-primary-foreground" : "hover:bg-muted"
-              )}
-            >
-              {n}
-            </button>
-          ))}
-        </div>
-        <div className="flex items-center gap-2 rounded-lg border bg-card px-3 py-1.5">
-          <span className="text-xs font-medium text-muted-foreground">Zoom</span>
-          <button onClick={() => setZoom((z) => Math.max(70, z - 10))} className="h-7 w-7 rounded-md text-sm font-bold hover:bg-muted">−</button>
-          <span className="text-xs font-semibold tabular-nums w-10 text-center">{zoom}%</span>
-          <button onClick={() => setZoom((z) => Math.min(160, z + 10))} className="h-7 w-7 rounded-md text-sm font-bold hover:bg-muted">+</button>
-          <button onClick={() => setZoom(100)} className="ml-1 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2">reset</button>
-        </div>
-      </div>
-
-      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
+    <div className="space-y-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <StatCard
           label="Total"
           value={totals.total}
@@ -354,10 +310,8 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div
-        className="w-full grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8 lg:[grid-template-columns:repeat(var(--pv-cols),minmax(0,1fr))]"
-        style={{ ["--pv-cols" as string]: cols } as React.CSSProperties}
-      >
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+
 
         {filtered.map((loc) => {
           const lastLog = loc.status
