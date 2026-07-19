@@ -175,20 +175,20 @@ function ManutencaoPage() {
 
   return (
     <AppShell>
-      <div className="space-y-6">
-        <header className="flex items-center gap-3">
-          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center">
+      <div className="w-full flex-1 p-4 md:p-6 flex flex-col gap-6 items-start justify-start">
+        <header className="flex items-center gap-3 w-full">
+          <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary grid place-items-center shrink-0">
             <Wrench className="h-5 w-5" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-2xl font-bold tracking-tight">Manutenção Preventiva</h1>
-            <p className="text-sm text-muted-foreground">
+          <div className="flex-1 min-w-0">
+            <h1 className="text-2xl font-bold tracking-tight truncate">Manutenção Preventiva</h1>
+            <p className="text-sm text-muted-foreground truncate">
               Agendamento recorrente por local — {unidade}
             </p>
           </div>
         </header>
 
-        <Tabs value={tab} onValueChange={setTab}>
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
           <TabsList>
             <TabsTrigger value="painel">
               <Cog className="h-4 w-4 mr-1.5" /> Painel
@@ -268,8 +268,8 @@ function PainelPreventiva({
   }
 
   return (
-    <div className="space-y-5">
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div className="w-full space-y-5">
+      <div className="w-full grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           label="Total"
           value={totals.total}
@@ -311,7 +311,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -322,26 +322,30 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "p-4 space-y-3 border-2 transition",
+                "p-4 space-y-3 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
               )}
             >
-              <div className="flex items-start gap-3">
-                <div className={cn(
-                  "h-10 w-10 rounded-xl grid place-items-center shrink-0",
-                  loc.health === "atrasado" && "bg-destructive/10 text-destructive",
-                  loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
-                  loc.health === "em-dia" && "bg-success/10 text-success",
-                )}>
-                  {loc.category === "Quarto" ? <MapPin className="h-5 w-5" /> : <Cog className="h-5 w-5" />}
+              <div className="flex justify-between items-start gap-3 w-full">
+                <div className="flex items-start gap-3 min-w-0 flex-1">
+                  <div className={cn(
+                    "h-10 w-10 rounded-xl grid place-items-center shrink-0",
+                    loc.health === "atrasado" && "bg-destructive/10 text-destructive",
+                    loc.health === "vence-breve" && "bg-amber-500/10 text-amber-600",
+                    loc.health === "em-dia" && "bg-success/10 text-success",
+                  )}>
+                    {loc.category === "Quarto" ? <MapPin className="h-5 w-5" /> : <Cog className="h-5 w-5" />}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs text-muted-foreground truncate">{loc.category}</div>
+                    <div className="font-semibold break-words">{loc.name}</div>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-xs text-muted-foreground">{loc.category}</div>
-                  <div className="font-semibold truncate">{loc.name}</div>
+                <div className="shrink-0">
+                  <StatusBadge health={loc.health} />
                 </div>
-                <StatusBadge health={loc.health} />
               </div>
 
               <div className="space-y-1 text-xs text-muted-foreground">
@@ -368,11 +372,11 @@ function PainelPreventiva({
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
-                className="w-full"
+                className="w-full text-sm mt-auto"
                 onClick={() => setSelected({ category: loc.category, name: loc.name })}
               >
-                <ClipboardCheck className="h-4 w-4 mr-2" />
-                Abrir Checklist
+                <ClipboardCheck className="h-4 w-4 mr-2 shrink-0" />
+                <span className="truncate">Abrir Checklist</span>
               </Button>
             </Card>
           );
@@ -395,20 +399,20 @@ function PainelPreventiva({
 function StatusBadge({ health }: { health: LocationHealth }) {
   if (health === "atrasado") {
     return (
-      <Badge className="bg-destructive/15 text-destructive border-destructive/30" variant="outline">
+      <Badge className="shrink-0 bg-destructive/15 text-destructive border-destructive/30 whitespace-nowrap" variant="outline">
         <AlertTriangle className="h-3 w-3 mr-1" /> ATRASADO
       </Badge>
     );
   }
   if (health === "vence-breve") {
     return (
-      <Badge className="bg-amber-500/15 text-amber-600 border-amber-500/30" variant="outline">
+      <Badge className="shrink-0 bg-amber-500/15 text-amber-600 border-amber-500/30 whitespace-nowrap" variant="outline">
         <Clock className="h-3 w-3 mr-1" /> VENCE EM BREVE
       </Badge>
     );
   }
   return (
-    <Badge className="bg-success/10 text-success border-success/30" variant="outline">
+    <Badge className="shrink-0 bg-success/10 text-success border-success/30 whitespace-nowrap" variant="outline">
       <CheckCircle2 className="h-3 w-3 mr-1" /> EM DIA
     </Badge>
   );
