@@ -33,6 +33,30 @@ import {
   type Midia,
   type Unidade,
 } from "@/lib/store";
+import { useQuery } from "@tanstack/react-query";
+
+// Mapa fixo de técnicos por categoria — garante que a lista sempre apareça
+// para qualquer perfil (recepção, camareiras, manutenção, gestão),
+// independentemente das regras de RLS.
+const TECNICOS_POR_CATEGORIA: Record<string, string[]> = {
+  "Elétrica": ["Cristiano", "Rodrigo"],
+  "Ar condicionado": ["Cristiano", "Rodrigo"],
+  "Automação": ["Cristiano", "Rodrigo"],
+  "Hidráulica": ["Cristiano", "Walter"],
+  "Pintura": ["Cristiano", "Walter"],
+  "Marcenaria": ["Cristiano", "Walter"],
+  "Alvenaria": ["Cristiano", "Walter"],
+};
+const TECNICOS_FALLBACK = ["Cristiano", "Rodrigo", "Walter"];
+
+function nomesTecnicosDaCategoria(categoria: string | null): string[] {
+  if (!categoria) return [];
+  const key = Object.keys(TECNICOS_POR_CATEGORIA).find((k) => categoria.includes(k));
+  return key ? TECNICOS_POR_CATEGORIA[key] : TECNICOS_FALLBACK;
+}
+
+type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
+
 
 
 export const Route = createFileRoute("/_authenticated/")({
@@ -85,7 +109,7 @@ function NovoChamado() {
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(categoriaFromUrl ?? null);
-  const [tecnicoId, setTecnicoId] = useState<string | null>(null);
+  
   const [descricao, setDescricao] = useState("");
   const [midias, setMidias] = useState<Midia[]>([]);
   const [uploading, setUploading] = useState(false);
@@ -103,23 +127,39 @@ function NovoChamado() {
   const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
-  const tecnicosDaCategoria = useMemo(() => {
-    if (!categoria) return [];
-    const daCategoria = funcionarios.filter((f) => f.categorias.includes(categoria));
-    // Fallback: se nenhum técnico está vinculado a essa categoria,
-    // exibe todos os funcionários para que o gestor/recepção
-    // consiga sempre direcionar o chamado.
-    return daCategoria.length > 0 ? daCategoria : funcionarios;
-  }, [categoria, funcionarios]);
 
-  // Reseta a seleção sempre que a categoria muda.
-  // Não auto-seleciona: a escolha do técnico é SEMPRE obrigatória.
+
+
+  // Busca todos os técnicos via RPC segura (mostra id/nome/categorias para
+  // qualquer usuário autenticado). Usada para resolver o nome escolhido
+  // no dropdown para o UUID gravado em `responsavel_id`.
+  const { data: todosTecnicos = [] } = useQuery({
+    queryKey: ["list-tecnicos"],
+    queryFn: async (): Promise<TecnicoRPC[]> => {
+      const { data, error } = await supabase.rpc("list_tecnicos" as never);
+      if (error) throw error;
+      return (data ?? []) as TecnicoRPC[];
+    },
+  });
+
+  const nomesDisponiveis = useMemo(() => nomesTecnicosDaCategoria(categoria), [categoria]);
+  const [tecnicoNome, setTecnicoNome] = useState<string | null>(null);
+
+  // Reseta a seleção ao trocar de categoria — escolha é sempre obrigatória.
   useEffect(() => {
-    setTecnicoId(null);
+    setTecnicoNome(null);
+    
   }, [categoria]);
 
-  const responsavel = tecnicosDaCategoria.find((f) => f.id === tecnicoId);
-  const precisaEscolherTecnico = !!categoria && !tecnicoId;
+  const responsavel = useMemo(() => {
+    if (!tecnicoNome) return null;
+    const norm = (s: string) => s.trim().toLowerCase();
+    return (
+      todosTecnicos.find((t) => norm(t.nome) === norm(tecnicoNome)) ||
+      funcionarios.find((f) => norm(f.nome) === norm(tecnicoNome)) ||
+      null
+    );
+  }, [tecnicoNome, todosTecnicos, funcionarios]);
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
@@ -128,10 +168,11 @@ function NovoChamado() {
     !!unidade &&
     quartoOk &&
     !!categoria &&
-    !!responsavel &&
+    !!tecnicoNome &&
     descricao.trim().length > 3 &&
     !criar.isPending &&
     !uploading;
+
 
 
   const submit = () => {
@@ -151,12 +192,11 @@ function NovoChamado() {
       {
         onSuccess: () => {
           toast.success("Chamado aberto com sucesso", {
-            description: responsavel
-              ? `Designado para ${responsavel.nome}`
-              : "Sem responsável designado",
+            description: `Designado para ${tecnicoNome}`,
           });
           navigate({ to: "/painel" });
         },
+
         onError: (e) => toast.error(e.message),
       },
     );
@@ -303,44 +343,39 @@ function NovoChamado() {
         <section className="space-y-3">
           <StepLabel
             n={precisaQuarto ? 6 : 5}
-            title="Selecione o técnico responsável"
+            title="Técnico Responsável *"
           />
 
-          {tecnicosDaCategoria.length === 0 ? (
-            <Card className="p-4 bg-amber-50 border-amber-200 text-sm text-amber-800">
-              Nenhum funcionário cadastrado. Cadastre técnicos em Configurações antes de abrir um chamado.
-            </Card>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {tecnicosDaCategoria.map((t) => {
-                const active = tecnicoId === t.id;
-                return (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setTecnicoId(t.id)}
-                    className={cn(
-                      "rounded-xl border bg-card p-3 text-left transition-all",
-                      "hover:border-primary/50 hover:shadow-sm",
-                      active && "border-primary ring-2 ring-primary/30 bg-primary/5",
-                    )}
-                  >
-                    <div className="font-semibold truncate">{t.nome}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {t.categorias.length > 0 ? t.categorias.join(" · ") : "Sem categorias vinculadas"}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          {precisaEscolherTecnico && tecnicosDaCategoria.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {nomesDisponiveis.map((nome) => {
+              const active = tecnicoNome === nome;
+              return (
+                <button
+                  key={nome}
+                  type="button"
+                  onClick={() => setTecnicoNome(nome)}
+                  className={cn(
+                    "rounded-xl border bg-card p-3 text-left transition-all",
+                    "hover:border-primary/50 hover:shadow-sm",
+                    active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                  )}
+                >
+                  <div className="font-semibold truncate">🛠️ {nome}</div>
+                  <div className="text-xs text-muted-foreground truncate">
+                    Técnico de {categoria}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+          {!tecnicoNome && (
             <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
               Selecione obrigatoriamente o técnico que deve atender este chamado.
             </p>
           )}
         </section>
       )}
+
 
 
 
