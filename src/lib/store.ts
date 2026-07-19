@@ -92,6 +92,7 @@ type FuncionarioRow = {
   email: string;
   categorias: string[] | null;
   user_id: string | null;
+  telas_permitidas: string[] | null;
 };
 type ChamadoRow = {
   id: string;
