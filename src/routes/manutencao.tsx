@@ -559,7 +559,7 @@ function ChecklistModal({
             Checklist — {location?.name}
           </DialogTitle>
           <DialogDescription>
-            {location?.category} · {unidade} · {new Date().toLocaleDateString("pt-BR")}
+            {location?.category} · {property} · {new Date().toLocaleDateString("pt-BR")}
           </DialogDescription>
         </DialogHeader>
 
