@@ -353,7 +353,10 @@ export function useAtribuirRole() {
     mutationFn: async (input: { userId: string; role: AppRole }) => {
       const { error } = await supabase
         .from("user_roles")
-        .insert({ user_id: input.userId, role: input.role });
+        .upsert(
+          { user_id: input.userId, role: input.role },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
       if (error) throw error;
     },
     onSuccess: invalidate,
