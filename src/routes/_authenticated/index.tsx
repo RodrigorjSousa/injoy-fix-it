@@ -192,12 +192,11 @@ function NovoChamado() {
       {
         onSuccess: () => {
           toast.success("Chamado aberto com sucesso", {
-            description: responsavel
-              ? `Designado para ${responsavel.nome}`
-              : "Sem responsável designado",
+            description: `Designado para ${tecnicoNome}`,
           });
           navigate({ to: "/painel" });
         },
+
         onError: (e) => toast.error(e.message),
       },
     );
