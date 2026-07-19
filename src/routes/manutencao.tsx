@@ -314,7 +314,7 @@ function PainelPreventiva({
         </Card>
       )}
 
-      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-8 gap-y-8">
         {filtered.map((loc) => {
           const lastLog = loc.status
             .map((s) => s.lastCompletedAt)
@@ -325,7 +325,7 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "w-full h-full min-w-0 p-4 space-y-3 border-2 transition flex flex-col",
+                "w-full h-full min-w-0 p-5 space-y-4 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
@@ -352,27 +352,28 @@ function PainelPreventiva({
               </div>
 
 
-              <div className="space-y-1 text-xs text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <Calendar className="h-3.5 w-3.5" />
-                  Última:{" "}
-                  <span className="text-foreground font-medium">
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 shrink-0" />
+                  <span>Última:</span>
+                  <span className="text-foreground font-medium truncate">
                     {lastLog ? lastLog.toLocaleDateString("pt-BR") : "—"}
                   </span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Wrench className="h-3.5 w-3.5" />
-                  Técnico:{" "}
-                  <span className="text-foreground font-medium">{lastTech ?? "—"}</span>
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-4 w-4 shrink-0" />
+                  <span>Técnico:</span>
+                  <span className="text-foreground font-medium truncate">{lastTech ?? "—"}</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <Clock className="h-3.5 w-3.5" />
-                  Tarefas pendentes:{" "}
+                <div className="flex items-center gap-2">
+                  <Clock className="h-4 w-4 shrink-0" />
+                  <span>Tarefas pendentes:</span>
                   <span className={cn("font-medium", loc.health === "atrasado" ? "text-destructive" : "text-foreground")}>
                     {loc.status.filter((s) => (s.daysToDue ?? 0) < 0).length}
                   </span>
                 </div>
               </div>
+
 
               <Button
                 variant={loc.health === "atrasado" ? "default" : "outline"}
