@@ -4,6 +4,8 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
+import { useServerFn } from "@tanstack/react-start";
+import { postCloudbedsCharge } from "@/lib/cloudbeds-pdv.functions";
 
 type Beverage = {
   id: string;
