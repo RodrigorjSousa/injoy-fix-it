@@ -325,7 +325,7 @@ function PainelPreventiva({
             <Card
               key={loc.name}
               className={cn(
-                "w-full h-full min-w-0 p-4 space-y-3 border-2 transition flex flex-col",
+                "w-full h-full min-w-0 p-5 space-y-4 border-2 transition flex flex-col",
                 loc.health === "atrasado" && "border-destructive/60",
                 loc.health === "vence-breve" && "border-amber-500/60",
                 loc.health === "em-dia" && "border-success/50",
