@@ -67,6 +67,11 @@ const podePainel = (me: Me) => {
   if (ind !== null) return ind && !isAdmin(me);
   return !isAdmin(me) && (!!me?.isRecepcao || !!me?.isCamareira || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira));
 };
+// Bonificação: além dos gestores/admins, liberada para a Mayara (recepção).
+const isMayara = (me: Me) =>
+  !!me?.funcionario?.nome && /(^|\s)mayara(\s|$)/i.test(me.funcionario.nome.trim());
+const podeBonificacao = (me: Me) => !isAdmin(me) && isMayara(me);
+
 
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
