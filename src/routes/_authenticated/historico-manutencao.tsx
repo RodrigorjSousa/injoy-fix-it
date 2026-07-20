@@ -120,7 +120,7 @@ function HistoricoManutencaoPage() {
     queryKey: ["preventive_logs_all"],
     queryFn: async (): Promise<PreventiveLog[]> => {
       const { data, error } = await supabase
-        .from("preventive_logs" as never)
+        .from('preventive_logs')
         .select(
           "id, property, category, location_name, task_id, technician_name, completed_at, next_due_date",
         )
@@ -339,28 +339,33 @@ function HistoricoManutencaoPage() {
                 </div>
                 <button
                   onClick={async () => {
-                    // O prompt nativo trava a tela e evita perda de estado do React
-                    const inputData = window.prompt(
-                      "Digite a data real da execução no formato AAAA-MM-DD (Ex: 2026-07-07):",
-                      "",
-                    );
+                    const inputData = window.prompt("Digite a data real (AAAA-MM-DD):", "");
+                    if (!inputData) return;
 
-                    if (!inputData) return; // Cancela se o usuário fechar
-
-                    // Monta a data blindada contra fuso horário
+                    // 1. Trava a data
                     const exactCompletedDate = `${inputData}T12:00:00.000Z`;
 
-                    // Update direto usando o log.id do escopo atual! Infalível.
-                    const { error } = await supabase
-                      .from("preventive_logs")
-                      .update({ completed_at: exactCompletedDate })
-                      .eq("id", log.id);
+                    // 2. Verifica se o ID existe no frontend ANTES de enviar
+                    if (!log.id) {
+                      alert("ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.");
+                      return;
+                    }
 
+                    // 3. Executa o Update com .select() para forçar o retorno da linha
+                    const { data, error } = await supabase
+                      .from('preventive_logs') // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
+                      .update({ completed_at: exactCompletedDate })
+                      .eq('id', log.id)
+                      .select();
+
+                    // 4. Raio-X do Banco de Dados
                     if (error) {
-                      alert("Erro do Banco: " + error.message);
+                      alert("ERRO DO BANCO: " + error.message);
+                    } else if (!data || data.length === 0) {
+                      alert("FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" + log.id + "] não foi encontrado na tabela 'preventive_logs'.");
                     } else {
-                      alert("Data cravada com sucesso!");
-                      window.location.reload(); // Atualiza a tela na marra
+                      alert("SUCESSO ABSOLUTO! O banco gravou a data: " + data[0].completed_at);
+                      window.location.reload();
                     }
                   }}
                   className="ml-auto px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded shadow-md hover:bg-teal-700 transition-colors"
