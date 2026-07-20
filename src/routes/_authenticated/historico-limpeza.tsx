@@ -23,6 +23,8 @@ type HistRow = {
   ended_at: string | null;
   photo_url: string | null;
   comment: string | null;
+  media_url: string | null;
+  media_type: string | null;
   created_at: string;
 };
 
