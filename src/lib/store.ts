@@ -29,22 +29,15 @@ export const CATEGORIAS: Categoria[] = [
   "Marcenaria",
 ];
 
-export type TelaPermitida =
-  | "servicos"
-  | "manutencao"
-  | "recepcao"
-  | "camareiras"
-  | "preventiva"
-  | "painel";
+// Chave = slug de rota em src/routes/_authenticated/*.tsx. Lista derivada
+// automaticamente do catálogo — novas telas aparecem sem alterar código.
+import { TELAS_CATALOG } from "@/lib/telas-catalog";
 
-export const TELAS_PERMITIDAS: { key: TelaPermitida; label: string }[] = [
-  { key: "servicos", label: "Serviços" },
-  { key: "manutencao", label: "Manutenção" },
-  { key: "recepcao", label: "Recepção" },
-  { key: "camareiras", label: "Camareiras" },
-  { key: "preventiva", label: "Preventiva AC" },
-  { key: "painel", label: "Painel" },
-];
+export type TelaPermitida = string;
+
+export const TELAS_PERMITIDAS: { key: string; label: string }[] = TELAS_CATALOG.map(
+  (t) => ({ key: t.key, label: t.label }),
+);
 
 export interface Funcionario {
   id: string;

@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { useUnidade } from "@/lib/unidade-context";
+import { TELA_BY_KEY } from "@/lib/telas-catalog";
 import type { Unidade } from "@/lib/store";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 
@@ -111,7 +112,20 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const queryClient = useQueryClient();
   const { data: me } = useMe();
 
-  const nav = ALL_NAV.filter((n) => !n.show || n.show(me));
+  // Se o funcionário tem uma lista personalizada de telas em EQUIPE,
+  // ela substitui a navegação de topo (o grupo ADMINISTRADOR continua só para admins).
+  const listaCustom = me?.funcionario?.telasPermitidas ?? null;
+  const nav: NavItem[] = (() => {
+    if (listaCustom && !isAdmin(me)) {
+      const custom: NavItem[] = listaCustom
+        .map((k) => TELA_BY_KEY[k])
+        .filter((t): t is NonNullable<typeof t> => !!t)
+        .map((t) => ({ to: t.path, label: t.label, icon: t.icon }));
+      const admin = ALL_NAV.find((n) => n.label === "ADMINISTRADOR" && (!n.show || n.show(me)));
+      return admin ? [...custom, admin] : custom;
+    }
+    return ALL_NAV.filter((n) => !n.show || n.show(me));
+  })();
 
   const isActive = (to: string, exact?: boolean) =>
     exact ? pathname === to : pathname === to || pathname.startsWith(to + "/");
