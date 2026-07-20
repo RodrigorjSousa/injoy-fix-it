@@ -409,10 +409,25 @@ function HistoricoManutencaoPage() {
                 setSaving(true);
                 try {
                   const exactDateString = dateInputToIso(editDate);
+
+                  // Busca a frequência da tarefa para recalcular a próxima data
+                  const { data: taskData } = await supabase
+                    .from("preventive_tasks" as never)
+                    .select("frequency_days")
+                    .eq("id", editLog.task_id)
+                    .single();
+
+                  const nextDue = new Date(exactDateString);
+                  const freq = (taskData as { frequency_days?: number } | null)?.frequency_days;
+                  if (freq) {
+                    nextDue.setDate(nextDue.getDate() + freq);
+                  }
+
                   const { data, error } = await supabase
                     .from("preventive_logs" as never)
                     .update({
                       completed_at: exactDateString,
+                      next_due_date: nextDue.toISOString().split("T")[0],
                     } as never)
                     .eq("id", editLog.id)
                     .select("id, completed_at, next_due_date");
