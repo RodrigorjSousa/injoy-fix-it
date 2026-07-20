@@ -1,9 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin } from "lucide-react";
+import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { GerenciarChecklistsModal } from "@/components/manutencao/gerenciar-checklists-modal";
 import type { Unidade } from "@/lib/store";
 import {
   Select,
@@ -59,6 +61,7 @@ function HistoricoManutencaoPage() {
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
+  const [gerenciarOpen, setGerenciarOpen] = useState(false);
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
@@ -174,8 +177,18 @@ function HistoricoManutencaoPage() {
           <h1 className="text-lg font-bold tracking-tight">Histórico de Produção de Manutenção</h1>
           <p className="text-xs text-teal-200">Preventivas executadas e pendências</p>
         </div>
-        <Wrench className="h-6 w-6 opacity-70" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setGerenciarOpen(true)}
+          className="bg-white/10 text-white border-white/30 hover:bg-white hover:text-teal-800"
+        >
+          <ListChecks className="h-4 w-4 mr-1.5" />
+          Editar Checklists
+        </Button>
       </div>
+
+      <GerenciarChecklistsModal open={gerenciarOpen} onOpenChange={setGerenciarOpen} />
 
       <div className="p-4 space-y-4">
         {/* Filtros */}

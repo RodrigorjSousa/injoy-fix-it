@@ -969,8 +969,10 @@ export type Database = {
           active: boolean
           category: string
           created_at: string
+          discipline: string | null
           frequency_days: number
           id: string
+          property: string | null
           task_name: string
           updated_at: string
         }
@@ -978,8 +980,10 @@ export type Database = {
           active?: boolean
           category: string
           created_at?: string
+          discipline?: string | null
           frequency_days: number
           id?: string
+          property?: string | null
           task_name: string
           updated_at?: string
         }
@@ -987,8 +991,10 @@ export type Database = {
           active?: boolean
           category?: string
           created_at?: string
+          discipline?: string | null
           frequency_days?: number
           id?: string
+          property?: string | null
           task_name?: string
           updated_at?: string
         }
