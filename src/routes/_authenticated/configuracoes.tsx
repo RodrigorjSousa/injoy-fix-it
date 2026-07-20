@@ -392,8 +392,6 @@ function Configuracoes() {
 
       <SenhaResetTurno />
 
-      <PeriodItemsManager />
-
       <VistoriaChecklistManager />
 
       {me?.isAdmin && <GestoresAdmin />}
