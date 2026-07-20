@@ -45,7 +45,7 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     // Busca reservas hospedadas no Cloudbeds. Algumas contas retornam o status como
     // `checked_in`, outras como `in_house`; por isso consultamos ambos e com os dois
     // endpoints que expõem campos diferentes de quarto.
-    const reservationsById = new Map<string, CloudbedsReservation>();
+    const reservationsById = new Map<string, ReturnType<typeof getReservationsFromPayload>[number]>();
     const endpoints = ["/getReservations", "/getReservationsWithRateDetails"];
     const statuses = ["checked_in", "in_house"];
 
