@@ -422,6 +422,8 @@ function BoasVindas() {
 
       <AuditoriaFuncionarioCard unidade={unidade} />
 
+      {mostrarResumoBonificacao && <BonificacaoResumoCard unidade={unidade} />}
+
       {visaoCompleta && <ChegadasHojeCards unidade={unidade} />}
 
 
