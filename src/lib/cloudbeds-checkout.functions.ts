@@ -138,6 +138,9 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     const endpoints = ["/getReservations", "/getReservationsWithRateDetails"];
     const statuses = ["checked_in", "in_house"];
 
+    let successfulQueries = 0;
+    let lastCloudbedsError = "";
+
     for (const endpoint of endpoints) {
       for (const status of statuses) {
         const qs = new URLSearchParams({
@@ -149,15 +152,24 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
         const listRes = await cloudbedsFetch(property, `${endpoint}?${qs.toString()}`);
         if (!listRes.ok) {
           const txt = await listRes.text().catch(() => "");
-          throw new Error(`Falha ao consultar reservas: ${listRes.status} ${txt}`);
+          lastCloudbedsError = `${endpoint} ${status}: ${listRes.status} ${txt}`;
+          continue;
         }
         const listJson = (await listRes.json()) as CloudbedsReservationResponse;
-        if (listJson.success === false) throw new Error("Cloudbeds retornou erro ao listar reservas");
+        if (listJson.success === false) {
+          lastCloudbedsError = `${endpoint} ${status}: Cloudbeds retornou erro ao listar reservas`;
+          continue;
+        }
+        successfulQueries += 1;
         for (const reservation of getReservationsFromPayload(listJson)) {
-          const key = String(reservation.reservationID ?? crypto.randomUUID());
+          const key = String(reservation.reservationID ?? `${endpoint}:${status}:${reservationsById.size}`);
           reservationsById.set(key, reservation);
         }
       }
+    }
+
+    if (successfulQueries === 0) {
+      throw new Error(`Falha ao consultar reservas ativas no Cloudbeds: ${lastCloudbedsError}`);
     }
 
     const match = [...reservationsById.values()].find((reservation) =>
