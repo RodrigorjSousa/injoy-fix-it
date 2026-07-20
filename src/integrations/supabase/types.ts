@@ -1373,6 +1373,8 @@ export type Database = {
           created_at: string
           ended_at: string | null
           id: string
+          media_type: string | null
+          media_url: string | null
           photo_url: string | null
           property: string
           room_number: string
@@ -1386,6 +1388,8 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           photo_url?: string | null
           property: string
           room_number: string
@@ -1399,6 +1403,8 @@ export type Database = {
           created_at?: string
           ended_at?: string | null
           id?: string
+          media_type?: string | null
+          media_url?: string | null
           photo_url?: string | null
           property?: string
           room_number?: string

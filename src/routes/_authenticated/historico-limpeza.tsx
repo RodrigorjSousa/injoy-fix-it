@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2 } from "lucide-react";
+import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2, MessageSquare, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -23,6 +23,8 @@ type HistRow = {
   ended_at: string | null;
   photo_url: string | null;
   comment: string | null;
+  media_url: string | null;
+  media_type: string | null;
   created_at: string;
 };
 
@@ -89,6 +91,36 @@ function HistoricoLimpezaPage() {
   const [camareira, setCamareira] = useState<string>("");
   const [unidade, setUnidade] = useState<Unidade>("Todas");
   const [fotoAberta, setFotoAberta] = useState<string | null>(null);
+  const [midiaSignedUrls, setMidiaSignedUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = rows.filter((r) => r.media_url && !midiaSignedUrls[r.media_url]);
+      if (pending.length === 0) return;
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        pending.map(async (r) => {
+          const path = r.media_url as string;
+          // Se já é URL absoluta, usa direto
+          if (path.startsWith("http")) {
+            updates[path] = path;
+            return;
+          }
+          const { data } = await supabase.storage
+            .from("housekeeping-media")
+            .createSignedUrl(path, 60 * 60);
+          if (data?.signedUrl) updates[path] = data.signedUrl;
+        }),
+      );
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMidiaSignedUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [rows, midiaSignedUrls]);
 
   const buildQuery = useCallback(
     (from: number, to: number) => {
@@ -395,11 +427,56 @@ function HistoricoLimpezaPage() {
                         Duração: {duracao(r.started_at, r.ended_at)}
                       </span>
                     </div>
-                    {r.comment ? (
-                      <p className="mt-2 text-xs text-slate-700 bg-slate-50 border border-slate-100 rounded-lg p-2">
-                        “{r.comment}”
-                      </p>
-                    ) : null}
+                    {(r.comment || r.media_url) && (
+                      <div className="mt-4 pt-4 border-t border-slate-100 flex flex-col gap-3">
+                        {r.comment && (
+                          <div className="flex gap-2.5 text-sm text-slate-700 bg-slate-50 p-3 rounded-lg border border-slate-200 w-full">
+                            <MessageSquare className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                            <p className="italic leading-relaxed">"{r.comment}"</p>
+                          </div>
+                        )}
+                        {r.media_url && (() => {
+                          const src = midiaSignedUrls[r.media_url] ?? "";
+                          const isVideo = r.media_type === "video" || /\.(mp4|webm|mov|ogg)$/i.test(r.media_url);
+                          if (!src) {
+                            return (
+                              <div className="flex items-center mt-1">
+                                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-lg bg-slate-100 border border-slate-200 grid place-items-center text-slate-400">
+                                  <Loader2 size={18} className="animate-spin" />
+                                </div>
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="flex items-center mt-1">
+                              {!isVideo ? (
+                                <a
+                                  href={src}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="relative group block cursor-pointer"
+                                >
+                                  <img
+                                    src={src}
+                                    alt="Evidência do quarto"
+                                    className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg border border-slate-200 shadow-sm"
+                                  />
+                                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                                    <ExternalLink className="w-5 h-5 text-white" />
+                                  </div>
+                                </a>
+                              ) : (
+                                <video
+                                  src={src}
+                                  controls
+                                  className="h-24 sm:h-32 w-auto object-cover rounded-lg border border-slate-200 shadow-sm"
+                                />
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                    )}
                   </div>
                 </div>
               );
