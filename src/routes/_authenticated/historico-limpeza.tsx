@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 import { InspectionImage } from "@/components/InspectionImage";
+import { PeriodItemsManager } from "@/components/configuracoes/period-items-manager";
 
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
   component: HistoricoLimpezaPage,
