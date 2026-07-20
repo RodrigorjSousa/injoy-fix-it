@@ -48,11 +48,44 @@ interface PreventiveLog {
   next_due_date: string;
 }
 
-const QUARTOS_IPANEMA = ["01","02","103","104","205","206","307","308","309","410","411","412"];
-const QUARTOS_BOTAFOGO = ["01","02","03","05","06","107","108","109","110","111","112","113","114","115","117","118","301","401","501"];
-const AREAS_COMUNS = ["Recepção","Corredores","Fachada","Jardim de Inverno","Pátio","Cozinha"];
+const QUARTOS_IPANEMA = [
+  "01",
+  "02",
+  "103",
+  "104",
+  "205",
+  "206",
+  "307",
+  "308",
+  "309",
+  "410",
+  "411",
+  "412",
+];
+const QUARTOS_BOTAFOGO = [
+  "01",
+  "02",
+  "03",
+  "05",
+  "06",
+  "107",
+  "108",
+  "109",
+  "110",
+  "111",
+  "112",
+  "113",
+  "114",
+  "115",
+  "117",
+  "118",
+  "301",
+  "401",
+  "501",
+];
+const AREAS_COMUNS = ["Recepção", "Corredores", "Fachada", "Jardim de Inverno", "Pátio", "Cozinha"];
 
-const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -135,7 +168,9 @@ function HistoricoManutencaoPage() {
         const catTasks = tasks.filter((t) => t.category === loc.category);
         for (const t of catTasks) {
           const rel = logs
-            .filter((l) => l.property === prop && l.location_name === loc.name && l.task_id === t.id)
+            .filter(
+              (l) => l.property === prop && l.location_name === loc.name && l.task_id === t.id,
+            )
             .sort((a, b) => (a.completed_at < b.completed_at ? 1 : -1));
           const last = rel[0];
           let nextDue: Date | null = null;
@@ -178,7 +213,11 @@ function HistoricoManutencaoPage() {
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 pb-12">
       <div className="bg-teal-800 text-white p-5 shadow-md sticky top-0 z-10 flex items-center gap-3">
-        <Link to="/gestao" className="p-2 bg-teal-900/60 rounded-lg active:bg-teal-900" aria-label="Voltar">
+        <Link
+          to="/gestao"
+          className="p-2 bg-teal-900/60 rounded-lg active:bg-teal-900"
+          aria-label="Voltar"
+        >
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1">
@@ -202,23 +241,33 @@ function HistoricoManutencaoPage() {
         {/* Filtros */}
         <div className="grid grid-cols-3 gap-2">
           <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
             <SelectContent>
               {MESES.map((m, i) => (
-                <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                <SelectItem key={i} value={String(i)}>
+                  {m}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
             <SelectContent>
               {anos.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade | "Todas")}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Unidade" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Unidade" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas</SelectItem>
               <SelectItem value="Botafogo">Botafogo</SelectItem>
@@ -252,7 +301,9 @@ function HistoricoManutencaoPage() {
         {/* Lista */}
         {tab === "executados" ? (
           <div className="space-y-2">
-            {logsQ.isLoading && <div className="text-center text-sm text-slate-500 py-8">Carregando...</div>}
+            {logsQ.isLoading && (
+              <div className="text-center text-sm text-slate-500 py-8">Carregando...</div>
+            )}
             {!logsQ.isLoading && executados.length === 0 && (
               <div className="text-center text-sm text-slate-500 py-8 bg-white rounded-xl border border-slate-200">
                 Nenhuma tarefa executada neste período.
@@ -273,8 +324,10 @@ function HistoricoManutencaoPage() {
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
-                    <span className="font-semibold text-slate-700">{log.technician_name || "—"}</span> em{" "}
-                    {fmtDate(log.completed_at)}
+                    <span className="font-semibold text-slate-700">
+                      {log.technician_name || "—"}
+                    </span>{" "}
+                    em {fmtDate(log.completed_at)}
                   </p>
                   {log.next_due_date && (
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -315,7 +368,6 @@ function HistoricoManutencaoPage() {
               </div>
             ))}
           </div>
-
         ) : (
           <div className="space-y-2">
             {(tasksQ.isLoading || logsQ.isLoading) && (
@@ -350,14 +402,30 @@ function HistoricoManutencaoPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900 truncate">
-                      <span className="text-teal-700">{p.property}</span> · {p.location} — {p.task.task_name}
+                      <span className="text-teal-700">{p.property}</span> · {p.location} —{" "}
+                      {p.task.task_name}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                      {p.category === "Quarto" ? <MapPin className="h-3 w-3" /> : <Wrench className="h-3 w-3" />}
+                      {p.category === "Quarto" ? (
+                        <MapPin className="h-3 w-3" />
+                      ) : (
+                        <Wrench className="h-3 w-3" />
+                      )}
                       Frequência a cada {p.task.frequency_days} dias
-                      {p.lastTechnician && <> · último: <span className="font-semibold text-slate-700">{p.lastTechnician}</span></>}
+                      {p.lastTechnician && (
+                        <>
+                          {" "}
+                          · último:{" "}
+                          <span className="font-semibold text-slate-700">{p.lastTechnician}</span>
+                        </>
+                      )}
                     </p>
-                    <p className={cn("text-[11px] mt-0.5 font-semibold", overdue ? "text-red-600" : "text-amber-600")}>
+                    <p
+                      className={cn(
+                        "text-[11px] mt-0.5 font-semibold",
+                        overdue ? "text-red-600" : "text-amber-600",
+                      )}
+                    >
                       {p.nextDue
                         ? overdue
                           ? `Atrasada há ${Math.abs(p.daysToDue ?? 0)} dia(s) · vencia em ${p.nextDue.toLocaleDateString("pt-BR")}`
@@ -371,11 +439,9 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
-
     </div>
   );
 }
-
 
 function taskNameFor(taskId: string, tasks: PreventiveTask[]) {
   return tasks.find((t) => t.id === taskId)?.task_name;
