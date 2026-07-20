@@ -61,6 +61,7 @@ function HistoricoManutencaoPage() {
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
+  const [gerenciarOpen, setGerenciarOpen] = useState(false);
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
