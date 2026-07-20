@@ -177,8 +177,18 @@ function HistoricoManutencaoPage() {
           <h1 className="text-lg font-bold tracking-tight">Histórico de Produção de Manutenção</h1>
           <p className="text-xs text-teal-200">Preventivas executadas e pendências</p>
         </div>
-        <Wrench className="h-6 w-6 opacity-70" />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setGerenciarOpen(true)}
+          className="bg-white/10 text-white border-white/30 hover:bg-white hover:text-teal-800"
+        >
+          <ListChecks className="h-4 w-4 mr-1.5" />
+          Editar Checklists
+        </Button>
       </div>
+
+      <GerenciarChecklistsModal open={gerenciarOpen} onOpenChange={setGerenciarOpen} />
 
       <div className="p-4 space-y-4">
         {/* Filtros */}
