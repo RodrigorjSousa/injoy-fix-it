@@ -46,6 +46,11 @@ interface PreventiveLog {
   technician_name: string;
   completed_at: string;
   next_due_date: string;
+  preventive_tasks?: {
+    task_name: string;
+    category: string;
+    frequency_days: number;
+  } | null;
 }
 
 const QUARTOS_IPANEMA = [
@@ -120,13 +125,27 @@ function HistoricoManutencaoPage() {
     queryKey: ["preventive_logs_all"],
     queryFn: async (): Promise<PreventiveLog[]> => {
       const { data, error } = await supabase
-        .from('preventive_logs')
+        .from("preventive_logs")
         .select(
-          "id, property, category, location_name, task_id, technician_name, completed_at, next_due_date",
+          `
+            id,
+            property,
+            category,
+            location_name,
+            technician_name,
+            completed_at,
+            next_due_date,
+            task_id,
+            preventive_tasks (
+              task_name,
+              category,
+              frequency_days
+            )
+          `,
         )
         .order("completed_at", { ascending: false });
       if (error) throw error;
-      return (data as PreventiveLog[]) ?? [];
+      return (data ?? []) as PreventiveLog[];
     },
   });
 
@@ -322,7 +341,9 @@ function HistoricoManutencaoPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
                     <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
-                    {taskNameFor(log.task_id, tasks) ?? log.category}
+                    {log.preventive_tasks?.task_name ??
+                      taskNameFor(log.task_id, tasks) ??
+                      log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
@@ -347,22 +368,28 @@ function HistoricoManutencaoPage() {
 
                     // 2. Verifica se o ID existe no frontend ANTES de enviar
                     if (!log.id) {
-                      alert("ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.");
+                      alert(
+                        "ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.",
+                      );
                       return;
                     }
 
                     // 3. Executa o Update com .select() para forçar o retorno da linha
                     const { data, error } = await supabase
-                      .from('preventive_logs') // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
+                      .from("preventive_logs") // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
                       .update({ completed_at: exactCompletedDate })
-                      .eq('id', log.id)
+                      .eq("id", log.id)
                       .select();
 
                     // 4. Raio-X do Banco de Dados
                     if (error) {
                       alert("ERRO DO BANCO: " + error.message);
                     } else if (!data || data.length === 0) {
-                      alert("FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" + log.id + "] não foi encontrado na tabela 'preventive_logs'.");
+                      alert(
+                        "FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" +
+                          log.id +
+                          "] não foi encontrado na tabela 'preventive_logs'.",
+                      );
                     } else {
                       alert("SUCESSO ABSOLUTO! O banco gravou a data: " + data[0].completed_at);
                       window.location.reload();
