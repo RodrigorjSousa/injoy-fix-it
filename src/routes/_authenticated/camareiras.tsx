@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -17,6 +17,7 @@ import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
@@ -66,6 +67,8 @@ type RoomRow = {
   is_dnd: boolean | null;
   dnd_photo_url: string | null;
   room_comment: string | null;
+  comment_media_url: string | null;
+  comment_media_type: string | null;
   updated_at: string;
 };
 
@@ -124,6 +127,11 @@ function PainelCamareiras() {
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
   const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [selectedMedia, setSelectedMedia] = useState<
+    Record<string, { file: File; kind: "foto" | "video"; preview: string } | null>
+  >({});
+  const [enviandoComentario, setEnviandoComentario] = useState<Record<string, boolean>>({});
+  const [midiaSignedUrls, setMidiaSignedUrls] = useState<Record<string, string>>({});
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
@@ -151,22 +159,124 @@ function PainelCamareiras() {
     }
   }, [doCheckout]);
 
+  const handleMediaSelect = useCallback(
+    async (q: RoomRow, kind: "foto" | "video", file: File | null) => {
+      const chave = `${q.property}-${q.room_number}`;
+      if (!file) return;
+      // Limite de 15 MB (aprox. 15s de vídeo)
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error("O vídeo é muito grande. Grave no máximo 15 segundos.");
+        return;
+      }
+      try {
+        const finalFile = kind === "foto" ? await compressImage(file) : file;
+        setSelectedMedia((prev) => {
+          const old = prev[chave];
+          if (old) URL.revokeObjectURL(old.preview);
+          return {
+            ...prev,
+            [chave]: { file: finalFile, kind, preview: URL.createObjectURL(finalFile) },
+          };
+        });
+      } catch (err) {
+        console.error("[camareiras] falha ao processar mídia", err);
+        toast.error("Não foi possível processar o arquivo.");
+      }
+    },
+    [],
+  );
 
-
-  const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
-    if ((q.room_comment ?? "") === texto) return;
-    const { error } = await supabase
-      .from("room_housekeeping")
-      // biome-ignore lint/suspicious/noExplicitAny: coluna nova ainda não está no types.ts gerado
-      .update({ room_comment: texto, updated_at: new Date().toISOString() } as any)
-      .eq("property", q.property)
-      .eq("room_number", q.room_number);
-    if (error) {
-      toast.error("Falha ao salvar comentário");
-      return;
-    }
-    toast.success("Comentário salvo");
+  const removeMedia = useCallback((q: RoomRow) => {
+    const chave = `${q.property}-${q.room_number}`;
+    setSelectedMedia((prev) => {
+      const old = prev[chave];
+      if (old) URL.revokeObjectURL(old.preview);
+      return { ...prev, [chave]: null };
+    });
   }, []);
+
+  const enviarComentario = useCallback(
+    async (q: RoomRow) => {
+      const chave = `${q.property}-${q.room_number}`;
+      const texto = (comentarios[chave] ?? q.room_comment ?? "").trim();
+      const midia = selectedMedia[chave] ?? null;
+      if (!texto && !midia) return;
+      setEnviandoComentario((p) => ({ ...p, [chave]: true }));
+      try {
+        let media_url: string | null = q.comment_media_url;
+        let media_type: string | null = q.comment_media_type;
+        if (midia) {
+          const ext =
+            midia.file.name.split(".").pop()?.toLowerCase() ||
+            (midia.kind === "foto" ? "jpg" : "mp4");
+          const path = `${q.property}/${q.room_number}/${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from("housekeeping-media")
+            .upload(path, midia.file, {
+              contentType: midia.file.type,
+              upsert: false,
+            });
+          if (upErr) throw upErr;
+          media_url = path;
+          media_type = midia.kind;
+        }
+        const { error } = await supabase
+          .from("room_housekeeping")
+          // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+          .update({
+            room_comment: texto,
+            comment_media_url: media_url,
+            comment_media_type: media_type,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("property", q.property)
+          .eq("room_number", q.room_number);
+        if (error) throw error;
+        toast.success("Comentário salvo");
+        setSelectedMedia((prev) => {
+          const old = prev[chave];
+          if (old) URL.revokeObjectURL(old.preview);
+          return { ...prev, [chave]: null };
+        });
+      } catch (err) {
+        console.error("[camareiras] falha ao enviar comentário", err);
+        toast.error(err instanceof Error ? err.message : "Falha ao salvar comentário");
+      } finally {
+        setEnviandoComentario((p) => ({ ...p, [chave]: false }));
+      }
+    },
+    [comentarios, selectedMedia],
+  );
+
+  // Gera signed URL para mídias salvas (bucket privado)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = quartos.filter(
+        (q) => q.comment_media_url && !midiaSignedUrls[q.comment_media_url],
+      );
+      if (pending.length === 0) return;
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        pending.map(async (q) => {
+          const path = q.comment_media_url as string;
+          const { data } = await supabase.storage
+            .from("housekeeping-media")
+            .createSignedUrl(path, 60 * 60);
+          if (data?.signedUrl) updates[path] = data.signedUrl;
+        }),
+      );
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMidiaSignedUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [quartos, midiaSignedUrls]);
+
 
   const carregarCamareiras = useCallback(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: RPC ainda não presente no types.ts gerado
@@ -759,19 +869,157 @@ function PainelCamareiras() {
                   </button>
                 )}
 
-              <textarea
-                value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
-                onChange={(e) =>
-                  setComentarios((prev) => ({
-                    ...prev,
-                    [`${q.property}-${q.room_number}`]: e.target.value,
-                  }))
-                }
-                onBlur={(e) => salvarComentario(q, e.target.value)}
-                placeholder="Adicionar comentário ou observação do quarto..."
-                rows={2}
-                className="w-full mt-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700"
-              />
+              {(() => {
+                const chave = `${q.property}-${q.room_number}`;
+                const media = selectedMedia[chave];
+                const enviando = !!enviandoComentario[chave];
+                const savedUrl = q.comment_media_url ? midiaSignedUrls[q.comment_media_url] : null;
+                const textoAtual = comentarios[chave] ?? q.room_comment ?? "";
+                return (
+                  <div className="flex flex-col gap-2 w-full mt-3">
+                    {/* Mídia já salva (thumbnail) */}
+                    {!media && q.comment_media_url && (
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-100">
+                        {q.comment_media_type === "video" ? (
+                          savedUrl ? (
+                            <a
+                              href={savedUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full h-full flex items-center justify-center text-slate-500"
+                              title="Abrir vídeo"
+                            >
+                              <Film className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              <Film className="w-6 h-6" />
+                            </div>
+                          )
+                        ) : savedUrl ? (
+                          <a href={savedUrl} target="_blank" rel="noreferrer">
+                            <img src={savedUrl} alt="Anexo" className="w-full h-full object-cover" />
+                          </a>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px]">
+                            ...
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Preview da mídia recém-selecionada */}
+                    {media && (
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-100">
+                        {media.kind === "foto" ? (
+                          <img src={media.preview} alt="Prévia" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-500">
+                            <Film className="w-6 h-6" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMedia(q)}
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-bl-md p-0.5"
+                          aria-label="Remover mídia"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Botões câmera / vídeo */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        id={`photo-${chave}`}
+                        disabled={enviando}
+                        onChange={(e) => {
+                          handleMediaSelect(q, "foto", e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor={`photo-${chave}`}
+                        className={cn(
+                          "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-md transition-colors",
+                          enviando && "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        <Camera className="w-4 h-4" />
+                        Tirar Foto
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        className="hidden"
+                        id={`video-${chave}`}
+                        disabled={enviando}
+                        onChange={(e) => {
+                          handleMediaSelect(q, "video", e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor={`video-${chave}`}
+                        className={cn(
+                          "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-md transition-colors",
+                          enviando && "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        <Video className="w-4 h-4" />
+                        Gravar Vídeo (15s)
+                      </label>
+                    </div>
+
+                    {/* Campo de comentário + botão enviar */}
+                    <div className="flex items-end gap-2">
+                      <textarea
+                        value={textoAtual}
+                        disabled={enviando}
+                        onChange={(e) =>
+                          setComentarios((prev) => ({
+                            ...prev,
+                            [chave]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            enviarComentario(q);
+                          }
+                        }}
+                        placeholder={
+                          enviando
+                            ? "Salvando..."
+                            : "Adicionar comentário ou observação do quarto..."
+                        }
+                        rows={2}
+                        className="flex-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700 disabled:opacity-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => enviarComentario(q)}
+                        disabled={enviando || (!textoAtual.trim() && !media)}
+                        className="shrink-0 h-10 w-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors"
+                        aria-label="Enviar comentário"
+                      >
+                        {enviando ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
             );
           })

@@ -1288,6 +1288,8 @@ export type Database = {
           assigned_task: string | null
           blink_troca: boolean
           color_code: string | null
+          comment_media_type: string | null
+          comment_media_url: string | null
           condition: string | null
           dnd_photo_url: string | null
           guest_name: string | null
@@ -1313,6 +1315,8 @@ export type Database = {
           assigned_task?: string | null
           blink_troca?: boolean
           color_code?: string | null
+          comment_media_type?: string | null
+          comment_media_url?: string | null
           condition?: string | null
           dnd_photo_url?: string | null
           guest_name?: string | null
@@ -1338,6 +1342,8 @@ export type Database = {
           assigned_task?: string | null
           blink_troca?: boolean
           color_code?: string | null
+          comment_media_type?: string | null
+          comment_media_url?: string | null
           condition?: string | null
           dnd_photo_url?: string | null
           guest_name?: string | null
