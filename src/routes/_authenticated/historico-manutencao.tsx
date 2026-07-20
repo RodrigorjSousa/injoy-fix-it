@@ -46,6 +46,11 @@ interface PreventiveLog {
   technician_name: string;
   completed_at: string;
   next_due_date: string;
+  preventive_tasks?: {
+    task_name: string;
+    category: string;
+    frequency_days: number;
+  } | null;
 }
 
 const QUARTOS_IPANEMA = [
@@ -122,11 +127,25 @@ function HistoricoManutencaoPage() {
       const { data, error } = await supabase
         .from('preventive_logs')
         .select(
-          "id, property, category, location_name, task_id, technician_name, completed_at, next_due_date",
+          `
+            id,
+            property,
+            category,
+            location_name,
+            technician_name,
+            completed_at,
+            next_due_date,
+            task_id,
+            preventive_tasks (
+              task_name,
+              category,
+              frequency_days
+            )
+          `,
         )
         .order("completed_at", { ascending: false });
       if (error) throw error;
-      return (data as PreventiveLog[]) ?? [];
+      return (data ?? []) as PreventiveLog[];
     },
   });
 
@@ -322,7 +341,7 @@ function HistoricoManutencaoPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
                     <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
-                    {taskNameFor(log.task_id, tasks) ?? log.category}
+                    {log.preventive_tasks?.task_name ?? taskNameFor(log.task_id, tasks) ?? log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
