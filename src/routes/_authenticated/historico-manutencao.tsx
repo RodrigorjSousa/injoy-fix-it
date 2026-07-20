@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -76,7 +76,6 @@ function HistoricoManutencaoPage() {
   const [selectedDate, setSelectedDate] = useState<string>("");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const queryClient = useQueryClient();
 
 
   const tasksQ = useQuery({
@@ -205,43 +204,20 @@ function HistoricoManutencaoPage() {
       // Trava o fuso horário no meio-dia UTC para não perder o dia no Brasil
       const exactCompletedDate = `${selectedDate}T12:00:00.000Z`;
 
-      console.log("Atualizando manutenção preventiva", {
-        table: "preventive_logs",
-        id: selectedLog.id,
-        completed_at: exactCompletedDate,
-      });
-
-      // Atualiza APENAS a data de conclusão; next_due_date é coluna gerada pelo banco
-      const { data, error } = await supabase
+      // Faremos apenas o update simples. Se falhar por banco de dados, o 'error' vai capturar.
+      const { error } = await supabase
         .from("preventive_logs")
         .update({ completed_at: exactCompletedDate })
-        .eq("id", selectedLog.id)
-        .select("id, completed_at");
+        .eq("id", selectedLog.id);
 
       if (error) {
-        console.error("Erro detalhado ao atualizar preventive_logs:", {
-          id: selectedLog.id,
-          completed_at: exactCompletedDate,
-          error,
-        });
-        toast.error(`Erro ao salvar: ${error.message}`);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        console.error("Update não encontrou nenhuma linha em preventive_logs:", {
-          id: selectedLog.id,
-          completed_at: exactCompletedDate,
-          selectedLog,
-        });
-        toast.error("Erro: O banco de dados não atualizou o registro.");
+        toast.error(`Erro do BD: ${error.message}`);
         return;
       }
 
       toast.success("Data atualizada com sucesso!");
-      closeEditModal();
-      await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
-      await logsQ.refetch();
+      setIsEditOpen(false);
+      window.location.reload();
     } catch (err) {
       console.error("Erro inesperado ao atualizar data de manutenção:", err);
       toast.error("Erro ao atualizar data: " + (err as Error).message);
@@ -450,6 +426,7 @@ function HistoricoManutencaoPage() {
                   }}
                 />
               </div>
+              <p className="text-xs text-gray-300">ID: {selectedLog?.id}</p>
             </div>
           )}
           <DialogFooter>
