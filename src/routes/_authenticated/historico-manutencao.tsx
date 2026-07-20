@@ -392,17 +392,11 @@ function HistoricoManutencaoPage() {
                 if (!editLog || !editDate) return;
                 setSaving(true);
                 try {
-                  const task = tasks.find((t) => t.id === editLog.task_id);
-                  const freq = task?.frequency_days ?? 0;
                   const newCompleted = new Date(`${editDate}T12:00:00`);
-                  const nextDue = freq > 0
-                    ? new Date(newCompleted.getTime() + freq * 86400000).toISOString().slice(0, 10)
-                    : editLog.next_due_date;
                   const { error } = await supabase
                     .from("preventive_logs" as never)
                     .update({
                       completed_at: newCompleted.toISOString(),
-                      next_due_date: nextDue,
                     } as never)
                     .eq("id", editLog.id);
                   if (error) throw error;
