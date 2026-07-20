@@ -295,12 +295,7 @@ function HistoricoManutencaoPage() {
                   aria-label="Editar data"
                   onClick={() => {
                     setEditLog(l);
-                    const completedAt = new Date(l.completed_at);
-                    setEditDate(
-                      `${completedAt.getFullYear()}-${String(completedAt.getMonth() + 1).padStart(2, "0")}-${String(
-                        completedAt.getDate(),
-                      ).padStart(2, "0")}`,
-                    );
+                    setEditDate(l.completed_at.slice(0, 10));
                   }}
                 >
                   <Pencil className="h-4 w-4" />
@@ -400,21 +395,44 @@ function HistoricoManutencaoPage() {
               className="bg-teal-600 hover:bg-teal-700 text-white"
               disabled={saving || !editDate || !editLog}
               onClick={async () => {
-                if (!editLog || !editDate) return;
+                if (!editDate) {
+                  toast.error("Por favor, selecione uma data.");
+                  return;
+                }
+
+                console.log("Iniciando update para o log ID:", editLog?.id);
+                if (!editLog?.id) {
+                  toast.error("Erro Crítico: ID do log não encontrado.");
+                  return;
+                }
+
                 setSaving(true);
                 try {
-                  const selectedCompletedAt = dateInputToIso(editDate);
-                  const { error } = await supabase
+                  const exactDateString = dateInputToIso(editDate);
+                  const { data, error } = await supabase
                     .from("preventive_logs" as never)
                     .update({
-                      completed_at: selectedCompletedAt,
+                      completed_at: exactDateString,
                     } as never)
-                    .eq("id", editLog.id);
-                  if (error) throw error;
-                  toast.success("Data de execução atualizada com sucesso!");
+                    .eq("id", editLog.id)
+                    .select("id, completed_at, next_due_date");
+
+                  if (error) {
+                    console.error("Erro do banco:", error);
+                    toast.error(`Erro ao salvar: ${error.message}`);
+                    return;
+                  }
+
+                  if (!data || data.length === 0) {
+                    console.error("Falha silenciosa: Nenhuma linha atualizada no banco. Verifique permissões ou ID.");
+                    toast.error("Erro: O banco de dados não atualizou o registro.");
+                    return;
+                  }
+
+                  toast.success("Data atualizada no banco com sucesso!");
                   setEditLog(null);
                   await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
-                  await queryClient.refetchQueries({ queryKey: ["preventive_logs_all"], type: "active" });
+                  await logsQ.refetch();
                 } catch (err) {
                   toast.error("Erro ao atualizar data: " + (err as Error).message);
                 } finally {
