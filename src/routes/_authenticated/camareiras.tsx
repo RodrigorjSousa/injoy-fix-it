@@ -66,6 +66,8 @@ type RoomRow = {
   is_dnd: boolean | null;
   dnd_photo_url: string | null;
   room_comment: string | null;
+  comment_media_url: string | null;
+  comment_media_type: string | null;
   updated_at: string;
 };
 
