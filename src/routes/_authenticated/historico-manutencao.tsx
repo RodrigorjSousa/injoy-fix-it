@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks, Pencil } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Wrench,
+  MapPin,
+  ListChecks,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,16 +22,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
   component: HistoricoManutencaoPage,
@@ -50,11 +48,44 @@ interface PreventiveLog {
   next_due_date: string;
 }
 
-const QUARTOS_IPANEMA = ["01","02","103","104","205","206","307","308","309","410","411","412"];
-const QUARTOS_BOTAFOGO = ["01","02","03","05","06","107","108","109","110","111","112","113","114","115","117","118","301","401","501"];
-const AREAS_COMUNS = ["Recepção","Corredores","Fachada","Jardim de Inverno","Pátio","Cozinha"];
+const QUARTOS_IPANEMA = [
+  "01",
+  "02",
+  "103",
+  "104",
+  "205",
+  "206",
+  "307",
+  "308",
+  "309",
+  "410",
+  "411",
+  "412",
+];
+const QUARTOS_BOTAFOGO = [
+  "01",
+  "02",
+  "03",
+  "05",
+  "06",
+  "107",
+  "108",
+  "109",
+  "110",
+  "111",
+  "112",
+  "113",
+  "114",
+  "115",
+  "117",
+  "118",
+  "301",
+  "401",
+  "501",
+];
+const AREAS_COMUNS = ["Recepção", "Corredores", "Fachada", "Jardim de Inverno", "Pátio", "Cozinha"];
 
-const MESES = ["Jan","Fev","Mar","Abr","Mai","Jun","Jul","Ago","Set","Out","Nov","Dez"];
+const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 function fmtDate(iso: string) {
   const d = new Date(iso);
@@ -72,11 +103,6 @@ function HistoricoManutencaoPage() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
-  const [selectedLog, setSelectedLog] = useState<PreventiveLog | null>(null);
-  const [selectedDate, setSelectedDate] = useState<string>("");
-  const [isEditOpen, setIsEditOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
-
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
@@ -142,7 +168,9 @@ function HistoricoManutencaoPage() {
         const catTasks = tasks.filter((t) => t.category === loc.category);
         for (const t of catTasks) {
           const rel = logs
-            .filter((l) => l.property === prop && l.location_name === loc.name && l.task_id === t.id)
+            .filter(
+              (l) => l.property === prop && l.location_name === loc.name && l.task_id === t.id,
+            )
             .sort((a, b) => (a.completed_at < b.completed_at ? 1 : -1));
           const last = rel[0];
           let nextDue: Date | null = null;
@@ -182,54 +210,14 @@ function HistoricoManutencaoPage() {
     return [y - 1, y, y + 1];
   }, [now]);
 
-  const closeEditModal = () => {
-    setIsEditOpen(false);
-    setSelectedLog(null);
-    setSelectedDate("");
-  };
-
-  const handleSaveDate = async () => {
-    if (!selectedDate) {
-      toast.error("Por favor, selecione uma data.");
-      return;
-    }
-
-    if (!selectedLog || !selectedLog.id) {
-      toast.error("Erro Crítico de Front-end: ID da manutenção não encontrado.");
-      return;
-    }
-
-    setSaving(true);
-    try {
-      // Trava o fuso horário no meio-dia UTC para não perder o dia no Brasil
-      const exactCompletedDate = `${selectedDate}T12:00:00.000Z`;
-
-      // Faremos apenas o update simples. Se falhar por banco de dados, o 'error' vai capturar.
-      const { error } = await supabase
-        .from("preventive_logs")
-        .update({ completed_at: exactCompletedDate })
-        .eq("id", selectedLog.id);
-
-      if (error) {
-        toast.error(`Erro do BD: ${error.message}`);
-        return;
-      }
-
-      toast.success("Data atualizada com sucesso!");
-      setIsEditOpen(false);
-      window.location.reload();
-    } catch (err) {
-      console.error("Erro inesperado ao atualizar data de manutenção:", err);
-      toast.error("Erro ao atualizar data: " + (err as Error).message);
-    } finally {
-      setSaving(false);
-    }
-  };
-
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 pb-12">
       <div className="bg-teal-800 text-white p-5 shadow-md sticky top-0 z-10 flex items-center gap-3">
-        <Link to="/gestao" className="p-2 bg-teal-900/60 rounded-lg active:bg-teal-900" aria-label="Voltar">
+        <Link
+          to="/gestao"
+          className="p-2 bg-teal-900/60 rounded-lg active:bg-teal-900"
+          aria-label="Voltar"
+        >
           <ArrowLeft size={18} />
         </Link>
         <div className="flex-1">
@@ -253,23 +241,33 @@ function HistoricoManutencaoPage() {
         {/* Filtros */}
         <div className="grid grid-cols-3 gap-2">
           <Select value={String(mes)} onValueChange={(v) => setMes(Number(v))}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Mês" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Mês" />
+            </SelectTrigger>
             <SelectContent>
               {MESES.map((m, i) => (
-                <SelectItem key={i} value={String(i)}>{m}</SelectItem>
+                <SelectItem key={i} value={String(i)}>
+                  {m}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={String(ano)} onValueChange={(v) => setAno(Number(v))}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Ano" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Ano" />
+            </SelectTrigger>
             <SelectContent>
               {anos.map((y) => (
-                <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                <SelectItem key={y} value={String(y)}>
+                  {y}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
           <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade | "Todas")}>
-            <SelectTrigger className="bg-white"><SelectValue placeholder="Unidade" /></SelectTrigger>
+            <SelectTrigger className="bg-white">
+              <SelectValue placeholder="Unidade" />
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value="Todas">Todas</SelectItem>
               <SelectItem value="Botafogo">Botafogo</SelectItem>
@@ -303,15 +301,17 @@ function HistoricoManutencaoPage() {
         {/* Lista */}
         {tab === "executados" ? (
           <div className="space-y-2">
-            {logsQ.isLoading && <div className="text-center text-sm text-slate-500 py-8">Carregando...</div>}
+            {logsQ.isLoading && (
+              <div className="text-center text-sm text-slate-500 py-8">Carregando...</div>
+            )}
             {!logsQ.isLoading && executados.length === 0 && (
               <div className="text-center text-sm text-slate-500 py-8 bg-white rounded-xl border border-slate-200">
                 Nenhuma tarefa executada neste período.
               </div>
             )}
-            {executados.map((l) => (
+            {executados.map((log) => (
               <div
-                key={l.id}
+                key={log.id}
                 className="flex items-start gap-3 bg-white p-3 rounded-xl border border-slate-200 shadow-sm"
               >
                 <div className="h-9 w-9 rounded-full bg-emerald-100 grid place-items-center shrink-0">
@@ -319,32 +319,55 @@ function HistoricoManutencaoPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
-                    <span className="text-teal-700">{l.property}</span> · {l.location_name} — {taskNameFor(l.task_id, tasks) ?? l.category}
+                    <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
+                    {taskNameFor(log.task_id, tasks) ?? log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Executado por <span className="font-semibold text-slate-700">{l.technician_name || "—"}</span> em {fmtDate(l.completed_at)}
+                    Executado por{" "}
+                    <span className="font-semibold text-slate-700">
+                      {log.technician_name || "—"}
+                    </span>{" "}
+                    em {fmtDate(log.completed_at)}
                   </p>
-                  {l.next_due_date && (
-                    <p className="text-[11px] text-slate-400 mt-0.5">Próxima: {fmtDateOnly(l.next_due_date)}</p>
+                  {log.next_due_date && (
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Próxima: {fmtDateOnly(log.next_due_date)}
+                    </p>
                   )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 shrink-0 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
-                  aria-label="Editar data"
-                  onClick={() => {
-                    setSelectedLog(l);
-                    setSelectedDate(l.completed_at ? l.completed_at.split("T")[0] : "");
-                    setIsEditOpen(true);
+                <button
+                  onClick={async () => {
+                    // O prompt nativo trava a tela e evita perda de estado do React
+                    const inputData = window.prompt(
+                      "Digite a data real da execução no formato AAAA-MM-DD (Ex: 2026-07-07):",
+                      "",
+                    );
+
+                    if (!inputData) return; // Cancela se o usuário fechar
+
+                    // Monta a data blindada contra fuso horário
+                    const exactCompletedDate = `${inputData}T12:00:00.000Z`;
+
+                    // Update direto usando o log.id do escopo atual! Infalível.
+                    const { error } = await supabase
+                      .from("preventive_logs")
+                      .update({ completed_at: exactCompletedDate })
+                      .eq("id", log.id);
+
+                    if (error) {
+                      alert("Erro do Banco: " + error.message);
+                    } else {
+                      alert("Data cravada com sucesso!");
+                      window.location.reload(); // Atualiza a tela na marra
+                    }
                   }}
+                  className="ml-auto px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded shadow-md hover:bg-teal-700 transition-colors"
                 >
-                  <Pencil className="h-4 w-4" />
-                </Button>
+                  Ajustar Data
+                </button>
               </div>
             ))}
           </div>
-
         ) : (
           <div className="space-y-2">
             {(tasksQ.isLoading || logsQ.isLoading) && (
@@ -379,14 +402,30 @@ function HistoricoManutencaoPage() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-slate-900 truncate">
-                      <span className="text-teal-700">{p.property}</span> · {p.location} — {p.task.task_name}
+                      <span className="text-teal-700">{p.property}</span> · {p.location} —{" "}
+                      {p.task.task_name}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
-                      {p.category === "Quarto" ? <MapPin className="h-3 w-3" /> : <Wrench className="h-3 w-3" />}
+                      {p.category === "Quarto" ? (
+                        <MapPin className="h-3 w-3" />
+                      ) : (
+                        <Wrench className="h-3 w-3" />
+                      )}
                       Frequência a cada {p.task.frequency_days} dias
-                      {p.lastTechnician && <> · último: <span className="font-semibold text-slate-700">{p.lastTechnician}</span></>}
+                      {p.lastTechnician && (
+                        <>
+                          {" "}
+                          · último:{" "}
+                          <span className="font-semibold text-slate-700">{p.lastTechnician}</span>
+                        </>
+                      )}
                     </p>
-                    <p className={cn("text-[11px] mt-0.5 font-semibold", overdue ? "text-red-600" : "text-amber-600")}>
+                    <p
+                      className={cn(
+                        "text-[11px] mt-0.5 font-semibold",
+                        overdue ? "text-red-600" : "text-amber-600",
+                      )}
+                    >
                       {p.nextDue
                         ? overdue
                           ? `Atrasada há ${Math.abs(p.daysToDue ?? 0)} dia(s) · vencia em ${p.nextDue.toLocaleDateString("pt-BR")}`
@@ -400,53 +439,9 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
-
-      <Dialog open={isEditOpen} onOpenChange={(o) => { if (!o) closeEditModal(); }}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Editar Data de Execução</DialogTitle>
-          </DialogHeader>
-          {selectedLog && (
-            <div className="space-y-4">
-              <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
-                <span className="font-semibold text-slate-800">
-                  {taskNameFor(selectedLog.task_id, tasks) ?? selectedLog.category}
-                </span>
-                <br />
-                <span className="text-slate-500">{selectedLog.property} · {selectedLog.location_name}</span>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-date">Data de execução</Label>
-                <Input
-                  id="edit-date"
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                  }}
-                />
-              </div>
-              <p className="text-xs text-gray-300">ID: {selectedLog?.id}</p>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={closeEditModal} disabled={saving}>
-              Cancelar
-            </Button>
-            <Button
-              className="bg-teal-600 hover:bg-teal-700 text-white"
-              disabled={saving || !selectedDate || !selectedLog}
-              onClick={handleSaveDate}
-            >
-              {saving ? "Salvando..." : "Salvar Alteração"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
-
 
 function taskNameFor(taskId: string, tasks: PreventiveTask[]) {
   return tasks.find((t) => t.id === taskId)?.task_name;
