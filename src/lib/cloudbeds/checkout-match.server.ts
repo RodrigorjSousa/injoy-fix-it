@@ -38,43 +38,61 @@ export function getReservationsFromPayload(payload: CloudbedsReservationResponse
     for (const key of ["reservations", "items", "results", "records"]) {
       if (Array.isArray(rec[key])) return rec[key] as CloudbedsReservation[];
     }
+    const values = Object.values(rec).filter(
+      (value): value is CloudbedsReservation =>
+        !!value &&
+        typeof value === "object" &&
+        ("reservationID" in value || "rooms" in value || "guestName" in value),
+    );
+    if (values.length > 0) return values;
   }
   return [];
 }
 
 function getRoomCandidates(reservation: CloudbedsReservation): unknown[] {
   const candidates: unknown[] = [];
-  const directKeys = [
-    "roomName",
-    "roomNumber",
-    "roomNo",
-    "roomCode",
-    "assignedRoomName",
-    "assignedRoomNumber",
-    "accommodationName",
-    "unitName",
-  ];
 
-  for (const key of directKeys) candidates.push(reservation[key]);
+  const shouldReadKey = (key: string, roomContext: boolean) => {
+    const lower = key.toLowerCase();
+    if (
+      lower.includes("id") ||
+      lower.includes("type") ||
+      lower.includes("rate") ||
+      lower.includes("total") ||
+      lower.includes("count") ||
+      lower.includes("quantity")
+    ) {
+      return false;
+    }
+    if (lower.includes("room") || lower.includes("unit") || lower.includes("accommodation")) {
+      return true;
+    }
+    return roomContext && ["name", "number", "no", "code", "title"].includes(lower);
+  };
 
-  const rooms = Array.isArray(reservation.rooms) ? reservation.rooms : [];
-  for (const room of rooms) {
-    for (const key of directKeys) candidates.push(room[key]);
-    for (const [key, value] of Object.entries(room)) {
-      const lower = key.toLowerCase();
-      if (
-        value != null &&
-        (typeof value === "string" || typeof value === "number") &&
-        (lower.includes("room") || lower.includes("unit") || lower.includes("accommodation")) &&
-        !lower.includes("id") &&
-        !lower.includes("type") &&
-        !lower.includes("rate") &&
-        !lower.includes("total")
-      ) {
-        candidates.push(value);
+  const walk = (value: unknown, key = "", roomContext = false, depth = 0) => {
+    if (value == null || depth > 4) return;
+    const nextRoomContext =
+      roomContext || /room|unit|accommodation|quarto|apartamento/i.test(key);
+
+    if (typeof value === "string" || typeof value === "number") {
+      if (shouldReadKey(key, roomContext)) candidates.push(value);
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) walk(item, key, nextRoomContext, depth + 1);
+      return;
+    }
+
+    if (typeof value === "object") {
+      for (const [childKey, childValue] of Object.entries(value)) {
+        walk(childValue, childKey, nextRoomContext, depth + 1);
       }
     }
-  }
+  };
+
+  walk(reservation);
 
   return candidates;
 }
