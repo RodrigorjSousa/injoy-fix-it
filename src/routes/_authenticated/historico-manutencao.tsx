@@ -72,8 +72,9 @@ function HistoricoManutencaoPage() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
-  const [editLog, setEditLog] = useState<PreventiveLog | null>(null);
-  const [editDate, setEditDate] = useState<string>("");
+  const [selectedLog, setSelectedLog] = useState<PreventiveLog | null>(null);
+  const [selectedDate, setSelectedDate] = useState<string>("");
+  const [isEditOpen, setIsEditOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const queryClient = useQueryClient();
 
@@ -181,6 +182,73 @@ function HistoricoManutencaoPage() {
     const y = now.getFullYear();
     return [y - 1, y, y + 1];
   }, [now]);
+
+  const closeEditModal = () => {
+    setIsEditOpen(false);
+    setSelectedLog(null);
+    setSelectedDate("");
+  };
+
+  const handleSaveDate = async () => {
+    if (!selectedDate) {
+      toast.error("Por favor, selecione uma data.");
+      return;
+    }
+
+    if (!selectedLog || !selectedLog.id) {
+      toast.error("Erro Crítico de Front-end: ID da manutenção não encontrado.");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      // Trava o fuso horário no meio-dia UTC para não perder o dia no Brasil
+      const exactCompletedDate = `${selectedDate}T12:00:00.000Z`;
+
+      console.log("Atualizando manutenção preventiva", {
+        table: "preventive_logs",
+        id: selectedLog.id,
+        completed_at: exactCompletedDate,
+      });
+
+      // Atualiza APENAS a data de conclusão; next_due_date é coluna gerada pelo banco
+      const { data, error } = await supabase
+        .from("preventive_logs")
+        .update({ completed_at: exactCompletedDate })
+        .eq("id", selectedLog.id)
+        .select("id, completed_at");
+
+      if (error) {
+        console.error("Erro detalhado ao atualizar preventive_logs:", {
+          id: selectedLog.id,
+          completed_at: exactCompletedDate,
+          error,
+        });
+        toast.error(`Erro ao salvar: ${error.message}`);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        console.error("Update não encontrou nenhuma linha em preventive_logs:", {
+          id: selectedLog.id,
+          completed_at: exactCompletedDate,
+          selectedLog,
+        });
+        toast.error("Erro: O banco de dados não atualizou o registro.");
+        return;
+      }
+
+      toast.success("Data atualizada com sucesso!");
+      closeEditModal();
+      await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+      await logsQ.refetch();
+    } catch (err) {
+      console.error("Erro inesperado ao atualizar data de manutenção:", err);
+      toast.error("Erro ao atualizar data: " + (err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div className="-m-4 sm:-m-6 lg:-m-8 min-h-[calc(100vh-4rem)] bg-slate-50 pb-12">
@@ -290,8 +358,9 @@ function HistoricoManutencaoPage() {
                   className="h-8 w-8 shrink-0 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
                   aria-label="Editar data"
                   onClick={() => {
-                    setEditLog(l);
-                    setEditDate(l.completed_at.slice(0, 10));
+                    setSelectedLog(l);
+                    setSelectedDate(l.completed_at ? l.completed_at.split("T")[0] : "");
+                    setIsEditOpen(true);
                   }}
                 >
                   <Pencil className="h-4 w-4" />
@@ -356,88 +425,41 @@ function HistoricoManutencaoPage() {
         )}
       </div>
 
-      <Dialog open={!!editLog} onOpenChange={(o) => { if (!o) setEditLog(null); }}>
+      <Dialog open={isEditOpen} onOpenChange={(o) => { if (!o) closeEditModal(); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle>Editar Data de Execução</DialogTitle>
           </DialogHeader>
-          {editLog && (
+          {selectedLog && (
             <div className="space-y-4">
               <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
                 <span className="font-semibold text-slate-800">
-                  {taskNameFor(editLog.task_id, tasks) ?? editLog.category}
+                  {taskNameFor(selectedLog.task_id, tasks) ?? selectedLog.category}
                 </span>
                 <br />
-                <span className="text-slate-500">{editLog.property} · {editLog.location_name}</span>
+                <span className="text-slate-500">{selectedLog.property} · {selectedLog.location_name}</span>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="edit-date">Data de execução</Label>
                 <Input
                   id="edit-date"
                   type="date"
-                  value={editDate}
+                  value={selectedDate}
                   onChange={(e) => {
-                    setEditDate(e.target.value);
+                    setSelectedDate(e.target.value);
                   }}
                 />
               </div>
             </div>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditLog(null)} disabled={saving}>
+            <Button variant="outline" onClick={closeEditModal} disabled={saving}>
               Cancelar
             </Button>
             <Button
               className="bg-teal-600 hover:bg-teal-700 text-white"
-              disabled={saving || !editDate || !editLog}
-              onClick={async () => {
-                if (!editDate) {
-                  toast.error("Por favor, selecione uma data.");
-                  return;
-                }
-
-                console.log("Iniciando update para o log ID:", editLog?.id);
-                if (!editLog?.id) {
-                  toast.error("Erro Crítico: ID do log não encontrado.");
-                  return;
-                }
-
-                setSaving(true);
-                try {
-                  // Trava o fuso horário no meio-dia UTC para não perder o dia
-                  const exactCompletedDate = `${editDate}T12:00:00.000Z`;
-
-                  // Atualiza APENAS a data de conclusão; o banco calcula next_due_date
-                  const { data, error } = await supabase
-                    .from("preventive_logs" as never)
-                    .update({
-                      completed_at: exactCompletedDate,
-                    } as never)
-                    .eq("id", editLog.id)
-                    .select("id, completed_at");
-
-                  if (error) {
-                    console.error("Erro do banco:", error);
-                    toast.error(`Erro ao salvar: ${error.message}`);
-                    return;
-                  }
-
-                  if (!data || data.length === 0) {
-                    console.error("Falha silenciosa: Nenhuma linha atualizada no banco. Verifique permissões ou ID.");
-                    toast.error("Erro: O banco de dados não atualizou o registro.");
-                    return;
-                  }
-
-                  toast.success("Data atualizada no banco com sucesso!");
-                  setEditLog(null);
-                  await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
-                  await logsQ.refetch();
-                } catch (err) {
-                  toast.error("Erro ao atualizar data: " + (err as Error).message);
-                } finally {
-                  setSaving(false);
-                }
-              }}
+              disabled={saving || !selectedDate || !selectedLog}
+              onClick={handleSaveDate}
             >
               {saving ? "Salvando..." : "Salvar Alteração"}
             </Button>
