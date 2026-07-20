@@ -1020,6 +1020,7 @@ function PainelCamareiras() {
                   </div>
                 );
               })()}
+            </div>
             );
           })
         )}
