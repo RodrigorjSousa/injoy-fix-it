@@ -125,7 +125,7 @@ function HistoricoManutencaoPage() {
     queryKey: ["preventive_logs_all"],
     queryFn: async (): Promise<PreventiveLog[]> => {
       const { data, error } = await supabase
-        .from('preventive_logs')
+        .from("preventive_logs")
         .select(
           `
             id,
@@ -341,7 +341,9 @@ function HistoricoManutencaoPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
                     <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
-                    {log.preventive_tasks?.task_name ?? taskNameFor(log.task_id, tasks) ?? log.category}
+                    {log.preventive_tasks?.task_name ??
+                      taskNameFor(log.task_id, tasks) ??
+                      log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
@@ -366,22 +368,28 @@ function HistoricoManutencaoPage() {
 
                     // 2. Verifica se o ID existe no frontend ANTES de enviar
                     if (!log.id) {
-                      alert("ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.");
+                      alert(
+                        "ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.",
+                      );
                       return;
                     }
 
                     // 3. Executa o Update com .select() para forçar o retorno da linha
                     const { data, error } = await supabase
-                      .from('preventive_logs') // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
+                      .from("preventive_logs") // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
                       .update({ completed_at: exactCompletedDate })
-                      .eq('id', log.id)
+                      .eq("id", log.id)
                       .select();
 
                     // 4. Raio-X do Banco de Dados
                     if (error) {
                       alert("ERRO DO BANCO: " + error.message);
                     } else if (!data || data.length === 0) {
-                      alert("FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" + log.id + "] não foi encontrado na tabela 'preventive_logs'.");
+                      alert(
+                        "FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" +
+                          log.id +
+                          "] não foi encontrado na tabela 'preventive_logs'.",
+                      );
                     } else {
                       alert("SUCESSO ABSOLUTO! O banco gravou a data: " + data[0].completed_at);
                       window.location.reload();
