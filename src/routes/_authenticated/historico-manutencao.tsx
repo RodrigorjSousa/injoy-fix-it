@@ -66,8 +66,7 @@ function fmtDateOnly(iso: string) {
 }
 
 function dateInputToIso(dateValue: string) {
-  const [year, month, day] = dateValue.split("-").map(Number);
-  return new Date(year, month - 1, day, 12, 0, 0).toISOString();
+  return `${dateValue}T12:00:00.000Z`;
 }
 
 function HistoricoManutencaoPage() {
