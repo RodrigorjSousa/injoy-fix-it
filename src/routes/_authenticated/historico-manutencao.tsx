@@ -343,13 +343,23 @@ function HistoricoManutencaoPage() {
                     <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
                     {log.task?.task_name ?? taskNameFor(log.task_id, tasks) ?? log.category}
                   </p>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <div className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
                     <span className="font-semibold text-slate-700">
                       {log.technician_name || "—"}
                     </span>{" "}
-                    em {fmtDate(log.completed_at)}
-                  </p>
+                    em{" "}
+                    <span className="font-bold text-teal-700">
+                      {log.completed_at
+                        ? new Date(log.completed_at).toLocaleDateString("pt-BR", {
+                            timeZone: "UTC",
+                          })
+                        : "Data não registada"}
+                    </span>
+                    <span className="ml-2 text-[10px] text-red-500 font-mono">
+                      [RAW BD: {log.completed_at}]
+                    </span>
+                  </div>
                   {log.next_due_date && (
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       Próxima: {fmtDateOnly(log.next_due_date)}
@@ -358,51 +368,26 @@ function HistoricoManutencaoPage() {
                 </div>
                 <button
                   onClick={async () => {
-                    // 1. PROVA DE EXISTÊNCIA: Verifica se o ID do ecrã realmente existe no Supabase
-                    const { data: checkData, error: checkError } = await supabase
-                      .from("preventive_logs")
-                      .select("id")
-                      .eq("id", log.id);
-
-                    if (checkError) {
-                      alert("Erro ao consultar a base de dados: " + checkError.message);
-                      return;
-                    }
-
-                    if (!checkData || checkData.length === 0) {
-                      alert(
-                        `DADOS FANTASMAS DETETADOS!\nO ID [${log.id}] que está no ecrã NÃO EXISTE na tabela 'preventive_logs' do Supabase.\n\nPor favor, Lovable, pare de renderizar fallbacks locais ou verifique de que tabela este registo está realmente a vir!`,
-                      );
-                      return;
-                    }
-
-                    // 2. Se o dado for real, pede a data
+                    const dataAtual = log.completed_at ? log.completed_at.split("T")[0] : "";
                     const inputData = window.prompt(
-                      "O registo EXISTE no Supabase! Digite a data real (AAAA-MM-DD):",
-                      "",
+                      "Digite a data real da execução (Formato AAAA-MM-DD):",
+                      dataAtual,
                     );
                     if (!inputData) return;
 
-                    const exactCompletedDate = `${inputData}T12:00:00.000Z`;
-
-                    // 3. Executa o update
-                    const { data, error } = await supabase
+                    const exataCompletedDate = `${inputData}T12:00:00.000Z`;
+                    const { error } = await supabase
                       .from("preventive_logs")
-                      .update({ completed_at: exactCompletedDate })
-                      .eq("id", log.id)
-                      .select();
+                      .update({ completed_at: exataCompletedDate })
+                      .eq("id", log.id);
 
-                    if (error) {
-                      alert("ERRO DA BASE DE DADOS: " + error.message);
-                    } else {
-                      alert("SUCESSO ABSOLUTO! Data gravada na base de dados real!");
-                      window.location.reload();
-                    }
+                    if (!error) window.location.reload();
                   }}
-                  className="ml-auto px-3 py-1.5 bg-teal-600 text-white text-xs font-bold rounded shadow-md hover:bg-teal-700 transition-colors"
+                  className="ml-auto px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg hover:bg-teal-700"
                 >
                   Ajustar Data
                 </button>
+
               </div>
             ))}
           </div>
