@@ -46,7 +46,7 @@ interface PreventiveLog {
   technician_name: string;
   completed_at: string;
   next_due_date: string;
-  preventive_tasks?: {
+  task?: {
     task_name: string;
     category: string;
     frequency_days: number;
@@ -136,7 +136,7 @@ function HistoricoManutencaoPage() {
             completed_at,
             next_due_date,
             task_id,
-            preventive_tasks (
+            task:preventive_tasks (
               task_name,
               category,
               frequency_days
@@ -145,7 +145,7 @@ function HistoricoManutencaoPage() {
         )
         .order("completed_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as PreventiveLog[];
+      return (data ?? []) as unknown as PreventiveLog[];
     },
   });
 
@@ -341,9 +341,7 @@ function HistoricoManutencaoPage() {
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
                     <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
-                    {log.preventive_tasks?.task_name ??
-                      taskNameFor(log.task_id, tasks) ??
-                      log.category}
+                    {log.task?.task_name ?? taskNameFor(log.task_id, tasks) ?? log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
                     Executado por{" "}
