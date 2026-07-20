@@ -284,9 +284,22 @@ function HistoricoManutencaoPage() {
                     <p className="text-[11px] text-slate-400 mt-0.5">Próxima: {fmtDateOnly(l.next_due_date)}</p>
                   )}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
+                  aria-label="Editar data"
+                  onClick={() => {
+                    setEditLog(l);
+                    setEditDate(l.completed_at.slice(0, 10));
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>
+
         ) : (
           <div className="space-y-2">
             {(tasksQ.isLoading || logsQ.isLoading) && (
