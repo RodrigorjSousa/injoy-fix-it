@@ -37,6 +37,7 @@ import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
 import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
+import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
 
 
 import { cn } from "@/lib/utils";
@@ -343,6 +344,8 @@ function BoasVindas() {
 
   const metaBatida = rating >= 8.0;
   const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
+  const isMayaraRecepcao = !!me?.funcionario?.nome && /(^|\s)mayara(\s|$)/i.test(me.funcionario.nome.trim());
+  const mostrarResumoBonificacao = !visaoCompleta && !isMayaraRecepcao;
 
   const renderIconeClima = () => {
     switch (clima.condicao) {
@@ -418,6 +421,8 @@ function BoasVindas() {
       <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
 
       <AuditoriaFuncionarioCard unidade={unidade} />
+
+      {mostrarResumoBonificacao && <BonificacaoResumoCard unidade={unidade} />}
 
       {visaoCompleta && <ChegadasHojeCards unidade={unidade} />}
 
