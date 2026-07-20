@@ -127,6 +127,11 @@ function PainelCamareiras() {
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
   const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
+  const [selectedMedia, setSelectedMedia] = useState<
+    Record<string, { file: File; kind: "foto" | "video"; preview: string } | null>
+  >({});
+  const [enviandoComentario, setEnviandoComentario] = useState<Record<string, boolean>>({});
+  const [midiaSignedUrls, setMidiaSignedUrls] = useState<Record<string, string>>({});
   const [extraTasksOpen, setExtraTasksOpen] = useState(false);
   const [laundryOpen, setLaundryOpen] = useState(false);
   const [almoxarifadoOpen, setAlmoxarifadoOpen] = useState(false);
@@ -154,22 +159,124 @@ function PainelCamareiras() {
     }
   }, [doCheckout]);
 
+  const handleMediaSelect = useCallback(
+    async (q: RoomRow, kind: "foto" | "video", file: File | null) => {
+      const chave = `${q.property}-${q.room_number}`;
+      if (!file) return;
+      // Limite de 15 MB (aprox. 15s de vídeo)
+      if (file.size > 15 * 1024 * 1024) {
+        toast.error("O vídeo é muito grande. Grave no máximo 15 segundos.");
+        return;
+      }
+      try {
+        const finalFile = kind === "foto" ? await compressImage(file) : file;
+        setSelectedMedia((prev) => {
+          const old = prev[chave];
+          if (old) URL.revokeObjectURL(old.preview);
+          return {
+            ...prev,
+            [chave]: { file: finalFile, kind, preview: URL.createObjectURL(finalFile) },
+          };
+        });
+      } catch (err) {
+        console.error("[camareiras] falha ao processar mídia", err);
+        toast.error("Não foi possível processar o arquivo.");
+      }
+    },
+    [],
+  );
 
-
-  const salvarComentario = useCallback(async (q: RoomRow, texto: string) => {
-    if ((q.room_comment ?? "") === texto) return;
-    const { error } = await supabase
-      .from("room_housekeeping")
-      // biome-ignore lint/suspicious/noExplicitAny: coluna nova ainda não está no types.ts gerado
-      .update({ room_comment: texto, updated_at: new Date().toISOString() } as any)
-      .eq("property", q.property)
-      .eq("room_number", q.room_number);
-    if (error) {
-      toast.error("Falha ao salvar comentário");
-      return;
-    }
-    toast.success("Comentário salvo");
+  const removeMedia = useCallback((q: RoomRow) => {
+    const chave = `${q.property}-${q.room_number}`;
+    setSelectedMedia((prev) => {
+      const old = prev[chave];
+      if (old) URL.revokeObjectURL(old.preview);
+      return { ...prev, [chave]: null };
+    });
   }, []);
+
+  const enviarComentario = useCallback(
+    async (q: RoomRow) => {
+      const chave = `${q.property}-${q.room_number}`;
+      const texto = (comentarios[chave] ?? q.room_comment ?? "").trim();
+      const midia = selectedMedia[chave] ?? null;
+      if (!texto && !midia) return;
+      setEnviandoComentario((p) => ({ ...p, [chave]: true }));
+      try {
+        let media_url: string | null = q.comment_media_url;
+        let media_type: string | null = q.comment_media_type;
+        if (midia) {
+          const ext =
+            midia.file.name.split(".").pop()?.toLowerCase() ||
+            (midia.kind === "foto" ? "jpg" : "mp4");
+          const path = `${q.property}/${q.room_number}/${Date.now()}-${Math.random()
+            .toString(36)
+            .slice(2, 8)}.${ext}`;
+          const { error: upErr } = await supabase.storage
+            .from("housekeeping-media")
+            .upload(path, midia.file, {
+              contentType: midia.file.type,
+              upsert: false,
+            });
+          if (upErr) throw upErr;
+          media_url = path;
+          media_type = midia.kind;
+        }
+        const { error } = await supabase
+          .from("room_housekeeping")
+          // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+          .update({
+            room_comment: texto,
+            comment_media_url: media_url,
+            comment_media_type: media_type,
+            updated_at: new Date().toISOString(),
+          } as any)
+          .eq("property", q.property)
+          .eq("room_number", q.room_number);
+        if (error) throw error;
+        toast.success("Comentário salvo");
+        setSelectedMedia((prev) => {
+          const old = prev[chave];
+          if (old) URL.revokeObjectURL(old.preview);
+          return { ...prev, [chave]: null };
+        });
+      } catch (err) {
+        console.error("[camareiras] falha ao enviar comentário", err);
+        toast.error(err instanceof Error ? err.message : "Falha ao salvar comentário");
+      } finally {
+        setEnviandoComentario((p) => ({ ...p, [chave]: false }));
+      }
+    },
+    [comentarios, selectedMedia],
+  );
+
+  // Gera signed URL para mídias salvas (bucket privado)
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = quartos.filter(
+        (q) => q.comment_media_url && !midiaSignedUrls[q.comment_media_url],
+      );
+      if (pending.length === 0) return;
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        pending.map(async (q) => {
+          const path = q.comment_media_url as string;
+          const { data } = await supabase.storage
+            .from("housekeeping-media")
+            .createSignedUrl(path, 60 * 60);
+          if (data?.signedUrl) updates[path] = data.signedUrl;
+        }),
+      );
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMidiaSignedUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [quartos, midiaSignedUrls]);
+
 
   const carregarCamareiras = useCallback(async () => {
     // biome-ignore lint/suspicious/noExplicitAny: RPC ainda não presente no types.ts gerado
