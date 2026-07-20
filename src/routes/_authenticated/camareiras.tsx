@@ -869,20 +869,157 @@ function PainelCamareiras() {
                   </button>
                 )}
 
-              <textarea
-                value={comentarios[`${q.property}-${q.room_number}`] ?? q.room_comment ?? ""}
-                onChange={(e) =>
-                  setComentarios((prev) => ({
-                    ...prev,
-                    [`${q.property}-${q.room_number}`]: e.target.value,
-                  }))
-                }
-                onBlur={(e) => salvarComentario(q, e.target.value)}
-                placeholder="Adicionar comentário ou observação do quarto..."
-                rows={2}
-                className="w-full mt-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700"
-              />
-            </div>
+              {(() => {
+                const chave = `${q.property}-${q.room_number}`;
+                const media = selectedMedia[chave];
+                const enviando = !!enviandoComentario[chave];
+                const savedUrl = q.comment_media_url ? midiaSignedUrls[q.comment_media_url] : null;
+                const textoAtual = comentarios[chave] ?? q.room_comment ?? "";
+                return (
+                  <div className="flex flex-col gap-2 w-full mt-3">
+                    {/* Mídia já salva (thumbnail) */}
+                    {!media && q.comment_media_url && (
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-100">
+                        {q.comment_media_type === "video" ? (
+                          savedUrl ? (
+                            <a
+                              href={savedUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="w-full h-full flex items-center justify-center text-slate-500"
+                              title="Abrir vídeo"
+                            >
+                              <Film className="w-6 h-6" />
+                            </a>
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-slate-400">
+                              <Film className="w-6 h-6" />
+                            </div>
+                          )
+                        ) : savedUrl ? (
+                          <a href={savedUrl} target="_blank" rel="noreferrer">
+                            <img src={savedUrl} alt="Anexo" className="w-full h-full object-cover" />
+                          </a>
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400 text-[10px]">
+                            ...
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Preview da mídia recém-selecionada */}
+                    {media && (
+                      <div className="relative w-16 h-16 rounded-md overflow-hidden border border-slate-200 bg-slate-100">
+                        {media.kind === "foto" ? (
+                          <img src={media.preview} alt="Prévia" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-500">
+                            <Film className="w-6 h-6" />
+                          </div>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => removeMedia(q)}
+                          className="absolute top-0 right-0 bg-red-500 text-white rounded-bl-md p-0.5"
+                          aria-label="Remover mídia"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )}
+
+                    {/* Botões câmera / vídeo */}
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        capture="environment"
+                        className="hidden"
+                        id={`photo-${chave}`}
+                        disabled={enviando}
+                        onChange={(e) => {
+                          handleMediaSelect(q, "foto", e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor={`photo-${chave}`}
+                        className={cn(
+                          "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-md transition-colors",
+                          enviando && "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        <Camera className="w-4 h-4" />
+                        Tirar Foto
+                      </label>
+
+                      <input
+                        type="file"
+                        accept="video/*"
+                        capture="environment"
+                        className="hidden"
+                        id={`video-${chave}`}
+                        disabled={enviando}
+                        onChange={(e) => {
+                          handleMediaSelect(q, "video", e.target.files?.[0] ?? null);
+                          e.target.value = "";
+                        }}
+                      />
+                      <label
+                        htmlFor={`video-${chave}`}
+                        className={cn(
+                          "cursor-pointer flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded-md transition-colors",
+                          enviando && "opacity-50 pointer-events-none",
+                        )}
+                      >
+                        <Video className="w-4 h-4" />
+                        Gravar Vídeo (15s)
+                      </label>
+                    </div>
+
+                    {/* Campo de comentário + botão enviar */}
+                    <div className="flex items-end gap-2">
+                      <textarea
+                        value={textoAtual}
+                        disabled={enviando}
+                        onChange={(e) =>
+                          setComentarios((prev) => ({
+                            ...prev,
+                            [chave]: e.target.value,
+                          }))
+                        }
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && !e.shiftKey) {
+                            e.preventDefault();
+                            enviarComentario(q);
+                          }
+                        }}
+                        placeholder={
+                          enviando
+                            ? "Salvando..."
+                            : "Adicionar comentário ou observação do quarto..."
+                        }
+                        rows={2}
+                        className="flex-1 text-xs rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-blue-400 outline-none p-3 resize-none text-slate-700 disabled:opacity-60"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => enviarComentario(q)}
+                        disabled={enviando || (!textoAtual.trim() && !media)}
+                        className="shrink-0 h-10 w-10 rounded-xl bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white flex items-center justify-center transition-colors"
+                        aria-label="Enviar comentário"
+                      >
+                        {enviando ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Send className="w-4 h-4" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
             );
           })
         )}
