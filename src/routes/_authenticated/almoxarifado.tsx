@@ -287,8 +287,9 @@ function AlmoxarifadoAdmin() {
 
 
 
-  if (!isAdmin) {
-    return <div className="p-8 text-center text-slate-500">Acesso restrito a administradores.</div>;
+  const podeAcessar = isAdmin || !!me?.isRecepcao;
+  if (!podeAcessar) {
+    return <div className="p-8 text-center text-slate-500">Acesso restrito.</div>;
   }
 
   return (
