@@ -19,6 +19,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { InspectionImage } from "@/components/InspectionImage";
+import { VistoriaChecklistManager } from "@/components/configuracoes/vistoria-checklist-manager";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/historico-vistorias")({
@@ -261,6 +262,8 @@ function HistoricoVistoriasPage() {
       </div>
 
       <div className="p-4 space-y-4">
+        {isFull && <VistoriaChecklistManager />}
+
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
             <label className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
