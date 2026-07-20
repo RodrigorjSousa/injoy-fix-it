@@ -65,10 +65,6 @@ function fmtDateOnly(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
-function dateInputToIso(dateValue: string) {
-  return `${dateValue}T12:00:00.000Z`;
-}
-
 function HistoricoManutencaoPage() {
   const now = new Date();
   const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
@@ -408,29 +404,17 @@ function HistoricoManutencaoPage() {
 
                 setSaving(true);
                 try {
-                  const exactDateString = dateInputToIso(editDate);
+                  // Trava o fuso horário no meio-dia UTC para não perder o dia
+                  const exactCompletedDate = `${editDate}T12:00:00.000Z`;
 
-                  // Busca a frequência da tarefa para recalcular a próxima data
-                  const { data: taskData } = await supabase
-                    .from("preventive_tasks" as never)
-                    .select("frequency_days")
-                    .eq("id", editLog.task_id)
-                    .single();
-
-                  const nextDue = new Date(exactDateString);
-                  const freq = (taskData as { frequency_days?: number } | null)?.frequency_days;
-                  if (freq) {
-                    nextDue.setDate(nextDue.getDate() + freq);
-                  }
-
+                  // Atualiza APENAS a data de conclusão; o banco calcula next_due_date
                   const { data, error } = await supabase
                     .from("preventive_logs" as never)
                     .update({
-                      completed_at: exactDateString,
-                      next_due_date: nextDue.toISOString().split("T")[0],
+                      completed_at: exactCompletedDate,
                     } as never)
                     .eq("id", editLog.id)
-                    .select("id, completed_at, next_due_date");
+                    .select("id, completed_at");
 
                   if (error) {
                     console.error("Erro do banco:", error);
