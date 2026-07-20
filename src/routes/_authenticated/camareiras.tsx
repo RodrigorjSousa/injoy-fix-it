@@ -365,6 +365,8 @@ function PainelCamareiras() {
         ended_at: nowIso,
         photo_url: null,
         comment: q.room_comment ?? null,
+        media_url: q.comment_media_url ?? null,
+        media_type: q.comment_media_type ?? null,
       } as any);
     if (histErr) console.error("[camareiras] falha ao gravar histórico", histErr);
 
