@@ -550,17 +550,24 @@ function ChecklistModal({
   const submit = useMutation({
     mutationFn: async () => {
       if (!location) throw new Error("Local não selecionado");
+      const nowIso = new Date().toISOString();
       const rows = catTasks
         .filter((t) => checked[t.id])
-        .map((t) => ({
-          property,
-          category: location.category,
-          location_name: location.name,
-          task_id: t.id,
-          technician_name: tecnico.trim(),
-          frequency_days: t.frequency_days,
-          notes: notes.trim() || null,
-        }));
+        .map((t) => {
+          const nextDue = new Date();
+          nextDue.setDate(nextDue.getDate() + (t.frequency_days || 0));
+          return {
+            property,
+            category: location.category,
+            location_name: location.name,
+            task_id: t.id,
+            technician_name: tecnico.trim(),
+            frequency_days: t.frequency_days,
+            notes: notes.trim() || null,
+            completed_at: nowIso,
+            next_due_date: nextDue.toISOString().split("T")[0],
+          };
+        });
       if (rows.length === 0) throw new Error("Marque ao menos uma tarefa");
       if (!tecnico.trim()) throw new Error("Informe o técnico");
       const { error } = await supabase.from("preventive_logs" as never).insert(rows as never);
