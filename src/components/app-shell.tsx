@@ -82,8 +82,9 @@ const ALL_NAV: NavItem[] = [
   { to: "/painel", label: "PAINEL", icon: LayoutGrid, show: podePainel },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
-  // Comum a todos
+  { to: "/bonificacao", label: "Bonificação", icon: Trophy, show: podeBonificacao },
   { to: "/chat", label: "Chat", icon: MessageSquare },
+
   // Somente admin
   {
     label: "ADMINISTRADOR",
