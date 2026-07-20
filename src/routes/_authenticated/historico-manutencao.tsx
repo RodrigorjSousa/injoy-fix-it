@@ -65,6 +65,11 @@ function fmtDateOnly(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function dateInputToIso(dateValue: string) {
+  const [year, month, day] = dateValue.split("-").map(Number);
+  return new Date(year, month - 1, day, 12, 0, 0).toISOString();
+}
+
 function HistoricoManutencaoPage() {
   const now = new Date();
   const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
@@ -291,7 +296,12 @@ function HistoricoManutencaoPage() {
                   aria-label="Editar data"
                   onClick={() => {
                     setEditLog(l);
-                    setEditDate(l.completed_at.slice(0, 10));
+                    const completedAt = new Date(l.completed_at);
+                    setEditDate(
+                      `${completedAt.getFullYear()}-${String(completedAt.getMonth() + 1).padStart(2, "0")}-${String(
+                        completedAt.getDate(),
+                      ).padStart(2, "0")}`,
+                    );
                   }}
                 >
                   <Pencil className="h-4 w-4" />
@@ -376,7 +386,9 @@ function HistoricoManutencaoPage() {
                   id="edit-date"
                   type="date"
                   value={editDate}
-                  onChange={(e) => setEditDate(e.target.value)}
+                  onChange={(e) => {
+                    setEditDate(e.target.value);
+                  }}
                 />
               </div>
             </div>
@@ -392,17 +404,18 @@ function HistoricoManutencaoPage() {
                 if (!editLog || !editDate) return;
                 setSaving(true);
                 try {
-                  const newCompleted = new Date(`${editDate}T12:00:00`);
+                  const selectedCompletedAt = dateInputToIso(editDate);
                   const { error } = await supabase
                     .from("preventive_logs" as never)
                     .update({
-                      completed_at: newCompleted.toISOString(),
+                      completed_at: selectedCompletedAt,
                     } as never)
                     .eq("id", editLog.id);
                   if (error) throw error;
                   toast.success("Data de execução atualizada com sucesso!");
                   setEditLog(null);
                   await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+                  await queryClient.refetchQueries({ queryKey: ["preventive_logs_all"], type: "active" });
                 } catch (err) {
                   toast.error("Erro ao atualizar data: " + (err as Error).message);
                 } finally {
