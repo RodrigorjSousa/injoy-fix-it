@@ -344,6 +344,8 @@ function BoasVindas() {
 
   const metaBatida = rating >= 8.0;
   const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
+  const isMayaraRecepcao = !!me?.funcionario?.nome && /(^|\s)mayara(\s|$)/i.test(me.funcionario.nome.trim());
+  const mostrarResumoBonificacao = !visaoCompleta && !isMayaraRecepcao;
 
   const renderIconeClima = () => {
     switch (clima.condicao) {
