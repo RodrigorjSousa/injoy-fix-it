@@ -35,52 +35,57 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     if (!allowed) throw new Error("Sem permissão para realizar check-out");
 
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
+    const { getReservationsFromPayload, reservationMatchesRoom } = await import(
+      "@/lib/cloudbeds/checkout-match.server"
+    );
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
 
-    // Busca reservas em check-in (in_house)
-    const qs = new URLSearchParams({
-      status: "checked_in",
-      pageSize: "100",
-      includeGuestsDetails: "true",
-    });
-    const listRes = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
-    if (!listRes.ok) {
-      const txt = await listRes.text().catch(() => "");
-      throw new Error(`Falha ao consultar reservas: ${listRes.status} ${txt}`);
-    }
-    const listJson = (await listRes.json()) as {
-      success?: boolean;
-      data?: Array<{
-        reservationID?: string;
-        rooms?: Array<{ roomName?: string; roomNumber?: string; roomID?: string }>;
-      }>;
-    };
-    if (listJson.success === false) throw new Error("Cloudbeds retornou erro ao listar reservas");
-
     const target = (data.roomNumber || "").trim();
-    const normalize = (s: string) => {
-      const t = String(s ?? "").trim().toUpperCase().replace(/^APT\s*/i, "").replace(/^0+/, "");
-      const digits = t.replace(/\D+/g, "");
-      return { full: t, digits };
-    };
-    const targetN = normalize(target);
-    const match = (listJson.data ?? []).find((r) =>
-      (r.rooms ?? []).some((rm) => {
-        const cand = normalize(String(rm.roomName ?? rm.roomNumber ?? ""));
-        if (!cand.full && !cand.digits) return false;
-        if (cand.full === targetN.full) return true;
-        if (cand.digits && targetN.digits && cand.digits === targetN.digits) return true;
-        return false;
-      }),
-    ) as
-      | {
-          reservationID?: string;
-          guestName?: string;
-          firstName?: string;
-          lastName?: string;
-          rooms?: Array<{ roomName?: string; roomNumber?: string }>;
+
+    // Busca reservas hospedadas no Cloudbeds. Algumas contas retornam o status como
+    // `checked_in`, outras como `in_house`; por isso consultamos ambos e com os dois
+    // endpoints que expõem campos diferentes de quarto.
+    const reservationsById = new Map<string, ReturnType<typeof getReservationsFromPayload>[number]>();
+    const endpoints = ["/getReservations", "/getReservationsWithRateDetails"];
+    const statuses = ["checked_in", "in_house"];
+
+    let successfulQueries = 0;
+    let lastCloudbedsError = "";
+
+    for (const endpoint of endpoints) {
+      for (const status of statuses) {
+        const qs = new URLSearchParams({
+          status,
+          pageSize: "100",
+          includeGuestsDetails: "true",
+          includeAllRooms: "true",
+        });
+        const listRes = await cloudbedsFetch(property, `${endpoint}?${qs.toString()}`);
+        if (!listRes.ok) {
+          const txt = await listRes.text().catch(() => "");
+          lastCloudbedsError = `${endpoint} ${status}: ${listRes.status} ${txt}`;
+          continue;
         }
-      | undefined;
+        const listJson = (await listRes.json()) as import("@/lib/cloudbeds/checkout-match.server").CloudbedsReservationResponse;
+        if (listJson.success === false) {
+          lastCloudbedsError = `${endpoint} ${status}: Cloudbeds retornou erro ao listar reservas`;
+          continue;
+        }
+        successfulQueries += 1;
+        for (const reservation of getReservationsFromPayload(listJson)) {
+          const key = String(reservation.reservationID ?? `${endpoint}:${status}:${reservationsById.size}`);
+          reservationsById.set(key, reservation);
+        }
+      }
+    }
+
+    if (successfulQueries === 0) {
+      throw new Error(`Falha ao consultar reservas ativas no Cloudbeds: ${lastCloudbedsError}`);
+    }
+
+    const match = [...reservationsById.values()].find((reservation) =>
+      reservationMatchesRoom(reservation, target),
+    );
 
     if (!match?.reservationID) {
       throw new Error(`Nenhuma reserva ativa (check-in) encontrada para o quarto ${target}`);
@@ -88,12 +93,15 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
 
     const guestName =
       match.guestName ||
-      [match.firstName, match.lastName].filter(Boolean).join(" ").trim() ||
+      [match.firstName ?? match.guestFirstName, match.lastName ?? match.guestLastName]
+        .filter(Boolean)
+        .join(" ")
+        .trim() ||
       null;
 
     // Aciona check-out
     const body = new URLSearchParams({
-      reservationID: match.reservationID,
+      reservationID: String(match.reservationID),
       status: "checked_out",
     });
     const chgRes = await cloudbedsFetch(property, `/postReservationStatus`, {
@@ -126,7 +134,7 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
       property: data.property,
       room_number: target,
       guest_name: guestName,
-      reservation_id: match.reservationID,
+      reservation_id: String(match.reservationID),
       camareira_id: userId,
       camareira_name: camareiraName,
     } as never);
@@ -141,5 +149,5 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
       direction: "to_recepcao",
     });
 
-    return { ok: true, reservationID: match.reservationID };
+    return { ok: true, reservationID: String(match.reservationID) };
   });
