@@ -91,6 +91,36 @@ function HistoricoLimpezaPage() {
   const [camareira, setCamareira] = useState<string>("");
   const [unidade, setUnidade] = useState<Unidade>("Todas");
   const [fotoAberta, setFotoAberta] = useState<string | null>(null);
+  const [midiaSignedUrls, setMidiaSignedUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const pending = rows.filter((r) => r.media_url && !midiaSignedUrls[r.media_url]);
+      if (pending.length === 0) return;
+      const updates: Record<string, string> = {};
+      await Promise.all(
+        pending.map(async (r) => {
+          const path = r.media_url as string;
+          // Se já é URL absoluta, usa direto
+          if (path.startsWith("http")) {
+            updates[path] = path;
+            return;
+          }
+          const { data } = await supabase.storage
+            .from("housekeeping-media")
+            .createSignedUrl(path, 60 * 60);
+          if (data?.signedUrl) updates[path] = data.signedUrl;
+        }),
+      );
+      if (!cancelled && Object.keys(updates).length > 0) {
+        setMidiaSignedUrls((prev) => ({ ...prev, ...updates }));
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [rows, midiaSignedUrls]);
 
   const buildQuery = useCallback(
     (from: number, to: number) => {
