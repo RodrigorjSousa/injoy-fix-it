@@ -58,10 +58,19 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     if (listJson.success === false) throw new Error("Cloudbeds retornou erro ao listar reservas");
 
     const target = (data.roomNumber || "").trim();
+    const normalize = (s: string) => {
+      const t = String(s ?? "").trim().toUpperCase().replace(/^APT\s*/i, "").replace(/^0+/, "");
+      const digits = t.replace(/\D+/g, "");
+      return { full: t, digits };
+    };
+    const targetN = normalize(target);
     const match = (listJson.data ?? []).find((r) =>
       (r.rooms ?? []).some((rm) => {
-        const n = String(rm.roomName ?? rm.roomNumber ?? "").trim();
-        return n === target;
+        const cand = normalize(String(rm.roomName ?? rm.roomNumber ?? ""));
+        if (!cand.full && !cand.digits) return false;
+        if (cand.full === targetN.full) return true;
+        if (cand.digits && targetN.digits && cand.digits === targetN.digits) return true;
+        return false;
       }),
     ) as
       | {
