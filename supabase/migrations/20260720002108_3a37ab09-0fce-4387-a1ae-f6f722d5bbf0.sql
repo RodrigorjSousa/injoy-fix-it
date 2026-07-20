@@ -1,0 +1,1 @@
+ALTER TABLE public.room_housekeeping_history ADD COLUMN IF NOT EXISTS media_url text; ALTER TABLE public.room_housekeeping_history ADD COLUMN IF NOT EXISTS media_type text;
