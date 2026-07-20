@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks } from "lucide-react";
+import {
+  ArrowLeft,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Wrench,
+  MapPin,
+  ListChecks,
+} from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -62,7 +70,6 @@ function HistoricoManutencaoPage() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
-
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
@@ -261,20 +268,28 @@ function HistoricoManutencaoPage() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-bold text-slate-900 truncate">
-                    <span className="text-teal-700">{log.property}</span> · {log.location_name} — {taskNameFor(log.task_id, tasks) ?? log.category}
+                    <span className="text-teal-700">{log.property}</span> · {log.location_name} —{" "}
+                    {taskNameFor(log.task_id, tasks) ?? log.category}
                   </p>
                   <p className="text-xs text-slate-500 mt-0.5">
-                    Executado por <span className="font-semibold text-slate-700">{log.technician_name || "—"}</span> em {fmtDate(log.completed_at)}
+                    Executado por{" "}
+                    <span className="font-semibold text-slate-700">{log.technician_name || "—"}</span> em{" "}
+                    {fmtDate(log.completed_at)}
                   </p>
                   {log.next_due_date && (
-                    <p className="text-[11px] text-slate-400 mt-0.5">Próxima: {fmtDateOnly(log.next_due_date)}</p>
+                    <p className="text-[11px] text-slate-400 mt-0.5">
+                      Próxima: {fmtDateOnly(log.next_due_date)}
+                    </p>
                   )}
                 </div>
                 <button
                   onClick={async () => {
                     // O prompt nativo trava a tela e evita perda de estado do React
-                    const inputData = window.prompt("Digite a data real da execução no formato AAAA-MM-DD (Ex: 2026-07-07):", "");
-                    
+                    const inputData = window.prompt(
+                      "Digite a data real da execução no formato AAAA-MM-DD (Ex: 2026-07-07):",
+                      "",
+                    );
+
                     if (!inputData) return; // Cancela se o usuário fechar
 
                     // Monta a data blindada contra fuso horário
@@ -282,9 +297,9 @@ function HistoricoManutencaoPage() {
 
                     // Update direto usando o log.id do escopo atual! Infalível.
                     const { error } = await supabase
-                      .from('preventive_logs')
+                      .from("preventive_logs")
                       .update({ completed_at: exactCompletedDate })
-                      .eq('id', log.id);
+                      .eq("id", log.id);
 
                     if (error) {
                       alert("Erro do Banco: " + error.message);
