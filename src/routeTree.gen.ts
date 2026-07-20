@@ -34,6 +34,7 @@ import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authen
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
+import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
@@ -171,6 +172,12 @@ const AuthenticatedCamareirasRoute = AuthenticatedCamareirasRouteImport.update({
   path: '/camareiras',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedBonificacaoRoute =
+  AuthenticatedBonificacaoRouteImport.update({
+    id: '/bonificacao',
+    path: '/bonificacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
   id: '/boas-vindas',
   path: '/boas-vindas',
@@ -200,6 +207,7 @@ export interface FileRoutesByFullPath {
   '/manutencao': typeof ManutencaoRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
+  '/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -228,6 +236,7 @@ export interface FileRoutesByTo {
   '/manutencao': typeof ManutencaoRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
+  '/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -260,6 +269,7 @@ export interface FileRoutesById {
   '/manutencao': typeof ManutencaoRoute
   '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
+  '/_authenticated/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
@@ -293,6 +303,7 @@ export interface FileRouteTypes {
     | '/manutencao'
     | '/almoxarifado'
     | '/boas-vindas'
+    | '/bonificacao'
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
@@ -321,6 +332,7 @@ export interface FileRouteTypes {
     | '/manutencao'
     | '/almoxarifado'
     | '/boas-vindas'
+    | '/bonificacao'
     | '/camareiras'
     | '/chat'
     | '/configuracoes'
@@ -352,6 +364,7 @@ export interface FileRouteTypes {
     | '/manutencao'
     | '/_authenticated/almoxarifado'
     | '/_authenticated/boas-vindas'
+    | '/_authenticated/bonificacao'
     | '/_authenticated/camareiras'
     | '/_authenticated/chat'
     | '/_authenticated/configuracoes'
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedCamareirasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/bonificacao': {
+      id: '/_authenticated/bonificacao'
+      path: '/bonificacao'
+      fullPath: '/bonificacao'
+      preLoaderRoute: typeof AuthenticatedBonificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/boas-vindas': {
       id: '/_authenticated/boas-vindas'
       path: '/boas-vindas'
@@ -596,6 +616,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAlmoxarifadoRoute: typeof AuthenticatedAlmoxarifadoRoute
   AuthenticatedBoasVindasRoute: typeof AuthenticatedBoasVindasRoute
+  AuthenticatedBonificacaoRoute: typeof AuthenticatedBonificacaoRoute
   AuthenticatedCamareirasRoute: typeof AuthenticatedCamareirasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
@@ -622,6 +643,7 @@ interface AuthenticatedRouteRouteChildren {
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAlmoxarifadoRoute: AuthenticatedAlmoxarifadoRoute,
   AuthenticatedBoasVindasRoute: AuthenticatedBoasVindasRoute,
+  AuthenticatedBonificacaoRoute: AuthenticatedBonificacaoRoute,
   AuthenticatedCamareirasRoute: AuthenticatedCamareirasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
