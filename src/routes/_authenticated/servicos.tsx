@@ -270,29 +270,31 @@ function Servicos() {
                 )}
               </div>
 
-              <div className="mt-auto pt-4 flex flex-col gap-2">
-                <Link
-                  to={s.to}
-                  search={s.search}
-                  className="flex items-center justify-end text-xs font-medium opacity-80 hover:opacity-100 transition-opacity"
-                >
-                  Ver chamados
-                  <ChevronRight className="h-4 w-4 ml-1 transition-transform hover:translate-x-0.5" />
-                </Link>
+              <div className="mt-auto flex flex-col gap-2.5 pt-4">
                 <Button
                   asChild
-                  size="sm"
+                  variant="outline"
+                  className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg border-2 border-slate-100 bg-white text-slate-600 hover:bg-slate-50 hover:border-slate-200 font-semibold text-sm transition-all shadow-sm"
+                >
+                  <Link to={s.to} search={s.search}>
+                    Ver chamados
+                    <ChevronRight className="w-4 h-4 text-slate-400" />
+                  </Link>
+                </Button>
+                <Button
+                  asChild
                   className={cn(
-                    "w-full font-semibold shadow-sm focus-visible:ring-2 focus-visible:ring-offset-2 transition-colors",
+                    "w-full flex items-center justify-center gap-2 py-3 rounded-lg text-white font-bold text-sm transition-colors",
                     s.btn,
                   )}
                 >
                   <Link to="/" search={{ categoria: s.categoria as never }}>
-                    <PlusCircle className="h-4 w-4 mr-1.5" />
+                    <PlusCircle className="w-4 h-4" />
                     Abrir chamado
                   </Link>
                 </Button>
               </div>
+
             </Card>
           );
         })}
