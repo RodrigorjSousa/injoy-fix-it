@@ -17,6 +17,7 @@ import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
