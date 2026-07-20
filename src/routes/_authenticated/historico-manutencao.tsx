@@ -355,9 +355,76 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!editLog} onOpenChange={(o) => { if (!o) setEditLog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Data de Execução</DialogTitle>
+          </DialogHeader>
+          {editLog && (
+            <div className="space-y-4">
+              <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <span className="font-semibold text-slate-800">
+                  {taskNameFor(editLog.task_id, tasks) ?? editLog.category}
+                </span>
+                <br />
+                <span className="text-slate-500">{editLog.property} · {editLog.location_name}</span>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Data de execução</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditLog(null)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              disabled={saving || !editDate || !editLog}
+              onClick={async () => {
+                if (!editLog || !editDate) return;
+                setSaving(true);
+                try {
+                  const task = tasks.find((t) => t.id === editLog.task_id);
+                  const freq = task?.frequency_days ?? 0;
+                  const newCompleted = new Date(`${editDate}T12:00:00`);
+                  const nextDue = freq > 0
+                    ? new Date(newCompleted.getTime() + freq * 86400000).toISOString().slice(0, 10)
+                    : editLog.next_due_date;
+                  const { error } = await supabase
+                    .from("preventive_logs" as never)
+                    .update({
+                      completed_at: newCompleted.toISOString(),
+                      next_due_date: nextDue,
+                    } as never)
+                    .eq("id", editLog.id);
+                  if (error) throw error;
+                  toast.success("Data de execução atualizada com sucesso!");
+                  setEditLog(null);
+                  await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+                } catch (err) {
+                  toast.error("Erro ao atualizar data: " + (err as Error).message);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Salvando..." : "Salvar Alteração"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function taskNameFor(taskId: string, tasks: PreventiveTask[]) {
   return tasks.find((t) => t.id === taskId)?.task_name;
