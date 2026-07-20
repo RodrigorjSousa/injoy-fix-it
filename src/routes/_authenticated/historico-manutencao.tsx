@@ -121,7 +121,9 @@ function HistoricoManutencaoPage() {
     queryFn: async (): Promise<PreventiveLog[]> => {
       const { data, error } = await supabase
         .from("preventive_logs" as never)
-        .select("*")
+        .select(
+          "id, property, category, location_name, task_id, technician_name, completed_at, next_due_date",
+        )
         .order("completed_at", { ascending: false });
       if (error) throw error;
       return (data as PreventiveLog[]) ?? [];
