@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks } from "lucide-react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ArrowLeft, CheckCircle2, AlertTriangle, Clock, Wrench, MapPin, ListChecks, Pencil } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
   component: HistoricoManutencaoPage,
@@ -62,6 +72,11 @@ function HistoricoManutencaoPage() {
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
+  const [editLog, setEditLog] = useState<PreventiveLog | null>(null);
+  const [editDate, setEditDate] = useState<string>("");
+  const [saving, setSaving] = useState(false);
+  const queryClient = useQueryClient();
+
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
@@ -269,9 +284,22 @@ function HistoricoManutencaoPage() {
                     <p className="text-[11px] text-slate-400 mt-0.5">Próxima: {fmtDateOnly(l.next_due_date)}</p>
                   )}
                 </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 shrink-0 text-slate-400 hover:text-teal-600 hover:bg-teal-50"
+                  aria-label="Editar data"
+                  onClick={() => {
+                    setEditLog(l);
+                    setEditDate(l.completed_at.slice(0, 10));
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
               </div>
             ))}
           </div>
+
         ) : (
           <div className="space-y-2">
             {(tasksQ.isLoading || logsQ.isLoading) && (
@@ -327,9 +355,76 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!editLog} onOpenChange={(o) => { if (!o) setEditLog(null); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Data de Execução</DialogTitle>
+          </DialogHeader>
+          {editLog && (
+            <div className="space-y-4">
+              <div className="text-sm text-slate-600 bg-slate-50 rounded-lg p-3 border border-slate-200">
+                <span className="font-semibold text-slate-800">
+                  {taskNameFor(editLog.task_id, tasks) ?? editLog.category}
+                </span>
+                <br />
+                <span className="text-slate-500">{editLog.property} · {editLog.location_name}</span>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-date">Data de execução</Label>
+                <Input
+                  id="edit-date"
+                  type="date"
+                  value={editDate}
+                  onChange={(e) => setEditDate(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditLog(null)} disabled={saving}>
+              Cancelar
+            </Button>
+            <Button
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+              disabled={saving || !editDate || !editLog}
+              onClick={async () => {
+                if (!editLog || !editDate) return;
+                setSaving(true);
+                try {
+                  const task = tasks.find((t) => t.id === editLog.task_id);
+                  const freq = task?.frequency_days ?? 0;
+                  const newCompleted = new Date(`${editDate}T12:00:00`);
+                  const nextDue = freq > 0
+                    ? new Date(newCompleted.getTime() + freq * 86400000).toISOString().slice(0, 10)
+                    : editLog.next_due_date;
+                  const { error } = await supabase
+                    .from("preventive_logs" as never)
+                    .update({
+                      completed_at: newCompleted.toISOString(),
+                      next_due_date: nextDue,
+                    } as never)
+                    .eq("id", editLog.id);
+                  if (error) throw error;
+                  toast.success("Data de execução atualizada com sucesso!");
+                  setEditLog(null);
+                  await queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+                } catch (err) {
+                  toast.error("Erro ao atualizar data: " + (err as Error).message);
+                } finally {
+                  setSaving(false);
+                }
+              }}
+            >
+              {saving ? "Salvando..." : "Salvar Alteração"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
+
 
 function taskNameFor(taskId: string, tasks: PreventiveTask[]) {
   return tasks.find((t) => t.id === taskId)?.task_name;
