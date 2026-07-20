@@ -358,38 +358,44 @@ function HistoricoManutencaoPage() {
                 </div>
                 <button
                   onClick={async () => {
-                    const inputData = window.prompt("Digite a data real (AAAA-MM-DD):", "");
-                    if (!inputData) return;
+                    // 1. PROVA DE EXISTÊNCIA: Verifica se o ID do ecrã realmente existe no Supabase
+                    const { data: checkData, error: checkError } = await supabase
+                      .from("preventive_logs")
+                      .select("id")
+                      .eq("id", log.id);
 
-                    // 1. Trava a data
-                    const exactCompletedDate = `${inputData}T12:00:00.000Z`;
+                    if (checkError) {
+                      alert("Erro ao consultar a base de dados: " + checkError.message);
+                      return;
+                    }
 
-                    // 2. Verifica se o ID existe no frontend ANTES de enviar
-                    if (!log.id) {
+                    if (!checkData || checkData.length === 0) {
                       alert(
-                        "ERRO CRÍTICO NO FRONTEND: log.id está undefined/vazio no momento do clique.",
+                        `DADOS FANTASMAS DETETADOS!\nO ID [${log.id}] que está no ecrã NÃO EXISTE na tabela 'preventive_logs' do Supabase.\n\nPor favor, Lovable, pare de renderizar fallbacks locais ou verifique de que tabela este registo está realmente a vir!`,
                       );
                       return;
                     }
 
-                    // 3. Executa o Update com .select() para forçar o retorno da linha
+                    // 2. Se o dado for real, pede a data
+                    const inputData = window.prompt(
+                      "O registo EXISTE no Supabase! Digite a data real (AAAA-MM-DD):",
+                      "",
+                    );
+                    if (!inputData) return;
+
+                    const exactCompletedDate = `${inputData}T12:00:00.000Z`;
+
+                    // 3. Executa o update
                     const { data, error } = await supabase
-                      .from("preventive_logs") // CONFIRME SE A TABELA DO SELECT INICIAL É EXATAMENTE ESTA
+                      .from("preventive_logs")
                       .update({ completed_at: exactCompletedDate })
                       .eq("id", log.id)
                       .select();
 
-                    // 4. Raio-X do Banco de Dados
                     if (error) {
-                      alert("ERRO DO BANCO: " + error.message);
-                    } else if (!data || data.length === 0) {
-                      alert(
-                        "FALHA SILENCIOSA: O banco não deu erro, mas atualizou 0 linhas. O ID [" +
-                          log.id +
-                          "] não foi encontrado na tabela 'preventive_logs'.",
-                      );
+                      alert("ERRO DA BASE DE DADOS: " + error.message);
                     } else {
-                      alert("SUCESSO ABSOLUTO! O banco gravou a data: " + data[0].completed_at);
+                      alert("SUCESSO ABSOLUTO! Data gravada na base de dados real!");
                       window.location.reload();
                     }
                   }}
