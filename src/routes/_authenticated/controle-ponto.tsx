@@ -92,12 +92,13 @@ function ControlePontoPage() {
 
   const funcionariosUnidade = useMemo(
     () =>
-      funcionarios.filter(
-        (f) =>
-          f.categorias.length === 0 || unidadeMatchesCategoria(unidade, f.categorias),
-      ),
+      funcionarios.filter((f) => {
+        if (EXCLUIDOS_CONTROLE_PONTO.has(normalizarNome(f.nome))) return false;
+        return f.categorias.length === 0 || unidadeMatchesCategoria(unidade, f.categorias);
+      }),
     [funcionarios, unidade],
   );
+
 
   const registrosPorFunc = useMemo(() => {
     const m: Record<string, RegistroPonto> = {};
