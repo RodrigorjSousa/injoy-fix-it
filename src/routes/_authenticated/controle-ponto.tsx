@@ -113,11 +113,15 @@ function ControlePontoPage() {
   const funcionariosUnidade = useMemo(
     () =>
       funcionarios.filter((f) => {
-        if (EXCLUIDOS_CONTROLE_PONTO.has(normalizarNome(f.nome))) return false;
+        const n = normalizarNome(f.nome);
+        for (const ex of EXCLUIDOS_CONTROLE_PONTO) {
+          if (n === ex || n.startsWith(ex + " ") || n.includes(" " + ex)) return false;
+        }
         return f.categorias.length === 0 || unidadeMatchesCategoria(unidade, f.categorias);
       }),
     [funcionarios, unidade],
   );
+
 
 
   const registrosPorFunc = useMemo(() => {
