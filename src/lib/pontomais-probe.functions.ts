@@ -64,9 +64,9 @@ export const probePontomais = createServerFn({ method: "POST" })
 
     // POST report variants
     results.push(
-      await tryEndpoint(`${BASE}/reports/time_cards`, token, "POST", {
+      (await tryEndpoint(`${BASE}/reports/time_cards`, token, "POST", {
         report: { start_date: sd, end_date: ed, employee_id: eid, format: "json" },
-      }),
+      })) as Result,
     );
 
     return { results };
