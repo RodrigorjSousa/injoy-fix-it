@@ -35,7 +35,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { adjustPreventiveLogDate } from "@/lib/preventive-maintenance.functions";
 
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
   head: () => ({
