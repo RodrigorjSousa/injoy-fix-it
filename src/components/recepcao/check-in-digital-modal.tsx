@@ -87,11 +87,13 @@ export function CheckInDigitalButton({
     <>
       <button
         type="button"
-        onClick={() => setOpen(true)}
-        className="w-full py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center justify-center gap-2 transition-all"
+        disabled
+        title="Temporariamente indisponível — aguardando suporte técnico da Tuya sobre o algoritmo de criptografia da senha online."
+        className="w-full py-2.5 rounded-xl font-bold text-sm border border-neutral-300 bg-neutral-100 text-neutral-500 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
       >
-        <Key size={16} /> Check-in Digital Online
+        <Key size={16} /> Check-in Digital Online (em análise)
       </button>
+
       {open && (
         <CheckInDigitalModal
           roomNumber={roomNumber}
