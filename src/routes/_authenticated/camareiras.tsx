@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
+import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
