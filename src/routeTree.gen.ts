@@ -32,6 +32,7 @@ import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedCheckInDigitalRouteImport } from './routes/_authenticated/check-in-digital'
 import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
 import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
 import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
@@ -162,6 +163,12 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedCheckInDigitalRoute =
+  AuthenticatedCheckInDigitalRouteImport.update({
+    id: '/check-in-digital',
+    path: '/check-in-digital',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
   id: '/chat',
   path: '/chat',
@@ -210,6 +217,7 @@ export interface FileRoutesByFullPath {
   '/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
+  '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -239,6 +247,7 @@ export interface FileRoutesByTo {
   '/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/camareiras': typeof AuthenticatedCamareirasRoute
   '/chat': typeof AuthenticatedChatRoute
+  '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -272,6 +281,7 @@ export interface FileRoutesById {
   '/_authenticated/bonificacao': typeof AuthenticatedBonificacaoRoute
   '/_authenticated/camareiras': typeof AuthenticatedCamareirasRoute
   '/_authenticated/chat': typeof AuthenticatedChatRoute
+  '/_authenticated/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/controle-ponto': typeof AuthenticatedControlePontoRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -306,6 +316,7 @@ export interface FileRouteTypes {
     | '/bonificacao'
     | '/camareiras'
     | '/chat'
+    | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
     | '/dashboard'
@@ -335,6 +346,7 @@ export interface FileRouteTypes {
     | '/bonificacao'
     | '/camareiras'
     | '/chat'
+    | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
     | '/dashboard'
@@ -367,6 +379,7 @@ export interface FileRouteTypes {
     | '/_authenticated/bonificacao'
     | '/_authenticated/camareiras'
     | '/_authenticated/chat'
+    | '/_authenticated/check-in-digital'
     | '/_authenticated/configuracoes'
     | '/_authenticated/controle-ponto'
     | '/_authenticated/dashboard'
@@ -561,6 +574,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/check-in-digital': {
+      id: '/_authenticated/check-in-digital'
+      path: '/check-in-digital'
+      fullPath: '/check-in-digital'
+      preLoaderRoute: typeof AuthenticatedCheckInDigitalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/chat': {
       id: '/_authenticated/chat'
       path: '/chat'
@@ -619,6 +639,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedBonificacaoRoute: typeof AuthenticatedBonificacaoRoute
   AuthenticatedCamareirasRoute: typeof AuthenticatedCamareirasRoute
   AuthenticatedChatRoute: typeof AuthenticatedChatRoute
+  AuthenticatedCheckInDigitalRoute: typeof AuthenticatedCheckInDigitalRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedControlePontoRoute: typeof AuthenticatedControlePontoRoute
   AuthenticatedDashboardRoute: typeof AuthenticatedDashboardRoute
@@ -646,6 +667,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedBonificacaoRoute: AuthenticatedBonificacaoRoute,
   AuthenticatedCamareirasRoute: AuthenticatedCamareirasRoute,
   AuthenticatedChatRoute: AuthenticatedChatRoute,
+  AuthenticatedCheckInDigitalRoute: AuthenticatedCheckInDigitalRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedControlePontoRoute: AuthenticatedControlePontoRoute,
   AuthenticatedDashboardRoute: AuthenticatedDashboardRoute,
