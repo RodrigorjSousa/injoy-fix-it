@@ -89,6 +89,11 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const res = await cloudbedsFetch(property, `/getReservationsWithRateDetails?${qs.toString()}`);
     if (!res.ok) {
       const txt = await res.text().catch(() => "");
+      if (res.status >= 500) {
+        throw new Error(
+          `Cloudbeds está temporariamente indisponível (código ${res.status}). Tente novamente em alguns instantes.`,
+        );
+      }
       throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
     }
     const json = (await res.json()) as {
