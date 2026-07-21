@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, CheckCircle2, Loader2, Copy } from "lucide-react";
+import { Key, CheckCircle2, Loader2, Copy, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
