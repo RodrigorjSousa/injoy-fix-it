@@ -140,6 +140,7 @@ function BoasVindas() {
   const [statusQuartos, setStatusQuartos] = useState<StatusQuartos>(EMPTY_STATUS);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<StatusKey | null>(null);
+  const [metricDetail, setMetricDetail] = useState<MetricDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [openRecador, setOpenRecador] = useState(false);
   const [clima, setClima] = useState<Clima>({
