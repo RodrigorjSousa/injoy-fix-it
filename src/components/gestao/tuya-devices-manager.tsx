@@ -100,6 +100,100 @@ export function TuyaDevicesManager() {
     refresh();
   };
 
+  const verificarOnline = async () => {
+    const list = (devices ?? []).filter((d) => d.ativo);
+    if (list.length === 0) {
+      toast.error("Nenhuma fechadura ativa para verificar.");
+      return;
+    }
+    setChecking(true);
+    setStatuses({});
+    try {
+      const { data, error } = await supabase.functions.invoke("tuya-password", {
+        body: { action: "check_status", deviceIds: list.map((d) => d.device_id) },
+      });
+      if (error) throw error;
+      const map: Record<string, { online: boolean; success: boolean; msg?: string }> = {};
+      for (const s of data?.statuses ?? []) {
+        map[s.deviceId] = { online: !!s.online, success: !!s.success, msg: s.msg };
+      }
+      setStatuses(map);
+      const onlineCount = Object.values(map).filter((s) => s.online).length;
+      toast.success(`${onlineCount}/${list.length} fechaduras online.`);
+    } catch (e) {
+      toast.error("Erro ao verificar: " + (e as Error).message);
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  const imprimirPDF = () => {
+    const list = devices ?? [];
+    if (list.length === 0) {
+      toast.error("Nenhuma fechadura cadastrada.");
+      return;
+    }
+    const doc = new jsPDF();
+    const now = new Date().toLocaleString("pt-BR");
+    doc.setFontSize(16);
+    doc.setFont("helvetica", "bold");
+    doc.text("Fechaduras Tuya - INJOY Hoteis", 14, 18);
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Gerado em: ${now}  |  Total: ${list.length}`, 14, 25);
+
+    let y = 34;
+    const grouped = list.reduce<Record<string, TuyaDevice[]>>((acc, d) => {
+      (acc[d.unidade] ??= []).push(d);
+      return acc;
+    }, {});
+
+    Object.entries(grouped).forEach(([unidade, items]) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(12);
+      doc.text(`INJOY ${unidade}`, 14, y);
+      y += 6;
+
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9);
+      doc.text("Rótulo", 14, y);
+      doc.text("Tipo", 90, y);
+      doc.text("Quarto", 120, y);
+      doc.text("Device ID", 140, y);
+      doc.text("Ativo", 195, y, { align: "right" });
+      y += 2;
+      doc.setLineWidth(0.2);
+      doc.line(14, y, 196, y);
+      y += 4;
+
+      doc.setFont("helvetica", "normal");
+      items.forEach((d) => {
+        if (y > 285) {
+          doc.addPage();
+          y = 20;
+        }
+        doc.text(String(d.label).substring(0, 45), 14, y);
+        doc.text(TIPO_LABEL[d.tipo].substring(0, 18), 90, y);
+        doc.text(d.room_number ?? "-", 120, y);
+        doc.setFont("courier", "normal");
+        doc.text(d.device_id, 140, y);
+        doc.setFont("helvetica", "normal");
+        doc.text(d.ativo ? "Sim" : "Nao", 195, y, { align: "right" });
+        y += 6;
+      });
+      y += 6;
+    });
+
+    doc.save(`fechaduras-tuya-${new Date().toISOString().slice(0, 10)}.pdf`);
+    toast.success("PDF gerado!");
+  };
+
+
+
   return (
     <section className="space-y-4">
       <header className="flex items-center gap-2">
