@@ -265,7 +265,7 @@ function ControlePontoPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-slate-400">
+                    <td colSpan={9} className="text-center py-8 text-slate-400">
                       Carregando...
                     </td>
                   </tr>
