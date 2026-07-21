@@ -239,15 +239,15 @@ export async function fetchPontomaisRegistros(params: {
       throw err;
     }
   } else {
-    if (!cleanCpf && !cleanEmail) {
+    if (!cleanCpf) {
       throw new Error(
-        "Funcionário sem CPF, e-mail ou ID Pontomais cadastrado. Preencha um destes campos em Controle de Ponto.",
+        "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto (a busca é feita exclusivamente pelo CPF).",
       );
     }
 
     employeeId = await resolveEmployeeId({
       cpf: cleanCpf,
-      email: cleanEmail,
+      email: null,
       token,
     });
 
@@ -255,7 +255,7 @@ export async function fetchPontomaisRegistros(params: {
       throw new PontomaisApiError(
         404,
         "",
-        `Funcionário não localizado na Pontomais (CPF/e-mail sem correspondência). Cadastre o ID Pontomais deste funcionário em Controle de Ponto.`,
+        `Funcionário não localizado na Pontomais pelo CPF ${cleanCpf}. Confirme o CPF cadastrado ou informe o ID Pontomais em Controle de Ponto.`,
       );
     }
   }
