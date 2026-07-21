@@ -245,22 +245,14 @@ serve(async (req) => {
         }
 
         const ticketId = ticketData.result.ticket_id;
-        const ticketKeyEncrypted = ticketData.result.ticket_key as string;
+        const ticketKeyHex = ticketData.result.ticket_key as string;
 
-        // --- PASSO B: Descriptografar o ticket_key e criptografar a senha ---
-        // Docs Tuya Cloud: `ticket_key` vem cifrado em AES/ECB/PKCS5Padding
-        // usando o `secret` COMPLETO do app (32 bytes UTF-8) como chave (AES-256).
-        const appSecretKey = CryptoJS.enc.Utf8.parse(secret);
-        const ticketKeyCipher = CryptoJS.enc.Hex.parse(ticketKeyEncrypted);
-        const decryptedTicketKey = CryptoJS.AES.decrypt(
-          { ciphertext: ticketKeyCipher } as CryptoJS.lib.CipherParams,
-          appSecretKey,
-          { mode: CryptoJS.mode.ECB, padding: CryptoJS.pad.Pkcs7 },
-        );
-
-        // A chave AES real (16 bytes) agora está em `decryptedTicketKey`.
+        // --- PASSO B: Criptografar a senha com o ticket_key ---
+        // Docs Tuya: `ticket_key` já É a chave AES em formato HEX (64 chars = 32 bytes).
+        // Deve ser interpretada como bytes hex (AES-256-ECB), não como texto UTF-8.
+        const aesKey = CryptoJS.enc.Hex.parse(ticketKeyHex);
         const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaUnificada);
-        const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, decryptedTicketKey, {
+        const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, aesKey, {
           mode: CryptoJS.mode.ECB,
           padding: CryptoJS.pad.Pkcs7,
         });
