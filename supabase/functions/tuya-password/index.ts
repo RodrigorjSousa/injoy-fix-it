@@ -181,18 +181,17 @@ serve(async (req) => {
         const ticketKey = ticketData.result.ticket_key;
 
         // --- PASSO B: Criptografar a Senha (AES-128-ECB) ---
-        // Verifica se a chave é HEX (32 chars) ou Utf8 (16 chars)
-        const key = ticketKey.length === 32
-          ? CryptoJS.enc.Hex.parse(ticketKey)
-          : CryptoJS.enc.Utf8.parse(ticketKey);
+        // A Tuya exige (1) chave de 16 bytes e (2) texto puro convertidos para UTF-8 antes de aplicar AES
+        const keyUtf8 = CryptoJS.enc.Utf8.parse(ticketKey);
+        const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaUnificada);
 
-        const encrypted = CryptoJS.AES.encrypt(senhaUnificada, key, {
+        const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, keyUtf8, {
           mode: CryptoJS.mode.ECB,
           padding: CryptoJS.pad.Pkcs7,
         });
 
-        // Converte para Hexadecimal e força letras maiúsculas (exigência comum da Tuya)
-        const senhaCriptografada = encrypted.ciphertext.toString(CryptoJS.enc.Hex).toUpperCase();
+        // A string final precisa ser Hexadecimal estritamente em letras MINÚSCULAS
+        const senhaCriptografada = encrypted.ciphertext.toString(CryptoJS.enc.Hex).toLowerCase();
 
         // --- PASSO C: Enviar a Senha para a Fechadura (Online) ---
         const tCreate = Date.now().toString();
