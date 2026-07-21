@@ -11,11 +11,11 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 
 // Devices Tuya - Botafogo (Portão Principal, Porta de Vidro, Quarto 005)
-const DEVICE_IDS_005: string[] = [
-  "eba207725701fb044abmhl", // Portão Gradeado
-  "ebd7760a2310ee9930ozt9", // Porta de Vidro
-  "eba3429756a5aaa8b2ssrw", // Quarto 005
-];
+const DEVICE_PORTAO = "eba207725701fb044abmhl";
+const DEVICE_VIDRO = "ebd7760a2310ee9930ozt9";
+const DEVICE_QUARTO_005 = "eba3429756a5aaa8b2ssrw";
+
+const DEVICE_IDS_005: string[] = [DEVICE_PORTAO, DEVICE_VIDRO, DEVICE_QUARTO_005];
 
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -69,13 +69,13 @@ function CheckInDigitalModal({
   const [entrada, setEntrada] = useState(defaultEntrada());
   const [saida, setSaida] = useState(defaultSaida());
   const [isLoading, setIsLoading] = useState(false);
-  const [senhaGerada, setSenhaGerada] = useState<string | null>(null);
+  const [senhasGeradas, setSenhasGeradas] = useState<Record<string, string> | null>(null);
 
   const reset = () => {
     setNomeHospede("");
     setEntrada(defaultEntrada());
     setSaida(defaultSaida());
-    setSenhaGerada(null);
+    setSenhasGeradas(null);
     setIsLoading(false);
   };
 
@@ -111,11 +111,12 @@ function CheckInDigitalModal({
       toast.error("Erro ao gerar senha: " + error.message);
       return;
     }
-    if (!data?.password) {
-      toast.error("A função não retornou uma senha.");
+    const senhas: Record<string, string> | undefined = data?.senhas;
+    if (!senhas || Object.keys(senhas).length === 0) {
+      toast.error("A função não retornou senhas.");
       return;
     }
-    setSenhaGerada(data.password);
+    setSenhasGeradas(senhas);
 
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -129,10 +130,13 @@ function CheckInDigitalModal({
           .maybeSingle();
         nome = prof?.nome ?? userData?.user?.email ?? null;
       }
+      const senhaResumo = Object.entries(senhas)
+        .map(([id, p]) => `${id}:${p}`)
+        .join(" | ");
       await supabase.from("tuya_password_logs").insert({
         room_number: roomNumber,
         guest_name: nomeHospede,
-        password: data.password,
+        password: senhaResumo,
         entrada: new Date(entrada).toISOString(),
         saida: new Date(saida).toISOString(),
         device_ids: DEVICE_IDS_005,
@@ -146,7 +150,7 @@ function CheckInDigitalModal({
   };
 
   const copiarWhatsapp = async () => {
-    if (!senhaGerada) return;
+    if (!senhasGeradas) return;
     const saidaFmt = new Date(saida).toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -154,7 +158,7 @@ function CheckInDigitalModal({
       hour: "2-digit",
       minute: "2-digit",
     });
-    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\n\nA sua senha de acesso exclusiva é: *${senhaGerada}*\n\n⚠️ *IMPORTANTE:* Para abrir as portas, digite a sua senha no teclado numérico e aperte a tecla *#* (Jogo da Velha) no final para confirmar.\n\nEsta senha é válida até ${saidaFmt} e abre as seguintes portas:\n🚪 Portão Principal (Rua)\n🚪 Porta de Vidro (Recepção)\n🛏️ Quarto ${roomNumber}\n\nTenha uma excelente estadia!`;
+    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\n\nAqui estão as suas senhas de acesso exclusivas.\n⚠️ *IMPORTANTE:* Digite a senha no teclado e aperte a tecla *#* (Jogo da Velha) no final para a porta abrir.\n\n🚪 *Portão Principal (Rua):* ${senhasGeradas[DEVICE_PORTAO] || "Gerando..."}\n🚪 *Porta de Vidro (Recepção):* ${senhasGeradas[DEVICE_VIDRO] || "Gerando..."}\n🛏️ *Quarto ${roomNumber}:* ${senhasGeradas[DEVICE_QUARTO_005] || "Gerando..."}\n\nO seu acesso é válido até ${saidaFmt}.\nTenha uma excelente estadia!`;
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Mensagem copiada!");
@@ -172,11 +176,11 @@ function CheckInDigitalModal({
             Gerar Senha de Acesso (Quarto {roomNumber})
           </DialogTitle>
           <DialogDescription>
-            A senha será sincronizada diretamente na fechadura inteligente.
+            Senhas offline únicas por fechadura, sincronizadas via Tuya.
           </DialogDescription>
         </DialogHeader>
 
-        {!senhaGerada ? (
+        {!senhasGeradas ? (
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -226,12 +230,12 @@ function CheckInDigitalModal({
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Sincronizando...
+                  Gerando senhas offline...
                 </>
               ) : (
                 <>
                   <Key size={16} />
-                  Gerar e Sincronizar na Fechadura
+                  Gerar Senhas Offline
                 </>
               )}
             </button>
@@ -242,17 +246,35 @@ function CheckInDigitalModal({
               <div className="h-16 w-16 rounded-full bg-emerald-100 grid place-items-center">
                 <CheckCircle2 className="h-10 w-10 text-emerald-600" />
               </div>
-              <p className="text-sm font-semibold text-slate-700">
-                Senha sincronizada com sucesso!
+              <p className="text-sm font-semibold text-slate-700 text-center">
+                Senhas offline geradas com sucesso!
               </p>
             </div>
-            <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-5 px-4">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 text-center mb-2">
-                Senha de acesso · Quarto {roomNumber}
-              </p>
-              <p className="font-mono text-3xl font-bold tracking-widest text-center text-teal-800">
-                {senhaGerada}
-              </p>
+            <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
+                  🚪 Portão Principal
+                </p>
+                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
+                  {senhasGeradas[DEVICE_PORTAO] || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
+                  🚪 Porta de Vidro
+                </p>
+                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
+                  {senhasGeradas[DEVICE_VIDRO] || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
+                  🛏️ Quarto {roomNumber}
+                </p>
+                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
+                  {senhasGeradas[DEVICE_QUARTO_005] || "—"}
+                </p>
+              </div>
             </div>
             <button
               type="button"
