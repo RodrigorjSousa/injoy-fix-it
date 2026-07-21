@@ -347,10 +347,8 @@ function HistoricoVistoriasPage() {
                 });
               }
 
-              const dndFotos = (dndByRoom[roomKey] ?? []).map((d) => ({
-                url: d.photo_url,
-                caption: `${d.camareira_name} · ${fmtDateTime(d.created_at)}`,
-              }));
+              // Fotos de "Não Perturbe" foram movidas para o Histórico de Produção de Limpeza
+
 
               return (
                 <div
