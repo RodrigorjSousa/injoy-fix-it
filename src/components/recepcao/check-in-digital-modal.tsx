@@ -105,10 +105,11 @@ function CheckInDigitalModal({
     }
 
     // Inicializa status como "pending" para cada fechadura
-    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string }> = {};
+    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string; code?: number; passwordId?: string | number }> = {};
     for (const id of DEVICE_IDS_005) initialStatus[id] = { state: "pending" };
     setDeviceStatus(initialStatus);
     setSenhasGeradas(null);
+    setSenhaIds({});
     setIsLoading(true);
 
     const { data, error } = await supabase.functions.invoke("tuya-password", {
@@ -117,6 +118,8 @@ function CheckInDigitalModal({
         guestName: nomeHospede,
         startTime: startTs,
         endTime: endTs,
+        roomNumber,
+        unidade: "Botafogo",
       },
     });
     setIsLoading(false);
