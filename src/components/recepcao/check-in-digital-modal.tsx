@@ -279,6 +279,10 @@ function CheckInDigitalModal({
                 </>
               )}
             </button>
+
+            {Object.keys(deviceStatus).length > 0 && (
+              <StatusList status={deviceStatus} roomNumber={roomNumber} />
+            )}
           </div>
         ) : (
           <div className="space-y-4 py-2">
@@ -287,9 +291,12 @@ function CheckInDigitalModal({
                 <CheckCircle2 className="h-10 w-10 text-emerald-600" />
               </div>
               <p className="text-sm font-semibold text-slate-700 text-center">
-                Senhas offline geradas com sucesso!
+                Senhas offline geradas!
               </p>
             </div>
+
+            <StatusList status={deviceStatus} roomNumber={roomNumber} />
+
             <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
