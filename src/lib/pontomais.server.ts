@@ -23,20 +23,47 @@ export class PontomaisApiError extends Error {
 
 function toTime(value: unknown): string | null {
   if (!value || typeof value !== "string") return null;
-  const iso = value.includes("T") ? new Date(value) : null;
-  if (iso && !isNaN(iso.getTime())) {
-    return iso.toISOString().substring(11, 19);
-  }
   const m = value.match(/(\d{2}):(\d{2})(?::(\d{2}))?/);
   if (!m) return null;
   return `${m[1]}:${m[2]}:${m[3] ?? "00"}`;
 }
 
+function toTimes(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  const out: string[] = [];
+  const matches = value.matchAll(/(?:\b|T)([01]\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?/g);
+  for (const match of matches) out.push(`${match[1]}:${match[2]}:${match[3] ?? "00"}`);
+  return out;
+}
+
+function uniqueSortedTimes(times: string[]): string[] {
+  return [...new Set(times.filter(Boolean))].sort();
+}
+
+function collectTimesFromUnknown(value: unknown, depth = 0, out: string[] = []): string[] {
+  if (depth > 6 || value == null) return out;
+  if (typeof value === "string") {
+    out.push(...toTimes(value));
+    return out;
+  }
+  if (typeof value === "number") return out;
+  if (Array.isArray(value)) {
+    for (const item of value) collectTimesFromUnknown(item, depth + 1, out);
+    return out;
+  }
+  const rec = asRecord(value);
+  if (!rec) return out;
+  for (const [k, v] of Object.entries(rec)) {
+    if (/^(id|employee|user|person|created_at|updated_at|deleted_at)$/i.test(k)) continue;
+    collectTimesFromUnknown(v, depth + 1, out);
+  }
+  return out;
+}
+
 function collectTimesDeep(value: unknown, depth = 0, out: string[] = []): string[] {
   if (depth > 6 || value == null) return out;
   if (typeof value === "string") {
-    const t = toTime(value);
-    if (t) out.push(t);
+    out.push(...toTimes(value));
     return out;
   }
   if (typeof value === "number") return out;
@@ -48,7 +75,7 @@ function collectTimesDeep(value: unknown, depth = 0, out: string[] = []): string
   if (!rec) return out;
   for (const [k, v] of Object.entries(rec)) {
     // Ignora chaves obviamente não relacionadas a tempo para evitar falso-positivos
-    if (/^(id|employee|user|person|created_at|updated_at|deleted_at)$/i.test(k)) continue;
+    if (/^(id|employee|user|person|created_at|updated_at|deleted_at|shift_appointments|shift_name|shift_time|time_breaks|summary|extra_time|total_time|custom_interval_time|overnight_time|time_balance|motive)$/i.test(k)) continue;
     collectTimesDeep(v, depth + 1, out);
   }
   return out;
@@ -258,7 +285,11 @@ function authHeaders(token: string): Record<string, string> {
   };
 }
 
-async function pontomaisGet(url: string, token: string): Promise<unknown> {
+async function pontomaisRequest(
+  url: string,
+  token: string,
+  init?: { method?: "GET" | "POST"; body?: unknown },
+): Promise<unknown> {
   const headers = authHeaders(token);
   const fingerprint = await tokenFingerprint(token);
   console.log("Enviando requisição para Pontomais com token:", {
@@ -266,13 +297,19 @@ async function pontomaisGet(url: string, token: string): Promise<unknown> {
     tokenLength: token.length,
     hasAccessTokenHeader: Boolean(headers["access-token"]),
     hasAuthorizationHeader: false,
+    method: init?.method ?? "GET",
     url,
   });
   let res: Response;
   try {
-    res = await fetch(url, { method: "GET", headers });
+    res = await fetch(url, {
+      method: init?.method ?? "GET",
+      headers,
+      body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+    });
     console.log("Resposta bruta da Pontomais:", {
       url,
+      method: init?.method ?? "GET",
       status: res.status,
       statusText: res.statusText,
       ok: res.ok,
@@ -302,6 +339,318 @@ async function pontomaisGet(url: string, token: string): Promise<unknown> {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[pontomais] invalid JSON", { url, error: msg });
     throw new Error("Resposta da Pontomais em formato inesperado (JSON inválido).");
+  }
+}
+
+async function pontomaisGet(url: string, token: string): Promise<unknown> {
+  return pontomaisRequest(url, token, { method: "GET" });
+}
+
+async function pontomaisPost(url: string, token: string, body: unknown): Promise<unknown> {
+  return pontomaisRequest(url, token, { method: "POST", body });
+}
+
+function dateKeyFromValue(value: unknown): string | null {
+  const raw = asStringish(value)?.trim();
+  if (!raw) return null;
+  const iso = raw.match(/\d{4}-\d{2}-\d{2}/)?.[0];
+  if (iso) return iso;
+  const br = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return null;
+}
+
+function dateFromPontomaisRecord(record: JsonRecord | null): string | null {
+  if (!record) return null;
+  return dateKeyFromValue(
+    record.date ??
+      record.work_date ??
+      record.data ??
+      record.day ??
+      record.reference_date ??
+      record.period_date,
+  );
+}
+
+function normalizedEmployeeId(value: unknown): string | null {
+  const raw = asStringish(value)?.trim();
+  return raw || null;
+}
+
+function employeeIdFromPontomaisRecord(record: JsonRecord, hasOwnDate: boolean): string | null {
+  const employee = asRecord(record.employee);
+  const person = asRecord(record.person);
+  const user = asRecord(record.user);
+  const candidates = [
+    record.employee_id,
+    record.employeeId,
+    record.pontomais_employee_id,
+    record.pontomaisEmployeeId,
+    employee?.id,
+    employee?.employee_id,
+    person?.employee_id,
+    user?.employee_id,
+    !hasOwnDate ? record.id : null,
+  ];
+
+  for (const candidate of candidates) {
+    const id = normalizedEmployeeId(candidate);
+    if (id) return id;
+  }
+  return null;
+}
+
+function sameEmployeeId(a: unknown, b: unknown): boolean {
+  const aa = normalizedEmployeeId(a);
+  const bb = normalizedEmployeeId(b);
+  return Boolean(aa && bb && aa === bb);
+}
+
+const PONTOMAIS_ACTUAL_PUNCH_KEYS = [
+  "time_cards",
+  "timeCards",
+  "time_cards_entries",
+  "time_card_entries",
+  "time_entries",
+  "timeEntries",
+  "punches",
+  "entries",
+  "appointments",
+  "markings",
+  "records",
+  "batidas",
+  "marcacoes",
+];
+
+function structuredTimesFromRecord(record: JsonRecord): PontomaisRegistro {
+  return {
+    entrada: toTime(
+      record.entrada ??
+        record.entry ??
+        record.check_in ??
+        record.clock_in ??
+        record.start_time ??
+        record.first_in ??
+        record.in,
+    ),
+    almoco_saida: toTime(
+      record.almoco_saida ??
+        record.lunch_out ??
+        record.break_start ??
+        record.interval_start ??
+        record.pause_start,
+    ),
+    almoco_retorno: toTime(
+      record.almoco_retorno ??
+        record.lunch_in ??
+        record.break_end ??
+        record.interval_end ??
+        record.pause_end,
+    ),
+    saida: toTime(
+      record.saida ??
+        record.exit ??
+        record.check_out ??
+        record.clock_out ??
+        record.end_time ??
+        record.last_out ??
+        record.out,
+    ),
+  };
+}
+
+function hasAnyStructuredTime(registro: PontomaisRegistro): boolean {
+  return Boolean(
+    registro.entrada || registro.almoco_saida || registro.almoco_retorno || registro.saida,
+  );
+}
+
+function actualPunchTimesFromRecord(record: JsonRecord): string[] {
+  const times: string[] = [];
+  for (const key of PONTOMAIS_ACTUAL_PUNCH_KEYS) {
+    if (record[key] !== undefined && record[key] !== null) {
+      times.push(...collectTimesFromUnknown(record[key]));
+    }
+  }
+  return uniqueSortedTimes(times);
+}
+
+function registroFromOrderedPunches(punches: string[]): PontomaisRegistro {
+  return {
+    entrada: punches[0] ?? null,
+    almoco_saida: punches[1] ?? null,
+    almoco_retorno: punches[2] ?? null,
+    saida: punches.length > 1 ? punches[punches.length - 1] : null,
+  };
+}
+
+function hasPontomaisPunchData(record: JsonRecord): boolean {
+  if (hasAnyStructuredTime(structuredTimesFromRecord(record))) return true;
+  return actualPunchTimesFromRecord(record).length > 0;
+}
+
+type PontomaisDayRecord = {
+  record: JsonRecord;
+  date: string;
+  employeeId: string | null;
+};
+
+function collectPontomaisDayRecords(
+  value: unknown,
+  targetEmployeeId: string,
+  startDate: string,
+  endDate: string,
+  context: { employeeId?: string | null; date?: string | null } = {},
+  out: PontomaisDayRecord[] = [],
+  depth = 0,
+): PontomaisDayRecord[] {
+  if (depth > 8 || value == null) return out;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectPontomaisDayRecords(item, targetEmployeeId, startDate, endDate, context, out, depth + 1);
+    }
+    return out;
+  }
+
+  const record = asRecord(value);
+  if (!record) return out;
+
+  const ownDate = dateFromPontomaisRecord(record);
+  const date = ownDate ?? context.date ?? null;
+  const ownEmployeeId = employeeIdFromPontomaisRecord(record, Boolean(ownDate));
+  const employeeId = ownEmployeeId ?? context.employeeId ?? null;
+  const inRange = Boolean(date && date >= startDate && date <= endDate);
+  const employeeMatches = !employeeId || sameEmployeeId(employeeId, targetEmployeeId);
+
+  if (inRange && employeeMatches && hasPontomaisPunchData(record)) {
+    out.push({ record, date: date!, employeeId });
+  }
+
+  for (const [key, nested] of Object.entries(record)) {
+    if (PONTOMAIS_ACTUAL_PUNCH_KEYS.includes(key) && (ownDate || context.date)) continue;
+    if (/^(shift_appointments|shift_name|shift_time|time_breaks|summary|extra_time|total_time|custom_interval_time|overnight_time|time_balance|motive)$/i.test(key)) continue;
+    if (nested && (Array.isArray(nested) || typeof nested === "object")) {
+      collectPontomaisDayRecords(
+        nested,
+        targetEmployeeId,
+        startDate,
+        endDate,
+        { employeeId, date },
+        out,
+        depth + 1,
+      );
+    }
+  }
+
+  return out;
+}
+
+function parsePontomaisRegistrosPayload(params: {
+  payload: unknown;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+}): Record<string, PontomaisRegistro> {
+  const rows = collectPontomaisDayRecords(
+    params.payload,
+    params.employeeId,
+    params.startDate,
+    params.endDate,
+  );
+  const byDate: Record<string, PontomaisRegistro> = {};
+
+  console.log("[pontomais] linhas de batida compatíveis encontradas", {
+    employeeId: params.employeeId,
+    totalRows: rows.length,
+    datas: rows.map((row) => row.date),
+  });
+
+  for (const row of rows) {
+    const structured = structuredTimesFromRecord(row.record);
+    const punches = actualPunchTimesFromRecord(row.record);
+
+    if (punches.length > 0) {
+      byDate[row.date] = registroFromOrderedPunches(punches);
+      continue;
+    }
+
+    if (hasAnyStructuredTime(structured)) {
+      byDate[row.date] = structured;
+      continue;
+    }
+
+    const deep = uniqueSortedTimes(collectTimesDeep(row.record));
+    if (deep.length > 0) {
+      console.log("[pontomais] batidas extraídas via varredura profunda", {
+        employeeId: params.employeeId,
+        date: row.date,
+        totalEncontradas: deep.length,
+      });
+      byDate[row.date] = registroFromOrderedPunches(deep);
+    }
+  }
+
+  return byDate;
+}
+
+function buildPontomaisWorkDaysReportBody(params: {
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+  includeEmployeeFilter: boolean;
+}): unknown {
+  const report: Record<string, unknown> = {
+    start_date: params.startDate,
+    end_date: params.endDate,
+    group_by: "employee",
+    row_filters: "with_inactives,has_time_cards",
+    columns:
+      "date,shift_name,time_breaks,shift_appointments,time_cards,time_cards_entries,time_card_entries,time_entries,punches,appointments,summary,extra_time,total_time,shift_time,custom_interval_time,overnight_time,registration_number,time_balance,motive,employee_id",
+    format: "json",
+  };
+
+  if (params.includeEmployeeFilter) {
+    report.employee_id = params.employeeId;
+    report.employee_ids = [params.employeeId];
+  }
+
+  return { report };
+}
+
+async function fetchPontomaisWorkDaysReport(params: {
+  token: string;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+}): Promise<unknown> {
+  const url = `${getPontomaisBaseUrl()}/reports/work_days`;
+  const filteredBody = buildPontomaisWorkDaysReportBody({
+    employeeId: params.employeeId,
+    startDate: params.startDate,
+    endDate: params.endDate,
+    includeEmployeeFilter: true,
+  });
+
+  try {
+    return await pontomaisPost(url, params.token, filteredBody);
+  } catch (err) {
+    if (err instanceof PontomaisApiError && (err.status === 400 || err.status === 422)) {
+      console.warn(
+        "[pontomais] relatório não aceitou filtro direto por employee_id; tentando relatório do período e filtrando localmente",
+        { employeeId: params.employeeId, status: err.status },
+      );
+      return pontomaisPost(
+        url,
+        params.token,
+        buildPontomaisWorkDaysReportBody({
+          employeeId: params.employeeId,
+          startDate: params.startDate,
+          endDate: params.endDate,
+          includeEmployeeFilter: false,
+        }),
+      );
+    }
+    throw err;
   }
 }
 
@@ -385,22 +734,14 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
   const employeeId = String(params.employeeId).trim();
   if (!employeeId) throw new Error(`CPF ${cleanCpf ?? "sem CPF"} encontrado sem ID na Pontomais`);
 
-  const query = new URLSearchParams();
-  query.set("start_date", params.startDate);
-  query.set("end_date", params.endDate);
-  query.set("employee_id", String(employeeId));
-  query.set("q[employee_id_eq]", String(employeeId));
-  // Solicita explicitamente as batidas (entries) na resposta — sem isso a Pontomais
-  // devolve só resumos e o parser não encontra horários.
-  query.set(
-    "attributes",
-    "id,date,work_date,time_cards_entries,time_card_entries,time_entries,punches",
-  );
-
-  const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
   let payload: unknown;
   try {
-    payload = await pontomaisGet(url, token);
+    payload = await fetchPontomaisWorkDaysReport({
+      token,
+      employeeId,
+      startDate: params.startDate,
+      endDate: params.endDate,
+    });
   } catch (err) {
     if (err instanceof PontomaisApiError && err.status === 404) {
       console.warn("[pontomais] batidas não encontradas para funcionário no período", {
@@ -414,114 +755,23 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     throw err;
   }
 
-  console.log("JSON completo de batidas retornado pela Pontomais:", JSON.stringify(payload));
+  console.log("JSON completo de batidas retornado pela Pontomais:", payload);
 
-  const payloadRecord = asRecord(payload);
-  const rawRows =
-    payloadRecord?.time_cards ?? payloadRecord?.data ?? payloadRecord?.registros ?? [];
-  const rows: unknown[] = Array.isArray(rawRows) ? rawRows : [];
-  const byDate: Record<string, PontomaisRegistro> = {};
+  const byDate = parsePontomaisRegistrosPayload({
+    payload,
+    employeeId,
+    startDate: params.startDate,
+    endDate: params.endDate,
+  });
 
-  if (rows.length > 0) {
-    console.log("[pontomais] estrutura da primeira batida recebida", {
-      employeeId,
-      totalRows: rows.length,
-      firstRowKeys: Object.keys(asRecord(rows[0]) ?? {}),
-      firstRowSample: JSON.stringify(rows[0]).slice(0, 2000),
-    });
-  } else {
-    console.log("[pontomais] nenhuma batida retornada", {
+  if (Object.keys(byDate).length === 0) {
+    const payloadRecord = asRecord(payload);
+    console.log("[pontomais] nenhuma batida extraída do relatório", {
       employeeId,
       startDate: params.startDate,
       endDate: params.endDate,
       payloadKeys: payloadRecord ? Object.keys(payloadRecord) : null,
     });
-  }
-
-  for (const row of rows) {
-    const rowRecord = asRecord(row);
-    const date: string | undefined =
-      asStringish(rowRecord?.date ?? rowRecord?.work_date ?? rowRecord?.data ?? rowRecord?.day) ??
-      undefined;
-    if (!date) continue;
-    const key = String(date).substring(0, 10);
-
-    const structured: PontomaisRegistro = {
-      entrada: toTime(rowRecord?.entrada ?? rowRecord?.check_in ?? rowRecord?.entry),
-      almoco_saida: toTime(
-        rowRecord?.almoco_saida ?? rowRecord?.lunch_out ?? rowRecord?.break_start,
-      ),
-      almoco_retorno: toTime(
-        rowRecord?.almoco_retorno ?? rowRecord?.lunch_in ?? rowRecord?.break_end,
-      ),
-      saida: toTime(rowRecord?.saida ?? rowRecord?.check_out ?? rowRecord?.exit),
-    };
-
-    if (
-      structured.entrada ||
-      structured.saida ||
-      structured.almoco_saida ||
-      structured.almoco_retorno
-    ) {
-      byDate[key] = structured;
-      continue;
-    }
-
-    // Coleta batidas de todas as chaves conhecidas da Pontomais.
-    const punchSources = [
-      rowRecord?.time_cards_entries,
-      rowRecord?.time_card_entries,
-      rowRecord?.time_entries,
-      rowRecord?.punches,
-      rowRecord?.entries,
-    ];
-    const rawPunches: unknown[] = [];
-    for (const src of punchSources) {
-      if (Array.isArray(src)) rawPunches.push(...src);
-    }
-
-    const punches: string[] = rawPunches
-      .map((p) => {
-        const punchRecord = asRecord(p);
-        return toTime(
-          punchRecord?.time ??
-            punchRecord?.hora ??
-            punchRecord?.time_registration ??
-            punchRecord?.registered_at ??
-            punchRecord?.datetime ??
-            punchRecord?.date_time ??
-            p,
-        );
-      })
-      .filter(Boolean) as string[];
-    punches.sort();
-
-    if (punches.length === 0) {
-      // Fallback: varre recursivamente a linha em busca de horários (HH:MM[:SS])
-      const deep = collectTimesDeep(row);
-      deep.sort();
-      if (deep.length > 0) {
-        console.log("[pontomais] batidas extraídas via varredura profunda", {
-          employeeId,
-          date: key,
-          totalEncontradas: deep.length,
-        });
-        byDate[key] = {
-          entrada: deep[0] ?? null,
-          almoco_saida: deep[1] ?? null,
-          almoco_retorno: deep[2] ?? null,
-          saida: deep[deep.length - 1] ?? null,
-        };
-      }
-      continue;
-    }
-
-    byDate[key] = {
-      entrada: punches[0] ?? null,
-      almoco_saida: punches[1] ?? null,
-      almoco_retorno: punches[2] ?? null,
-      saida: punches[punches.length - 1] ?? null,
-    };
   }
 
   return { byDate };

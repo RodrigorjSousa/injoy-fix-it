@@ -37,14 +37,14 @@ export const syncPontomais = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let query = supabaseAdmin.from("funcionarios").select("id, nome, cpf");
+    let query = supabaseAdmin.from("funcionarios").select("id, nome, cpf, pontomais_employee_id");
     if (data.funcionarioIds && data.funcionarioIds.length > 0) {
       query = query.in("id", data.funcionarioIds);
     }
     const { data: funcionarios, error: fErr } = await query;
     if (fErr) throw new Error(fErr.message);
 
-    const pontomaisByCpf = await buildPontomaisEmployeeMapByCpf();
+    let pontomaisByCpf: Awaited<ReturnType<typeof buildPontomaisEmployeeMapByCpf>> | null = null;
 
     const results: Array<{
       funcionario_id: string;
@@ -56,25 +56,35 @@ export const syncPontomais = createServerFn({ method: "POST" })
     for (const f of funcionarios ?? []) {
       try {
         const cleanCpf = sanitizePontomaisCpf((f as any).cpf ?? null);
-        if (!cleanCpf) {
-          throw new Error(
-            "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto.",
-          );
-        }
+        const storedEmployeeId =
+          typeof (f as any).pontomais_employee_id === "string" &&
+          (f as any).pontomais_employee_id.trim() !== ""
+            ? (f as any).pontomais_employee_id.trim()
+            : null;
 
-        const pontomaisEmployee = pontomaisByCpf[cleanCpf];
-        if (!pontomaisEmployee) {
-          throw new Error(`CPF ${cleanCpf} não encontrado na base da Pontomais`);
-        }
+        let employeeId = storedEmployeeId;
+        if (!employeeId) {
+          if (!cleanCpf) {
+            throw new Error(
+              "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto.",
+            );
+          }
 
-        const employeeId = pontomaisEmployee.employeeId;
+          if (!pontomaisByCpf) pontomaisByCpf = await buildPontomaisEmployeeMapByCpf();
+          const pontomaisEmployee = pontomaisByCpf[cleanCpf];
+          if (!pontomaisEmployee) {
+            throw new Error(`CPF ${cleanCpf} não encontrado na base da Pontomais`);
+          }
 
-        const { error: updErr } = await supabaseAdmin
-          .from("funcionarios")
-          .update({ pontomais_employee_id: employeeId })
-          .eq("id", f.id);
-        if (updErr) {
-          console.warn("[pontomais] falha ao salvar ID atualizado", updErr.message);
+          employeeId = pontomaisEmployee.employeeId;
+
+          const { error: updErr } = await supabaseAdmin
+            .from("funcionarios")
+            .update({ pontomais_employee_id: employeeId })
+            .eq("id", f.id);
+          if (updErr) {
+            console.warn("[pontomais] falha ao salvar ID atualizado", updErr.message);
+          }
         }
 
         const { byDate } = await fetchPontomaisRegistrosByEmployeeId({
