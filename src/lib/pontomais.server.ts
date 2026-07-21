@@ -222,8 +222,34 @@ export async function fetchPontomaisRegistros(params: {
   let employeeId: number | string | null = null;
 
   if (explicitId) {
-    // ID fornecido explicitamente pelo gestor — pula a busca por CPF/e-mail.
-    employeeId = explicitId;
+    // ID fornecido explicitamente pelo gestor — valida contra a Pontomais antes
+    // de consultar batimentos, para produzir mensagem clara caso o ID esteja
+    // errado ou não pertença à conta do token configurado.
+    try {
+      const check = await pontomaisGet(
+        `${getPontomaisBaseUrl()}/employees/${encodeURIComponent(explicitId)}`,
+        token,
+      );
+      const found = check?.employee ?? check?.data ?? check;
+      const foundId = found?.id ?? found?.employee_id;
+      if (!foundId) {
+        throw new PontomaisApiError(
+          404,
+          "",
+          `ID Pontomais "${explicitId}" não retornou dados válidos. Confirme o número na URL do perfil (…/employees/NUMERO).`,
+        );
+      }
+      employeeId = foundId;
+    } catch (err) {
+      if (err instanceof PontomaisApiError && err.status === 404) {
+        throw new PontomaisApiError(
+          404,
+          err.body,
+          `ID Pontomais "${explicitId}" não encontrado na conta vinculada ao token. Verifique se o número está correto e se o token tem permissão para ver este colaborador.`,
+        );
+      }
+      throw err;
+    }
   } else {
     if (!cleanCpf && !cleanEmail) {
       throw new Error(
@@ -245,6 +271,7 @@ export async function fetchPontomaisRegistros(params: {
       );
     }
   }
+
 
 
   const query = new URLSearchParams();
