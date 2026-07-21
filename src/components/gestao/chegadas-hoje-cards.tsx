@@ -25,48 +25,62 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
   const [openNovas, setOpenNovas] = useState(false);
   const [rows, setRows] = useState<ReservaHoje[]>([]);
   const [totalReceita, setTotalReceita] = useState(0);
+  const [feitas, setFeitas] = useState<ReservaFeita[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorFeitas, setErrorFeitas] = useState<string | null>(null);
   const call = useServerFn(getReservasHoje);
+  const callFeitas = useServerFn(getReservasFeitasHoje);
   const mountedRef = useRef(false);
 
   const carregar = useCallback(async () => {
     if (mountedRef.current) {
       setFetching(true);
       setError(null);
+      setErrorFeitas(null);
     }
     try {
-      const res = await call({ data: { property: unidade } });
+      const [res, resFeitas] = await Promise.allSettled([
+        call({ data: { property: unidade } }),
+        callFeitas({ data: { property: unidade } }),
+      ]);
       if (!mountedRef.current) return;
-      const list = [...res.reservas].sort((a, b) =>
-        String(a.quarto).localeCompare(String(b.quarto), undefined, { numeric: true }),
-      );
-      setRows(list);
-      setTotalReceita(res.totalReceita);
-    } catch (err) {
-      if (!mountedRef.current) return;
-      const msg = err instanceof Error ? err.message : "Falha ao consultar Cloudbeds";
-      setError(msg);
+      if (res.status === "fulfilled") {
+        const list = [...res.value.reservas].sort((a, b) =>
+          String(a.quarto).localeCompare(String(b.quarto), undefined, { numeric: true }),
+        );
+        setRows(list);
+        setTotalReceita(res.value.totalReceita);
+      } else {
+        setError(res.reason instanceof Error ? res.reason.message : "Falha ao consultar Cloudbeds");
+      }
+      if (resFeitas.status === "fulfilled") {
+        setFeitas(resFeitas.value.reservas);
+      } else {
+        setErrorFeitas(
+          resFeitas.reason instanceof Error ? resFeitas.reason.message : "Falha ao consultar Cloudbeds",
+        );
+      }
     } finally {
       if (mountedRef.current) {
         setFetching(false);
         setLoading(false);
       }
     }
-  }, [call, unidade]);
+  }, [call, callFeitas, unidade]);
 
   useEffect(() => {
     mountedRef.current = true;
     setLoading(true);
     carregar();
-    // Atualiza automaticamente a cada 15 minutos (fonte Cloudbeds)
     const iv = setInterval(carregar, 15 * 60 * 1000);
     return () => {
       mountedRef.current = false;
       clearInterval(iv);
     };
   }, [unidade, carregar]);
+
 
   const total = rows.length;
 
