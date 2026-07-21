@@ -73,6 +73,9 @@ function ControlePontoPage() {
   const [syncing, setSyncing] = useState(false);
   const [editando, setEditando] = useState<Funcionario | null>(null);
   const [adicionando, setAdicionando] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<
+    Record<string, { dias: number; error?: string }>
+  >({});
 
   const syncFn = useServerFn(syncPontomais);
 
@@ -142,12 +145,17 @@ function ControlePontoPage() {
           endDate: dataSelecionada,
         },
       });
-      const errored = (res.results ?? []).filter((r) => r.error);
+      const results = res.results ?? [];
+      const statusMap: Record<string, { dias: number; error?: string }> = {};
+      for (const r of results) {
+        statusMap[r.funcionario_id] = { dias: r.dias, error: r.error };
+      }
+      setSyncStatus(statusMap);
+      const errored = results.filter((r) => r.error);
       if (errored.length > 0) {
-        const first = errored[0];
         toast.error(
-          `${errored.length} funcionário(s) com erro. Ex.: ${first.nome} — ${first.error}`,
-          { id: t, duration: 8000 },
+          `${errored.length} funcionário(s) com erro. Veja o status na tabela.`,
+          { id: t, duration: 6000 },
         );
         console.error("[controle-ponto] erros de sync", errored);
       } else {
@@ -250,20 +258,21 @@ function ControlePontoPage() {
                   <th className="text-center px-3 py-3">Almoço ida</th>
                   <th className="text-center px-3 py-3">Almoço volta</th>
                   <th className="text-center px-3 py-3">Saída</th>
+                  <th className="text-center px-3 py-3">Status</th>
                   <th className="text-center px-3 py-3">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-slate-400">
+                    <td colSpan={9} className="text-center py-8 text-slate-400">
                       Carregando...
                     </td>
                   </tr>
                 )}
                 {!loading && funcionariosUnidade.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-slate-400">
+                    <td colSpan={9} className="text-center py-8 text-slate-400">
                       Nenhum funcionário nesta unidade
                     </td>
                   </tr>
@@ -295,6 +304,27 @@ function ControlePontoPage() {
                         <td className="text-center font-mono">{formatTime(r?.almoco_saida ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.almoco_retorno ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.saida ?? null)}</td>
+                        <td className="px-2 py-3 text-center">
+                          {(() => {
+                            const s = syncStatus[f.id];
+                            if (!s) return <span className="text-slate-300 text-xs">—</span>;
+                            if (s.error) {
+                              return (
+                                <span
+                                  title={s.error}
+                                  className="inline-block max-w-[180px] truncate rounded-full bg-red-100 px-2 py-1 text-[10px] font-semibold text-red-700"
+                                >
+                                  ✗ {s.error}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-block rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+                                ✓ {s.dias} dia(s)
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td className="text-center">
                           <div className="inline-flex items-center gap-1">
                             <button
