@@ -12,12 +12,9 @@ serve(async (req) => {
   try {
     const { deviceIds, guestName, startTime, endTime } = await req.json();
 
-    const clientId = Deno.env.get("TUYA_CLIENT_ID") ?? "vv57ktpj3ka4prqhfm9r";
-    const secret =
-      Deno.env.get("TUYA_CLIENT_SECRET") ?? "e62b5e3d534548aa99ab458af9bd72b2";
-    const baseUrl = Deno.env.get("TUYA_BASE_URL") ?? "https://openapi.tuyaus.com";
-
-    const password = Math.floor(100000 + Math.random() * 900000).toString();
+    const clientId = "vv57ktpj3ka4prqhfm9r";
+    const secret = "e62b5e3d534548aa99ab458af9bd72b2";
+    const baseUrl = "https://openapi.tuyaus.com";
 
     const calcSha256 = async (str: string) => {
       const msgUint8 = new TextEncoder().encode(str);
@@ -54,7 +51,7 @@ serve(async (req) => {
         .toUpperCase();
     };
 
-    // 1. Get Tuya access token
+    // 1. Obter Access Token
     const t1 = Date.now().toString();
     const signStr1 = `GET\n${await calcSha256("")}\n\n/v1.0/token?grant_type=1`;
     const sign1 = await calcSign(clientId, "", t1, "", signStr1, secret);
@@ -69,25 +66,31 @@ serve(async (req) => {
       },
     });
     const tokenData = await tokenRes.json();
-
     if (!tokenData.success)
       throw new Error("Erro de Token Tuya: " + JSON.stringify(tokenData));
     const accessToken = tokenData.result.access_token;
 
-    // 2. Push password to each device
-    const results = [];
+    // Regra Tuya: Timestamp em segundos, arredondado para a hora cheia (Floor)
+    const effectiveTime = Math.floor(startTime / 3600000) * 3600;
+    let invalidTime = Math.floor(endTime / 3600000) * 3600;
+    if (invalidTime <= effectiveTime) invalidTime = effectiveTime + 3600;
+
+    const results: Array<{ deviceId: string; status: unknown }> = [];
+    const senhasGeradas: Record<string, string> = {};
+
+    // 2. Loop para Gerar Senhas Offline
     for (const deviceId of deviceIds) {
       const t2 = Date.now().toString();
 
-      const bodyStr = JSON.stringify({
+      const bodyObj = {
         name: (guestName || "Hospede").substring(0, 10),
-        password,
-        effective_time: Math.floor(startTime / 1000),
-        invalid_time: Math.floor(endTime / 1000),
-        type: 1,
-      });
+        effective_time: effectiveTime,
+        invalid_time: invalidTime,
+        type: "multiple",
+      };
+      const bodyStr = JSON.stringify(bodyObj);
 
-      const url = `/v1.0/devices/${deviceId}/door-lock/temp-password`;
+      const url = `/v1.1/devices/${deviceId}/door-lock/offline-temp-password`;
       const signStr2 = `POST\n${await calcSha256(bodyStr)}\n\n${url}`;
       const sign2 = await calcSign(clientId, accessToken, t2, "", signStr2, secret);
 
@@ -105,10 +108,14 @@ serve(async (req) => {
       });
       const lockData = await lockRes.json();
       results.push({ deviceId, status: lockData });
+
+      if (lockData.success && lockData.result) {
+        senhasGeradas[deviceId] = lockData.result.offline_temp_password;
+      }
     }
 
     return new Response(
-      JSON.stringify({ success: true, password, tuyaResults: results }),
+      JSON.stringify({ success: true, senhas: senhasGeradas, tuyaResults: results }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (error) {
