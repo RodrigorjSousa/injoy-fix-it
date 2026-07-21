@@ -336,3 +336,101 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const totalReceita = filtered.reduce((s, r) => s + r.receita, 0);
     return { reservas: filtered, totalReceita, data: hoje };
   });
+
+export type ReservaFeita = {
+  reservationID: string;
+  hospede: string;
+  checkIn: string;
+  checkOut: string;
+  dateCreated: string;
+  status: string;
+  receita: number;
+};
+
+/**
+ * Lista as reservas CRIADAS hoje (novas reservas feitas no dia),
+ * espelhando o painel "Reservas Feitas" do Cloudbeds.
+ */
+export const getReservasFeitasHoje = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => inputSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles, error: rErr } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    if (rErr) throw new Error("Falha ao validar permissões");
+    const roleSet = new Set((roles ?? []).map((r) => r.role));
+    if (!(roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira"))) {
+      throw new Error("Sem permissão");
+    }
+
+    const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
+    const property = data.property.toLowerCase() as "ipanema" | "botafogo";
+    const hoje = data.date ?? todayISO();
+
+    const fetchPage = async (pageNumber: number) => {
+      const qs = new URLSearchParams({
+        resultsFrom: hoje,
+        resultsTo: hoje,
+        pageSize: "100",
+        pageNumber: String(pageNumber),
+        sortByRecent: "true",
+      });
+      const res = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        if (res.status >= 500) {
+          throw new Error(
+            `Cloudbeds está temporariamente indisponível (código ${res.status}). Tente novamente em alguns instantes.`,
+          );
+        }
+        throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
+      }
+      return (await res.json()) as {
+        success?: boolean;
+        data?: Array<Record<string, unknown>>;
+        total?: number | string;
+        count?: number | string;
+      };
+    };
+
+    const firstPage = await fetchPage(1);
+    if (firstPage.success === false) throw new Error("Cloudbeds retornou erro");
+    const rawList = [...(firstPage.data ?? [])];
+
+    const reservas: ReservaFeita[] = rawList.map((r) => {
+      const rec = r as Record<string, unknown>;
+      const nome =
+        (rec.guestName as string) ||
+        [rec.guestFirstName, rec.guestLastName].filter(Boolean).join(" ").trim() ||
+        "Hóspede";
+      const created = dateOnly(
+        rec.dateCreated ?? rec.reservationDateCreated ?? rec.createdAt ?? rec.bookingDate ?? "",
+      );
+      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn ?? "");
+      const co = dateOnly(rec.reservationCheckOut ?? rec.endDate ?? rec.checkOut ?? "");
+      const receita = moneyNumber(
+        (rec as Record<string, unknown>).grandTotal ??
+          (rec as Record<string, unknown>).total ??
+          (rec as Record<string, unknown>).totalCost ??
+          (rec as Record<string, unknown>).balanceTotal ??
+          0,
+      );
+      return {
+        reservationID: String(rec.reservationID ?? ""),
+        hospede: nome,
+        checkIn: ci,
+        checkOut: co,
+        dateCreated: created,
+        status: String(rec.status ?? ""),
+        receita,
+      };
+    });
+
+    // Ordena mais recentes primeiro e limita a 10 (como o painel do Cloudbeds).
+    reservas.sort((a, b) => (b.dateCreated || "").localeCompare(a.dateCreated || ""));
+    const top = reservas.slice(0, 10);
+    return { reservas: top, total: reservas.length, data: hoje };
+  });
