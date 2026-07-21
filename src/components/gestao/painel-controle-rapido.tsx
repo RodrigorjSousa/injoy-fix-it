@@ -283,6 +283,7 @@ export function PainelControleRapido({ unidade }: Props) {
       </div>
 
       <BonificacaoPanelModal open={bonifOpen} onOpenChange={setBonifOpen} unidade={unidade} />
+      <PontoFuncionariosModal open={pontoOpen} onOpenChange={setPontoOpen} unidade={unidade} />
 
 
       {/* Modal Vistoria */}
