@@ -43,7 +43,7 @@ export function CheckInDigitalButton({ roomNumber = "005" }: { roomNumber?: stri
         onClick={() => setOpen(true)}
         className="w-full py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-teal-50 hover:bg-teal-100 text-teal-700 flex items-center justify-center gap-2 transition-all"
       >
-        <Key size={16} /> Check-in Digital
+        <Key size={16} /> Check-in Digital Online
       </button>
       {open && (
         <CheckInDigitalModal
