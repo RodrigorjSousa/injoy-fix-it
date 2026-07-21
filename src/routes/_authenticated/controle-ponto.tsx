@@ -258,6 +258,7 @@ function ControlePontoPage() {
                   <th className="text-center px-3 py-3">Almoço ida</th>
                   <th className="text-center px-3 py-3">Almoço volta</th>
                   <th className="text-center px-3 py-3">Saída</th>
+                  <th className="text-center px-3 py-3">Status</th>
                   <th className="text-center px-3 py-3">Ações</th>
                 </tr>
               </thead>
