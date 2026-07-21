@@ -219,8 +219,18 @@ function CheckInDigitalModal({
     }
   };
 
+  const copiarSenha = async () => {
+    if (!senhaUnica) return;
+    try {
+      await navigator.clipboard.writeText(senhaUnica);
+      toast.success("Senha copiada!");
+    } catch {
+      toast.error("Não foi possível copiar.");
+    }
+  };
+
   const copiarWhatsapp = async () => {
-    if (!senhasGeradas) return;
+    if (!senhaUnica) return;
     const saidaFmt = new Date(saida).toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -228,12 +238,26 @@ function CheckInDigitalModal({
       hour: "2-digit",
       minute: "2-digit",
     });
-    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\n\nAqui estão as suas senhas de acesso exclusivas.\n⚠️ *IMPORTANTE:* Digite a senha no teclado e aperte a tecla *#* (Jogo da Velha) no final para a porta abrir.\n\n🚪 *Portão Principal (Rua):* ${senhasGeradas[DEVICE_PORTAO] || "Gerando..."}\n🚪 *Porta de Vidro (Recepção):* ${senhasGeradas[DEVICE_VIDRO] || "Gerando..."}\n🛏️ *Quarto ${roomNumber}:* ${senhasGeradas[DEVICE_QUARTO_005] || "Gerando..."}\n\nO seu acesso é válido até ${saidaFmt}.\nTenha uma excelente estadia!`;
+    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\n\n🔐 *Sua senha de acesso online (única para todas as portas):* ${senhaUnica}\n\n⚠️ *IMPORTANTE:* Digite a senha no teclado e aperte a tecla *#* (Jogo da Velha) no final para a porta abrir.\n\nUse a mesma senha em:\n🚪 Portão Principal (Rua)\n🚪 Porta de Vidro (Recepção)\n🛏️ Quarto ${roomNumber}\n\nO seu acesso é válido até ${saidaFmt}.\nTenha uma excelente estadia!`;
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Mensagem copiada!");
     } catch {
       toast.error("Não foi possível copiar.");
+    }
+  };
+
+  const compartilharSenha = async () => {
+    if (!senhaUnica) return;
+    const texto = `Senha de acesso online INJOY Botafogo (Quarto ${roomNumber}): ${senhaUnica}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Senha de Acesso Online", text: texto });
+      } catch {
+        /* user cancelled */
+      }
+    } else {
+      await copiarSenha();
     }
   };
 
@@ -243,10 +267,10 @@ function CheckInDigitalModal({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Key className="h-5 w-5 text-teal-600" />
-            Gerar Senha de Acesso (Quarto {roomNumber})
+            Gerar Senha de Acesso Online (Quarto {roomNumber})
           </DialogTitle>
           <DialogDescription>
-            Senhas offline únicas por fechadura, sincronizadas via Tuya.
+            Senha online única, sincronizada remotamente com todas as fechaduras via Tuya Cloud.
           </DialogDescription>
         </DialogHeader>
 
@@ -300,12 +324,12 @@ function CheckInDigitalModal({
               {isLoading ? (
                 <>
                   <Loader2 size={16} className="animate-spin" />
-                  Gerando senhas offline...
+                  Gerando Senha Online...
                 </>
               ) : (
                 <>
                   <Key size={16} />
-                  Gerar Senhas Offline
+                  Gerar Senha Online
                 </>
               )}
             </button>
@@ -316,50 +340,61 @@ function CheckInDigitalModal({
           </div>
         ) : (
           <div className="space-y-4 py-2">
-            <div className="flex flex-col items-center gap-3">
+            <div className="flex flex-col items-center gap-2">
               <div className="h-16 w-16 rounded-full bg-emerald-100 grid place-items-center">
                 <CheckCircle2 className="h-10 w-10 text-emerald-600" />
               </div>
               <p className="text-sm font-semibold text-slate-700 text-center">
-                Senhas offline geradas!
+                Senha online gerada com sucesso!
               </p>
+            </div>
+
+            <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 text-center">
+                🔐 Senha de Acesso Online
+              </p>
+              <div className="flex items-center justify-center gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  value={senhaUnica ?? ""}
+                  className="flex-1 bg-white border border-teal-200 rounded-lg px-3 py-2 font-mono text-3xl font-bold tracking-widest text-teal-800 text-center focus:outline-none"
+                />
+              </div>
+              <p className="text-[11px] text-teal-700 text-center">
+                Use esta senha em <strong>todas</strong> as portas: Portão Principal, Porta de Vidro e Quarto {roomNumber}.
+              </p>
+              <p className="text-[10px] text-teal-600 text-center">
+                Válida de {new Date(entrada).toLocaleString("pt-BR")} até {new Date(saida).toLocaleString("pt-BR")}.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={copiarSenha}
+                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2"
+              >
+                <Copy size={14} /> Copiar
+              </button>
+              <button
+                type="button"
+                onClick={compartilharSenha}
+                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2"
+              >
+                <Share2 size={14} /> Compartilhar
+              </button>
             </div>
 
             <StatusList status={deviceStatus} roomNumber={roomNumber} />
 
-            <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
-                  🚪 Portão Principal
-                </p>
-                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
-                  {senhasGeradas[DEVICE_PORTAO] || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
-                  🚪 Porta de Vidro
-                </p>
-                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
-                  {senhasGeradas[DEVICE_VIDRO] || "—"}
-                </p>
-              </div>
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
-                  🛏️ Quarto {roomNumber}
-                </p>
-                <p className="font-mono text-2xl font-bold tracking-widest text-teal-800">
-                  {senhasGeradas[DEVICE_QUARTO_005] || "—"}
-                </p>
-              </div>
-            </div>
             <button
               type="button"
               onClick={copiarWhatsapp}
               className="w-full py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
             >
               <Copy size={16} />
-              Copiar para WhatsApp
+              Copiar mensagem para WhatsApp
             </button>
 
             <TroubleshootingTips open={showTips} onToggle={() => setShowTips((v) => !v)} />
