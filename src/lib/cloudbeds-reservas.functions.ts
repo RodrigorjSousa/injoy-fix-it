@@ -137,12 +137,17 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     }
 
     const rows: ReservaHoje[] = [];
-    if (rawList.length > 0) {
+    const todayRec = rawList.find((r) => {
+      const rec = r as Record<string, unknown>;
+      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
+      return ci === hoje;
+    });
+    if (todayRec) {
       try {
-        console.log("[chegadas-hoje] hoje=", hoje, "sample=", JSON.stringify(rawList[0]).slice(0, 1500));
+        console.log("[chegadas-hoje] hoje=", hoje, "todaySample=", JSON.stringify(todayRec).slice(0, 3000));
       } catch {}
     } else {
-      console.log("[chegadas-hoje] hoje=", hoje, "sem reservas retornadas");
+      console.log("[chegadas-hoje] hoje=", hoje, "total=", rawList.length, "sem reservas checkIn=hoje");
     }
     for (const r of rawList) {
 
