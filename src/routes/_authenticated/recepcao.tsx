@@ -704,9 +704,11 @@ function RecepcaoPage() {
                       }
                       return null;
                     })()}
-                  {q.unidade === "Botafogo" && padQuarto(q.quarto) === "005" && (
-                    <CheckInDigitalButton roomNumber="005" />
-                  )}
+                  <CheckInDigitalButton
+                    roomNumber={padQuarto(q.quarto)}
+                    unidade={q.unidade}
+                  />
+
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
