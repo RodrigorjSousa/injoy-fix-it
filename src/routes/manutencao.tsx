@@ -1,5 +1,4 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useServerFn } from "@tanstack/react-start";
 import {
   Cog,
   ClipboardCheck,
@@ -45,7 +44,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { adjustPreventiveLogDate } from "@/lib/preventive-maintenance.functions";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -565,7 +563,6 @@ function ChecklistModal({
   canAdjustDates: boolean;
 }) {
   const qc = useQueryClient();
-  const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
   const [notes, setNotes] = useState("");
@@ -630,9 +627,13 @@ function ChecklistModal({
       if (!editingDate) throw new Error("Selecione uma manutenção para ajustar.");
       if (!executionDate) throw new Error("Informe a data executada.");
 
-      const updated = await adjustPreventiveLogDateFn({
-        data: { logId: editingDate.logId, executionDate },
+      const { data: rows, error } = await supabase.rpc("adjust_preventive_log_date", {
+        _log_id: editingDate.logId,
+        _new_date: executionDate,
       });
+      if (error) throw new Error(error.message);
+      const updated = Array.isArray(rows) ? rows[0] : rows;
+      if (!updated) throw new Error("Registro de manutenção não encontrado.");
 
       return updated as { id: string; next_due_date: string };
     },
