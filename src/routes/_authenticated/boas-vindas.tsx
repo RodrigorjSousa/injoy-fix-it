@@ -57,8 +57,16 @@ type RoomRow = {
   condition: string | null;
   assigned_camareira: string | null;
   guest_name: string | null;
+  pax: number | null;
+  has_pending_payment: boolean | null;
+  pending_payment_amount: number | null;
+  has_pending_docs: boolean | null;
+  arrival_time: string | null;
+  assigned_task: string | null;
   updated_at: string;
 };
+
+type MetricDetail = "ocupacao" | "balcao" | "docs";
 function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
   if (r.condition === "maintenance") return "bloqueados";
   if (r.status === "clean") return "prontos";
