@@ -36,6 +36,60 @@ function sanitizeCpf(cpf: string | null | undefined): string | null {
   return digits.length === 11 ? digits : null;
 }
 
+function cpfFromPontomaisEmployee(row: any): string | null {
+  const candidates = [
+    row?.cpf,
+    row?.document,
+    row?.document_number,
+    row?.documentNumber,
+    row?.registration_number,
+    row?.registrationNumber,
+    row?.employee?.cpf,
+    row?.employee?.document,
+    row?.person?.cpf,
+    row?.person?.document,
+  ];
+
+  for (const value of candidates) {
+    const clean = sanitizeCpf(typeof value === "string" || typeof value === "number" ? String(value) : null);
+    if (clean) return clean;
+  }
+
+  return null;
+}
+
+function employeeIdFromPontomaisRow(row: any): number | string | null {
+  const id = row?.id ?? row?.employee_id ?? row?.employeeId ?? row?.employee?.id;
+  return id !== undefined && id !== null && String(id).trim() !== "" ? id : null;
+}
+
+function employeesFromPayload(payload: any): any[] {
+  const list =
+    payload?.employees ??
+    payload?.data ??
+    payload?.records ??
+    payload?.items ??
+    payload?.results ??
+    (Array.isArray(payload) ? payload : []);
+  return Array.isArray(list) ? list : [];
+}
+
+function nextPageFromPayload(payload: any, currentPage: number, currentCount: number): number | null {
+  const explicitNext = payload?.next_page ?? payload?.nextPage ?? payload?.pagination?.next_page;
+  if (explicitNext !== undefined && explicitNext !== null && explicitNext !== false) {
+    const next = Number(explicitNext);
+    return Number.isFinite(next) && next > currentPage ? next : null;
+  }
+
+  const totalPages = Number(payload?.total_pages ?? payload?.totalPages ?? payload?.pagination?.total_pages);
+  if (Number.isFinite(totalPages) && currentPage < totalPages) return currentPage + 1;
+
+  const perPage = Number(payload?.per_page ?? payload?.perPage ?? payload?.pagination?.per_page);
+  if (Number.isFinite(perPage) && currentCount >= perPage) return currentPage + 1;
+
+  return null;
+}
+
 function friendlyErrorMessage(status: number, body: string): string {
   const snippet = body ? ` — ${body.slice(0, 200)}` : "";
   switch (status) {
@@ -164,28 +218,54 @@ async function resolveEmployeeId(params: {
   if (!cpf) return null;
 
   // Busca EXCLUSIVAMENTE por CPF — e-mail ignorado a pedido do gestor.
-  const attempts: string[] = [
-    `/employees?q[cpf_eq]=${encodeURIComponent(cpf)}&per_page=1`,
-    `/employees?cpf=${encodeURIComponent(cpf)}&per_page=1`,
-    `/employees?search=${encodeURIComponent(cpf)}&per_page=1`,
+  // Nunca use /employees/{cpf}: esse caminho é para ID interno e retorna 404.
+  const cleanCpf = sanitizeCpf(cpf);
+  if (!cleanCpf) return null;
+
+  const filteredAttempts: string[] = [
+    `/employees?q[cpf_eq]=${encodeURIComponent(cleanCpf)}&per_page=100`,
+    `/employees?cpf=${encodeURIComponent(cleanCpf)}&per_page=100`,
+    `/employees?search=${encodeURIComponent(cleanCpf)}&per_page=100`,
   ];
 
-  for (const path of attempts) {
+  for (const path of filteredAttempts) {
     try {
       const payload = await pontomaisGet(`${getPontomaisBaseUrl()}${path}`, token);
-      const list: any[] =
-        payload?.employees ?? payload?.data ?? payload?.records ?? (Array.isArray(payload) ? payload : []);
-      if (!Array.isArray(list) || list.length === 0) continue;
+      const list = employeesFromPayload(payload);
+      if (list.length === 0) continue;
 
       const hit =
-        list.find((row: any) => String(row?.cpf ?? row?.document ?? "").replace(/\D/g, "") === cpf) ??
-        list[0];
-      const id = hit?.id ?? hit?.employee_id ?? hit?.employeeId;
-      if (id !== undefined && id !== null) return id;
+        list.find((row: any) => cpfFromPontomaisEmployee(row) === cleanCpf) ??
+        (list.length === 1 ? list[0] : null);
+      const id = hit ? employeeIdFromPontomaisRow(hit) : null;
+      if (id) return id;
     } catch (err) {
       if (err instanceof PontomaisApiError && err.status === 404) continue;
       throw err;
     }
+  }
+
+  // Fallback mais seguro: lista funcionários e cruza o CPF localmente.
+  // Isso evita depender de parâmetros não suportados pela API e elimina o 404 em massa.
+  let page = 1;
+  const visitedPages = new Set<number>();
+
+  while (!visitedPages.has(page) && page <= 100) {
+    visitedPages.add(page);
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("per_page", "100");
+
+    const payload = await pontomaisGet(`${getPontomaisBaseUrl()}/employees?${query.toString()}`, token);
+    const list = employeesFromPayload(payload);
+
+    const hit = list.find((row: any) => cpfFromPontomaisEmployee(row) === cleanCpf);
+    const id = hit ? employeeIdFromPontomaisRow(hit) : null;
+    if (id) return id;
+
+    const nextPage = nextPageFromPayload(payload, page, list.length);
+    if (!nextPage || list.length === 0) break;
+    page = nextPage;
   }
 
   return null;
