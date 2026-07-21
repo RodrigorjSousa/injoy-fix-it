@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Key } from "lucide-react";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
+import { TuyaLogsButton } from "@/components/recepcao/tuya-logs-modal";
 import { useUnidade } from "@/lib/unidade-context";
 
 export const Route = createFileRoute("/_authenticated/check-in-digital")({
@@ -38,6 +39,9 @@ function CheckInDigitalPage() {
             </div>
           </div>
           <CheckInDigitalButton roomNumber="005" />
+          <div className="mt-3">
+            <TuyaLogsButton />
+          </div>
         </div>
       ) : (
         <div className="bg-white p-6 rounded-2xl border border-dashed border-slate-300 text-center max-w-xl">
@@ -47,6 +51,9 @@ function CheckInDigitalPage() {
           <p className="text-xs text-slate-400 mt-1">
             Novos dispositivos aparecerão aqui conforme forem instalados.
           </p>
+          <div className="mt-4 max-w-xs mx-auto">
+            <TuyaLogsButton />
+          </div>
         </div>
       )}
     </div>
