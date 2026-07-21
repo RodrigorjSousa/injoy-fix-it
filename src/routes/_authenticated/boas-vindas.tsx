@@ -526,7 +526,11 @@ function BoasVindas() {
 
           {/* 3 cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("ocupacao")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-teal-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">Taxa de Ocupação Hoje</span>
                 <TrendingUp size={16} />
@@ -539,10 +543,15 @@ function BoasVindas() {
                     style={{ width: `${Math.min(100, Math.max(0, metricas.taxaOcupacao))}%` }}
                   />
                 </div>
+                <p className="text-[10px] text-teal-300/80 font-bold uppercase tracking-wider">Clique para ver quartos ocupados</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("balcao")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-red-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">A Receber no Balcão</span>
                 <DollarSign size={16} className="text-red-400" />
@@ -558,10 +567,15 @@ function BoasVindas() {
                 <p className="text-[10px] text-slate-400 font-bold">
                   Cobrança ativa obrigatória no check-in
                 </p>
+                <p className="text-[10px] text-red-300/80 font-bold uppercase tracking-wider">Clique para ver hóspedes com saldo</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("docs")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-amber-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">Docs Pendentes</span>
                 <FileText size={16} className="text-amber-400" />
@@ -571,9 +585,11 @@ function BoasVindas() {
                 <p className="text-[10px] text-slate-400 font-bold">
                   Falta preenchimento de ficha de entrada
                 </p>
+                <p className="text-[10px] text-amber-300/80 font-bold uppercase tracking-wider">Clique para ver hóspedes pendentes</p>
               </div>
-            </div>
+            </button>
           </div>
+
         </>
       ) : (
         (() => {
