@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, KeyRound, Loader2, Save, X } from "lucide-react";
+import { Plus, Trash2, KeyRound, Loader2, Save, X, Wifi, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
+
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import {
