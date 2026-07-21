@@ -73,6 +73,9 @@ function ControlePontoPage() {
   const [syncing, setSyncing] = useState(false);
   const [editando, setEditando] = useState<Funcionario | null>(null);
   const [adicionando, setAdicionando] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<
+    Record<string, { dias: number; error?: string }>
+  >({});
 
   const syncFn = useServerFn(syncPontomais);
 
