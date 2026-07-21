@@ -744,6 +744,8 @@ function BoasVindas() {
         </div>
       )}
 
+      {visaoCompleta && <PontoFuncionariosPainel unidade={unidade} />}
+
       <PainelControleRapido unidade={unidade} />
 
       <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
