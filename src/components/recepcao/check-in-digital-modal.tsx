@@ -10,8 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
-// Device Tuya do Quarto 005 - Botafogo
-const DEVICE_ID_005 = "eba3429756a5aaa8b2ssrw";
+// Devices Tuya - Botafogo (Portão Principal, Porta de Vidro, Quarto 005)
+const DEVICE_IDS_005: string[] = [
+  "ID_PORTAO",
+  "ID_VIDRO",
+  "eba3429756a5aaa8b2ssrw",
+];
 
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -95,7 +99,7 @@ function CheckInDigitalModal({
     setIsLoading(true);
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
-        deviceId: DEVICE_ID_005,
+        deviceIds: DEVICE_IDS_005,
         guestName: nomeHospede,
         startTime: startTs,
         endTime: endTs,
@@ -123,7 +127,7 @@ function CheckInDigitalModal({
       hour: "2-digit",
       minute: "2-digit",
     });
-    const texto = `Olá ${nomeHospede}! A sua senha de acesso ao Quarto ${roomNumber} é: ${senhaGerada}. Válida até ${saidaFmt}.`;
+    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\nA sua senha de acesso exclusiva é: ${senhaGerada}\nEsta senha é válida até ${saidaFmt} e abre as seguintes portas:\n🚪 Portão Principal (Rua)\n🚪 Porta de Vidro (Recepção)\n🛏️ Quarto ${roomNumber}\nTenha uma excelente estadia!`;
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Mensagem copiada!");
