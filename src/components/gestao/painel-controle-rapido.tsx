@@ -221,33 +221,6 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
 
-        {/* CARD 4 - Ponto Pontomais (apenas Gestor/Admin) */}
-        {isGestor && (
-        <button
-          type="button"
-          onClick={() => setPontoOpen(true)}
-          className={cn(cardBase, "text-left")}
-        >
-          <div className="flex items-start justify-between">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Ponto dos Funcionários
-            </p>
-            <Clock className="h-5 w-5 text-blue-400" />
-          </div>
-          <div className="mt-4">
-            <p className="text-2xl font-black text-white leading-tight">Verificar Batidas</p>
-            <p className="text-xs text-slate-500 mt-2">
-              {funcionariosCount > 0
-                ? `${funcionariosCount} funcionário${funcionariosCount > 1 ? "s" : ""} cadastrado${funcionariosCount > 1 ? "s" : ""}`
-                : "Registro de ponto"}
-            </p>
-          </div>
-          <div className="mt-4 flex items-center gap-2 text-[11px] text-slate-500">
-            <ArrowUpRight className="h-3.5 w-3.5" />
-            Sincronizado com Pontomais
-          </div>
-        </button>
-        )}
 
         {/* CARD 5 - Bonificação Recepção */}
         <button
