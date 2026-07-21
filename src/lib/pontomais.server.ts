@@ -159,19 +159,16 @@ async function resolveEmployeeId(params: {
   email: string | null;
   token: string;
 }): Promise<number | string | null> {
-  const { cpf, email, token } = params;
+  const { cpf, token } = params;
 
-  const attempts: string[] = [];
-  if (cpf) {
-    // Ransack filter — Pontomais accepts q[cpf_eq]. Also try plain cpf= as fallback.
-    attempts.push(`/employees?q[cpf_eq]=${encodeURIComponent(cpf)}&per_page=1`);
-    attempts.push(`/employees?cpf=${encodeURIComponent(cpf)}&per_page=1`);
-    attempts.push(`/employees?search=${encodeURIComponent(cpf)}&per_page=1`);
-  }
-  if (email) {
-    attempts.push(`/employees?q[email_eq]=${encodeURIComponent(email)}&per_page=1`);
-    attempts.push(`/employees?email=${encodeURIComponent(email)}&per_page=1`);
-  }
+  if (!cpf) return null;
+
+  // Busca EXCLUSIVAMENTE por CPF — e-mail ignorado a pedido do gestor.
+  const attempts: string[] = [
+    `/employees?q[cpf_eq]=${encodeURIComponent(cpf)}&per_page=1`,
+    `/employees?cpf=${encodeURIComponent(cpf)}&per_page=1`,
+    `/employees?search=${encodeURIComponent(cpf)}&per_page=1`,
+  ];
 
   for (const path of attempts) {
     try {
@@ -180,22 +177,13 @@ async function resolveEmployeeId(params: {
         payload?.employees ?? payload?.data ?? payload?.records ?? (Array.isArray(payload) ? payload : []);
       if (!Array.isArray(list) || list.length === 0) continue;
 
-      const matcher = (row: any) => {
-        const rowCpf = String(row?.cpf ?? row?.document ?? "").replace(/\D/g, "");
-        const rowEmail = String(row?.email ?? "").toLowerCase();
-        if (cpf && rowCpf === cpf) return true;
-        if (email && rowEmail === email) return true;
-        return false;
-      };
-
-      const hit = list.find(matcher) ?? list[0];
+      const hit =
+        list.find((row: any) => String(row?.cpf ?? row?.document ?? "").replace(/\D/g, "") === cpf) ??
+        list[0];
       const id = hit?.id ?? hit?.employee_id ?? hit?.employeeId;
       if (id !== undefined && id !== null) return id;
     } catch (err) {
-      if (err instanceof PontomaisApiError && err.status === 404) {
-        // 404 on this filter path just means no match — try the next variant.
-        continue;
-      }
+      if (err instanceof PontomaisApiError && err.status === 404) continue;
       throw err;
     }
   }
