@@ -1,59 +1,48 @@
 import { useEffect, useState, useCallback } from "react";
-import { LogIn, CalendarPlus, X, Loader2, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { useServerFn } from "@tanstack/react-start";
+import { LogIn, CalendarPlus, X, Loader2, RefreshCw, Users, Moon } from "lucide-react";
+import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
 import type { Unidade } from "@/lib/store";
 
-type ChegadaRow = {
-  room_number: string;
-  room_type: string | null;
-  guest_name: string | null;
-  pax: number | null;
-  arrival_time: string | null;
-  assigned_task: string | null;
-};
+function fmtBRL(v: number): string {
+  return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+}
 
 export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
   const [openChegadas, setOpenChegadas] = useState(false);
   const [openNovas, setOpenNovas] = useState(false);
-  const [rows, setRows] = useState<ChegadaRow[]>([]);
+  const [rows, setRows] = useState<ReservaHoje[]>([]);
+  const [totalReceita, setTotalReceita] = useState(0);
   const [loading, setLoading] = useState(true);
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const call = useServerFn(getReservasHoje);
 
   const carregar = useCallback(async () => {
     setFetching(true);
     setError(null);
-    const { data, error } = await supabase
-      .from("room_housekeeping")
-      .select("room_number, room_type, guest_name, pax, arrival_time, assigned_task")
-      .eq("property", unidade);
-    setFetching(false);
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const res = await call({ data: { property: unidade } });
+      const list = [...res.reservas].sort((a, b) =>
+        String(a.quarto).localeCompare(String(b.quarto), undefined, { numeric: true }),
+      );
+      setRows(list);
+      setTotalReceita(res.totalReceita);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Falha ao consultar Cloudbeds";
+      setError(msg);
+    } finally {
+      setFetching(false);
+      setLoading(false);
     }
-    const list = ((data ?? []) as ChegadaRow[]).filter((r) => isCheckInTask(r.assigned_task));
-    list.sort((a, b) => {
-      const ta = a.arrival_time ?? "";
-      const tb = b.arrival_time ?? "";
-      if (ta && tb) return ta.localeCompare(tb);
-      return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
-    });
-    setRows(list);
-  }, [unidade]);
+  }, [call, unidade]);
 
   useEffect(() => {
     setLoading(true);
     carregar();
-    const ch = supabase
-      .channel(`chegadas-${unidade}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "room_housekeeping" }, carregar)
-      .subscribe();
-    return () => {
-      supabase.removeChannel(ch);
-    };
+    // Atualiza automaticamente a cada 15 minutos (fonte Cloudbeds)
+    const iv = setInterval(carregar, 15 * 60 * 1000);
+    return () => clearInterval(iv);
   }, [unidade, carregar]);
 
   const total = rows.length;
@@ -73,7 +62,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
           <p className="text-4xl font-bold text-green-500 mt-4">
             {loading ? <Loader2 className="inline h-8 w-8 animate-spin" /> : total}
           </p>
-          <p className="text-sm text-slate-500 mt-2">Check-ins e revisões previstos para hoje</p>
+          <p className="text-sm text-slate-500 mt-2">Fonte: Cloudbeds · atualiza a cada 15 min</p>
         </button>
 
         <button
@@ -82,11 +71,13 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
           className="text-left bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:bg-slate-800 transition-colors shadow-lg"
         >
           <div className="flex items-start justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Novas Reservas</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Receita Prevista</p>
             <CalendarPlus className="w-5 h-5 text-yellow-500" />
           </div>
-          <p className="text-4xl font-bold text-yellow-500 mt-4">0</p>
-          <p className="text-sm text-slate-500 mt-2">Aguardando sincronização</p>
+          <p className="text-2xl font-bold text-yellow-500 mt-4">
+            {loading ? <Loader2 className="inline h-6 w-6 animate-spin" /> : fmtBRL(totalReceita)}
+          </p>
+          <p className="text-sm text-slate-500 mt-2">Total das chegadas de hoje</p>
         </button>
       </div>
 
@@ -103,7 +94,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
               <div>
                 <h3 className="text-lg font-black text-white">Chegadas Hoje · INJOY {unidade}</h3>
                 <p className="text-xs text-slate-400">
-                  Fonte: painel das camareiras (Check-in e Revisão Check-in)
+                  Fonte: Cloudbeds (Painel de Controle) · {rows.length} reserva(s)
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -140,7 +131,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                 </div>
               ) : rows.length === 0 ? (
                 <p className="text-center text-slate-400 py-8 text-sm">
-                  Nenhuma chegada prevista para hoje
+                  Nenhuma chegada prevista para hoje no Cloudbeds.
                 </p>
               ) : (
                 <div className="overflow-x-auto rounded-xl border border-slate-800">
@@ -150,33 +141,36 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                         <th className="text-left px-3 py-2 font-bold">Quarto</th>
                         <th className="text-left px-3 py-2 font-bold">Hóspede</th>
                         <th className="text-left px-3 py-2 font-bold">Pax</th>
-                        <th className="text-left px-3 py-2 font-bold">Chegada</th>
-                        <th className="text-left px-3 py-2 font-bold">Tarefa</th>
+                        <th className="text-left px-3 py-2 font-bold">Noites</th>
+                        <th className="text-left px-3 py-2 font-bold">Status</th>
+                        <th className="text-right px-3 py-2 font-bold">Receita</th>
                       </tr>
                     </thead>
                     <tbody>
                       {rows.map((r, i) => (
                         <tr
-                          key={`${r.room_number}-${i}`}
+                          key={`${r.reservationID}-${r.quarto}-${i}`}
                           className="border-t border-slate-800 text-slate-200"
                         >
-                          <td className="px-3 py-2 font-semibold">
-                            {r.room_number}
-                            {r.room_type ? (
-                              <span className="text-xs text-slate-500 font-normal ml-1">
-                                · {r.room_type}
-                              </span>
-                            ) : null}
+                          <td className="px-3 py-2 font-semibold">{r.quarto}</td>
+                          <td className="px-3 py-2">{r.hospede}</td>
+                          <td className="px-3 py-2 tabular-nums">
+                            <span className="inline-flex items-center gap-1">
+                              <Users size={12} className="text-slate-400" /> {r.adultos + r.criancas}
+                            </span>
                           </td>
-                          <td className="px-3 py-2">{r.guest_name || "—"}</td>
-                          <td className="px-3 py-2 tabular-nums">{r.pax ?? "—"}</td>
-                          <td className="px-3 py-2 tabular-nums text-slate-400">
-                            {r.arrival_time ?? "—"}
+                          <td className="px-3 py-2 tabular-nums">
+                            <span className="inline-flex items-center gap-1">
+                              <Moon size={12} className="text-slate-400" /> {r.noites}
+                            </span>
                           </td>
                           <td className="px-3 py-2">
-                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border bg-sky-500/20 text-sky-300 border-sky-500/30">
-                              {formatTaskLabel(r.assigned_task)}
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border bg-sky-500/20 text-sky-300 border-sky-500/30 uppercase">
+                              {r.status || "confirmed"}
                             </span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums font-bold text-emerald-400">
+                            {fmtBRL(r.receita)}
                           </td>
                         </tr>
                       ))}
@@ -199,7 +193,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-5 border-b border-slate-800">
-              <h3 className="text-lg font-black text-white">Novas Reservas</h3>
+              <h3 className="text-lg font-black text-white">Receita Prevista · Chegadas de Hoje</h3>
               <button
                 type="button"
                 onClick={() => setOpenNovas(false)}
@@ -209,8 +203,12 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                 <X size={16} />
               </button>
             </div>
-            <div className="p-8 text-center text-sm text-slate-400">
-              Aguardando sincronização.
+            <div className="p-8 text-center">
+              <p className="text-xs uppercase text-slate-400 font-bold">Total previsto</p>
+              <p className="text-4xl font-black text-emerald-400 mt-2">{fmtBRL(totalReceita)}</p>
+              <p className="text-xs text-slate-500 mt-3">
+                {rows.length} reserva(s) com check-in hoje · Fonte: Cloudbeds
+              </p>
             </div>
           </div>
         </div>
