@@ -11,6 +11,8 @@ import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quart
 import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
 import { CheckoutsCloudbedsCard } from "@/components/gestao/checkouts-cloudbeds-card";
 import { RecebimentosBalcaoCard } from "@/components/gestao/recebimentos-balcao-card";
+import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
+import { Key } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
@@ -164,6 +166,21 @@ function DashboardGestao() {
         </div>
 
         <RecebimentosBalcaoCard unidade={unidadeAtiva} />
+
+        {unidadeAtiva === "Botafogo" && (
+          <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-teal-500 to-emerald-600 grid place-items-center text-white shadow-sm">
+                <Key className="h-5 w-5" />
+              </div>
+              <div>
+                <p className="text-sm font-black text-slate-900">Check-in Digital · Fechaduras Tuya</p>
+                <p className="text-xs text-slate-500">Gera senha do Portão + Porta de Vidro + Quarto 005</p>
+              </div>
+            </div>
+            <CheckInDigitalButton roomNumber="005" />
+          </div>
+        )}
 
 
         <Link
