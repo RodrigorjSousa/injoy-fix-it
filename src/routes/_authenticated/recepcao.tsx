@@ -33,6 +33,7 @@ import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
+import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
@@ -363,6 +364,9 @@ function RecepcaoPage() {
         unidade={unidadeAtiva}
         autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
       />
+
+      <ChegadasCheckinCards unidade={unidadeAtiva} title="Chegadas de Hoje" />
+
 
       <div className="p-4 space-y-4">
         {unidadeAtiva === "Botafogo" && <HistoricoTrocasTurno unidade={unidadeAtiva} />}

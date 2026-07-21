@@ -11,7 +11,9 @@ export type ReservaHoje = {
   reservationID: string;
   hospede: string;
   quarto: string;
+  tipoAcomodacao: string;
   checkIn: string;
+  checkInTime: string;
   checkOut: string;
   noites: number;
   receita: number;
@@ -136,9 +138,14 @@ export const getReservasHoje = createServerFn({ method: "POST" })
         checkinDate?: string;
         checkin_date?: string;
         checkIn?: string;
+        checkInTime?: string;
+        estimatedArrivalTime?: string;
+        arrivalTime?: string;
         rooms?: Array<{
           roomName?: string;
           roomNumber?: string;
+          roomTypeName?: string;
+          roomType?: string;
           startDate?: string;
           endDate?: string;
           checkInDate?: string;
@@ -146,6 +153,9 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           checkin_date?: string;
           checkIn?: string;
           checkin?: string;
+          checkInTime?: string;
+          estimatedArrivalTime?: string;
+          arrivalTime?: string;
           subtotal?: number | string;
           total?: number | string;
           roomTotal?: number | string;
@@ -191,11 +201,23 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           (room.grandTotal ?? room.roomTotal ?? room.total ?? room.subtotal ?? room.totalRate ?? room.roomRate);
         const receita = Number(receitaRoom ?? rateio) || 0;
         const noites = diffNoites(ci, co);
+        const rawTime = String(
+          (room && (room.checkInTime || room.estimatedArrivalTime || room.arrivalTime)) ||
+            rec.checkInTime ||
+            rec.estimatedArrivalTime ||
+            rec.arrivalTime ||
+            "",
+        );
+        const timeMatch = rawTime.match(/\b(\d{1,2}):(\d{2})\b/);
+        const checkInTime = timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "";
+        const tipoAcomodacao = String((room && (room.roomTypeName || room.roomType)) || "");
         rows.push({
           reservationID: rid,
           hospede: (room && room.guestName) || nomeBase,
           quarto: String((room && (room.roomName || room.roomNumber)) || "—"),
+          tipoAcomodacao,
           checkIn: ci,
+          checkInTime,
           checkOut: co.slice(0, 10),
           noites,
           receita,

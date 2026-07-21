@@ -20,6 +20,7 @@ import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
+import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
@@ -573,6 +574,8 @@ function PainelCamareiras() {
       <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
 
       <RecadosCamareirasSection unidade={unidadeAtiva} camareiraName={nomeAutomatico ?? ""} />
+
+      <ChegadasCheckinCards unidade={unidadeAtiva} showLimpeza title="Chegadas de Hoje" />
 
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
