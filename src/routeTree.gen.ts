@@ -38,6 +38,7 @@ import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
+import { Route as ApiPublicPontomaisProbeRouteImport } from './routes/api/public/pontomais-probe'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 
@@ -196,6 +197,11 @@ const AuthenticatedAlmoxarifadoRoute =
     path: '/almoxarifado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicPontomaisProbeRoute = ApiPublicPontomaisProbeRouteImport.update({
+  id: '/api/public/pontomais-probe',
+  path: '/api/public/pontomais-probe',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
     id: '/api/public/cloudbeds-webhook',
@@ -239,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pontomais-probe': typeof ApiPublicPontomaisProbeRoute
 }
 export interface FileRoutesByTo {
   '/manutencao': typeof ManutencaoRoute
@@ -270,6 +277,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pontomais-probe': typeof ApiPublicPontomaisProbeRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -304,6 +312,7 @@ export interface FileRoutesById {
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pontomais-probe': typeof ApiPublicPontomaisProbeRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -338,6 +347,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/chamados/$id'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pontomais-probe'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/manutencao'
@@ -369,6 +379,7 @@ export interface FileRouteTypes {
     | '/auth'
     | '/chamados/$id'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pontomais-probe'
   id:
     | '__root__'
     | '/_authenticated'
@@ -402,6 +413,7 @@ export interface FileRouteTypes {
     | '/auth/'
     | '/_authenticated/chamados/$id'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pontomais-probe'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -409,6 +421,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ManutencaoRoute: typeof ManutencaoRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
+  ApiPublicPontomaisProbeRoute: typeof ApiPublicPontomaisProbeRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -616,6 +629,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/pontomais-probe': {
+      id: '/api/public/pontomais-probe'
+      path: '/api/public/pontomais-probe'
+      fullPath: '/api/public/pontomais-probe'
+      preLoaderRoute: typeof ApiPublicPontomaisProbeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cloudbeds-webhook': {
       id: '/api/public/cloudbeds-webhook'
       path: '/api/public/cloudbeds-webhook'
@@ -709,6 +729,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ManutencaoRoute: ManutencaoRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
+  ApiPublicPontomaisProbeRoute: ApiPublicPontomaisProbeRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
