@@ -361,6 +361,9 @@ function CheckInDigitalModal({
               <Copy size={16} />
               Copiar para WhatsApp
             </button>
+
+            <TroubleshootingTips open={showTips} onToggle={() => setShowTips((v) => !v)} />
+
             <button
               type="button"
               onClick={() => handleClose(false)}
