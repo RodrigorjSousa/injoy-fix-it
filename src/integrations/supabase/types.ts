@@ -1503,6 +1503,48 @@ export type Database = {
         }
         Relationships: []
       }
+      tuya_password_logs: {
+        Row: {
+          created_at: string
+          device_ids: string[]
+          entrada: string
+          generated_by_name: string | null
+          generated_by_user_id: string | null
+          guest_name: string
+          id: string
+          password: string
+          room_number: string
+          saida: string
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_ids?: string[]
+          entrada: string
+          generated_by_name?: string | null
+          generated_by_user_id?: string | null
+          guest_name: string
+          id?: string
+          password: string
+          room_number: string
+          saida: string
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_ids?: string[]
+          entrada?: string
+          generated_by_name?: string | null
+          generated_by_user_id?: string | null
+          guest_name?: string
+          id?: string
+          password?: string
+          room_number?: string
+          saida?: string
+          unidade?: string | null
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string
