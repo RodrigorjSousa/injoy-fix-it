@@ -12,8 +12,8 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Devices Tuya - Botafogo (Portão Principal, Porta de Vidro, Quarto 005)
 const DEVICE_IDS_005: string[] = [
-  "eb68bdeb2d042fa20floc9", // Portão Principal
-  "ebd0532b4638fa030ea1ea", // Porta de Vidro
+  "eba207725701fb044abmhl", // Portão Gradeado
+  "ebd7760a2310ee9930ozt9", // Porta de Vidro
   "eba3429756a5aaa8b2ssrw", // Quarto 005
 ];
 
