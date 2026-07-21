@@ -224,6 +224,30 @@ export type Database = {
           },
         ]
       }
+      boas_vindas_config: {
+        Row: {
+          audience: string
+          blocks: Json
+          created_at: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          audience: string
+          blocks?: Json
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          audience?: string
+          blocks?: Json
+          created_at?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       booking_reviews: {
         Row: {
           cleanliness_score: number | null

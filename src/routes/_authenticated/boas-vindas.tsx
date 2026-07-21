@@ -39,6 +39,11 @@ import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
 import { PontoFuncionariosPainel } from "@/components/gestao/ponto-funcionarios-painel";
 import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
+import { useBoasVindasView } from "@/hooks/use-boas-vindas-config";
+import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
+
+
+
 
 
 import { cn } from "@/lib/utils";
@@ -114,6 +119,8 @@ function calcularStatus(rows: Array<{ status: string | null; condition: string |
 function BoasVindas() {
   const { data: me } = useMe();
   const { unidade, setUnidade, unidades } = useUnidade();
+  const { isVisible, orderedVisibleIds } = useBoasVindasView();
+
 
   const [nome, setNome] = useState<string>("");
   const [rating, setRating] = useState<number>(8.5);
@@ -419,9 +426,19 @@ function BoasVindas() {
         gestorId={me?.userId ?? ""}
       />
 
-      <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+      {(visaoCompleta || isVisible("passagem_turno")) && (
+        <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+      )}
 
-      <AuditoriaFuncionarioCard unidade={unidade} />
+      {(visaoCompleta || isVisible("auditoria_funcionario")) && (
+        <AuditoriaFuncionarioCard unidade={unidade} />
+      )}
+
+      {mostrarResumoBonificacao && isVisible("resumo_bonificacao") && (
+        <BonificacaoResumoCard unidade={unidade} />
+      )}
+
+
 
       
 
@@ -550,152 +567,159 @@ function BoasVindas() {
           </div>
         </>
       ) : (
-        <>
-          {/* ========== LAYOUT OPERACIONAL ========== */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
-            {/* Coluna Esquerda */}
-            <div className="lg:col-span-7 space-y-5 flex flex-col">
-              <div className="space-y-2">
-                <span className="inline-flex items-center gap-1.5 text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
-                  <Sparkles size={10} /> Portal Operacional
-                </span>
-                <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
-                  {obterSaudacaoHora()}
-                  <span className="text-teal-400">,</span>
-                  <br />
-                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
-                    {primeiroNome}!
-                  </span>
-                </h2>
-              </div>
-
-              {/* Meta */}
-              <div
-                className={`relative overflow-hidden rounded-2xl border-2 p-5 shadow-xl ${
-                  metaBatida
-                    ? "bg-gradient-to-br from-emerald-950/40 to-teal-950/20 border-emerald-500/40"
-                    : "bg-gradient-to-br from-amber-950/40 to-red-950/20 border-amber-500/40"
-                }`}
-              >
-                <div className="flex items-center gap-4 relative z-10">
-                  <div
-                    className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center font-black text-lg border-2 shrink-0 ${
-                      metaBatida
-                        ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-300 animate-pulse"
-                        : "bg-gradient-to-tr from-amber-500 to-orange-400 text-slate-950 border-amber-300"
-                    }`}
-                  >
-                    <span>{rating.toFixed(1)}</span>
-                    <span className="text-[7px] uppercase font-bold -mt-0.5">Nota</span>
-                  </div>
-                  <div className="space-y-1 min-w-0">
-                    <span
-                      className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                        metaBatida ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+        (() => {
+          const renderBlock = (id: BoasVindasBlockId) => {
+            switch (id) {
+              case "saudacao":
+                return (
+                  <div key={id} className="space-y-4">
+                    <div className="space-y-2">
+                      <span className="inline-flex items-center gap-1.5 text-[10px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-3 py-1 rounded-full font-bold uppercase tracking-widest">
+                        <Sparkles size={10} /> Portal Operacional
+                      </span>
+                      <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
+                        {obterSaudacaoHora()}
+                        <span className="text-teal-400">,</span>
+                        <br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-400 to-emerald-400">
+                          {primeiroNome}!
+                        </span>
+                      </h2>
+                    </div>
+                    <div
+                      className={`relative overflow-hidden rounded-2xl border-2 p-5 shadow-xl ${
+                        metaBatida
+                          ? "bg-gradient-to-br from-emerald-950/40 to-teal-950/20 border-emerald-500/40"
+                          : "bg-gradient-to-br from-amber-950/40 to-red-950/20 border-amber-500/40"
                       }`}
                     >
-                      {metaBatida ? "🏆 METAS E BÔNUS ATIVOS" : "⚠️ ATENÇÃO COM A META"}
-                    </span>
-                    <p className="text-xs text-white/90 font-semibold leading-snug">
-                      {metaBatida
-                        ? `Bônus garantido para os colaboradores de ${unidade}.`
-                        : "Vamos recuperar nossa nota e garantir o bônus."}
-                    </p>
+                      <div className="flex items-center gap-4 relative z-10">
+                        <div
+                          className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center font-black text-lg border-2 shrink-0 ${
+                            metaBatida
+                              ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-300 animate-pulse"
+                              : "bg-gradient-to-tr from-amber-500 to-orange-400 text-slate-950 border-amber-300"
+                          }`}
+                        >
+                          <span>{rating.toFixed(1)}</span>
+                          <span className="text-[7px] uppercase font-bold -mt-0.5">Nota</span>
+                        </div>
+                        <div className="space-y-1 min-w-0">
+                          <span
+                            className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                              metaBatida ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                            }`}
+                          >
+                            {metaBatida ? "🏆 METAS E BÔNUS ATIVOS" : "⚠️ ATENÇÃO COM A META"}
+                          </span>
+                          <p className="text-xs text-white/90 font-semibold leading-snug">
+                            {metaBatida
+                              ? `Bônus garantido para os colaboradores de ${unidade}.`
+                              : "Vamos recuperar nossa nota e garantir o bônus."}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-
-              {/* Ocupação */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 backdrop-blur-md">
-                <div className="flex justify-between items-center text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">Taxa de Ocupação Hoje</span>
-                  <span className="text-xs font-black text-teal-400">
-                    {Math.round(metricas.taxaOcupacao)}%
-                  </span>
-                </div>
-                <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-teal-400 h-full rounded-full transition-all"
-                    style={{ width: `${Math.min(100, Math.max(0, metricas.taxaOcupacao))}%` }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Coluna Direita: Clima */}
-            <div className="lg:col-span-5 bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-md relative overflow-hidden">
-              <div className="flex justify-between items-start relative z-10">
-                <div>
-                  <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 w-max">
-                    <Navigation size={10} className="animate-pulse text-teal-400" /> Clima Local
-                  </span>
-                  <h3 className="text-lg font-black text-white mt-2">Condições no Hotel</h3>
-                </div>
-                <span className="text-4xl font-black text-white tracking-tighter">
-                  {clima.temp ?? "--"}°C
-                </span>
-              </div>
-
-              <div className="my-6 flex items-center gap-5 bg-slate-900/40 p-4 rounded-2xl border border-white/5 relative z-10">
-                {renderIconeClima()}
-                <div className="space-y-1">
-                  <h4 className="text-sm font-extrabold text-white">Clima em {unidade}</h4>
-                  <p className="text-xs text-slate-400 font-medium">Sincronizado automaticamente</p>
-                </div>
-              </div>
-
-              <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-xs text-slate-300 leading-relaxed font-semibold">
-                {clima.msg}
-              </div>
-            </div>
-          </div>
-
-          {/* Status da Operação de Quartos (Operacional) */}
-          <div className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 backdrop-blur-md">
-            <div className="flex justify-between items-center flex-wrap gap-2">
-              <div>
-                <h3 className="text-sm font-black uppercase tracking-wider text-slate-200">
-                  Status da Operação de Quartos
-                </h3>
-                <p className="text-[10px] text-slate-400 font-bold">
-                  Acompanhamento de andamento em tempo real
-                </p>
-              </div>
-              <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse">
-                ● Tempo Real Ativo
-              </span>
-            </div>
-
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              {([
-                { k: "prontos" as StatusKey, Icon: CheckCircle2, iconBg: "bg-emerald-500 text-slate-950", card: "bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-400/60", value: "text-emerald-400", label: "Prontos / Liberados", pulse: false },
-                { k: "emFaxina" as StatusKey, Icon: Flame, iconBg: "bg-amber-500 text-slate-950", card: "bg-amber-950/20 border-amber-500/20 hover:border-amber-400/60", value: "text-amber-400", label: "Em Faxina", pulse: true },
-                { k: "sujos" as StatusKey, Icon: AlertCircle, iconBg: "bg-red-500 text-slate-950", card: "bg-red-950/20 border-red-500/20 hover:border-red-400/60", value: "text-red-400", label: "Sujos (Check-out)", pulse: false },
-                { k: "bloqueados" as StatusKey, Icon: Wrench, iconBg: "bg-slate-600 text-white", card: "bg-slate-800/40 border-slate-700 hover:border-slate-500", value: "text-slate-300", label: "Bloqueados OS", pulse: false },
-              ]).map(({ k, Icon, iconBg, card, value, label, pulse }) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setSelectedStatus(k)}
-                  className={cn(
-                    "text-left rounded-2xl p-4 flex items-center gap-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
-                    card,
-                  )}
-                  aria-label={`Ver ${label}`}
-                >
-                  <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0", iconBg)}>
-                    <Icon size={20} className={pulse ? "animate-pulse" : undefined} />
+                );
+              case "taxa_ocupacao":
+                return (
+                  <div key={id} className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3 backdrop-blur-md">
+                    <div className="flex justify-between items-center text-slate-400">
+                      <span className="text-xs font-bold uppercase tracking-wider">Taxa de Ocupação Hoje</span>
+                      <span className="text-xs font-black text-teal-400">
+                        {Math.round(metricas.taxaOcupacao)}%
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-800 h-3 rounded-full overflow-hidden">
+                      <div
+                        className="bg-gradient-to-r from-blue-500 to-teal-400 h-full rounded-full transition-all"
+                        style={{ width: `${Math.min(100, Math.max(0, metricas.taxaOcupacao))}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h4 className={cn("text-2xl font-black", value)}>{statusQuartos[k]}</h4>
-                    <p className="text-[10px] text-slate-400 font-bold">{label}</p>
+                );
+              case "clima":
+                return (
+                  <div key={id} className="bg-white/5 border border-white/10 rounded-3xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-md relative overflow-hidden">
+                    <div className="flex justify-between items-start relative z-10">
+                      <div>
+                        <span className="text-[9px] font-black bg-slate-800 text-slate-400 px-2.5 py-1 rounded-full uppercase tracking-wider flex items-center gap-1 w-max">
+                          <Navigation size={10} className="animate-pulse text-teal-400" /> Clima Local
+                        </span>
+                        <h3 className="text-lg font-black text-white mt-2">Condições no Hotel</h3>
+                      </div>
+                      <span className="text-4xl font-black text-white tracking-tighter">
+                        {clima.temp ?? "--"}°C
+                      </span>
+                    </div>
+                    <div className="my-6 flex items-center gap-5 bg-slate-900/40 p-4 rounded-2xl border border-white/5 relative z-10">
+                      {renderIconeClima()}
+                      <div className="space-y-1">
+                        <h4 className="text-sm font-extrabold text-white">Clima em {unidade}</h4>
+                        <p className="text-xs text-slate-400 font-medium">Sincronizado automaticamente</p>
+                      </div>
+                    </div>
+                    <div className="bg-white/5 rounded-xl p-3 border border-white/5 text-xs text-slate-300 leading-relaxed font-semibold">
+                      {clima.msg}
+                    </div>
                   </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </>
+                );
+              case "status_quartos":
+                return (
+                  <div key={id} className="bg-white/5 border border-white/10 rounded-3xl p-6 space-y-4 backdrop-blur-md">
+                    <div className="flex justify-between items-center flex-wrap gap-2">
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-wider text-slate-200">
+                          Status da Operação de Quartos
+                        </h3>
+                        <p className="text-[10px] text-slate-400 font-bold">
+                          Acompanhamento de andamento em tempo real
+                        </p>
+                      </div>
+                      <span className="bg-teal-500/10 border border-teal-500/20 text-teal-400 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest animate-pulse">
+                        ● Tempo Real Ativo
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {([
+                        { k: "prontos" as StatusKey, Icon: CheckCircle2, iconBg: "bg-emerald-500 text-slate-950", card: "bg-emerald-950/20 border-emerald-500/20 hover:border-emerald-400/60", value: "text-emerald-400", label: "Prontos / Liberados", pulse: false },
+                        { k: "emFaxina" as StatusKey, Icon: Flame, iconBg: "bg-amber-500 text-slate-950", card: "bg-amber-950/20 border-amber-500/20 hover:border-amber-400/60", value: "text-amber-400", label: "Em Faxina", pulse: true },
+                        { k: "sujos" as StatusKey, Icon: AlertCircle, iconBg: "bg-red-500 text-slate-950", card: "bg-red-950/20 border-red-500/20 hover:border-red-400/60", value: "text-red-400", label: "Sujos (Check-out)", pulse: false },
+                        { k: "bloqueados" as StatusKey, Icon: Wrench, iconBg: "bg-slate-600 text-white", card: "bg-slate-800/40 border-slate-700 hover:border-slate-500", value: "text-slate-300", label: "Bloqueados OS", pulse: false },
+                      ]).map(({ k, Icon, iconBg, card, value, label, pulse }) => (
+                        <button
+                          key={k}
+                          type="button"
+                          onClick={() => setSelectedStatus(k)}
+                          className={cn(
+                            "text-left rounded-2xl p-4 flex items-center gap-4 border transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
+                            card,
+                          )}
+                          aria-label={`Ver ${label}`}
+                        >
+                          <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center font-bold shrink-0", iconBg)}>
+                            <Icon size={20} className={pulse ? "animate-pulse" : undefined} />
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className={cn("text-2xl font-black", value)}>{statusQuartos[k]}</h4>
+                            <p className="text-[10px] text-slate-400 font-bold">{label}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                );
+              default:
+                return null;
+            }
+          };
+          const operacionais: BoasVindasBlockId[] = ["saudacao", "taxa_ocupacao", "clima", "status_quartos"];
+          const ids = orderedVisibleIds.filter((id) => operacionais.includes(id));
+          return <>{ids.map(renderBlock)}</>;
+        })()
       )}
+
 
       {/* Status da Operação — apenas para gestão (final) */}
       {visaoCompleta && (
@@ -746,7 +770,10 @@ function BoasVindas() {
 
       {visaoCompleta && <PontoFuncionariosPainel unidade={unidade} />}
 
-      <PainelControleRapido unidade={unidade} />
+      {(visaoCompleta || isVisible("painel_controle_rapido")) && (
+        <PainelControleRapido unidade={unidade} />
+      )}
+
 
       <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
         <DialogContent className="max-w-lg">
