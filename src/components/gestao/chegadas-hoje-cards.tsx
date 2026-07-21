@@ -1,11 +1,23 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { LogIn, CalendarPlus, X, Loader2, RefreshCw, Users, Moon } from "lucide-react";
-import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
+import {
+  getReservasHoje,
+  getReservasFeitasHoje,
+  type ReservaHoje,
+  type ReservaFeita,
+} from "@/lib/cloudbeds-reservas.functions";
 import type { Unidade } from "@/lib/store";
 
 function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", { style: "currency", currency: "BRL", minimumFractionDigits: 2 });
+}
+
+function fmtDataBR(iso: string): string {
+  if (!iso) return "—";
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d}/${m}/${y}`;
 }
 
 export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
