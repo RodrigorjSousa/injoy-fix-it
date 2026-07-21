@@ -413,15 +413,7 @@ function HistoricoVistoriasPage() {
                     onOpen={(idx) => setLightbox({ images: recepcaoFotos, index: idx })}
                   />
 
-                  {/* Galeria: Não Perturbe */}
-                  <PhotoGroup
-                    title='Status "Não Perturbe"'
-                    icon={<Ban size={13} className="text-rose-600" />}
-                    photos={dndFotos}
-                    loading={loadingExtras}
-                    emptyLabel="Nenhuma imagem de 'Não Perturbe' disponível"
-                    onOpen={(idx) => setLightbox({ images: dndFotos, index: idx })}
-                  />
+                  {/* Fotos de "Não Perturbe" agora aparecem exclusivamente no Histórico de Produção de Limpeza */}
                 </div>
               );
             })}
