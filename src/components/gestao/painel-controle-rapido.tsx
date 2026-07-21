@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
+import { PontoFuncionariosModal } from "@/components/gestao/ponto-funcionarios-modal";
 import { useMe } from "@/lib/store";
 
 
@@ -46,6 +47,7 @@ export function PainelControleRapido({ unidade }: Props) {
   const [funcionariosCount, setFuncionariosCount] = useState<number>(0);
   const [vistoriaOpen, setVistoriaOpen] = useState(false);
   const [bonifOpen, setBonifOpen] = useState(false);
+  const [pontoOpen, setPontoOpen] = useState(false);
   const { data: registrosBonif = [] } = useRegistrosBonificacaoMes(unidade);
   const totalBonif = useMemo(
     () => registrosBonif.reduce((s, r) => s + Number(r.valor_calculado), 0),
@@ -221,7 +223,11 @@ export function PainelControleRapido({ unidade }: Props) {
 
         {/* CARD 4 - Ponto Pontomais (apenas Gestor/Admin) */}
         {isGestor && (
-        <Link to="/controle-ponto" className={cardBase}>
+        <button
+          type="button"
+          onClick={() => setPontoOpen(true)}
+          className={cn(cardBase, "text-left")}
+        >
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Ponto dos Funcionários
@@ -240,7 +246,7 @@ export function PainelControleRapido({ unidade }: Props) {
             <ArrowUpRight className="h-3.5 w-3.5" />
             Sincronizado com Pontomais
           </div>
-        </Link>
+        </button>
         )}
 
         {/* CARD 5 - Bonificação Recepção */}
@@ -277,6 +283,7 @@ export function PainelControleRapido({ unidade }: Props) {
       </div>
 
       <BonificacaoPanelModal open={bonifOpen} onOpenChange={setBonifOpen} unidade={unidade} />
+      <PontoFuncionariosModal open={pontoOpen} onOpenChange={setPontoOpen} unidade={unidade} />
 
 
       {/* Modal Vistoria */}
