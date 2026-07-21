@@ -97,31 +97,46 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
     const hoje = data.date ?? todayISO();
 
-    const qs = new URLSearchParams({
-      checkInFrom: hoje,
-      checkInTo: hoje,
-      pageSize: "100",
-      includeGuestsDetails: "true",
-      includeAllRooms: "true",
-    });
-    const res = await cloudbedsFetch(property, `/getReservationsWithRateDetails?${qs.toString()}`);
-    if (!res.ok) {
-      const txt = await res.text().catch(() => "");
-      if (res.status >= 500) {
-        throw new Error(
-          `Cloudbeds está temporariamente indisponível (código ${res.status}). Tente novamente em alguns instantes.`,
-        );
+    const fetchPage = async (pageNumber: number) => {
+      const qs = new URLSearchParams({
+        checkInFrom: hoje,
+        checkInTo: hoje,
+        pageSize: "100",
+        pageNumber: String(pageNumber),
+        includeGuestsDetails: "true",
+        includeAllRooms: "true",
+      });
+      const res = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        if (res.status >= 500) {
+          throw new Error(
+            `Cloudbeds está temporariamente indisponível (código ${res.status}). Tente novamente em alguns instantes.`,
+          );
+        }
+        throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
       }
-      throw new Error(`Cloudbeds ${res.status}: ${txt.slice(0, 200)}`);
-    }
-    const json = (await res.json()) as {
-      success?: boolean;
-      data?: Array<Record<string, unknown>>;
+      return (await res.json()) as {
+        success?: boolean;
+        data?: Array<Record<string, unknown>>;
+        total?: number | string;
+        count?: number | string;
+      };
     };
-    if (json.success === false) throw new Error("Cloudbeds retornou erro");
+
+    const firstPage = await fetchPage(1);
+    if (firstPage.success === false) throw new Error("Cloudbeds retornou erro");
+    const rawList = [...(firstPage.data ?? [])];
+    const totalReservas = Number(firstPage.total ?? firstPage.count ?? rawList.length) || rawList.length;
+    const totalPages = Math.min(Math.ceil(totalReservas / 100), 50);
+    if (totalPages > 1) {
+      const pages = await Promise.all(Array.from({ length: totalPages - 1 }, (_, i) => fetchPage(i + 2)));
+      for (const page of pages) {
+        if (page.success !== false && Array.isArray(page.data)) rawList.push(...page.data);
+      }
+    }
 
     const rows: ReservaHoje[] = [];
-    const rawList = json.data ?? [];
     if (rawList.length > 0) {
       try {
         console.log("[chegadas-hoje] hoje=", hoje, "sample=", JSON.stringify(rawList[0]).slice(0, 1500));
