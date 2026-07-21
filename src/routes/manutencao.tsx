@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import {
   Cog,
   ClipboardCheck,
@@ -44,6 +45,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { adjustPreventiveLogDate } from "@/lib/preventive-maintenance.functions";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -176,10 +178,6 @@ function fmtDateOnly(iso: string) {
 function toDateInputValue(iso?: string | null) {
   if (!iso) return "";
   return iso.split("T")[0] ?? "";
-}
-
-function completedAtFromDateInput(date: string) {
-  return `${date}T12:00:00.000Z`;
 }
 
 type LocationHealth = "atrasado" | "vence-breve" | "em-dia";
@@ -567,6 +565,7 @@ function ChecklistModal({
   canAdjustDates: boolean;
 }) {
   const qc = useQueryClient();
+  const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
   const [notes, setNotes] = useState("");
@@ -631,19 +630,11 @@ function ChecklistModal({
       if (!editingDate) throw new Error("Selecione uma manutenção para ajustar.");
       if (!executionDate) throw new Error("Informe a data executada.");
 
-      const { data, error } = await supabase
-        .from("preventive_logs" as never)
-        .update({
-          completed_at: completedAtFromDateInput(executionDate),
-          frequency_days: editingDate.task.frequency_days,
-        } as never)
-        .eq("id", editingDate.logId)
-        .select("id, next_due_date")
-        .single();
+      const updated = await adjustPreventiveLogDateFn({
+        data: { logId: editingDate.logId, executionDate },
+      });
 
-      if (error) throw error;
-      if (!data) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
-      return data as { id: string; next_due_date: string };
+      return updated as { id: string; next_due_date: string };
     },
     onSuccess: async (updated) => {
       await Promise.all([

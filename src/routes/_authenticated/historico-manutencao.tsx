@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
 import { useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -35,6 +36,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
+import { adjustPreventiveLogDate } from "@/lib/preventive-maintenance.functions";
 
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
   head: () => ({
@@ -135,12 +137,9 @@ function toDateInputValue(iso?: string | null) {
   return iso.split("T")[0] ?? "";
 }
 
-function completedAtFromDateInput(date: string) {
-  return `${date}T12:00:00.000Z`;
-}
-
 function HistoricoManutencaoPage() {
   const queryClient = useQueryClient();
+  const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
   const now = new Date();
   const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
   const [mes, setMes] = useState<number>(now.getMonth());
@@ -154,14 +153,9 @@ function HistoricoManutencaoPage() {
     mutationFn: async ({ log, date }: { log: PreventiveLog; date: string }) => {
       if (!date) throw new Error("Informe a data executada.");
 
-      const { data, error } = await supabase.rpc("adjust_preventive_log_date" as never, {
-        _log_id: log.id,
-        _new_date: date,
-      } as never);
-
-      if (error) throw error;
-      const row = Array.isArray(data) ? data[0] : data;
-      if (!row) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
+      const row = await adjustPreventiveLogDateFn({
+        data: { logId: log.id, executionDate: date },
+      });
 
       return row as Pick<PreventiveLog, "id" | "completed_at" | "next_due_date">;
     },
