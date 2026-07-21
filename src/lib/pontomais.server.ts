@@ -32,7 +32,7 @@ function toTime(value: unknown): string | null {
   return `${m[1]}:${m[2]}:${m[3] ?? "00"}`;
 }
 
-function sanitizeCpf(cpf: string | null | undefined): string | null {
+export function sanitizePontomaisCpf(cpf: string | null | undefined): string | null {
   if (!cpf) return null;
   const digits = cpf.replace(/\D/g, "");
   return digits.length === 11 ? digits : null;
@@ -66,7 +66,7 @@ function cpfFromPontomaisEmployee(row: unknown): string | null {
   ];
 
   for (const value of candidates) {
-    const clean = sanitizeCpf(asStringish(value));
+    const clean = sanitizePontomaisCpf(asStringish(value));
     if (clean) return clean;
   }
 
@@ -141,7 +141,9 @@ function getPontomaisBaseUrl(): string {
   if (!configured) return DEFAULT_PONTOMAIS_BASE_URL;
 
   const isExternalApi =
-    configured.includes("/external_api/v1") || configured.includes("/api/external");
+    configured.includes("/external_api/v1") ||
+    configured.includes("/api/external") ||
+    configured.includes("/api/v1");
 
   if (!isExternalApi) {
     console.warn(
@@ -242,98 +244,85 @@ async function pontomaisGet(url: string, token: string): Promise<unknown> {
   }
 }
 
-async function listAllPontomaisEmployees(token: string): Promise<unknown[]> {
-  const employees: unknown[] = [];
-  let page = 1;
-  const visitedPages = new Set<number>();
+async function listAllPontomaisEmployeesOnce(token: string): Promise<unknown[]> {
+  const query = new URLSearchParams();
+  query.set("page", "1");
+  query.set("per_page", "1000");
 
-  while (!visitedPages.has(page) && page <= 100) {
-    visitedPages.add(page);
-    const query = new URLSearchParams();
-    query.set("page", String(page));
-    query.set("per_page", "100");
+  const url = `${getPontomaisBaseUrl()}/employees?${query.toString()}`;
+  const payload = await pontomaisGet(url, token);
+  const list = employeesFromPayload(payload);
 
-    const payload = await pontomaisGet(
-      `${getPontomaisBaseUrl()}/employees?${query.toString()}`,
-      token,
-    );
-    const list = employeesFromPayload(payload);
-    employees.push(...list);
+  console.log("[pontomais] busca coletiva de funcionários concluída", {
+    url,
+    totalRecebido: list.length,
+  });
 
-    console.log("[pontomais] listagem de funcionários recebida", {
-      page,
-      pageCount: list.length,
-      totalSoFar: employees.length,
-      hasNextPage: Boolean(nextPageFromPayload(payload, page, list.length)),
-    });
+  return list;
+}
 
-    const nextPage = nextPageFromPayload(payload, page, list.length);
-    if (!nextPage || list.length === 0) break;
-    page = nextPage;
+export type PontomaisEmployeeMatch = {
+  employeeId: string;
+  cpf: string;
+};
+
+export async function buildPontomaisEmployeeMapByCpf(): Promise<Record<string, PontomaisEmployeeMatch>> {
+  const token = getPontomaisToken();
+  const employees = await listAllPontomaisEmployeesOnce(token);
+  const byCpf: Record<string, PontomaisEmployeeMatch> = {};
+  let ignoredWithoutCpf = 0;
+  let ignoredWithoutId = 0;
+  let duplicatedCpf = 0;
+
+  for (const row of employees) {
+    const cpf = cpfFromPontomaisEmployee(row);
+    if (!cpf) {
+      ignoredWithoutCpf += 1;
+      continue;
+    }
+
+    const employeeId = employeeIdFromPontomaisRow(row);
+    if (!employeeId) {
+      ignoredWithoutId += 1;
+      continue;
+    }
+
+    if (byCpf[cpf]) {
+      duplicatedCpf += 1;
+      console.warn("[pontomais] CPF duplicado na listagem; mantendo primeiro ID", {
+        cpf,
+        primeiroId: byCpf[cpf].employeeId,
+        idIgnorado: String(employeeId),
+      });
+      continue;
+    }
+
+    byCpf[cpf] = { cpf, employeeId: String(employeeId) };
   }
 
-  return employees;
+  console.log("[pontomais] mapa de funcionários por CPF criado", {
+    totalPontomais: employees.length,
+    totalComCpfEId: Object.keys(byCpf).length,
+    ignoredWithoutCpf,
+    ignoredWithoutId,
+    duplicatedCpf,
+  });
+
+  return byCpf;
 }
 
-/**
- * Resolve the internal Pontomais employee_id by CPF (preferred) or email.
- * Uses the /employees listing endpoint with ransack-style filters — never
- * pass the CPF as a path segment (that returns 404 because it is not the
- * internal numeric ID).
- */
-async function resolveEmployeeId(params: {
-  cpf: string | null;
-  email: string | null;
-  token: string;
-}): Promise<number | string | null> {
-  const { cpf, token } = params;
-
-  if (!cpf) return null;
-
-  // Busca EXCLUSIVAMENTE por CPF — e-mail ignorado a pedido do gestor.
-  // Nunca use /employees/{cpf}: esse caminho é para ID interno e retorna 404.
-  const cleanCpf = sanitizeCpf(cpf);
-  if (!cleanCpf) return null;
-
-  // Estratégia segura: sempre busca a listagem completa e cruza CPF localmente.
-  // Nunca chama /employees/{cpf}, pois esse endpoint espera o ID interno Pontomais.
-  const employees = await listAllPontomaisEmployees(token);
-  const hit = employees.find((row) => cpfFromPontomaisEmployee(row) === cleanCpf);
-  const id = hit ? employeeIdFromPontomaisRow(hit) : null;
-  if (id) return id;
-
-  return null;
-}
-
-export async function fetchPontomaisRegistros(params: {
+export async function fetchPontomaisRegistrosByEmployeeId(params: {
+  employeeId: string | number;
   cpf?: string | null;
-  email?: string | null;
-  pontomaisEmployeeId?: string | number | null;
   startDate: string;
   endDate: string;
 }): Promise<{
-  employeeId: string | number;
-  resolvedByCpf: boolean;
   byDate: Record<string, PontomaisRegistro>;
 }> {
   const token = getPontomaisToken();
-
-  const cleanCpf = sanitizeCpf(params.cpf);
-  let employeeId: number | string | null = null;
-  const resolvedByCpf = true;
-
-  // Resolve exclusivamente pelo CPF a partir da listagem geral da Pontomais.
-  if (!cleanCpf) {
-    throw new Error(
-      "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto (a busca é feita exclusivamente pelo CPF).",
-    );
-  }
-
-  employeeId = await resolveEmployeeId({ cpf: cleanCpf, email: null, token });
-
-  if (!employeeId) {
-    throw new PontomaisApiError(404, "", `CPF ${cleanCpf} não encontrado na base da Pontomais`);
-  }
+  const cleanCpf = sanitizePontomaisCpf(params.cpf);
+  const employeeId = String(params.employeeId).trim();
+  if (!employeeId) throw new Error(`CPF ${cleanCpf ?? "sem CPF"} encontrado sem ID na Pontomais`);
 
   const query = new URLSearchParams();
   query.set("start_date", params.startDate);
@@ -396,5 +385,5 @@ export async function fetchPontomaisRegistros(params: {
     };
   }
 
-  return { employeeId: employeeId as string | number, resolvedByCpf, byDate };
+  return { byDate };
 }
