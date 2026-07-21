@@ -47,6 +47,7 @@ export function PainelControleRapido({ unidade }: Props) {
   const [funcionariosCount, setFuncionariosCount] = useState<number>(0);
   const [vistoriaOpen, setVistoriaOpen] = useState(false);
   const [bonifOpen, setBonifOpen] = useState(false);
+  const [pontoOpen, setPontoOpen] = useState(false);
   const { data: registrosBonif = [] } = useRegistrosBonificacaoMes(unidade);
   const totalBonif = useMemo(
     () => registrosBonif.reduce((s, r) => s + Number(r.valor_calculado), 0),
