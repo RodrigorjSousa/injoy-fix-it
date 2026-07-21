@@ -219,6 +219,10 @@ function CheckInDigitalModal({
     }
   };
 
+  const senhaUnica = senhasGeradas
+    ? senhasGeradas[DEVICE_QUARTO_005] || senhasGeradas[DEVICE_PORTAO] || senhasGeradas[DEVICE_VIDRO] || Object.values(senhasGeradas)[0] || null
+    : null;
+
   const copiarSenha = async () => {
     if (!senhaUnica) return;
     try {
