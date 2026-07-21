@@ -145,12 +145,17 @@ function ControlePontoPage() {
           endDate: dataSelecionada,
         },
       });
-      const errored = (res.results ?? []).filter((r) => r.error);
+      const results = res.results ?? [];
+      const statusMap: Record<string, { dias: number; error?: string }> = {};
+      for (const r of results) {
+        statusMap[r.funcionario_id] = { dias: r.dias, error: r.error };
+      }
+      setSyncStatus(statusMap);
+      const errored = results.filter((r) => r.error);
       if (errored.length > 0) {
-        const first = errored[0];
         toast.error(
-          `${errored.length} funcionário(s) com erro. Ex.: ${first.nome} — ${first.error}`,
-          { id: t, duration: 8000 },
+          `${errored.length} funcionário(s) com erro. Veja o status na tabela.`,
+          { id: t, duration: 6000 },
         );
         console.error("[controle-ponto] erros de sync", errored);
       } else {
