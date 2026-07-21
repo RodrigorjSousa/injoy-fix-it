@@ -154,28 +154,16 @@ function HistoricoManutencaoPage() {
     mutationFn: async ({ log, date }: { log: PreventiveLog; date: string }) => {
       if (!date) throw new Error("Informe a data executada.");
 
-      const completedAt = completedAtFromDateInput(date);
-      const frequencyDays = log.task?.frequency_days ?? taskFrequencyFor(log.task_id, tasks);
-
-      const payload: { completed_at: string; frequency_days?: number } = {
-        completed_at: completedAt,
-      };
-
-      if (frequencyDays && frequencyDays > 0) {
-        payload.frequency_days = frequencyDays;
-      }
-
-      const { data, error } = await supabase
-        .from("preventive_logs")
-        .update(payload)
-        .eq("id", log.id)
-        .select("id, completed_at, next_due_date")
-        .single();
+      const { data, error } = await supabase.rpc("adjust_preventive_log_date" as never, {
+        _log_id: log.id,
+        _new_date: date,
+      } as never);
 
       if (error) throw error;
-      if (!data) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
+      const row = Array.isArray(data) ? data[0] : data;
+      if (!row) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
 
-      return data as Pick<PreventiveLog, "id" | "completed_at" | "next_due_date">;
+      return row as Pick<PreventiveLog, "id" | "completed_at" | "next_due_date">;
     },
     onSuccess: async (updated) => {
       await Promise.all([
