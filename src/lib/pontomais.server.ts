@@ -52,6 +52,8 @@ function cpfFromPontomaisEmployee(row: unknown): string | null {
   const record = asRecord(row);
   const employee = asRecord(record?.employee);
   const person = asRecord(record?.person);
+  const user = asRecord(record?.user);
+  const individual = asRecord(record?.individual);
   const candidates = [
     record?.cpf,
     record?.document,
@@ -63,11 +65,48 @@ function cpfFromPontomaisEmployee(row: unknown): string | null {
     employee?.document,
     person?.cpf,
     person?.document,
+    user?.cpf,
+    user?.document,
+    individual?.cpf,
+    individual?.document,
   ];
 
   for (const value of candidates) {
     const clean = sanitizePontomaisCpf(asStringish(value));
     if (clean) return clean;
+  }
+
+  return findCpfDeep(row);
+}
+
+function findCpfDeep(value: unknown, depth = 0): string | null {
+  if (depth > 4) return null;
+
+  if (typeof value === "string" || typeof value === "number") {
+    return sanitizePontomaisCpf(String(value));
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const hit = findCpfDeep(item, depth + 1);
+      if (hit) return hit;
+    }
+    return null;
+  }
+
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const preferredEntries = Object.entries(record).filter(([key]) =>
+    /cpf|document|tax|registration/i.test(key),
+  );
+  const otherEntries = Object.entries(record).filter(
+    ([key]) => !/cpf|document|tax|registration/i.test(key),
+  );
+
+  for (const [, nested] of [...preferredEntries, ...otherEntries]) {
+    const hit = findCpfDeep(nested, depth + 1);
+    if (hit) return hit;
   }
 
   return null;
