@@ -12,9 +12,9 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Devices Tuya - Botafogo (Portão Principal, Porta de Vidro, Quarto 005)
 const DEVICE_IDS_005: string[] = [
-  "ID_PORTAO",
-  "ID_VIDRO",
-  "eba3429756a5aaa8b2ssrw",
+  "eb68bdeb2d042fa20floc9", // Portão Principal
+  "ebd0532b4638fa030ea1ea", // Porta de Vidro
+  "eba3429756a5aaa8b2ssrw", // Quarto 005
 ];
 
 function toLocalInput(d: Date) {
