@@ -370,7 +370,21 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
   query.set("q[employee_id_eq]", String(employeeId));
 
   const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
-  const payload = await pontomaisGet(url, token);
+  let payload: unknown;
+  try {
+    payload = await pontomaisGet(url, token);
+  } catch (err) {
+    if (err instanceof PontomaisApiError && err.status === 404) {
+      console.warn("[pontomais] batidas não encontradas para funcionário no período", {
+        employeeId,
+        cpf: cleanCpf,
+        startDate: params.startDate,
+        endDate: params.endDate,
+      });
+      return { byDate: {} };
+    }
+    throw err;
+  }
 
   const payloadRecord = asRecord(payload);
   const rawRows =
