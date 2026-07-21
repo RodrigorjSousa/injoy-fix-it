@@ -1,7 +1,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { ensurePontomaisTokenConfigured, fetchPontomaisRegistros } from "./pontomais.server";
+import {
+  buildPontomaisEmployeeMapByCpf,
+  ensurePontomaisTokenConfigured,
+  fetchPontomaisRegistrosByEmployeeId,
+  sanitizePontomaisCpf,
+} from "./pontomais.server";
 
 const syncSchema = z.object({
   funcionarioIds: z.array(z.string().uuid()).optional(),
@@ -32,14 +37,14 @@ export const syncPontomais = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let query = supabaseAdmin
-      .from("funcionarios")
-      .select("id, nome, email, cpf, pontomais_employee_id");
+    let query = supabaseAdmin.from("funcionarios").select("id, nome, cpf");
     if (data.funcionarioIds && data.funcionarioIds.length > 0) {
       query = query.in("id", data.funcionarioIds);
     }
     const { data: funcionarios, error: fErr } = await query;
     if (fErr) throw new Error(fErr.message);
+
+    const pontomaisByCpf = await buildPontomaisEmployeeMapByCpf();
 
     const results: Array<{
       funcionario_id: string;
@@ -50,27 +55,34 @@ export const syncPontomais = createServerFn({ method: "POST" })
 
     for (const f of funcionarios ?? []) {
       try {
-        const { employeeId, resolvedByCpf, byDate } = await fetchPontomaisRegistros({
-          cpf: (f as any).cpf ?? null,
-          email: f.email,
-          pontomaisEmployeeId: (f as any).pontomais_employee_id ?? null,
+        const cleanCpf = sanitizePontomaisCpf((f as any).cpf ?? null);
+        if (!cleanCpf) {
+          throw new Error(
+            "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto.",
+          );
+        }
+
+        const pontomaisEmployee = pontomaisByCpf[cleanCpf];
+        if (!pontomaisEmployee) {
+          throw new Error(`CPF ${cleanCpf} não encontrado na base da Pontomais`);
+        }
+
+        const employeeId = pontomaisEmployee.employeeId;
+
+        const { error: updErr } = await supabaseAdmin
+          .from("funcionarios")
+          .update({ pontomais_employee_id: employeeId })
+          .eq("id", f.id);
+        if (updErr) {
+          console.warn("[pontomais] falha ao salvar ID atualizado", updErr.message);
+        }
+
+        const { byDate } = await fetchPontomaisRegistrosByEmployeeId({
+          employeeId,
+          cpf: cleanCpf,
           startDate: data.startDate,
           endDate: data.endDate,
         });
-
-        // Persiste/atualiza o ID correto retornado pela Pontomais para evitar 404 futuros.
-        const currentId = (f as any).pontomais_employee_id
-          ? String((f as any).pontomais_employee_id)
-          : null;
-        if (resolvedByCpf || currentId !== String(employeeId)) {
-          const { error: updErr } = await supabaseAdmin
-            .from("funcionarios")
-            .update({ pontomais_employee_id: String(employeeId) })
-            .eq("id", f.id);
-          if (updErr) {
-            console.warn("[pontomais] falha ao salvar ID atualizado", updErr.message);
-          }
-        }
 
         const rows = Object.entries(byDate).map(([date, reg]) => ({
           funcionario_id: f.id,
