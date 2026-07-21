@@ -57,8 +57,16 @@ type RoomRow = {
   condition: string | null;
   assigned_camareira: string | null;
   guest_name: string | null;
+  pax: number | null;
+  has_pending_payment: boolean | null;
+  pending_payment_amount: number | null;
+  has_pending_docs: boolean | null;
+  arrival_time: string | null;
+  assigned_task: string | null;
   updated_at: string;
 };
+
+type MetricDetail = "ocupacao" | "balcao" | "docs";
 function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
   if (r.condition === "maintenance") return "bloqueados";
   if (r.status === "clean") return "prontos";
@@ -132,6 +140,7 @@ function BoasVindas() {
   const [statusQuartos, setStatusQuartos] = useState<StatusQuartos>(EMPTY_STATUS);
   const [rooms, setRooms] = useState<RoomRow[]>([]);
   const [selectedStatus, setSelectedStatus] = useState<StatusKey | null>(null);
+  const [metricDetail, setMetricDetail] = useState<MetricDetail | null>(null);
   const [loading, setLoading] = useState(true);
   const [openRecador, setOpenRecador] = useState(false);
   const [clima, setClima] = useState<Clima>({
@@ -237,7 +246,7 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at")
+          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
       ]);
@@ -333,6 +342,37 @@ function BoasVindas() {
     () => (selectedStatus ? rooms.filter((r) => classifyRoom(r) === selectedStatus) : []),
     [rooms, selectedStatus],
   );
+
+  const ocupadosList = useMemo(
+    () =>
+      rooms.filter(
+        (r) => !!r.guest_name && r.condition !== "maintenance",
+      ),
+    [rooms],
+  );
+  const balcaoList = useMemo(
+    () => rooms.filter((r) => r.has_pending_payment === true),
+    [rooms],
+  );
+  const docsList = useMemo(
+    () => rooms.filter((r) => r.has_pending_docs === true),
+    [rooms],
+  );
+
+  const metricDialogTitle: Record<MetricDetail, string> = {
+    ocupacao: "Quartos Ocupados Hoje",
+    balcao: "Hóspedes com Saldo a Receber no Balcão",
+    docs: "Hóspedes com Documentos Pendentes",
+  };
+  const metricDialogList =
+    metricDetail === "ocupacao"
+      ? ocupadosList
+      : metricDetail === "balcao"
+        ? balcaoList
+        : metricDetail === "docs"
+          ? docsList
+          : [];
+
 
   if (loading) {
     return (
@@ -517,7 +557,11 @@ function BoasVindas() {
 
           {/* 3 cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("ocupacao")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-teal-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">Taxa de Ocupação Hoje</span>
                 <TrendingUp size={16} />
@@ -530,10 +574,15 @@ function BoasVindas() {
                     style={{ width: `${Math.min(100, Math.max(0, metricas.taxaOcupacao))}%` }}
                   />
                 </div>
+                <p className="text-[10px] text-teal-300/80 font-bold uppercase tracking-wider">Clique para ver quartos ocupados</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("balcao")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-red-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">A Receber no Balcão</span>
                 <DollarSign size={16} className="text-red-400" />
@@ -549,10 +598,15 @@ function BoasVindas() {
                 <p className="text-[10px] text-slate-400 font-bold">
                   Cobrança ativa obrigatória no check-in
                 </p>
+                <p className="text-[10px] text-red-300/80 font-bold uppercase tracking-wider">Clique para ver hóspedes com saldo</p>
               </div>
-            </div>
+            </button>
 
-            <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md">
+            <button
+              type="button"
+              onClick={() => setMetricDetail("docs")}
+              className="text-left bg-white/5 border border-white/10 rounded-2xl p-5 space-y-3 backdrop-blur-md hover:bg-white/10 hover:border-amber-400/40 transition-all"
+            >
               <div className="flex justify-between items-center text-slate-400">
                 <span className="text-xs font-bold uppercase tracking-wider">Docs Pendentes</span>
                 <FileText size={16} className="text-amber-400" />
@@ -562,9 +616,11 @@ function BoasVindas() {
                 <p className="text-[10px] text-slate-400 font-bold">
                   Falta preenchimento de ficha de entrada
                 </p>
+                <p className="text-[10px] text-amber-300/80 font-bold uppercase tracking-wider">Clique para ver hóspedes pendentes</p>
               </div>
-            </div>
+            </button>
           </div>
+
         </>
       ) : (
         (() => {
@@ -816,6 +872,82 @@ function BoasVindas() {
                           <Clock size={12} />
                           {new Date(r.updated_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={metricDetail !== null} onOpenChange={(o) => !o && setMetricDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{metricDetail ? metricDialogTitle[metricDetail] : ""}</DialogTitle>
+            <DialogDescription>
+              INJOY {unidade} · {metricDialogList.length}{" "}
+              {metricDialogList.length === 1 ? "quarto" : "quartos"}
+              {metricDetail === "balcao" && metricDialogList.length > 0 && (
+                <>
+                  {" · Total "}
+                  <b className="text-red-500">
+                    R${" "}
+                    {metricDialogList
+                      .reduce((s, r) => s + Number(r.pending_payment_amount ?? 0), 0)
+                      .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </b>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            {metricDialogList.length === 0 ? (
+              <div className="text-center py-10 text-sm text-slate-500">
+                Nenhum registro no momento.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {metricDialogList.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50"
+                  >
+                    <div className="h-11 w-11 shrink-0 rounded-lg bg-white grid place-items-center font-black text-sm text-slate-900 border border-slate-200">
+                      {r.room_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {r.guest_name || "Sem hóspede identificado"}
+                        </p>
+                        {r.room_type && (
+                          <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded border">
+                            {r.room_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        <span>Quarto {r.room_number}</span>
+                        {r.pax != null && r.pax > 0 && <span>{r.pax} pax</span>}
+                        {r.arrival_time && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} /> {r.arrival_time}
+                          </span>
+                        )}
+                        {metricDetail === "balcao" && (
+                          <span className="font-bold text-red-600">
+                            R${" "}
+                            {Number(r.pending_payment_amount ?? 0).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        )}
+                        {metricDetail === "docs" && (
+                          <span className="font-bold text-amber-600">Ficha pendente</span>
+                        )}
                       </div>
                     </div>
                   </li>
