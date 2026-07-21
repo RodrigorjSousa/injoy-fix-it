@@ -401,11 +401,21 @@ function PainelPreventiva({
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                       {loc.category}
                     </span>
-                    
+
                     {/* Título sem truncate para impedir o erro do 'Q...' */}
-                    <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap mt-0.5">
+                    <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap mt-0.5 flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "inline-block h-2.5 w-2.5 rounded-full ring-4 shrink-0",
+                          loc.health === "em-dia" && "bg-success ring-success/20",
+                          loc.health === "vence-breve" && "bg-amber-500 ring-amber-500/20",
+                          loc.health === "atrasado" && "bg-destructive ring-destructive/20 animate-pulse",
+                        )}
+                      />
                       {loc.name}
                     </h3>
+
                     
                     <span className="text-xs text-muted-foreground mt-0.5">
                       {unidade}
