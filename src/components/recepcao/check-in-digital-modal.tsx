@@ -344,3 +344,53 @@ function CheckInDigitalModal({
     </Dialog>
   );
 }
+
+function StatusList({
+  status,
+  roomNumber,
+}: {
+  status: Record<string, { state: "pending" | "success" | "error"; message?: string }>;
+  roomNumber: string;
+}) {
+  const LABELS: Record<string, string> = {
+    eba207725701fb044abmhl: "🚪 Portão Principal",
+    ebd7760a2310ee9930ozt9: "🚪 Porta de Vidro",
+    eba3429756a5aaa8b2ssrw: `🛏️ Quarto ${roomNumber}`,
+  };
+  const entries = Object.entries(status);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        Status da geração
+      </div>
+      {entries.map(([id, s]) => (
+        <div key={id} className="flex items-center justify-between px-3 py-2 gap-2">
+          <span className="text-xs font-semibold text-slate-700 truncate">
+            {LABELS[id] ?? id}
+          </span>
+          {s.state === "pending" && (
+            <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+              <Clock size={14} className="animate-pulse" />
+              Sincronizando…
+            </span>
+          )}
+          {s.state === "success" && (
+            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
+              <CheckCircle2 size={14} />
+              Sincronizada
+            </span>
+          )}
+          {s.state === "error" && (
+            <span
+              className="flex items-center gap-1 text-xs font-bold text-red-600 max-w-[60%] text-right"
+              title={s.message}
+            >
+              <XCircle size={14} />
+              <span className="truncate">{s.message || "Falha"}</span>
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
