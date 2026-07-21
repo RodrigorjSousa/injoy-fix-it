@@ -16,20 +16,21 @@ let cache: Promise<TuyaDevice[]> | null = null;
 
 export function loadTuyaDevices(force = false): Promise<TuyaDevice[]> {
   if (!cache || force) {
-    cache = supabase
-      .from("tuya_devices")
-      .select("id,unidade,tipo,room_number,device_id,label,ativo")
-      .eq("ativo", true)
-      .then(({ data, error }) => {
-        if (error) {
-          cache = null;
-          throw error;
-        }
-        return (data ?? []) as TuyaDevice[];
-      });
+    cache = (async () => {
+      const { data, error } = await supabase
+        .from("tuya_devices")
+        .select("id,unidade,tipo,room_number,device_id,label,ativo")
+        .eq("ativo", true);
+      if (error) {
+        cache = null;
+        throw error;
+      }
+      return (data ?? []) as TuyaDevice[];
+    })();
   }
-  return cache;
+  return cache!;
 }
+
 
 export function invalidateTuyaDevicesCache() {
   cache = null;
