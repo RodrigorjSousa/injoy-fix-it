@@ -223,7 +223,11 @@ export function PainelControleRapido({ unidade }: Props) {
 
         {/* CARD 4 - Ponto Pontomais (apenas Gestor/Admin) */}
         {isGestor && (
-        <Link to="/controle-ponto" className={cardBase}>
+        <button
+          type="button"
+          onClick={() => setPontoOpen(true)}
+          className={cn(cardBase, "text-left")}
+        >
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Ponto dos Funcionários
@@ -242,7 +246,7 @@ export function PainelControleRapido({ unidade }: Props) {
             <ArrowUpRight className="h-3.5 w-3.5" />
             Sincronizado com Pontomais
           </div>
-        </Link>
+        </button>
         )}
 
         {/* CARD 5 - Bonificação Recepção */}
