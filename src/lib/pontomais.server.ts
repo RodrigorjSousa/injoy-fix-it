@@ -32,6 +32,28 @@ function toTime(value: unknown): string | null {
   return `${m[1]}:${m[2]}:${m[3] ?? "00"}`;
 }
 
+function collectTimesDeep(value: unknown, depth = 0, out: string[] = []): string[] {
+  if (depth > 6 || value == null) return out;
+  if (typeof value === "string") {
+    const t = toTime(value);
+    if (t) out.push(t);
+    return out;
+  }
+  if (typeof value === "number") return out;
+  if (Array.isArray(value)) {
+    for (const item of value) collectTimesDeep(item, depth + 1, out);
+    return out;
+  }
+  const rec = asRecord(value);
+  if (!rec) return out;
+  for (const [k, v] of Object.entries(rec)) {
+    // Ignora chaves obviamente não relacionadas a tempo para evitar falso-positivos
+    if (/^(id|employee|user|person|created_at|updated_at|deleted_at)$/i.test(k)) continue;
+    collectTimesDeep(v, depth + 1, out);
+  }
+  return out;
+}
+
 export function sanitizePontomaisCpf(cpf: string | null | undefined): string | null {
   if (!cpf) return null;
   const digits = cpf.replace(/\D/g, "");
