@@ -527,7 +527,7 @@ function collectPontomaisDayRecords(
   }
 
   for (const [key, nested] of Object.entries(record)) {
-    if (PONTOMAIS_ACTUAL_PUNCH_KEYS.includes(key)) continue;
+    if (PONTOMAIS_ACTUAL_PUNCH_KEYS.includes(key) && (ownDate || context.date)) continue;
     if (/^(shift_appointments|shift_name|shift_time|time_breaks|summary|extra_time|total_time|custom_interval_time|overnight_time|time_balance|motive)$/i.test(key)) continue;
     if (nested && (Array.isArray(nested) || typeof nested === "object")) {
       collectPontomaisDayRecords(
