@@ -294,10 +294,32 @@ export function TuyaDevicesManager() {
         </button>
       </div>
 
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={verificarOnline}
+          disabled={checking || loading}
+          className="flex-1 md:flex-none py-2 px-3 rounded-xl font-bold text-sm bg-sky-600 hover:bg-sky-700 text-white flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          {checking ? <Loader2 size={16} className="animate-spin" /> : <Wifi size={16} />}
+          Verificar fechaduras online
+        </button>
+        <button
+          type="button"
+          onClick={imprimirPDF}
+          disabled={loading}
+          className="flex-1 md:flex-none py-2 px-3 rounded-xl font-bold text-sm bg-slate-800 hover:bg-slate-900 text-white flex items-center justify-center gap-2 disabled:opacity-60"
+        >
+          <FileDown size={16} />
+          Imprimir PDF
+        </button>
+      </div>
+
       <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
         <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500 border-b">
           Fechaduras cadastradas
         </div>
+
         {loading ? (
           <div className="py-8 flex justify-center text-slate-500">
             <Loader2 className="animate-spin" size={20} />
