@@ -32,6 +32,28 @@ function toTime(value: unknown): string | null {
   return `${m[1]}:${m[2]}:${m[3] ?? "00"}`;
 }
 
+function collectTimesDeep(value: unknown, depth = 0, out: string[] = []): string[] {
+  if (depth > 6 || value == null) return out;
+  if (typeof value === "string") {
+    const t = toTime(value);
+    if (t) out.push(t);
+    return out;
+  }
+  if (typeof value === "number") return out;
+  if (Array.isArray(value)) {
+    for (const item of value) collectTimesDeep(item, depth + 1, out);
+    return out;
+  }
+  const rec = asRecord(value);
+  if (!rec) return out;
+  for (const [k, v] of Object.entries(rec)) {
+    // Ignora chaves obviamente não relacionadas a tempo para evitar falso-positivos
+    if (/^(id|employee|user|person|created_at|updated_at|deleted_at)$/i.test(k)) continue;
+    collectTimesDeep(v, depth + 1, out);
+  }
+  return out;
+}
+
 export function sanitizePontomaisCpf(cpf: string | null | undefined): string | null {
   if (!cpf) return null;
   const digits = cpf.replace(/\D/g, "");
@@ -392,6 +414,8 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     throw err;
   }
 
+  console.log("JSON completo de batidas retornado pela Pontomais:", JSON.stringify(payload));
+
   const payloadRecord = asRecord(payload);
   const rawRows =
     payloadRecord?.time_cards ?? payloadRecord?.data ?? payloadRecord?.registros ?? [];
@@ -403,7 +427,7 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
       employeeId,
       totalRows: rows.length,
       firstRowKeys: Object.keys(asRecord(rows[0]) ?? {}),
-      firstRowSample: JSON.stringify(rows[0]).slice(0, 800),
+      firstRowSample: JSON.stringify(rows[0]).slice(0, 2000),
     });
   } else {
     console.log("[pontomais] nenhuma batida retornada", {
@@ -472,7 +496,25 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
       .filter(Boolean) as string[];
     punches.sort();
 
-    if (punches.length === 0) continue;
+    if (punches.length === 0) {
+      // Fallback: varre recursivamente a linha em busca de horários (HH:MM[:SS])
+      const deep = collectTimesDeep(row);
+      deep.sort();
+      if (deep.length > 0) {
+        console.log("[pontomais] batidas extraídas via varredura profunda", {
+          employeeId,
+          date: key,
+          totalEncontradas: deep.length,
+        });
+        byDate[key] = {
+          entrada: deep[0] ?? null,
+          almoco_saida: deep[1] ?? null,
+          almoco_retorno: deep[2] ?? null,
+          saida: deep[deep.length - 1] ?? null,
+        };
+      }
+      continue;
+    }
 
     byDate[key] = {
       entrada: punches[0] ?? null,
