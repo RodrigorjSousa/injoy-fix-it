@@ -12,6 +12,7 @@ import {
   Plus,
   Trash2,
   Settings2,
+  Loader2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,10 @@ export const Route = createFileRoute("/manutencao")({
     meta: [
       { title: "Manutenção Preventiva — INJOY" },
       { name: "description", content: "Painel de manutenção preventiva do hotel." },
+      { property: "og:title", content: "Manutenção Preventiva — INJOY" },
+      { property: "og:description", content: "Painel de manutenção preventiva recorrente do InJoy Hotéis." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: ManutencaoPage,
@@ -122,6 +127,8 @@ function daysBetween(a: Date, b: Date) {
 
 interface LocationTaskStatus {
   task: PreventiveTask;
+  lastLogId: string | null;
+  lastCompletedAtIso: string | null;
   lastCompletedAt: Date | null;
   lastTechnician: string | null;
   nextDue: Date | null;
@@ -132,10 +139,14 @@ function computeStatus(tasks: PreventiveTask[], logs: PreventiveLog[]): Location
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   return tasks.map((t) => {
-    const rel = logs.filter((l) => l.task_id === t.id);
+    const rel = logs
+      .filter((l) => l.task_id === t.id)
+      .sort((a, b) => new Date(b.completed_at).getTime() - new Date(a.completed_at).getTime());
     if (rel.length === 0) {
       return {
         task: t,
+        lastLogId: null,
+        lastCompletedAtIso: null,
         lastCompletedAt: null,
         lastTechnician: null,
         nextDue: null,
@@ -147,12 +158,28 @@ function computeStatus(tasks: PreventiveTask[], logs: PreventiveLog[]): Location
     const next = new Date(last.next_due_date + "T00:00:00");
     return {
       task: t,
+      lastLogId: last.id,
+      lastCompletedAtIso: last.completed_at,
       lastCompletedAt: lastAt,
       lastTechnician: last.technician_name,
       nextDue: next,
       daysToDue: daysBetween(next, today),
     };
   });
+}
+
+function fmtDateOnly(iso: string) {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function toDateInputValue(iso?: string | null) {
+  if (!iso) return "";
+  return iso.split("T")[0] ?? "";
+}
+
+function completedAtFromDateInput(date: string) {
+  return `${date}T12:00:00.000Z`;
 }
 
 type LocationHealth = "atrasado" | "vence-breve" | "em-dia";
@@ -452,6 +479,7 @@ function PainelPreventiva({
         tasks={tasks}
         logs={logs}
         defaultTechnician="Cristiano"
+        canAdjustDates={!!me && (me.isAdmin || me.isGestor)}
       />
     </>
   );
@@ -527,6 +555,7 @@ function ChecklistModal({
   tasks,
   logs,
   defaultTechnician,
+  canAdjustDates,
 }: {
   open: boolean;
   onOpenChange: (o: boolean) => void;
@@ -535,11 +564,19 @@ function ChecklistModal({
   tasks: PreventiveTask[];
   logs: PreventiveLog[];
   defaultTechnician: string;
+  canAdjustDates: boolean;
 }) {
   const qc = useQueryClient();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
   const [notes, setNotes] = useState("");
+  const [editingDate, setEditingDate] = useState<{
+    logId: string;
+    task: PreventiveTask;
+    taskName: string;
+    completedAt: string;
+  } | null>(null);
+  const [executionDate, setExecutionDate] = useState("");
 
   const catTasks = location ? tasks.filter((t) => t.category === location.category && t.active) : [];
   const locLogs = location ? logs.filter((l) => l.location_name === location.name) : [];
@@ -554,8 +591,6 @@ function ChecklistModal({
       const rows = catTasks
         .filter((t) => checked[t.id])
         .map((t) => {
-          const nextDue = new Date();
-          nextDue.setDate(nextDue.getDate() + (t.frequency_days || 0));
           return {
             property,
             category: location.category,
@@ -565,7 +600,6 @@ function ChecklistModal({
             frequency_days: t.frequency_days,
             notes: notes.trim() || null,
             completed_at: nowIso,
-            next_due_date: nextDue.toISOString().split("T")[0],
           };
         });
       if (rows.length === 0) throw new Error("Marque ao menos uma tarefa");
@@ -592,6 +626,37 @@ function ChecklistModal({
 
   });
 
+  const adjustDate = useMutation({
+    mutationFn: async () => {
+      if (!editingDate) throw new Error("Selecione uma manutenção para ajustar.");
+      if (!executionDate) throw new Error("Informe a data executada.");
+
+      const { data, error } = await supabase
+        .from("preventive_logs" as never)
+        .update({
+          completed_at: completedAtFromDateInput(executionDate),
+          frequency_days: editingDate.task.frequency_days,
+        } as never)
+        .eq("id", editingDate.logId)
+        .select("id, next_due_date")
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
+      return data as { id: string; next_due_date: string };
+    },
+    onSuccess: async (updated) => {
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: ["preventive_logs"] }),
+        qc.invalidateQueries({ queryKey: ["preventive_logs_all"] }),
+      ]);
+      toast.success(`Data ajustada. Próxima atividade recalculada para ${fmtDateOnly(updated.next_due_date)}.`);
+      setEditingDate(null);
+      setExecutionDate("");
+    },
+    onError: (e: Error) => toast.error(e.message || "Não foi possível ajustar a data da manutenção."),
+  });
+
   function renderStatusLabel(s: LocationTaskStatus) {
     if (s.lastCompletedAt === null) {
       return <span className="text-destructive font-medium">Nunca executado</span>;
@@ -603,6 +668,7 @@ function ChecklistModal({
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="w-[min(42rem,calc(100vw-2rem))] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -626,11 +692,10 @@ function ChecklistModal({
               const overdue = (s.daysToDue ?? 0) < 0;
               const soon = (s.daysToDue ?? 999) <= 5 && !overdue;
               return (
-                <label
+                <div
                   key={s.task.id}
-                  htmlFor={`prev-${s.task.id}`}
                   className={cn(
-                    "flex items-start gap-3 rounded-md p-2 hover:bg-muted/50 cursor-pointer transition-colors border",
+                    "flex items-start gap-3 rounded-md p-2 hover:bg-muted/50 transition-colors border",
                     overdue && "border-destructive/40 bg-destructive/5",
                     soon && "border-amber-500/40 bg-amber-500/5",
                     !overdue && !soon && "border-transparent",
@@ -643,18 +708,40 @@ function ChecklistModal({
                     className="mt-0.5"
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-sm font-medium leading-tight">{s.task.task_name}</div>
-                    <div className="text-xs mt-0.5 flex items-center gap-2">
-                      {renderStatusLabel(s)}
-                      <span className="text-muted-foreground">· a cada {s.task.frequency_days}d</span>
-                    </div>
+                    <label htmlFor={`prev-${s.task.id}`} className="block cursor-pointer">
+                      <div className="text-sm font-medium leading-tight">{s.task.task_name}</div>
+                      <div className="text-xs mt-0.5 flex items-center gap-2">
+                        {renderStatusLabel(s)}
+                        <span className="text-muted-foreground">· a cada {s.task.frequency_days}d</span>
+                      </div>
+                    </label>
                     {s.lastCompletedAt && (
                       <div className="text-[11px] text-muted-foreground mt-0.5">
                         Última: {s.lastCompletedAt.toLocaleDateString("pt-BR")} por {s.lastTechnician}
                       </div>
                     )}
+                    {canAdjustDates && s.lastLogId && s.lastCompletedAt && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2 h-8 text-xs"
+                        onClick={() => {
+                          setEditingDate({
+                            logId: s.lastLogId!,
+                            task: s.task,
+                            taskName: s.task.task_name,
+                            completedAt: s.lastCompletedAtIso ?? s.lastCompletedAt!.toISOString(),
+                          });
+                          setExecutionDate(toDateInputValue(s.lastCompletedAtIso ?? s.lastCompletedAt!.toISOString()));
+                        }}
+                      >
+                        <Pencil className="h-3.5 w-3.5 mr-1.5" />
+                        Ajustar data executada
+                      </Button>
+                    )}
                   </div>
-                </label>
+                </div>
               );
             })}
             {status.length === 0 && (
@@ -705,6 +792,66 @@ function ChecklistModal({
         </DialogFooter>
       </DialogContent>
     </Dialog>
+    <Dialog
+      open={!!editingDate}
+      onOpenChange={(nextOpen) => {
+        if (!nextOpen && !adjustDate.isPending) {
+          setEditingDate(null);
+          setExecutionDate("");
+        }
+      }}
+    >
+      <DialogContent className="w-[min(28rem,calc(100vw-2rem))]">
+        <DialogHeader>
+          <DialogTitle>Ajustar data executada</DialogTitle>
+          <DialogDescription>
+            {editingDate
+              ? `${location?.name ?? "Local"} — ${editingDate.taskName}. A próxima data será recalculada a partir da data informada.`
+              : "Informe a data real da execução."}
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <Label htmlFor="maintenance-card-execution-date">Data real da execução</Label>
+          <Input
+            id="maintenance-card-execution-date"
+            type="date"
+            value={executionDate}
+            onChange={(event) => setExecutionDate(event.target.value)}
+            max="2999-12-31"
+          />
+          {editingDate?.task.frequency_days && (
+            <p className="text-xs text-muted-foreground">
+              Próxima atividade = data informada + {editingDate.task.frequency_days} dia(s).
+            </p>
+          )}
+        </div>
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setEditingDate(null);
+              setExecutionDate("");
+            }}
+            disabled={adjustDate.isPending}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={() => adjustDate.mutate()}
+            disabled={!editingDate || !executionDate || adjustDate.isPending}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
+          >
+            {adjustDate.isPending ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Pencil className="h-4 w-4 mr-2" />
+            )}
+            Salvar data
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
 
