@@ -1,11 +1,11 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const schema = z.object({
   employeeId: z.string(),
   startDate: z.string(),
   endDate: z.string(),
+  probeSecret: z.string(),
 });
 
 const BASE = "https://api.pontomais.com.br/external_api/v1";
@@ -28,14 +28,12 @@ async function tryEndpoint(url: string, token: string, method: "GET" | "POST" = 
 }
 
 export const probePontomais = createServerFn({ method: "POST" })
-  .middleware([requireSupabaseAuth])
   .inputValidator((i) => schema.parse(i))
-  .handler(async ({ data, context }) => {
-    const { supabase, userId } = context;
-    const { data: roles } = await supabase.from("user_roles").select("role").eq("user_id", userId);
-    if (!(roles ?? []).some((r: { role: string }) => r.role === "gestor" || r.role === "admin")) {
+  .handler(async ({ data }) => {
+    if (data.probeSecret !== process.env.CRON_SHARED_SECRET) {
       throw new Error("forbidden");
     }
+
     const token = (process.env.PONTOMAIS_API_TOKEN ?? "").trim().replace(/^Bearer\s+/i, "");
     if (!token) throw new Error("no token");
 
