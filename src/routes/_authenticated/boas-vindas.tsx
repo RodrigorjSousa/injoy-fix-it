@@ -343,6 +343,37 @@ function BoasVindas() {
     [rooms, selectedStatus],
   );
 
+  const ocupadosList = useMemo(
+    () =>
+      rooms.filter(
+        (r) => !!r.guest_name && r.condition !== "maintenance",
+      ),
+    [rooms],
+  );
+  const balcaoList = useMemo(
+    () => rooms.filter((r) => r.has_pending_payment === true),
+    [rooms],
+  );
+  const docsList = useMemo(
+    () => rooms.filter((r) => r.has_pending_docs === true),
+    [rooms],
+  );
+
+  const metricDialogTitle: Record<MetricDetail, string> = {
+    ocupacao: "Quartos Ocupados Hoje",
+    balcao: "Hóspedes com Saldo a Receber no Balcão",
+    docs: "Hóspedes com Documentos Pendentes",
+  };
+  const metricDialogList =
+    metricDetail === "ocupacao"
+      ? ocupadosList
+      : metricDetail === "balcao"
+        ? balcaoList
+        : metricDetail === "docs"
+          ? docsList
+          : [];
+
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0f172a] flex items-center justify-center">
