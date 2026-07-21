@@ -59,7 +59,7 @@ export const probePontomais = createServerFn({ method: "POST" })
     type Result = { url: string; method: string; status: number; ok: boolean; snippet: string };
     const results: Result[] = [];
     for (const url of attempts) {
-      results.push(await tryEndpoint(url, token, "GET"));
+      results.push((await tryEndpoint(url, token, "GET")) as Result);
     }
 
     // POST report variants
