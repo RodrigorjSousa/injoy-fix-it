@@ -86,7 +86,7 @@ serve(async (req) => {
       const bodyObj = {
         effective_time: effectiveTime,
         invalid_time: invalidTime,
-        type: 2,
+        type: "multiple",
       };
 
       const bodyStr = JSON.stringify(bodyObj);
