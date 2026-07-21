@@ -627,9 +627,13 @@ function ChecklistModal({
       if (!editingDate) throw new Error("Selecione uma manutenção para ajustar.");
       if (!executionDate) throw new Error("Informe a data executada.");
 
-      const updated = await adjustPreventiveLogDateFn({
-        data: { logId: editingDate.logId, executionDate },
+      const { data: rows, error } = await supabase.rpc("adjust_preventive_log_date", {
+        _log_id: editingDate.logId,
+        _new_date: executionDate,
       });
+      if (error) throw new Error(error.message);
+      const updated = Array.isArray(rows) ? rows[0] : rows;
+      if (!updated) throw new Error("Registro de manutenção não encontrado.");
 
       return updated as { id: string; next_due_date: string };
     },
