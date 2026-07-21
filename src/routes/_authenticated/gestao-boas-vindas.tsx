@@ -174,12 +174,13 @@ function AudienceEditor({ audience }: { audience: BoasVindasAudience }) {
     const { data: userRes } = await supabase.auth.getUser();
     const payload = {
       audience,
-      blocks: blocks as unknown as object,
+      blocks: blocks as unknown as import("@/integrations/supabase/types").Json,
       updated_by: userRes.user?.id ?? null,
     };
     const { error } = await supabase
       .from("boas_vindas_config")
       .upsert(payload, { onConflict: "audience" });
+
     setSaving(false);
     if (error) {
       toast.error("Não foi possível salvar", { description: error.message });

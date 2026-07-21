@@ -25,6 +25,7 @@ import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
 import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_authenticated/historico-manutencao'
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
+import { Route as AuthenticatedGestaoBoasVindasRouteImport } from './routes/_authenticated/gestao-boas-vindas'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
@@ -123,6 +124,12 @@ const AuthenticatedHistoricoLimpezaRoute =
   AuthenticatedHistoricoLimpezaRouteImport.update({
     id: '/historico-limpeza',
     path: '/historico-limpeza',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedGestaoBoasVindasRoute =
+  AuthenticatedGestaoBoasVindasRouteImport.update({
+    id: '/gestao-boas-vindas',
+    path: '/gestao-boas-vindas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
 const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
@@ -225,6 +232,7 @@ export interface FileRoutesByFullPath {
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
+  '/gestao-boas-vindas': typeof AuthenticatedGestaoBoasVindasRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -255,6 +263,7 @@ export interface FileRoutesByTo {
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
+  '/gestao-boas-vindas': typeof AuthenticatedGestaoBoasVindasRoute
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -289,6 +298,7 @@ export interface FileRoutesById {
   '/_authenticated/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
+  '/_authenticated/gestao-boas-vindas': typeof AuthenticatedGestaoBoasVindasRoute
   '/_authenticated/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/_authenticated/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/_authenticated/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
@@ -324,6 +334,7 @@ export interface FileRouteTypes {
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
+    | '/gestao-boas-vindas'
     | '/historico-limpeza'
     | '/historico-manutencao'
     | '/historico-vistorias'
@@ -354,6 +365,7 @@ export interface FileRouteTypes {
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
+    | '/gestao-boas-vindas'
     | '/historico-limpeza'
     | '/historico-manutencao'
     | '/historico-vistorias'
@@ -387,6 +399,7 @@ export interface FileRouteTypes {
     | '/_authenticated/estoque-geral'
     | '/_authenticated/frigobar'
     | '/_authenticated/gestao'
+    | '/_authenticated/gestao-boas-vindas'
     | '/_authenticated/historico-limpeza'
     | '/_authenticated/historico-manutencao'
     | '/_authenticated/historico-vistorias'
@@ -525,6 +538,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoricoLimpezaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gestao-boas-vindas': {
+      id: '/_authenticated/gestao-boas-vindas'
+      path: '/gestao-boas-vindas'
+      fullPath: '/gestao-boas-vindas'
+      preLoaderRoute: typeof AuthenticatedGestaoBoasVindasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/gestao': {
       id: '/_authenticated/gestao'
       path: '/gestao'
@@ -647,6 +667,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedEstoqueGeralRoute: typeof AuthenticatedEstoqueGeralRoute
   AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
+  AuthenticatedGestaoBoasVindasRoute: typeof AuthenticatedGestaoBoasVindasRoute
   AuthenticatedHistoricoLimpezaRoute: typeof AuthenticatedHistoricoLimpezaRoute
   AuthenticatedHistoricoManutencaoRoute: typeof AuthenticatedHistoricoManutencaoRoute
   AuthenticatedHistoricoVistoriasRoute: typeof AuthenticatedHistoricoVistoriasRoute
@@ -675,6 +696,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedEstoqueGeralRoute: AuthenticatedEstoqueGeralRoute,
   AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
+  AuthenticatedGestaoBoasVindasRoute: AuthenticatedGestaoBoasVindasRoute,
   AuthenticatedHistoricoLimpezaRoute: AuthenticatedHistoricoLimpezaRoute,
   AuthenticatedHistoricoManutencaoRoute: AuthenticatedHistoricoManutencaoRoute,
   AuthenticatedHistoricoVistoriasRoute: AuthenticatedHistoricoVistoriasRoute,
