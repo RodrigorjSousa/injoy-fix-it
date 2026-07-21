@@ -245,14 +245,14 @@ serve(async (req) => {
         }
 
         const ticketId = ticketData.result.ticket_id;
-        const ticketKey = ticketData.result.ticket_key;
+        const ticketKeyHex = ticketData.result.ticket_key as string;
 
-        // --- PASSO B: Criptografar a Senha (AES-128-ECB) ---
-        // A Tuya exige (1) chave de 16 bytes e (2) texto puro convertidos para UTF-8 antes de aplicar AES
-        const keyUtf8 = CryptoJS.enc.Utf8.parse(ticketKey);
+        // --- PASSO B: Criptografar a senha com o ticket_key ---
+        // Docs Tuya: `ticket_key` já É a chave AES em formato HEX (64 chars = 32 bytes).
+        // Deve ser interpretada como bytes hex (AES-256-ECB), não como texto UTF-8.
+        const aesKey = CryptoJS.enc.Hex.parse(ticketKeyHex);
         const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaUnificada);
-
-        const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, keyUtf8, {
+        const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, aesKey, {
           mode: CryptoJS.mode.ECB,
           padding: CryptoJS.pad.Pkcs7,
         });
