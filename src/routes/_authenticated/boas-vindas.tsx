@@ -435,8 +435,9 @@ function BoasVindas() {
       )}
 
       {mostrarResumoBonificacao && isVisible("resumo_bonificacao") && (
-        <BonificacaoResumoCard unidade={unidade} nome={primeiroNome} />
+        <BonificacaoResumoCard unidade={unidade} />
       )}
+
 
 
       
