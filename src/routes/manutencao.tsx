@@ -328,11 +328,27 @@ function PainelPreventiva({
         />
       </div>
 
+      <div className="w-full flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-700">
+          {filter === "todos" && `Todos os locais (${filtered.length})`}
+          {filter === "em-dia" && `Em dia (${filtered.length})`}
+          {filter === "vence-breve" && `Vence em breve (${filtered.length})`}
+          {filter === "atrasado" && `A fazer / Atrasado (${filtered.length})`}
+        </h2>
+        {filter !== "todos" && (
+          <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
+            Limpar filtro
+          </Button>
+        )}
+      </div>
+
       {filtered.length === 0 && (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Nenhum local neste filtro.
         </Card>
       )}
+
+
 
       <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((loc) => {
@@ -365,9 +381,11 @@ function PainelPreventiva({
           return (
             <div
               key={loc.name}
-              className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
+              className="relative bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
             >
               {/* CABEÇALHO DO CARD - ESTRUTURA À PROVA DE FALHAS */}
+
+
               <div className="flex flex-row items-start justify-between w-full gap-2">
                 
                 {/* Bloco da Esquerda: Ícone + Textos */}
@@ -383,11 +401,21 @@ function PainelPreventiva({
                     <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                       {loc.category}
                     </span>
-                    
+
                     {/* Título sem truncate para impedir o erro do 'Q...' */}
-                    <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap mt-0.5">
+                    <h3 className="text-lg font-bold text-slate-900 whitespace-nowrap mt-0.5 flex items-center gap-2">
+                      <span
+                        aria-hidden
+                        className={cn(
+                          "inline-block h-2.5 w-2.5 rounded-full ring-4 shrink-0",
+                          loc.health === "em-dia" && "bg-success ring-success/20",
+                          loc.health === "vence-breve" && "bg-amber-500 ring-amber-500/20",
+                          loc.health === "atrasado" && "bg-destructive ring-destructive/20 animate-pulse",
+                        )}
+                      />
                       {loc.name}
                     </h3>
+
                     
                     <span className="text-xs text-muted-foreground mt-0.5">
                       {unidade}
