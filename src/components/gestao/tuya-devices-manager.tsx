@@ -30,6 +30,9 @@ export function TuyaDevicesManager() {
     label: "",
   });
   const [saving, setSaving] = useState(false);
+  const [checking, setChecking] = useState(false);
+  const [statuses, setStatuses] = useState<Record<string, { online: boolean; success: boolean; msg?: string }>>({});
+
 
   const refresh = async () => {
     setLoading(true);
