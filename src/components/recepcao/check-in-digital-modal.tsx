@@ -100,7 +100,13 @@ function CheckInDigitalModal({
       return;
     }
 
+    // Inicializa status como "pending" para cada fechadura
+    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string }> = {};
+    for (const id of DEVICE_IDS_005) initialStatus[id] = { state: "pending" };
+    setDeviceStatus(initialStatus);
+    setSenhasGeradas(null);
     setIsLoading(true);
+
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
         deviceIds: DEVICE_IDS_005,
@@ -112,15 +118,45 @@ function CheckInDigitalModal({
     setIsLoading(false);
 
     if (error) {
+      const errored: typeof initialStatus = {};
+      for (const id of DEVICE_IDS_005) errored[id] = { state: "error", message: error.message };
+      setDeviceStatus(errored);
       toast.error("Erro ao gerar senha: " + error.message);
       return;
     }
-    const senhas: Record<string, string> | undefined = data?.senhas;
-    if (!senhas || Object.keys(senhas).length === 0) {
-      toast.error("A função não retornou senhas.");
+
+    const senhas: Record<string, string> = data?.senhas ?? {};
+    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number } }> =
+      data?.tuyaResults ?? [];
+
+    const finalStatus: typeof initialStatus = {};
+    for (const id of DEVICE_IDS_005) {
+      const r = tuyaResults.find((x) => x.deviceId === id);
+      if (senhas[id]) {
+        finalStatus[id] = { state: "success" };
+      } else if (r) {
+        finalStatus[id] = {
+          state: "error",
+          message: r.status?.msg || `Falha (code ${r.status?.code ?? "?"})`,
+        };
+      } else {
+        finalStatus[id] = { state: "error", message: "Sem resposta" };
+      }
+    }
+    setDeviceStatus(finalStatus);
+
+    if (Object.keys(senhas).length === 0) {
+      toast.error("Nenhuma fechadura retornou senha. Verifique o status abaixo.");
       return;
     }
     setSenhasGeradas(senhas);
+
+    const okCount = Object.values(finalStatus).filter((s) => s.state === "success").length;
+    if (okCount < DEVICE_IDS_005.length) {
+      toast.warning(`${okCount}/${DEVICE_IDS_005.length} fechaduras sincronizadas.`);
+    } else {
+      toast.success("Todas as fechaduras foram sincronizadas!");
+    }
 
     try {
       const { data: userData } = await supabase.auth.getUser();
