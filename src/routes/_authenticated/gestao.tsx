@@ -11,6 +11,8 @@ import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quart
 import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
 import { CheckoutsCloudbedsCard } from "@/components/gestao/checkouts-cloudbeds-card";
 import { RecebimentosBalcaoCard } from "@/components/gestao/recebimentos-balcao-card";
+import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
+import { Key } from "lucide-react";
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
