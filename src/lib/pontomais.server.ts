@@ -392,6 +392,8 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     throw err;
   }
 
+  console.log("JSON completo de batidas retornado pela Pontomais:", JSON.stringify(payload));
+
   const payloadRecord = asRecord(payload);
   const rawRows =
     payloadRecord?.time_cards ?? payloadRecord?.data ?? payloadRecord?.registros ?? [];
@@ -403,7 +405,7 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
       employeeId,
       totalRows: rows.length,
       firstRowKeys: Object.keys(asRecord(rows[0]) ?? {}),
-      firstRowSample: JSON.stringify(rows[0]).slice(0, 800),
+      firstRowSample: JSON.stringify(rows[0]).slice(0, 2000),
     });
   } else {
     console.log("[pontomais] nenhuma batida retornada", {
