@@ -770,7 +770,10 @@ function BoasVindas() {
 
       {visaoCompleta && <PontoFuncionariosPainel unidade={unidade} />}
 
-      <PainelControleRapido unidade={unidade} />
+      {(visaoCompleta || isVisible("painel_controle_rapido")) && (
+        <PainelControleRapido unidade={unidade} />
+      )}
+
 
       <Dialog open={selectedStatus !== null} onOpenChange={(o) => !o && setSelectedStatus(null)}>
         <DialogContent className="max-w-lg">
