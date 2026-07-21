@@ -426,9 +426,18 @@ function BoasVindas() {
         gestorId={me?.userId ?? ""}
       />
 
-      <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+      {(visaoCompleta || isVisible("passagem_turno")) && (
+        <PassagemTurnoCard unidade={unidade} nome={primeiroNome} />
+      )}
 
-      <AuditoriaFuncionarioCard unidade={unidade} />
+      {(visaoCompleta || isVisible("auditoria_funcionario")) && (
+        <AuditoriaFuncionarioCard unidade={unidade} />
+      )}
+
+      {mostrarResumoBonificacao && isVisible("resumo_bonificacao") && (
+        <BonificacaoResumoCard unidade={unidade} nome={primeiroNome} />
+      )}
+
 
       
 
