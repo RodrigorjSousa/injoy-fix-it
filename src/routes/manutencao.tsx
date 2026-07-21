@@ -180,10 +180,6 @@ function toDateInputValue(iso?: string | null) {
   return iso.split("T")[0] ?? "";
 }
 
-function completedAtFromDateInput(date: string) {
-  return `${date}T12:00:00.000Z`;
-}
-
 type LocationHealth = "atrasado" | "vence-breve" | "em-dia";
 function locationHealth(status: LocationTaskStatus[]): LocationHealth {
   if (status.some((s) => (s.daysToDue ?? 0) < 0)) return "atrasado";

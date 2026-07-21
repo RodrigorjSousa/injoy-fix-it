@@ -137,10 +137,6 @@ function toDateInputValue(iso?: string | null) {
   return iso.split("T")[0] ?? "";
 }
 
-function completedAtFromDateInput(date: string) {
-  return `${date}T12:00:00.000Z`;
-}
-
 function HistoricoManutencaoPage() {
   const queryClient = useQueryClient();
   const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
