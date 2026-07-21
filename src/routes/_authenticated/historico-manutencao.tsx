@@ -137,7 +137,6 @@ function toDateInputValue(iso?: string | null) {
 
 function HistoricoManutencaoPage() {
   const queryClient = useQueryClient();
-  const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
   const now = new Date();
   const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
   const [mes, setMes] = useState<number>(now.getMonth());
@@ -151,9 +150,13 @@ function HistoricoManutencaoPage() {
     mutationFn: async ({ log, date }: { log: PreventiveLog; date: string }) => {
       if (!date) throw new Error("Informe a data executada.");
 
-      const row = await adjustPreventiveLogDateFn({
-        data: { logId: log.id, executionDate: date },
+      const { data: rows, error } = await supabase.rpc("adjust_preventive_log_date", {
+        _log_id: log.id,
+        _new_date: date,
       });
+      if (error) throw new Error(error.message);
+      const row = Array.isArray(rows) ? rows[0] : rows;
+      if (!row) throw new Error("Registro de manutenção não encontrado.");
 
       return row as Pick<PreventiveLog, "id" | "completed_at" | "next_due_date">;
     },
