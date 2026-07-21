@@ -37,6 +37,26 @@ function unidadeMatchesCategoria(unidade: Unidade, categorias: string[]): boolea
   return categorias.some((c) => c.toLowerCase().includes(u));
 }
 
+function normalizarNome(nome: string): string {
+  return nome
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+// Funcionários que não batem ponto — ocultos apenas nesta tela (permanecem em Equipe)
+const EXCLUIDOS_CONTROLE_PONTO = new Set<string>([
+  "rodrigo sousa",
+  "rita",
+  "mathaus",
+  "cristina",
+  "luciene",
+  "lucivaldo",
+  "walter",
+].map((n) => normalizarNome(n)));
+
+
 function formatTime(t: string | null): string {
   if (!t) return "—";
   return t.substring(0, 5);
@@ -92,12 +112,17 @@ function ControlePontoPage() {
 
   const funcionariosUnidade = useMemo(
     () =>
-      funcionarios.filter(
-        (f) =>
-          f.categorias.length === 0 || unidadeMatchesCategoria(unidade, f.categorias),
-      ),
+      funcionarios.filter((f) => {
+        const n = normalizarNome(f.nome);
+        for (const ex of EXCLUIDOS_CONTROLE_PONTO) {
+          if (n === ex || n.startsWith(ex + " ") || n.includes(" " + ex)) return false;
+        }
+        return f.categorias.length === 0 || unidadeMatchesCategoria(unidade, f.categorias);
+      }),
     [funcionarios, unidade],
   );
+
+
 
   const registrosPorFunc = useMemo(() => {
     const m: Record<string, RegistroPonto> = {};
