@@ -474,7 +474,25 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
       .filter(Boolean) as string[];
     punches.sort();
 
-    if (punches.length === 0) continue;
+    if (punches.length === 0) {
+      // Fallback: varre recursivamente a linha em busca de horários (HH:MM[:SS])
+      const deep = collectTimesDeep(row);
+      deep.sort();
+      if (deep.length > 0) {
+        console.log("[pontomais] batidas extraídas via varredura profunda", {
+          employeeId,
+          date: key,
+          totalEncontradas: deep.length,
+        });
+        byDate[key] = {
+          entrada: deep[0] ?? null,
+          almoco_saida: deep[1] ?? null,
+          almoco_retorno: deep[2] ?? null,
+          saida: deep[deep.length - 1] ?? null,
+        };
+      }
+      continue;
+    }
 
     byDate[key] = {
       entrada: punches[0] ?? null,
