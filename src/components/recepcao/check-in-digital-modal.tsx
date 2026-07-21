@@ -127,7 +127,7 @@ function CheckInDigitalModal({
       hour: "2-digit",
       minute: "2-digit",
     });
-    const texto = `Olá ${nomeHospede}! A sua senha de acesso ao Quarto ${roomNumber} é: ${senhaGerada}. Válida até ${saidaFmt}.`;
+    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY Botafogo.\nA sua senha de acesso exclusiva é: ${senhaGerada}\nEsta senha é válida até ${saidaFmt} e abre as seguintes portas:\n🚪 Portão Principal (Rua)\n🚪 Porta de Vidro (Recepção)\n🛏️ Quarto ${roomNumber}\nTenha uma excelente estadia!`;
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Mensagem copiada!");
