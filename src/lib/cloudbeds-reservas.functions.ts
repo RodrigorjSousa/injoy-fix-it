@@ -136,13 +136,57 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       }
     }
 
+    // Enriquecer com detalhes por reserva (estimatedArrivalTime nem sempre vem no list endpoint).
+    const todayIds = new Set<string>();
+    for (const r of rawList) {
+      const rec = r as Record<string, unknown>;
+      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
+      const id = String(rec.reservationID ?? "");
+      if (ci === hoje && id) todayIds.add(id);
+    }
+    const detailMap = new Map<string, Record<string, unknown>>();
+    await Promise.all(
+      Array.from(todayIds).map(async (id) => {
+        try {
+          const res = await cloudbedsFetch(property, `/getReservation?reservationID=${encodeURIComponent(id)}`);
+          if (!res.ok) return;
+          const json = (await res.json()) as { success?: boolean; data?: Record<string, unknown> };
+          if (json.success !== false && json.data) detailMap.set(id, json.data);
+        } catch {}
+      }),
+    );
+    for (const r of rawList) {
+      const rec = r as Record<string, unknown>;
+      const id = String(rec.reservationID ?? "");
+      const det = detailMap.get(id);
+      if (!det) continue;
+      for (const k of ["estimatedArrivalTime", "arrivalTime", "checkInTime", "guestArrivalTime"]) {
+        if (!rec[k] && det[k]) (rec as Record<string, unknown>)[k] = det[k];
+      }
+      if (Array.isArray(det.rooms) && Array.isArray((rec as { rooms?: unknown }).rooms)) {
+        const recRooms = (rec as { rooms: Array<Record<string, unknown>> }).rooms;
+        (det.rooms as Array<Record<string, unknown>>).forEach((dr, i) => {
+          const rr = recRooms[i];
+          if (!rr) return;
+          for (const k of ["estimatedArrivalTime", "arrivalTime", "checkInTime"]) {
+            if (!rr[k] && dr[k]) rr[k] = dr[k];
+          }
+        });
+      }
+    }
+
     const rows: ReservaHoje[] = [];
-    if (rawList.length > 0) {
+    const todayRec = rawList.find((r) => {
+      const rec = r as Record<string, unknown>;
+      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
+      return ci === hoje;
+    });
+    if (todayRec) {
       try {
-        console.log("[chegadas-hoje] hoje=", hoje, "sample=", JSON.stringify(rawList[0]).slice(0, 1500));
+        console.log("[chegadas-hoje] hoje=", hoje, "todaySample=", JSON.stringify(todayRec).slice(0, 3500));
       } catch {}
     } else {
-      console.log("[chegadas-hoje] hoje=", hoje, "sem reservas retornadas");
+      console.log("[chegadas-hoje] hoje=", hoje, "total=", rawList.length, "sem reservas checkIn=hoje");
     }
     for (const r of rawList) {
 
