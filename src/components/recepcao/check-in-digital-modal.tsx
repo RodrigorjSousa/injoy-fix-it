@@ -125,6 +125,23 @@ function CheckInDigitalModal({
       return;
     }
 
+    console.log("RESPOSTA RAW DO BACKEND:", data);
+
+    // Captura recusa interna da Tuya e exibe o motivo bruto
+    if (data && Array.isArray(data.tuyaResults)) {
+      const errosTuya = data.tuyaResults.filter(
+        (res: { status?: { success?: boolean } }) => res.status && res.status.success === false,
+      );
+      if (errosTuya.length > 0) {
+        alert(
+          "A Tuya RECUSOU a requisição!\n\nDetalhes:\n" +
+            JSON.stringify(errosTuya, null, 2),
+        );
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const senhas: Record<string, string> = data?.senhas ?? {};
     const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number } }> =
       data?.tuyaResults ?? [];

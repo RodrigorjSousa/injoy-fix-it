@@ -83,10 +83,12 @@ serve(async (req) => {
       const t2 = Date.now().toString();
 
       const bodyObj = {
-        name: (guestName || "Hospede").substring(0, 10),
-        effective_time: effectiveTime,
-        invalid_time: invalidTime,
-        type: "multiple",
+        offline_pwd_add_request: {
+          name: guestName ? guestName.substring(0, 10).trim() : "Injoy",
+          effective_time: effectiveTime,
+          invalid_time: invalidTime,
+          type: "multiple",
+        },
       };
       const bodyStr = JSON.stringify(bodyObj);
 
