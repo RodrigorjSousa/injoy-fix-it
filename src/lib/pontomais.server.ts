@@ -77,7 +77,8 @@ function employeeIdFromPontomaisRow(row: unknown): number | string | null {
   const record = asRecord(row);
   const employee = asRecord(record?.employee);
   const id = record?.id ?? record?.employee_id ?? record?.employeeId ?? employee?.id;
-  return id !== undefined && id !== null && String(id).trim() !== "" ? id : null;
+  const idValue = asStringish(id);
+  return idValue && idValue.trim() !== "" ? idValue : null;
 }
 
 function employeesFromPayload(payload: unknown): unknown[] {
