@@ -563,7 +563,6 @@ function ChecklistModal({
   canAdjustDates: boolean;
 }) {
   const qc = useQueryClient();
-  const adjustPreventiveLogDateFn = useServerFn(adjustPreventiveLogDate);
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
   const [notes, setNotes] = useState("");
