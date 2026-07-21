@@ -9,6 +9,8 @@ export type PontomaisRegistro = {
   saida?: string | null;
 };
 
+type JsonRecord = Record<string, unknown>;
+
 export class PontomaisApiError extends Error {
   status: number;
   body: string;
@@ -36,55 +38,78 @@ function sanitizeCpf(cpf: string | null | undefined): string | null {
   return digits.length === 11 ? digits : null;
 }
 
-function cpfFromPontomaisEmployee(row: any): string | null {
+function asRecord(value: unknown): JsonRecord | null {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+    ? (value as JsonRecord)
+    : null;
+}
+
+function asStringish(value: unknown): string | null {
+  return typeof value === "string" || typeof value === "number" ? String(value) : null;
+}
+
+function cpfFromPontomaisEmployee(row: unknown): string | null {
+  const record = asRecord(row);
+  const employee = asRecord(record?.employee);
+  const person = asRecord(record?.person);
   const candidates = [
-    row?.cpf,
-    row?.document,
-    row?.document_number,
-    row?.documentNumber,
-    row?.registration_number,
-    row?.registrationNumber,
-    row?.employee?.cpf,
-    row?.employee?.document,
-    row?.person?.cpf,
-    row?.person?.document,
+    record?.cpf,
+    record?.document,
+    record?.document_number,
+    record?.documentNumber,
+    record?.registration_number,
+    record?.registrationNumber,
+    employee?.cpf,
+    employee?.document,
+    person?.cpf,
+    person?.document,
   ];
 
   for (const value of candidates) {
-    const clean = sanitizeCpf(typeof value === "string" || typeof value === "number" ? String(value) : null);
+    const clean = sanitizeCpf(asStringish(value));
     if (clean) return clean;
   }
 
   return null;
 }
 
-function employeeIdFromPontomaisRow(row: any): number | string | null {
-  const id = row?.id ?? row?.employee_id ?? row?.employeeId ?? row?.employee?.id;
-  return id !== undefined && id !== null && String(id).trim() !== "" ? id : null;
+function employeeIdFromPontomaisRow(row: unknown): number | string | null {
+  const record = asRecord(row);
+  const employee = asRecord(record?.employee);
+  const id = record?.id ?? record?.employee_id ?? record?.employeeId ?? employee?.id;
+  const idValue = asStringish(id);
+  return idValue && idValue.trim() !== "" ? idValue : null;
 }
 
-function employeesFromPayload(payload: any): any[] {
+function employeesFromPayload(payload: unknown): unknown[] {
+  const record = asRecord(payload);
   const list =
-    payload?.employees ??
-    payload?.data ??
-    payload?.records ??
-    payload?.items ??
-    payload?.results ??
+    record?.employees ??
+    record?.data ??
+    record?.records ??
+    record?.items ??
+    record?.results ??
     (Array.isArray(payload) ? payload : []);
   return Array.isArray(list) ? list : [];
 }
 
-function nextPageFromPayload(payload: any, currentPage: number, currentCount: number): number | null {
-  const explicitNext = payload?.next_page ?? payload?.nextPage ?? payload?.pagination?.next_page;
+function nextPageFromPayload(
+  payload: unknown,
+  currentPage: number,
+  currentCount: number,
+): number | null {
+  const record = asRecord(payload);
+  const pagination = asRecord(record?.pagination);
+  const explicitNext = record?.next_page ?? record?.nextPage ?? pagination?.next_page;
   if (explicitNext !== undefined && explicitNext !== null && explicitNext !== false) {
     const next = Number(explicitNext);
     return Number.isFinite(next) && next > currentPage ? next : null;
   }
 
-  const totalPages = Number(payload?.total_pages ?? payload?.totalPages ?? payload?.pagination?.total_pages);
+  const totalPages = Number(record?.total_pages ?? record?.totalPages ?? pagination?.total_pages);
   if (Number.isFinite(totalPages) && currentPage < totalPages) return currentPage + 1;
 
-  const perPage = Number(payload?.per_page ?? payload?.perPage ?? payload?.pagination?.per_page);
+  const perPage = Number(record?.per_page ?? record?.perPage ?? pagination?.per_page);
   if (Number.isFinite(perPage) && currentCount >= perPage) return currentPage + 1;
 
   return null;
@@ -119,7 +144,9 @@ function getPontomaisBaseUrl(): string {
     configured.includes("/external_api/v1") || configured.includes("/api/external");
 
   if (!isExternalApi) {
-    console.warn("[pontomais] PONTOMAIS_BASE_URL ignorada por não apontar para a API externa pública");
+    console.warn(
+      "[pontomais] PONTOMAIS_BASE_URL ignorada por não apontar para a API externa pública",
+    );
     return DEFAULT_PONTOMAIS_BASE_URL;
   }
 
@@ -143,7 +170,10 @@ export function ensurePontomaisTokenConfigured(): void {
 }
 
 function normalizeToken(value: string | undefined): string | null {
-  const token = value?.trim().replace(/^Bearer\s+/i, "").replace(/^['\"]|['\"]$/g, "");
+  const token = value
+    ?.trim()
+    .replace(/^Bearer\s+/i, "")
+    .replace(/^['"]|['"]$/g, "");
   return token || null;
 }
 
@@ -165,16 +195,26 @@ function authHeaders(token: string): Record<string, string> {
   };
 }
 
-async function pontomaisGet(url: string, token: string): Promise<any> {
+async function pontomaisGet(url: string, token: string): Promise<unknown> {
   const headers = authHeaders(token);
-  console.log("[pontomais] enviando token configurado", {
-    tokenFingerprint: await tokenFingerprint(token),
+  const fingerprint = await tokenFingerprint(token);
+  console.log("Enviando requisição para Pontomais com token:", {
+    tokenFingerprint: fingerprint,
+    tokenLength: token.length,
     hasAccessTokenHeader: Boolean(headers["access-token"]),
     hasAuthorizationHeader: false,
+    url,
   });
   let res: Response;
   try {
     res = await fetch(url, { method: "GET", headers });
+    console.log("Resposta bruta da Pontomais:", {
+      url,
+      status: res.status,
+      statusText: res.statusText,
+      ok: res.ok,
+      contentType: res.headers.get("content-type"),
+    });
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     console.error("[pontomais] network error", { url, error: msg });
@@ -202,6 +242,39 @@ async function pontomaisGet(url: string, token: string): Promise<any> {
   }
 }
 
+async function listAllPontomaisEmployees(token: string): Promise<unknown[]> {
+  const employees: unknown[] = [];
+  let page = 1;
+  const visitedPages = new Set<number>();
+
+  while (!visitedPages.has(page) && page <= 100) {
+    visitedPages.add(page);
+    const query = new URLSearchParams();
+    query.set("page", String(page));
+    query.set("per_page", "100");
+
+    const payload = await pontomaisGet(
+      `${getPontomaisBaseUrl()}/employees?${query.toString()}`,
+      token,
+    );
+    const list = employeesFromPayload(payload);
+    employees.push(...list);
+
+    console.log("[pontomais] listagem de funcionários recebida", {
+      page,
+      pageCount: list.length,
+      totalSoFar: employees.length,
+      hasNextPage: Boolean(nextPageFromPayload(payload, page, list.length)),
+    });
+
+    const nextPage = nextPageFromPayload(payload, page, list.length);
+    if (!nextPage || list.length === 0) break;
+    page = nextPage;
+  }
+
+  return employees;
+}
+
 /**
  * Resolve the internal Pontomais employee_id by CPF (preferred) or email.
  * Uses the /employees listing endpoint with ransack-style filters — never
@@ -222,51 +295,12 @@ async function resolveEmployeeId(params: {
   const cleanCpf = sanitizeCpf(cpf);
   if (!cleanCpf) return null;
 
-  const filteredAttempts: string[] = [
-    `/employees?q[cpf_eq]=${encodeURIComponent(cleanCpf)}&per_page=100`,
-    `/employees?cpf=${encodeURIComponent(cleanCpf)}&per_page=100`,
-    `/employees?search=${encodeURIComponent(cleanCpf)}&per_page=100`,
-  ];
-
-  for (const path of filteredAttempts) {
-    try {
-      const payload = await pontomaisGet(`${getPontomaisBaseUrl()}${path}`, token);
-      const list = employeesFromPayload(payload);
-      if (list.length === 0) continue;
-
-      const hit =
-        list.find((row: any) => cpfFromPontomaisEmployee(row) === cleanCpf) ??
-        (list.length === 1 ? list[0] : null);
-      const id = hit ? employeeIdFromPontomaisRow(hit) : null;
-      if (id) return id;
-    } catch (err) {
-      if (err instanceof PontomaisApiError && err.status === 404) continue;
-      throw err;
-    }
-  }
-
-  // Fallback mais seguro: lista funcionários e cruza o CPF localmente.
-  // Isso evita depender de parâmetros não suportados pela API e elimina o 404 em massa.
-  let page = 1;
-  const visitedPages = new Set<number>();
-
-  while (!visitedPages.has(page) && page <= 100) {
-    visitedPages.add(page);
-    const query = new URLSearchParams();
-    query.set("page", String(page));
-    query.set("per_page", "100");
-
-    const payload = await pontomaisGet(`${getPontomaisBaseUrl()}/employees?${query.toString()}`, token);
-    const list = employeesFromPayload(payload);
-
-    const hit = list.find((row: any) => cpfFromPontomaisEmployee(row) === cleanCpf);
-    const id = hit ? employeeIdFromPontomaisRow(hit) : null;
-    if (id) return id;
-
-    const nextPage = nextPageFromPayload(payload, page, list.length);
-    if (!nextPage || list.length === 0) break;
-    page = nextPage;
-  }
+  // Estratégia segura: sempre busca a listagem completa e cruza CPF localmente.
+  // Nunca chama /employees/{cpf}, pois esse endpoint espera o ID interno Pontomais.
+  const employees = await listAllPontomaisEmployees(token);
+  const hit = employees.find((row) => cpfFromPontomaisEmployee(row) === cleanCpf);
+  const id = hit ? employeeIdFromPontomaisRow(hit) : null;
+  if (id) return id;
 
   return null;
 }
@@ -285,53 +319,20 @@ export async function fetchPontomaisRegistros(params: {
   const token = getPontomaisToken();
 
   const cleanCpf = sanitizeCpf(params.cpf);
-  const explicitId =
-    params.pontomaisEmployeeId !== undefined && params.pontomaisEmployeeId !== null
-      ? String(params.pontomaisEmployeeId).trim()
-      : "";
-
   let employeeId: number | string | null = null;
-  let resolvedByCpf = false;
+  const resolvedByCpf = true;
 
-  // 1) Tenta o ID explícito, mas se falhar (404 / inválido) segue para busca por CPF.
-  if (explicitId) {
-    try {
-      const check = await pontomaisGet(
-        `${getPontomaisBaseUrl()}/employees/${encodeURIComponent(explicitId)}`,
-        token,
-      );
-      const found = check?.employee ?? check?.data ?? check;
-      const foundId = found?.id ?? found?.employee_id;
-      if (foundId) {
-        employeeId = foundId;
-      }
-    } catch (err) {
-      // Qualquer erro (inclusive 404) no ID salvo cai para o fluxo por CPF.
-      console.warn("[pontomais] ID explícito falhou, tentando por CPF", {
-        explicitId,
-        error: err instanceof Error ? err.message : String(err),
-      });
-    }
+  // Resolve exclusivamente pelo CPF a partir da listagem geral da Pontomais.
+  if (!cleanCpf) {
+    throw new Error(
+      "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto (a busca é feita exclusivamente pelo CPF).",
+    );
   }
 
-  // 2) Sem ID válido? Resolve exclusivamente pelo CPF.
+  employeeId = await resolveEmployeeId({ cpf: cleanCpf, email: null, token });
+
   if (!employeeId) {
-    if (!cleanCpf) {
-      throw new Error(
-        "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto (a busca é feita exclusivamente pelo CPF).",
-      );
-    }
-
-    employeeId = await resolveEmployeeId({ cpf: cleanCpf, email: null, token });
-
-    if (!employeeId) {
-      throw new PontomaisApiError(
-        404,
-        "",
-        `Funcionário não localizado na Pontomais pelo CPF ${cleanCpf}. Confirme o CPF cadastrado.`,
-      );
-    }
-    resolvedByCpf = true;
+    throw new PontomaisApiError(404, "", `CPF ${cleanCpf} não encontrado na base da Pontomais`);
   }
 
   const query = new URLSearchParams();
@@ -343,20 +344,29 @@ export async function fetchPontomaisRegistros(params: {
   const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
   const payload = await pontomaisGet(url, token);
 
-  const rows: any[] = payload?.time_cards ?? payload?.data ?? payload?.registros ?? [];
+  const payloadRecord = asRecord(payload);
+  const rawRows =
+    payloadRecord?.time_cards ?? payloadRecord?.data ?? payloadRecord?.registros ?? [];
+  const rows: unknown[] = Array.isArray(rawRows) ? rawRows : [];
   const byDate: Record<string, PontomaisRegistro> = {};
 
   for (const row of rows) {
+    const rowRecord = asRecord(row);
     const date: string | undefined =
-      row?.date ?? row?.work_date ?? row?.data ?? row?.day;
+      asStringish(rowRecord?.date ?? rowRecord?.work_date ?? rowRecord?.data ?? rowRecord?.day) ??
+      undefined;
     if (!date) continue;
     const key = String(date).substring(0, 10);
 
     const structured: PontomaisRegistro = {
-      entrada: toTime(row?.entrada ?? row?.check_in ?? row?.entry),
-      almoco_saida: toTime(row?.almoco_saida ?? row?.lunch_out ?? row?.break_start),
-      almoco_retorno: toTime(row?.almoco_retorno ?? row?.lunch_in ?? row?.break_end),
-      saida: toTime(row?.saida ?? row?.check_out ?? row?.exit),
+      entrada: toTime(rowRecord?.entrada ?? rowRecord?.check_in ?? rowRecord?.entry),
+      almoco_saida: toTime(
+        rowRecord?.almoco_saida ?? rowRecord?.lunch_out ?? rowRecord?.break_start,
+      ),
+      almoco_retorno: toTime(
+        rowRecord?.almoco_retorno ?? rowRecord?.lunch_in ?? rowRecord?.break_end,
+      ),
+      saida: toTime(rowRecord?.saida ?? rowRecord?.check_out ?? rowRecord?.exit),
     };
 
     if (
@@ -369,8 +379,12 @@ export async function fetchPontomaisRegistros(params: {
       continue;
     }
 
-    const punches: string[] = (row?.punches ?? row?.time_entries ?? [])
-      .map((p: any) => toTime(p?.time ?? p?.hora ?? p))
+    const rawPunches = rowRecord?.punches ?? rowRecord?.time_entries ?? [];
+    const punches: string[] = (Array.isArray(rawPunches) ? rawPunches : [])
+      .map((p) => {
+        const punchRecord = asRecord(p);
+        return toTime(punchRecord?.time ?? punchRecord?.hora ?? p);
+      })
       .filter(Boolean) as string[];
     punches.sort();
 
