@@ -304,6 +304,27 @@ function ControlePontoPage() {
                         <td className="text-center font-mono">{formatTime(r?.almoco_saida ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.almoco_retorno ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.saida ?? null)}</td>
+                        <td className="px-2 py-3 text-center">
+                          {(() => {
+                            const s = syncStatus[f.id];
+                            if (!s) return <span className="text-slate-300 text-xs">—</span>;
+                            if (s.error) {
+                              return (
+                                <span
+                                  title={s.error}
+                                  className="inline-block max-w-[180px] truncate rounded-full bg-red-100 px-2 py-1 text-[10px] font-semibold text-red-700"
+                                >
+                                  ✗ {s.error}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="inline-block rounded-full bg-emerald-100 px-2 py-1 text-[10px] font-semibold text-emerald-700">
+                                ✓ {s.dias} dia(s)
+                              </span>
+                            );
+                          })()}
+                        </td>
                         <td className="text-center">
                           <div className="inline-flex items-center gap-1">
                             <button
