@@ -37,6 +37,7 @@ import { PassagemTurnoCard } from "@/components/recepcao/passagem-turno-card";
 import { AuditoriaFuncionarioCard } from "@/components/almoxarifado/auditoria-funcionario-card";
 import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
+import { PontoFuncionariosPainel } from "@/components/gestao/ponto-funcionarios-painel";
 import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
 
 
@@ -742,6 +743,8 @@ function BoasVindas() {
           </div>
         </div>
       )}
+
+      {visaoCompleta && <PontoFuncionariosPainel unidade={unidade} />}
 
       <PainelControleRapido unidade={unidade} />
 
