@@ -1551,6 +1551,42 @@ export type Database = {
         }
         Relationships: []
       }
+      tuya_devices: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          device_id: string
+          id: string
+          label: string
+          room_number: string | null
+          tipo: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          device_id: string
+          id?: string
+          label: string
+          room_number?: string | null
+          tipo: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          device_id?: string
+          id?: string
+          label?: string
+          room_number?: string | null
+          tipo?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tuya_password_logs: {
         Row: {
           created_at: string
