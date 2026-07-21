@@ -108,13 +108,14 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
           className="text-left bg-slate-900 border border-slate-800 rounded-2xl p-5 hover:bg-slate-800 transition-colors shadow-lg"
         >
           <div className="flex items-start justify-between">
-            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Receita Prevista</p>
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Reservas Feitas</p>
             <CalendarPlus className="w-5 h-5 text-yellow-500" />
           </div>
-          <p className="text-2xl font-bold text-yellow-500 mt-4">
-            {loading ? <Loader2 className="inline h-6 w-6 animate-spin" /> : fmtBRL(totalReceita)}
+          <p className="text-4xl font-bold text-yellow-500 mt-4">
+            {loading ? <Loader2 className="inline h-8 w-8 animate-spin" /> : feitas.length}
           </p>
-          <p className="text-sm text-slate-500 mt-2">Total das chegadas de hoje</p>
+          <p className="text-sm text-slate-500 mt-2">Novas reservas criadas hoje · Cloudbeds</p>
+
         </button>
       </div>
 
