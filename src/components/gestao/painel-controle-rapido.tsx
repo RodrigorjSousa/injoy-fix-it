@@ -22,7 +22,6 @@ import {
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
-import { PontoFuncionariosModal } from "@/components/gestao/ponto-funcionarios-modal";
 import { useMe } from "@/lib/store";
 
 
