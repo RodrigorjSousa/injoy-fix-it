@@ -56,7 +56,8 @@ export const probePontomais = createServerFn({ method: "POST" })
       `${BASE}/reports/time_cards?start_date=${sd}&end_date=${ed}&employee_id=${eid}`,
     ];
 
-    const results: unknown[] = [];
+    type Result = { url: string; method: string; status: number; ok: boolean; snippet: string };
+    const results: Result[] = [];
     for (const url of attempts) {
       results.push(await tryEndpoint(url, token, "GET"));
     }
