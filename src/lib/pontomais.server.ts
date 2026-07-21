@@ -197,22 +197,24 @@ export async function fetchPontomaisRegistros(params: {
   pontomaisEmployeeId?: string | number | null;
   startDate: string;
   endDate: string;
-}): Promise<Record<string, PontomaisRegistro>> {
+}): Promise<{
+  employeeId: string | number;
+  resolvedByCpf: boolean;
+  byDate: Record<string, PontomaisRegistro>;
+}> {
   const token = getPontomaisToken();
 
   const cleanCpf = sanitizeCpf(params.cpf);
-  const cleanEmail = params.email?.trim().toLowerCase() || null;
   const explicitId =
     params.pontomaisEmployeeId !== undefined && params.pontomaisEmployeeId !== null
       ? String(params.pontomaisEmployeeId).trim()
       : "";
 
   let employeeId: number | string | null = null;
+  let resolvedByCpf = false;
 
+  // 1) Tenta o ID explícito, mas se falhar (404 / inválido) segue para busca por CPF.
   if (explicitId) {
-    // ID fornecido explicitamente pelo gestor — valida contra a Pontomais antes
-    // de consultar batimentos, para produzir mensagem clara caso o ID esteja
-    // errado ou não pertença à conta do token configurado.
     try {
       const check = await pontomaisGet(
         `${getPontomaisBaseUrl()}/employees/${encodeURIComponent(explicitId)}`,
@@ -220,53 +222,42 @@ export async function fetchPontomaisRegistros(params: {
       );
       const found = check?.employee ?? check?.data ?? check;
       const foundId = found?.id ?? found?.employee_id;
-      if (!foundId) {
-        throw new PontomaisApiError(
-          404,
-          "",
-          `ID Pontomais "${explicitId}" não retornou dados válidos. Confirme o número na URL do perfil (…/employees/NUMERO).`,
-        );
+      if (foundId) {
+        employeeId = foundId;
       }
-      employeeId = foundId;
     } catch (err) {
-      if (err instanceof PontomaisApiError && err.status === 404) {
-        throw new PontomaisApiError(
-          404,
-          err.body,
-          `ID Pontomais "${explicitId}" não encontrado na conta vinculada ao token. Verifique se o número está correto e se o token tem permissão para ver este colaborador.`,
-        );
-      }
-      throw err;
+      // Qualquer erro (inclusive 404) no ID salvo cai para o fluxo por CPF.
+      console.warn("[pontomais] ID explícito falhou, tentando por CPF", {
+        explicitId,
+        error: err instanceof Error ? err.message : String(err),
+      });
     }
-  } else {
+  }
+
+  // 2) Sem ID válido? Resolve exclusivamente pelo CPF.
+  if (!employeeId) {
     if (!cleanCpf) {
       throw new Error(
         "Funcionário sem CPF cadastrado. Preencha o CPF em Controle de Ponto (a busca é feita exclusivamente pelo CPF).",
       );
     }
 
-    employeeId = await resolveEmployeeId({
-      cpf: cleanCpf,
-      email: null,
-      token,
-    });
+    employeeId = await resolveEmployeeId({ cpf: cleanCpf, email: null, token });
 
     if (!employeeId) {
       throw new PontomaisApiError(
         404,
         "",
-        `Funcionário não localizado na Pontomais pelo CPF ${cleanCpf}. Confirme o CPF cadastrado ou informe o ID Pontomais em Controle de Ponto.`,
+        `Funcionário não localizado na Pontomais pelo CPF ${cleanCpf}. Confirme o CPF cadastrado.`,
       );
     }
+    resolvedByCpf = true;
   }
-
-
 
   const query = new URLSearchParams();
   query.set("start_date", params.startDate);
   query.set("end_date", params.endDate);
   query.set("employee_id", String(employeeId));
-  // Ransack fallback in case the API expects filter[] syntax:
   query.set("q[employee_id_eq]", String(employeeId));
 
   const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
@@ -311,5 +302,5 @@ export async function fetchPontomaisRegistros(params: {
     };
   }
 
-  return byDate;
+  return { employeeId: employeeId as string | number, resolvedByCpf, byDate };
 }

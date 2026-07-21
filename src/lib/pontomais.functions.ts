@@ -50,7 +50,7 @@ export const syncPontomais = createServerFn({ method: "POST" })
 
     for (const f of funcionarios ?? []) {
       try {
-        const byDate = await fetchPontomaisRegistros({
+        const { employeeId, resolvedByCpf, byDate } = await fetchPontomaisRegistros({
           cpf: (f as any).cpf ?? null,
           email: f.email,
           pontomaisEmployeeId: (f as any).pontomais_employee_id ?? null,
@@ -58,6 +58,19 @@ export const syncPontomais = createServerFn({ method: "POST" })
           endDate: data.endDate,
         });
 
+        // Persiste/atualiza o ID correto retornado pela Pontomais para evitar 404 futuros.
+        const currentId = (f as any).pontomais_employee_id
+          ? String((f as any).pontomais_employee_id)
+          : null;
+        if (resolvedByCpf || currentId !== String(employeeId)) {
+          const { error: updErr } = await supabaseAdmin
+            .from("funcionarios")
+            .update({ pontomais_employee_id: String(employeeId) })
+            .eq("id", f.id);
+          if (updErr) {
+            console.warn("[pontomais] falha ao salvar ID atualizado", updErr.message);
+          }
+        }
 
         const rows = Object.entries(byDate).map(([date, reg]) => ({
           funcionario_id: f.id,
