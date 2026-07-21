@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Camera,
-  Ban,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
