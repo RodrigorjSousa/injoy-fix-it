@@ -1,41 +1,62 @@
-import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useServerFn } from "@tanstack/react-start";
+import { useEffect, useState, useCallback } from "react";
 import { LogIn, CalendarPlus, X, Loader2, RefreshCw } from "lucide-react";
-import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
+import { supabase } from "@/integrations/supabase/client";
+import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import type { Unidade } from "@/lib/store";
 
-function statusLabel(s: string): string {
-  const k = (s || "").toLowerCase();
-  if (k === "confirmed") return "Confirmada";
-  if (k === "checked_in" || k === "checkedin" || k === "in_house") return "Check-in feito";
-  if (k === "not_confirmed") return "Não confirmada";
-  if (k === "canceled" || k === "cancelled") return "Cancelada";
-  if (k === "no_show") return "No-show";
-  return s || "—";
-}
-
-function statusColor(s: string): string {
-  const k = (s || "").toLowerCase();
-  if (k === "checked_in" || k === "checkedin" || k === "in_house") return "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
-  if (k === "confirmed") return "bg-sky-500/20 text-sky-400 border-sky-500/30";
-  if (k === "canceled" || k === "cancelled" || k === "no_show") return "bg-red-500/20 text-red-400 border-red-500/30";
-  return "bg-slate-700/40 text-slate-300 border-slate-600/40";
-}
+type ChegadaRow = {
+  room_number: string;
+  room_type: string | null;
+  guest_name: string | null;
+  pax: number | null;
+  arrival_time: string | null;
+  assigned_task: string | null;
+};
 
 export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
   const [openChegadas, setOpenChegadas] = useState(false);
   const [openNovas, setOpenNovas] = useState(false);
-  const call = useServerFn(getReservasHoje);
+  const [rows, setRows] = useState<ChegadaRow[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ["chegadas-hoje", unidade],
-    queryFn: async () => call({ data: { property: unidade } }),
-    staleTime: 5 * 60_000,
-  });
+  const carregar = useCallback(async () => {
+    setFetching(true);
+    setError(null);
+    const { data, error } = await supabase
+      .from("room_housekeeping")
+      .select("room_number, room_type, guest_name, pax, arrival_time, assigned_task")
+      .eq("property", unidade);
+    setFetching(false);
+    setLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    const list = ((data ?? []) as ChegadaRow[]).filter((r) => isCheckInTask(r.assigned_task));
+    list.sort((a, b) => {
+      const ta = a.arrival_time ?? "";
+      const tb = b.arrival_time ?? "";
+      if (ta && tb) return ta.localeCompare(tb);
+      return String(a.room_number).localeCompare(String(b.room_number), undefined, { numeric: true });
+    });
+    setRows(list);
+  }, [unidade]);
 
-  const reservas: ReservaHoje[] = data?.reservas ?? [];
-  const total = reservas.length;
+  useEffect(() => {
+    setLoading(true);
+    carregar();
+    const ch = supabase
+      .channel(`chegadas-${unidade}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "room_housekeeping" }, carregar)
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [unidade, carregar]);
+
+  const total = rows.length;
 
   return (
     <>
@@ -50,9 +71,9 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
             <LogIn className="w-5 h-5 text-green-500" />
           </div>
           <p className="text-4xl font-bold text-green-500 mt-4">
-            {isLoading ? <Loader2 className="inline h-8 w-8 animate-spin" /> : total}
+            {loading ? <Loader2 className="inline h-8 w-8 animate-spin" /> : total}
           </p>
-          <p className="text-sm text-slate-500 mt-2">Check-ins previstos para hoje</p>
+          <p className="text-sm text-slate-500 mt-2">Check-ins e revisões previstos para hoje</p>
         </button>
 
         <button
@@ -81,17 +102,19 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
             <div className="flex items-center justify-between p-5 border-b border-slate-800">
               <div>
                 <h3 className="text-lg font-black text-white">Chegadas Hoje · INJOY {unidade}</h3>
-                <p className="text-xs text-slate-400">Fonte: Cloudbeds</p>
+                <p className="text-xs text-slate-400">
+                  Fonte: painel das camareiras (Check-in e Revisão Check-in)
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => refetch()}
-                  disabled={isFetching}
+                  onClick={() => carregar()}
+                  disabled={fetching}
                   className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 disabled:opacity-50"
                   aria-label="Atualizar"
                 >
-                  <RefreshCw size={16} className={isFetching ? "animate-spin" : ""} />
+                  <RefreshCw size={16} className={fetching ? "animate-spin" : ""} />
                 </button>
                 <button
                   type="button"
@@ -105,7 +128,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
             </div>
 
             <div className="p-5">
-              {isLoading ? (
+              {loading ? (
                 <div className="space-y-2">
                   {Array.from({ length: 4 }).map((_, i) => (
                     <div key={i} className="h-10 bg-slate-800/60 animate-pulse rounded-lg" />
@@ -113,9 +136,9 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                 </div>
               ) : error ? (
                 <div className="text-center py-8 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl">
-                  {error instanceof Error ? error.message : "Falha ao consultar Cloudbeds"}
+                  {error}
                 </div>
-              ) : reservas.length === 0 ? (
+              ) : rows.length === 0 ? (
                 <p className="text-center text-slate-400 py-8 text-sm">
                   Nenhuma chegada prevista para hoje
                 </p>
@@ -124,24 +147,35 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                   <table className="w-full text-sm">
                     <thead className="bg-slate-900 text-slate-300">
                       <tr>
-                        <th className="text-left px-3 py-2 font-bold">Hóspede</th>
-                        <th className="text-left px-3 py-2 font-bold">Nº Confirmação</th>
                         <th className="text-left px-3 py-2 font-bold">Quarto</th>
-                        <th className="text-left px-3 py-2 font-bold">Status</th>
+                        <th className="text-left px-3 py-2 font-bold">Hóspede</th>
+                        <th className="text-left px-3 py-2 font-bold">Pax</th>
+                        <th className="text-left px-3 py-2 font-bold">Chegada</th>
+                        <th className="text-left px-3 py-2 font-bold">Tarefa</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {reservas.map((r, i) => (
+                      {rows.map((r, i) => (
                         <tr
-                          key={`${r.reservationID}-${r.quarto}-${i}`}
+                          key={`${r.room_number}-${i}`}
                           className="border-t border-slate-800 text-slate-200"
                         >
-                          <td className="px-3 py-2 font-semibold">{r.hospede}</td>
-                          <td className="px-3 py-2 tabular-nums text-slate-400">{r.reservationID}</td>
-                          <td className="px-3 py-2">{r.quarto}</td>
+                          <td className="px-3 py-2 font-semibold">
+                            {r.room_number}
+                            {r.room_type ? (
+                              <span className="text-xs text-slate-500 font-normal ml-1">
+                                · {r.room_type}
+                              </span>
+                            ) : null}
+                          </td>
+                          <td className="px-3 py-2">{r.guest_name || "—"}</td>
+                          <td className="px-3 py-2 tabular-nums">{r.pax ?? "—"}</td>
+                          <td className="px-3 py-2 tabular-nums text-slate-400">
+                            {r.arrival_time ?? "—"}
+                          </td>
                           <td className="px-3 py-2">
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border ${statusColor(r.status)}`}>
-                              {statusLabel(r.status)}
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border bg-sky-500/20 text-sky-300 border-sky-500/30">
+                              {formatTaskLabel(r.assigned_task)}
                             </span>
                           </td>
                         </tr>
