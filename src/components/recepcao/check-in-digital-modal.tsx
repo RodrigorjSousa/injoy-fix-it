@@ -150,24 +150,30 @@ function CheckInDigitalModal({
     }
 
     const senhas: Record<string, string> = data?.senhas ?? {};
-    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number } }> =
+    const idsSenha: Record<string, string | number> = data?.senhaIds ?? {};
+    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number; result?: { offline_temp_password_id?: string | number; id?: string | number } } }> =
       data?.tuyaResults ?? [];
 
     const finalStatus: typeof initialStatus = {};
     for (const id of DEVICE_IDS_005) {
       const r = tuyaResults.find((x) => x.deviceId === id);
       if (senhas[id]) {
-        finalStatus[id] = { state: "success" };
+        finalStatus[id] = {
+          state: "success",
+          passwordId: idsSenha[id] ?? r?.status?.result?.offline_temp_password_id ?? r?.status?.result?.id,
+        };
       } else if (r) {
         finalStatus[id] = {
           state: "error",
           message: r.status?.msg || `Falha (code ${r.status?.code ?? "?"})`,
+          code: r.status?.code,
         };
       } else {
         finalStatus[id] = { state: "error", message: "Sem resposta" };
       }
     }
     setDeviceStatus(finalStatus);
+    setSenhaIds(idsSenha);
 
     if (Object.keys(senhas).length === 0) {
       toast.error("Nenhuma fechadura retornou senha. Verifique o status abaixo.");
