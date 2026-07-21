@@ -574,6 +574,8 @@ function PainelCamareiras() {
 
       <RecadosCamareirasSection unidade={unidadeAtiva} camareiraName={nomeAutomatico ?? ""} />
 
+      <ChegadasCheckinCards unidade={unidadeAtiva} showLimpeza title="Chegadas de Hoje" />
+
       <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
 
         {loading && quartos.length === 0 ? (
