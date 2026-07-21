@@ -116,6 +116,33 @@ function CheckInDigitalModal({
       return;
     }
     setSenhaGerada(data.password);
+
+    try {
+      const { data: userData } = await supabase.auth.getUser();
+      const uid = userData?.user?.id;
+      let nome: string | null = null;
+      if (uid) {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("nome")
+          .eq("id", uid)
+          .maybeSingle();
+        nome = prof?.nome ?? userData?.user?.email ?? null;
+      }
+      await supabase.from("tuya_password_logs").insert({
+        room_number: roomNumber,
+        guest_name: nomeHospede,
+        password: data.password,
+        entrada: new Date(entrada).toISOString(),
+        saida: new Date(saida).toISOString(),
+        device_ids: DEVICE_IDS_005,
+        unidade: "Botafogo",
+        generated_by_user_id: uid,
+        generated_by_name: nome,
+      });
+    } catch (e) {
+      console.error("Falha ao registrar log Tuya:", e);
+    }
   };
 
   const copiarWhatsapp = async () => {
