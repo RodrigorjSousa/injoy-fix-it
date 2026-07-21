@@ -479,6 +479,7 @@ function AdicionarFuncionarioModal({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+  const [pontomaisId, setPontomaisId] = useState("");
   const [categoria, setCategoria] = useState<string>(unidade.toLowerCase());
   const [saving, setSaving] = useState(false);
 
@@ -486,9 +487,12 @@ function AdicionarFuncionarioModal({
     const nomeT = nome.trim();
     const emailT = email.trim().toLowerCase();
     const cpfT = cpf.replace(/\D/g, "").trim();
+    const pontomaisT = pontomaisId.replace(/\s/g, "").trim();
     if (!nomeT) return toast.error("Nome obrigatório");
     if (!/^\S+@\S+\.\S+$/.test(emailT)) return toast.error("E-mail inválido");
     if (cpfT && cpfT.length !== 11) return toast.error("CPF deve ter 11 dígitos");
+    if (pontomaisT && !/^\d+$/.test(pontomaisT))
+      return toast.error("ID Pontomais deve conter apenas números");
 
     setSaving(true);
     try {
@@ -496,6 +500,7 @@ function AdicionarFuncionarioModal({
         nome: nomeT,
         email: emailT,
         cpf: cpfT || null,
+        pontomais_employee_id: pontomaisT || null,
         categorias: categoria ? [categoria] : [],
       });
       if (error) throw error;
@@ -507,6 +512,7 @@ function AdicionarFuncionarioModal({
       setSaving(false);
     }
   };
+
 
   return (
     <div
@@ -556,6 +562,23 @@ function AdicionarFuncionarioModal({
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
             />
           </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">
+              ID Pontomais <span className="text-slate-400 font-normal">(recomendado)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pontomaisId}
+              onChange={(e) => setPontomaisId(e.target.value)}
+              placeholder="Ex.: 123456"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
+            />
+            <span className="text-[11px] text-slate-400">
+              Visto na URL do perfil do colaborador na Pontomais.
+            </span>
+          </label>
+
           <label className="block">
             <span className="text-xs font-bold uppercase text-slate-500">Unidade</span>
             <select
