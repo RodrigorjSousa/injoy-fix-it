@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, CheckCircle2, Loader2, Copy } from "lucide-react";
+import { Key, CheckCircle2, Loader2, Copy, XCircle, Clock } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -70,12 +70,16 @@ function CheckInDigitalModal({
   const [saida, setSaida] = useState(defaultSaida());
   const [isLoading, setIsLoading] = useState(false);
   const [senhasGeradas, setSenhasGeradas] = useState<Record<string, string> | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<
+    Record<string, { state: "pending" | "success" | "error"; message?: string }>
+  >({});
 
   const reset = () => {
     setNomeHospede("");
     setEntrada(defaultEntrada());
     setSaida(defaultSaida());
     setSenhasGeradas(null);
+    setDeviceStatus({});
     setIsLoading(false);
   };
 
@@ -96,7 +100,13 @@ function CheckInDigitalModal({
       return;
     }
 
+    // Inicializa status como "pending" para cada fechadura
+    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string }> = {};
+    for (const id of DEVICE_IDS_005) initialStatus[id] = { state: "pending" };
+    setDeviceStatus(initialStatus);
+    setSenhasGeradas(null);
     setIsLoading(true);
+
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
         deviceIds: DEVICE_IDS_005,
@@ -108,15 +118,45 @@ function CheckInDigitalModal({
     setIsLoading(false);
 
     if (error) {
+      const errored: typeof initialStatus = {};
+      for (const id of DEVICE_IDS_005) errored[id] = { state: "error", message: error.message };
+      setDeviceStatus(errored);
       toast.error("Erro ao gerar senha: " + error.message);
       return;
     }
-    const senhas: Record<string, string> | undefined = data?.senhas;
-    if (!senhas || Object.keys(senhas).length === 0) {
-      toast.error("A função não retornou senhas.");
+
+    const senhas: Record<string, string> = data?.senhas ?? {};
+    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number } }> =
+      data?.tuyaResults ?? [];
+
+    const finalStatus: typeof initialStatus = {};
+    for (const id of DEVICE_IDS_005) {
+      const r = tuyaResults.find((x) => x.deviceId === id);
+      if (senhas[id]) {
+        finalStatus[id] = { state: "success" };
+      } else if (r) {
+        finalStatus[id] = {
+          state: "error",
+          message: r.status?.msg || `Falha (code ${r.status?.code ?? "?"})`,
+        };
+      } else {
+        finalStatus[id] = { state: "error", message: "Sem resposta" };
+      }
+    }
+    setDeviceStatus(finalStatus);
+
+    if (Object.keys(senhas).length === 0) {
+      toast.error("Nenhuma fechadura retornou senha. Verifique o status abaixo.");
       return;
     }
     setSenhasGeradas(senhas);
+
+    const okCount = Object.values(finalStatus).filter((s) => s.state === "success").length;
+    if (okCount < DEVICE_IDS_005.length) {
+      toast.warning(`${okCount}/${DEVICE_IDS_005.length} fechaduras sincronizadas.`);
+    } else {
+      toast.success("Todas as fechaduras foram sincronizadas!");
+    }
 
     try {
       const { data: userData } = await supabase.auth.getUser();
@@ -239,6 +279,10 @@ function CheckInDigitalModal({
                 </>
               )}
             </button>
+
+            {Object.keys(deviceStatus).length > 0 && (
+              <StatusList status={deviceStatus} roomNumber={roomNumber} />
+            )}
           </div>
         ) : (
           <div className="space-y-4 py-2">
@@ -247,9 +291,12 @@ function CheckInDigitalModal({
                 <CheckCircle2 className="h-10 w-10 text-emerald-600" />
               </div>
               <p className="text-sm font-semibold text-slate-700 text-center">
-                Senhas offline geradas com sucesso!
+                Senhas offline geradas!
               </p>
             </div>
+
+            <StatusList status={deviceStatus} roomNumber={roomNumber} />
+
             <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700">
@@ -295,5 +342,55 @@ function CheckInDigitalModal({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function StatusList({
+  status,
+  roomNumber,
+}: {
+  status: Record<string, { state: "pending" | "success" | "error"; message?: string }>;
+  roomNumber: string;
+}) {
+  const LABELS: Record<string, string> = {
+    eba207725701fb044abmhl: "🚪 Portão Principal",
+    ebd7760a2310ee9930ozt9: "🚪 Porta de Vidro",
+    eba3429756a5aaa8b2ssrw: `🛏️ Quarto ${roomNumber}`,
+  };
+  const entries = Object.entries(status);
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white divide-y divide-slate-100">
+      <div className="px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-slate-500">
+        Status da geração
+      </div>
+      {entries.map(([id, s]) => (
+        <div key={id} className="flex items-center justify-between px-3 py-2 gap-2">
+          <span className="text-xs font-semibold text-slate-700 truncate">
+            {LABELS[id] ?? id}
+          </span>
+          {s.state === "pending" && (
+            <span className="flex items-center gap-1 text-xs font-bold text-amber-600">
+              <Clock size={14} className="animate-pulse" />
+              Sincronizando…
+            </span>
+          )}
+          {s.state === "success" && (
+            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
+              <CheckCircle2 size={14} />
+              Sincronizada
+            </span>
+          )}
+          {s.state === "error" && (
+            <span
+              className="flex items-center gap-1 text-xs font-bold text-red-600 max-w-[60%] text-right"
+              title={s.message}
+            >
+              <XCircle size={14} />
+              <span className="truncate">{s.message || "Falha"}</span>
+            </span>
+          )}
+        </div>
+      ))}
+    </div>
   );
 }
