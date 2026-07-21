@@ -10,8 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 
-// Device Tuya do Quarto 005 - Botafogo
-const DEVICE_ID_005 = "eba3429756a5aaa8b2ssrw";
+// Devices Tuya - Botafogo (Portão Principal, Porta de Vidro, Quarto 005)
+const DEVICE_IDS_005: string[] = [
+  "ID_PORTAO",
+  "ID_VIDRO",
+  "eba3429756a5aaa8b2ssrw",
+];
 
 function toLocalInput(d: Date) {
   const pad = (n: number) => String(n).padStart(2, "0");
