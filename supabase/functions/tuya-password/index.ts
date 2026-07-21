@@ -50,7 +50,10 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
 
   try {
-    const { deviceIds, guestName, startTime, endTime, roomNumber, unidade } = await req.json();
+    const payload = await req.json();
+    const { deviceIds, guestName, startTime, endTime, roomNumber, unidade, action } = payload;
+
+
 
     const clientId = "vv57ktpj3ka4prqhfm9r";
     const secret = "e62b5e3d534548aa99ab458af9bd72b2";
