@@ -37,6 +37,7 @@ import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
+import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import {
   EmptyState,
   ErrorState,
@@ -703,6 +704,9 @@ function RecepcaoPage() {
                       }
                       return null;
                     })()}
+                  {q.unidade === "Botafogo" && padQuarto(q.quarto) === "005" && (
+                    <CheckInDigitalButton roomNumber="005" />
+                  )}
                   {q.ocupacao !== "Bloqueado" && (
                     <button
                       onClick={() =>
