@@ -302,5 +302,5 @@ export async function fetchPontomaisRegistros(params: {
     };
   }
 
-  return byDate;
+  return { employeeId: employeeId as string | number, resolvedByCpf, byDate };
 }
