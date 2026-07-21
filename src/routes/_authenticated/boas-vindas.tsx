@@ -882,6 +882,82 @@ function BoasVindas() {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={metricDetail !== null} onOpenChange={(o) => !o && setMetricDetail(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{metricDetail ? metricDialogTitle[metricDetail] : ""}</DialogTitle>
+            <DialogDescription>
+              INJOY {unidade} · {metricDialogList.length}{" "}
+              {metricDialogList.length === 1 ? "quarto" : "quartos"}
+              {metricDetail === "balcao" && metricDialogList.length > 0 && (
+                <>
+                  {" · Total "}
+                  <b className="text-red-500">
+                    R${" "}
+                    {metricDialogList
+                      .reduce((s, r) => s + Number(r.pending_payment_amount ?? 0), 0)
+                      .toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </b>
+                </>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1">
+            {metricDialogList.length === 0 ? (
+              <div className="text-center py-10 text-sm text-slate-500">
+                Nenhum registro no momento.
+              </div>
+            ) : (
+              <ul className="space-y-2">
+                {metricDialogList.map((r) => (
+                  <li
+                    key={r.id}
+                    className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 bg-slate-50"
+                  >
+                    <div className="h-11 w-11 shrink-0 rounded-lg bg-white grid place-items-center font-black text-sm text-slate-900 border border-slate-200">
+                      {r.room_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-bold text-slate-900 truncate">
+                          {r.guest_name || "Sem hóspede identificado"}
+                        </p>
+                        {r.room_type && (
+                          <span className="text-[10px] font-semibold text-slate-500 bg-white px-1.5 py-0.5 rounded border">
+                            {r.room_type}
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        <span>Quarto {r.room_number}</span>
+                        {r.pax != null && r.pax > 0 && <span>{r.pax} pax</span>}
+                        {r.arrival_time && (
+                          <span className="inline-flex items-center gap-1">
+                            <Clock size={12} /> {r.arrival_time}
+                          </span>
+                        )}
+                        {metricDetail === "balcao" && (
+                          <span className="font-bold text-red-600">
+                            R${" "}
+                            {Number(r.pending_payment_amount ?? 0).toLocaleString("pt-BR", {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}
+                          </span>
+                        )}
+                        {metricDetail === "docs" && (
+                          <span className="font-bold text-amber-600">Ficha pendente</span>
+                        )}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <div className="text-center text-[10px] text-slate-600 font-medium uppercase tracking-widest pt-4">
         INJOY Hotéis • Tecnologia e Gestão Hoteleira de Alta Performance
       </div>
