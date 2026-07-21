@@ -70,14 +70,34 @@ export async function cloudbedsFetch(
 ): Promise<Response> {
   const url = path.startsWith("http") ? path : `${CLOUDBEDS_BASE}${path}`;
   const authorization = await getAuthHeader(property);
-  return fetch(url, {
-    ...init,
-    headers: {
-      Accept: "application/json",
-      ...(init.headers ?? {}),
-      Authorization: authorization,
-    },
-  });
+  const method = (init.method ?? "GET").toUpperCase();
+  const isIdempotent = method === "GET" || method === "HEAD";
+  // Cloudbeds/Cloudflare intermitentemente devolve 5xx (502/503/504/522/524).
+  // Fazer retry com backoff em métodos idempotentes reduz o erro visível ao usuário.
+  const maxAttempts = isIdempotent ? 3 : 1;
+  let lastRes: Response | null = null;
+  let lastErr: unknown = null;
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const res = await fetch(url, {
+        ...init,
+        headers: {
+          Accept: "application/json",
+          ...(init.headers ?? {}),
+          Authorization: authorization,
+        },
+      });
+      if (res.ok || res.status < 500) return res;
+      lastRes = res;
+    } catch (err) {
+      lastErr = err;
+    }
+    if (attempt < maxAttempts) {
+      await new Promise((r) => setTimeout(r, 500 * attempt));
+    }
+  }
+  if (lastRes) return lastRes;
+  throw lastErr instanceof Error ? lastErr : new Error("Cloudbeds request failed");
 }
 
 export async function getReservations(
