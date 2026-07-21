@@ -70,12 +70,16 @@ function CheckInDigitalModal({
   const [saida, setSaida] = useState(defaultSaida());
   const [isLoading, setIsLoading] = useState(false);
   const [senhasGeradas, setSenhasGeradas] = useState<Record<string, string> | null>(null);
+  const [deviceStatus, setDeviceStatus] = useState<
+    Record<string, { state: "pending" | "success" | "error"; message?: string }>
+  >({});
 
   const reset = () => {
     setNomeHospede("");
     setEntrada(defaultEntrada());
     setSaida(defaultSaida());
     setSenhasGeradas(null);
+    setDeviceStatus({});
     setIsLoading(false);
   };
 
