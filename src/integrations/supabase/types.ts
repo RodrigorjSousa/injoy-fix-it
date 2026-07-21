@@ -1679,6 +1679,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      adjust_preventive_log_date: {
+        Args: { _log_id: string; _new_date: string }
+        Returns: {
+          completed_at: string
+          id: string
+          next_due_date: string
+        }[]
+      }
       chat_contacts: {
         Args: never
         Returns: {
