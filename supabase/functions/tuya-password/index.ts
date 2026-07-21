@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import CryptoJS from "npm:crypto-js";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -132,57 +133,114 @@ serve(async (req) => {
     const senhasGeradas: Record<string, string> = {};
     const senhaIds: Record<string, string | number> = {};
 
-    // 2. Loop para gerar senhas offline
+    // 2. Gerar UMA ÚNICA senha de 6 dígitos para todas as portas
+    const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
+
+    // 3. Loop para Gravar a Senha Online nas Fechaduras
     for (const deviceId of deviceIds) {
-      const t2 = Date.now().toString();
+      try {
+        // --- PASSO A: Obter o Ticket de Segurança (Password Ticket) ---
+        const tTicket = Date.now().toString();
+        const urlTicket = `/v1.0/devices/${deviceId}/door-lock/password-ticket`;
+        const signStrTicket = `POST\n${await calcSha256("")}\n\n${urlTicket}`;
+        const signTicket = await calcSign(clientId, accessToken, tTicket, "", signStrTicket, secret);
 
-      const bodyObj = {
-        effective_time: effectiveTime,
-        invalid_time: invalidTime,
-        type: "multiple",
-      };
+        const ticketRes = await fetch(`${baseUrl}${urlTicket}`, {
+          method: "POST",
+          headers: {
+            client_id: clientId,
+            access_token: accessToken,
+            sign: signTicket,
+            t: tTicket,
+            sign_method: "HMAC-SHA256",
+          },
+        });
 
-      const bodyStr = JSON.stringify(bodyObj);
-      const url = `/v1.1/devices/${deviceId}/door-lock/offline-temp-password`;
-      const signStr2 = `POST\n${await calcSha256(bodyStr)}\n\n${url}`;
-      const sign2 = await calcSign(clientId, accessToken, t2, "", signStr2, secret);
+        const ticketData = await ticketRes.json();
 
-      const lockRes = await fetch(`${baseUrl}${url}`, {
-        method: "POST",
-        headers: {
-          client_id: clientId,
-          access_token: accessToken,
-          sign: sign2,
-          t: t2,
-          sign_method: "HMAC-SHA256",
-          "Content-Type": "application/json",
-        },
-        body: bodyStr,
-      });
+        await logTuyaCall({
+          device_id: deviceId,
+          endpoint: urlTicket,
+          method: "POST",
+          response_payload: ticketData,
+          response_code: ticketData?.code ?? null,
+          response_msg: ticketData?.msg ?? null,
+          success: !!ticketData?.success,
+          guest_name: guestName,
+          room_number: roomNumber,
+          unidade,
+        });
 
-      const lockData = await lockRes.json();
-      results.push({ deviceId, status: lockData });
+        if (!ticketData.success) {
+          console.error(`Falha ao obter ticket para ${deviceId}:`, ticketData);
+          results.push({ deviceId, status: ticketData });
+          continue;
+        }
 
-      await logTuyaCall({
-        device_id: deviceId,
-        endpoint: url,
-        method: "POST",
-        request_payload: bodyObj,
-        response_payload: lockData,
-        response_code: lockData?.code ?? null,
-        response_msg: lockData?.msg ?? null,
-        success: !!lockData?.success,
-        guest_name: guestName,
-        room_number: roomNumber,
-        unidade,
-      });
+        const ticketId = ticketData.result.ticket_id;
+        const ticketKey = ticketData.result.ticket_key;
 
-      if (lockData.success && lockData.result) {
-        senhasGeradas[deviceId] = lockData.result.offline_temp_password;
-        senhaIds[deviceId] =
-          lockData.result.offline_temp_password_id ??
-          lockData.result.id ??
-          "";
+        // --- PASSO B: Criptografar a Senha (AES-128-ECB) ---
+        const keyHex = CryptoJS.enc.Utf8.parse(ticketKey);
+        const encrypted = CryptoJS.AES.encrypt(senhaUnificada, keyHex, {
+          mode: CryptoJS.mode.ECB,
+          padding: CryptoJS.pad.Pkcs7,
+        });
+        const senhaCriptografada = encrypted.ciphertext.toString(CryptoJS.enc.Hex);
+
+        // --- PASSO C: Enviar a Senha para a Fechadura (Online) ---
+        const tCreate = Date.now().toString();
+        const bodyCreate = {
+          ticket_id: ticketId,
+          password: senhaCriptografada,
+          effective_time: effectiveTime,
+          invalid_time: invalidTime,
+          type: 2,
+          name: guestName ? guestName.substring(0, 10).trim() : "Visita",
+        };
+
+        const bodyCreateStr = JSON.stringify(bodyCreate);
+        const urlCreate = `/v1.0/devices/${deviceId}/door-lock/temp-password`;
+        const signStrCreate = `POST\n${await calcSha256(bodyCreateStr)}\n\n${urlCreate}`;
+        const signCreate = await calcSign(clientId, accessToken, tCreate, "", signStrCreate, secret);
+
+        const createRes = await fetch(`${baseUrl}${urlCreate}`, {
+          method: "POST",
+          headers: {
+            client_id: clientId,
+            access_token: accessToken,
+            sign: signCreate,
+            t: tCreate,
+            sign_method: "HMAC-SHA256",
+            "Content-Type": "application/json",
+          },
+          body: bodyCreateStr,
+        });
+
+        const createData = await createRes.json();
+        results.push({ deviceId, status: createData });
+
+        await logTuyaCall({
+          device_id: deviceId,
+          endpoint: urlCreate,
+          method: "POST",
+          request_payload: { ...bodyCreate, password: "[ENCRYPTED]" },
+          response_payload: createData,
+          response_code: createData?.code ?? null,
+          response_msg: createData?.msg ?? null,
+          success: !!createData?.success,
+          guest_name: guestName,
+          room_number: roomNumber,
+          unidade,
+        });
+
+        if (createData.success) {
+          senhasGeradas[deviceId] = senhaUnificada;
+          senhaIds[deviceId] =
+            createData.result?.id ?? createData.result?.password_id ?? "";
+        }
+      } catch (err) {
+        console.error(`Erro ao processar dispositivo ${deviceId}:`, err);
       }
     }
 
