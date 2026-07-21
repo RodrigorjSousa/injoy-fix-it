@@ -360,7 +360,9 @@ export async function fetchPontomaisRegistros(params: {
 
     const structured: PontomaisRegistro = {
       entrada: toTime(rowRecord?.entrada ?? rowRecord?.check_in ?? rowRecord?.entry),
-      almoco_saida: toTime(rowRecord?.almoco_saida ?? rowRecord?.lunch_out ?? rowRecord?.break_start),
+      almoco_saida: toTime(
+        rowRecord?.almoco_saida ?? rowRecord?.lunch_out ?? rowRecord?.break_start,
+      ),
       almoco_retorno: toTime(
         rowRecord?.almoco_retorno ?? rowRecord?.lunch_in ?? rowRecord?.break_end,
       ),
