@@ -465,6 +465,7 @@ export type Database = {
           email: string
           id: string
           nome: string
+          pontomais_employee_id: string | null
           telas_permitidas: string[] | null
           updated_at: string
           user_id: string | null
@@ -476,6 +477,7 @@ export type Database = {
           email: string
           id?: string
           nome: string
+          pontomais_employee_id?: string | null
           telas_permitidas?: string[] | null
           updated_at?: string
           user_id?: string | null
@@ -487,6 +489,7 @@ export type Database = {
           email?: string
           id?: string
           nome?: string
+          pontomais_employee_id?: string | null
           telas_permitidas?: string[] | null
           updated_at?: string
           user_id?: string | null
