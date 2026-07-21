@@ -82,16 +82,14 @@ serve(async (req) => {
     for (const deviceId of deviceIds) {
       const t2 = Date.now().toString();
 
+      // O JSON precisa ser enviado diretamente na raiz, sem envelopes, e com type em Integer
       const bodyObj = {
-        offline_pwd_add_request: {
-          name: guestName ? guestName.substring(0, 10).trim() : "Injoy",
-          effective_time: effectiveTime,
-          invalid_time: invalidTime,
-          type: "multiple",
-        },
+        effective_time: effectiveTime,
+        invalid_time: invalidTime,
+        type: 2,
       };
-      const bodyStr = JSON.stringify(bodyObj);
 
+      const bodyStr = JSON.stringify(bodyObj);
       const url = `/v1.1/devices/${deviceId}/door-lock/offline-temp-password`;
       const signStr2 = `POST\n${await calcSha256(bodyStr)}\n\n${url}`;
       const sign2 = await calcSign(clientId, accessToken, t2, "", signStr2, secret);
@@ -108,6 +106,7 @@ serve(async (req) => {
         },
         body: bodyStr,
       });
+
       const lockData = await lockRes.json();
       results.push({ deviceId, status: lockData });
 
