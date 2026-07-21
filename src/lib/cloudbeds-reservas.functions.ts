@@ -138,9 +138,14 @@ export const getReservasHoje = createServerFn({ method: "POST" })
         checkinDate?: string;
         checkin_date?: string;
         checkIn?: string;
+        checkInTime?: string;
+        estimatedArrivalTime?: string;
+        arrivalTime?: string;
         rooms?: Array<{
           roomName?: string;
           roomNumber?: string;
+          roomTypeName?: string;
+          roomType?: string;
           startDate?: string;
           endDate?: string;
           checkInDate?: string;
@@ -148,6 +153,9 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           checkin_date?: string;
           checkIn?: string;
           checkin?: string;
+          checkInTime?: string;
+          estimatedArrivalTime?: string;
+          arrivalTime?: string;
           subtotal?: number | string;
           total?: number | string;
           roomTotal?: number | string;
