@@ -236,26 +236,92 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
           onClick={() => setOpenNovas(false)}
         >
           <div
-            className="w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl my-8"
+            className="w-full max-w-3xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl my-8"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between p-5 border-b border-slate-800">
-              <h3 className="text-lg font-black text-white">Receita Prevista · Chegadas de Hoje</h3>
-              <button
-                type="button"
-                onClick={() => setOpenNovas(false)}
-                className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200"
-                aria-label="Fechar"
-              >
-                <X size={16} />
-              </button>
+              <div>
+                <h3 className="text-lg font-black text-white">Reservas Feitas · INJOY {unidade}</h3>
+                <p className="text-xs text-slate-400">
+                  Novas reservas criadas hoje no Cloudbeds · {feitas.length} exibida(s)
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => carregar()}
+                  disabled={fetching}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200 disabled:opacity-50"
+                  aria-label="Atualizar"
+                >
+                  <RefreshCw size={16} className={fetching ? "animate-spin" : ""} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOpenNovas(false)}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-slate-200"
+                  aria-label="Fechar"
+                >
+                  <X size={16} />
+                </button>
+              </div>
             </div>
-            <div className="p-8 text-center">
-              <p className="text-xs uppercase text-slate-400 font-bold">Total previsto</p>
-              <p className="text-4xl font-black text-emerald-400 mt-2">{fmtBRL(totalReceita)}</p>
-              <p className="text-xs text-slate-500 mt-3">
-                {rows.length} reserva(s) com check-in hoje · Fonte: Cloudbeds
-              </p>
+            <div className="p-5">
+              {loading ? (
+                <div className="space-y-2">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="h-10 bg-slate-800/60 animate-pulse rounded-lg" />
+                  ))}
+                </div>
+              ) : errorFeitas ? (
+                <div className="text-center py-8 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl">
+                  {errorFeitas}
+                </div>
+              ) : feitas.length === 0 ? (
+                <p className="text-center text-slate-400 py-8 text-sm">
+                  Nenhuma reserva criada hoje no Cloudbeds.
+                </p>
+              ) : (
+                <div className="overflow-x-auto rounded-xl border border-slate-800">
+                  <table className="w-full text-sm">
+                    <thead className="bg-slate-900 text-slate-300">
+                      <tr>
+                        <th className="text-left px-3 py-2 font-bold">#</th>
+                        <th className="text-left px-3 py-2 font-bold">Hóspede</th>
+                        <th className="text-left px-3 py-2 font-bold">Check-in</th>
+                        <th className="text-left px-3 py-2 font-bold">Check-out</th>
+                        <th className="text-left px-3 py-2 font-bold">Status</th>
+                        <th className="text-right px-3 py-2 font-bold">Receita</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {feitas.map((r, i) => (
+                        <tr
+                          key={`${r.reservationID}-${i}`}
+                          className="border-t border-slate-800 text-slate-200"
+                        >
+                          <td className="px-3 py-2 tabular-nums text-slate-400">{i + 1}</td>
+                          <td className="px-3 py-2 font-semibold">{r.hospede}</td>
+                          <td className="px-3 py-2 tabular-nums font-bold text-amber-300">
+                            {fmtDataBR(r.checkIn)}
+                          </td>
+                          <td className="px-3 py-2 tabular-nums text-slate-300">
+                            {fmtDataBR(r.checkOut)}
+                          </td>
+                          <td className="px-3 py-2">
+                            <span className="inline-block px-2 py-0.5 rounded-full text-[11px] font-bold border bg-yellow-500/20 text-yellow-300 border-yellow-500/30 uppercase">
+                              {r.status || "confirmed"}
+                            </span>
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums font-bold text-emerald-400">
+                            {r.receita > 0 ? fmtBRL(r.receita) : "—"}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
