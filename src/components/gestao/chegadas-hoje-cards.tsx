@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { LogIn, CalendarPlus, X, Loader2, RefreshCw, Users, Moon } from "lucide-react";
 import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
@@ -17,32 +17,43 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
   const [fetching, setFetching] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const call = useServerFn(getReservasHoje);
+  const mountedRef = useRef(false);
 
   const carregar = useCallback(async () => {
-    setFetching(true);
-    setError(null);
+    if (mountedRef.current) {
+      setFetching(true);
+      setError(null);
+    }
     try {
       const res = await call({ data: { property: unidade } });
+      if (!mountedRef.current) return;
       const list = [...res.reservas].sort((a, b) =>
         String(a.quarto).localeCompare(String(b.quarto), undefined, { numeric: true }),
       );
       setRows(list);
       setTotalReceita(res.totalReceita);
     } catch (err) {
+      if (!mountedRef.current) return;
       const msg = err instanceof Error ? err.message : "Falha ao consultar Cloudbeds";
       setError(msg);
     } finally {
-      setFetching(false);
-      setLoading(false);
+      if (mountedRef.current) {
+        setFetching(false);
+        setLoading(false);
+      }
     }
   }, [call, unidade]);
 
   useEffect(() => {
+    mountedRef.current = true;
     setLoading(true);
     carregar();
     // Atualiza automaticamente a cada 15 minutos (fonte Cloudbeds)
     const iv = setInterval(carregar, 15 * 60 * 1000);
-    return () => clearInterval(iv);
+    return () => {
+      mountedRef.current = false;
+      clearInterval(iv);
+    };
   }, [unidade, carregar]);
 
   const total = rows.length;
