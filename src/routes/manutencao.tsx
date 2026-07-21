@@ -44,7 +44,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { adjustPreventiveLogDate } from "@/lib/preventive-maintenance.functions";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
