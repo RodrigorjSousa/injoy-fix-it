@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Key, CheckCircle2, Loader2, Copy, XCircle, Clock } from "lucide-react";
+import { Key, CheckCircle2, Loader2, Copy, XCircle, Clock, Info, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -70,16 +70,20 @@ function CheckInDigitalModal({
   const [saida, setSaida] = useState(defaultSaida());
   const [isLoading, setIsLoading] = useState(false);
   const [senhasGeradas, setSenhasGeradas] = useState<Record<string, string> | null>(null);
+  const [senhaIds, setSenhaIds] = useState<Record<string, string | number>>({});
   const [deviceStatus, setDeviceStatus] = useState<
-    Record<string, { state: "pending" | "success" | "error"; message?: string }>
+    Record<string, { state: "pending" | "success" | "error"; message?: string; code?: number; passwordId?: string | number }>
   >({});
+  const [showTips, setShowTips] = useState(false);
 
   const reset = () => {
     setNomeHospede("");
     setEntrada(defaultEntrada());
     setSaida(defaultSaida());
     setSenhasGeradas(null);
+    setSenhaIds({});
     setDeviceStatus({});
+    setShowTips(false);
     setIsLoading(false);
   };
 
@@ -101,10 +105,11 @@ function CheckInDigitalModal({
     }
 
     // Inicializa status como "pending" para cada fechadura
-    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string }> = {};
+    const initialStatus: Record<string, { state: "pending" | "success" | "error"; message?: string; code?: number; passwordId?: string | number }> = {};
     for (const id of DEVICE_IDS_005) initialStatus[id] = { state: "pending" };
     setDeviceStatus(initialStatus);
     setSenhasGeradas(null);
+    setSenhaIds({});
     setIsLoading(true);
 
     const { data, error } = await supabase.functions.invoke("tuya-password", {
@@ -113,6 +118,8 @@ function CheckInDigitalModal({
         guestName: nomeHospede,
         startTime: startTs,
         endTime: endTs,
+        roomNumber,
+        unidade: "Botafogo",
       },
     });
     setIsLoading(false);
@@ -143,24 +150,30 @@ function CheckInDigitalModal({
     }
 
     const senhas: Record<string, string> = data?.senhas ?? {};
-    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number } }> =
+    const idsSenha: Record<string, string | number> = data?.senhaIds ?? {};
+    const tuyaResults: Array<{ deviceId: string; status: { success?: boolean; msg?: string; code?: number; result?: { offline_temp_password_id?: string | number; id?: string | number } } }> =
       data?.tuyaResults ?? [];
 
     const finalStatus: typeof initialStatus = {};
     for (const id of DEVICE_IDS_005) {
       const r = tuyaResults.find((x) => x.deviceId === id);
       if (senhas[id]) {
-        finalStatus[id] = { state: "success" };
+        finalStatus[id] = {
+          state: "success",
+          passwordId: idsSenha[id] ?? r?.status?.result?.offline_temp_password_id ?? r?.status?.result?.id,
+        };
       } else if (r) {
         finalStatus[id] = {
           state: "error",
           message: r.status?.msg || `Falha (code ${r.status?.code ?? "?"})`,
+          code: r.status?.code,
         };
       } else {
         finalStatus[id] = { state: "error", message: "Sem resposta" };
       }
     }
     setDeviceStatus(finalStatus);
+    setSenhaIds(idsSenha);
 
     if (Object.keys(senhas).length === 0) {
       toast.error("Nenhuma fechadura retornou senha. Verifique o status abaixo.");
@@ -348,6 +361,9 @@ function CheckInDigitalModal({
               <Copy size={16} />
               Copiar para WhatsApp
             </button>
+
+            <TroubleshootingTips open={showTips} onToggle={() => setShowTips((v) => !v)} />
+
             <button
               type="button"
               onClick={() => handleClose(false)}
@@ -366,7 +382,7 @@ function StatusList({
   status,
   roomNumber,
 }: {
-  status: Record<string, { state: "pending" | "success" | "error"; message?: string }>;
+  status: Record<string, { state: "pending" | "success" | "error"; message?: string; code?: number; passwordId?: string | number }>;
   roomNumber: string;
 }) {
   const LABELS: Record<string, string> = {
@@ -392,22 +408,86 @@ function StatusList({
             </span>
           )}
           {s.state === "success" && (
-            <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
-              <CheckCircle2 size={14} />
-              Sincronizada
+            <span className="flex flex-col items-end gap-0.5 text-right">
+              <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
+                <CheckCircle2 size={14} />
+                Aceita pela Tuya
+              </span>
+              {s.passwordId ? (
+                <span className="text-[10px] font-mono text-slate-500 truncate max-w-[180px]">
+                  ID: {String(s.passwordId)}
+                </span>
+              ) : null}
             </span>
           )}
           {s.state === "error" && (
             <span
-              className="flex items-center gap-1 text-xs font-bold text-red-600 max-w-[60%] text-right"
+              className="flex flex-col items-end gap-0.5 text-right max-w-[65%]"
               title={s.message}
             >
-              <XCircle size={14} />
-              <span className="truncate">{s.message || "Falha"}</span>
+              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
+                <XCircle size={14} />
+                <span className="truncate">{s.message || "Falha"}</span>
+              </span>
+              {typeof s.code === "number" ? (
+                <span className="text-[10px] font-mono text-red-500">
+                  code {s.code}
+                </span>
+              ) : null}
             </span>
           )}
         </div>
       ))}
+    </div>
+  );
+}
+
+function TroubleshootingTips({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  return (
+    <div className="rounded-xl border border-amber-200 bg-amber-50">
+      <button
+        type="button"
+        onClick={onToggle}
+        className="w-full flex items-center justify-between px-4 py-3 text-left"
+      >
+        <span className="flex items-center gap-2 text-sm font-bold text-amber-800">
+          <Info size={16} />
+          Dicas se a senha não funcionar
+        </span>
+        {open ? (
+          <ChevronUp size={16} className="text-amber-700" />
+        ) : (
+          <ChevronDown size={16} className="text-amber-700" />
+        )}
+      </button>
+      {open && (
+        <ul className="px-4 pb-3 space-y-2 text-xs text-amber-900 list-disc list-inside">
+          <li>
+            <strong>Sempre pressione a tecla #</strong> (Jogo da Velha) após digitar a senha —
+            é o "Enter" da fechadura.
+          </li>
+          <li>
+            <strong>Aguarde até 2 minutos</strong> após gerar: as fechaduras Zigbee saem de
+            hibernação e sincronizam com o gateway.
+          </li>
+          <li>
+            <strong>Verifique a bateria</strong> da fechadura. Bateria fraca faz o teclado
+            travar ou não emitir bipe.
+          </li>
+          <li>
+            <strong>Aproxime-se do teclado</strong> antes de digitar; alguns modelos ativam o
+            painel só quando detectam presença.
+          </li>
+          <li>
+            <strong>Se errar,</strong> aguarde 5 segundos e digite novamente do zero — não
+            corrija dígito por dígito.
+          </li>
+          <li>
+            <strong>Ainda não funciona?</strong> Confirme na recepção se o hóspede está com a
+            senha correta da porta certa (Portão / Vidro / Quarto).
+          </li>
+        </ul>
+      )}
     </div>
   );
 }

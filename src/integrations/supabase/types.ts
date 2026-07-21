@@ -1503,6 +1503,54 @@ export type Database = {
         }
         Relationships: []
       }
+      tuya_api_logs: {
+        Row: {
+          created_at: string
+          device_id: string | null
+          endpoint: string
+          guest_name: string | null
+          id: string
+          method: string
+          request_payload: Json | null
+          response_code: number | null
+          response_msg: string | null
+          response_payload: Json | null
+          room_number: string | null
+          success: boolean | null
+          unidade: string | null
+        }
+        Insert: {
+          created_at?: string
+          device_id?: string | null
+          endpoint: string
+          guest_name?: string | null
+          id?: string
+          method: string
+          request_payload?: Json | null
+          response_code?: number | null
+          response_msg?: string | null
+          response_payload?: Json | null
+          room_number?: string | null
+          success?: boolean | null
+          unidade?: string | null
+        }
+        Update: {
+          created_at?: string
+          device_id?: string | null
+          endpoint?: string
+          guest_name?: string | null
+          id?: string
+          method?: string
+          request_payload?: Json | null
+          response_code?: number | null
+          response_msg?: string | null
+          response_payload?: Json | null
+          room_number?: string | null
+          success?: boolean | null
+          unidade?: string | null
+        }
+        Relationships: []
+      }
       tuya_password_logs: {
         Row: {
           created_at: string
