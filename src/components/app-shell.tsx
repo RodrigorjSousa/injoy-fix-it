@@ -101,6 +101,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/bonificacao", label: "BONIFICAÇÃO", icon: Trophy },
       { to: "/almoxarifado", label: "ALMOXARIFADO", icon: Package },
       { to: "/frigobar", label: "FRIGOBAR", icon: GlassWater },
+      { to: "/check-in-digital", label: "CHECK IN DIGITAL", icon: Key },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
     ],
   },
