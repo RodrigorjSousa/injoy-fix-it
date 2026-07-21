@@ -246,7 +246,7 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at")
+          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
       ]);
