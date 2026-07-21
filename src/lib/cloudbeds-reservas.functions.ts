@@ -82,14 +82,14 @@ export const getReservasHoje = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const { supabase, userId } = context;
 
-    // Somente gestor/admin
+    // Gestor/admin veem o painel; recepção/camareiras usam os cards operacionais.
     const { data: roles, error: rErr } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId);
     if (rErr) throw new Error("Falha ao validar permissões");
     const roleSet = new Set((roles ?? []).map((r) => r.role));
-    if (!(roleSet.has("gestor") || roleSet.has("admin"))) {
+    if (!(roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira"))) {
       throw new Error("Sem permissão");
     }
 
