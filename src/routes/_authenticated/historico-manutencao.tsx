@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft,
   CheckCircle2,
@@ -9,12 +9,24 @@ import {
   Wrench,
   MapPin,
   ListChecks,
+  Pencil,
+  Loader2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { GerenciarChecklistsModal } from "@/components/manutencao/gerenciar-checklists-modal";
 import type { Unidade } from "@/lib/store";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Select,
   SelectContent,
@@ -22,8 +34,25 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
+  head: () => ({
+    meta: [
+      { title: "Histórico de Manutenção — INJOY" },
+      {
+        name: "description",
+        content: "Histórico de manutenção preventiva, datas executadas e próximas atividades.",
+      },
+      { property: "og:title", content: "Histórico de Manutenção — INJOY" },
+      {
+        property: "og:description",
+        content: "Acompanhe preventivas executadas, pendências e próximas manutenções do InJoy Hotéis.",
+      },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: HistoricoManutencaoPage,
 });
 
@@ -101,13 +130,68 @@ function fmtDateOnly(iso: string) {
   return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
 }
 
+function toDateInputValue(iso?: string | null) {
+  if (!iso) return "";
+  return iso.split("T")[0] ?? "";
+}
+
+function completedAtFromDateInput(date: string) {
+  return `${date}T12:00:00.000Z`;
+}
+
 function HistoricoManutencaoPage() {
+  const queryClient = useQueryClient();
   const now = new Date();
   const [unidade, setUnidade] = useState<Unidade | "Todas">("Todas");
   const [mes, setMes] = useState<number>(now.getMonth());
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<PreventiveLog | null>(null);
+  const [executionDate, setExecutionDate] = useState("");
+
+  const adjustDateMutation = useMutation({
+    mutationFn: async ({ log, date }: { log: PreventiveLog; date: string }) => {
+      if (!date) throw new Error("Informe a data executada.");
+
+      const completedAt = completedAtFromDateInput(date);
+      const frequencyDays = log.task?.frequency_days ?? taskFrequencyFor(log.task_id, tasks);
+
+      const payload: { completed_at: string; frequency_days?: number } = {
+        completed_at: completedAt,
+      };
+
+      if (frequencyDays && frequencyDays > 0) {
+        payload.frequency_days = frequencyDays;
+      }
+
+      const { data, error } = await supabase
+        .from("preventive_logs")
+        .update(payload)
+        .eq("id", log.id)
+        .select("id, completed_at, next_due_date")
+        .single();
+
+      if (error) throw error;
+      if (!data) throw new Error("A data não foi atualizada. Verifique sua permissão de gestor.");
+
+      return data as Pick<PreventiveLog, "id" | "completed_at" | "next_due_date">;
+    },
+    onSuccess: async (updated) => {
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["preventive_logs_all"] }),
+        queryClient.invalidateQueries({ queryKey: ["preventive_logs"] }),
+      ]);
+      toast.success(
+        `Data ajustada. Próxima atividade recalculada para ${fmtDateOnly(updated.next_due_date)}.`,
+      );
+      setEditingLog(null);
+      setExecutionDate("");
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || "Não foi possível ajustar a data da manutenção.");
+    },
+  });
 
   const tasksQ = useQuery({
     queryKey: ["preventive_tasks"],
@@ -258,6 +342,68 @@ function HistoricoManutencaoPage() {
 
       <GerenciarChecklistsModal open={gerenciarOpen} onOpenChange={setGerenciarOpen} />
 
+      <Dialog
+        open={!!editingLog}
+        onOpenChange={(open) => {
+          if (!open && !adjustDateMutation.isPending) {
+            setEditingLog(null);
+            setExecutionDate("");
+          }
+        }}
+      >
+        <DialogContent className="w-[min(28rem,calc(100vw-2rem))]">
+          <DialogHeader>
+            <DialogTitle>Ajustar data executada</DialogTitle>
+            <DialogDescription>
+              {editingLog
+                ? `${editingLog.property} · ${editingLog.location_name} — ${editingLog.task?.task_name ?? taskNameFor(editingLog.task_id, tasks) ?? editingLog.category}`
+                : "Informe a data correta da execução."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="maintenance-execution-date">Data real da execução</Label>
+            <Input
+              id="maintenance-execution-date"
+              type="date"
+              value={executionDate}
+              onChange={(event) => setExecutionDate(event.target.value)}
+              max="2999-12-31"
+            />
+            {editingLog?.task?.frequency_days && (
+              <p className="text-xs text-slate-500">
+                A próxima atividade será recalculada automaticamente somando {editingLog.task.frequency_days} dia(s) a partir desta data.
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setEditingLog(null);
+                setExecutionDate("");
+              }}
+              disabled={adjustDateMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={() => {
+                if (editingLog) adjustDateMutation.mutate({ log: editingLog, date: executionDate });
+              }}
+              disabled={!editingLog || !executionDate || adjustDateMutation.isPending}
+              className="bg-teal-600 hover:bg-teal-700 text-white"
+            >
+              {adjustDateMutation.isPending ? (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Pencil className="h-4 w-4 mr-2" />
+              )}
+              Salvar data
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <div className="p-4 space-y-4">
         {/* Filtros */}
         <div className="grid grid-cols-3 gap-2">
@@ -356,9 +502,6 @@ function HistoricoManutencaoPage() {
                           })
                         : "Data não registada"}
                     </span>
-                    <span className="ml-2 text-[10px] text-red-500 font-mono">
-                      [RAW BD: {log.completed_at}]
-                    </span>
                   </div>
                   {log.next_due_date && (
                     <p className="text-[11px] text-slate-400 mt-0.5">
@@ -366,27 +509,18 @@ function HistoricoManutencaoPage() {
                     </p>
                   )}
                 </div>
-                <button
-                  onClick={async () => {
-                    const dataAtual = log.completed_at ? log.completed_at.split("T")[0] : "";
-                    const inputData = window.prompt(
-                      "Digite a data real da execução (Formato AAAA-MM-DD):",
-                      dataAtual,
-                    );
-                    if (!inputData) return;
-
-                    const exataCompletedDate = `${inputData}T12:00:00.000Z`;
-                    const { error } = await supabase
-                      .from("preventive_logs")
-                      .update({ completed_at: exataCompletedDate })
-                      .eq("id", log.id);
-
-                    if (!error) window.location.reload();
+                <Button
+                  type="button"
+                  size="sm"
+                  onClick={() => {
+                    setEditingLog(log);
+                    setExecutionDate(toDateInputValue(log.completed_at));
                   }}
-                  className="ml-auto px-4 py-2 bg-teal-600 text-white text-sm font-semibold rounded-lg hover:bg-teal-700"
+                  className="ml-auto bg-teal-600 hover:bg-teal-700 text-white"
                 >
+                  <Pencil className="h-4 w-4 mr-1.5" />
                   Ajustar Data
-                </button>
+                </Button>
 
               </div>
             ))}
@@ -468,4 +602,8 @@ function HistoricoManutencaoPage() {
 
 function taskNameFor(taskId: string, tasks: PreventiveTask[]) {
   return tasks.find((t) => t.id === taskId)?.task_name;
+}
+
+function taskFrequencyFor(taskId: string, tasks: PreventiveTask[]) {
+  return tasks.find((t) => t.id === taskId)?.frequency_days;
 }
