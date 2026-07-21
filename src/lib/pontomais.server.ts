@@ -593,6 +593,52 @@ function parsePontomaisRegistrosPayload(params: {
   return byDate;
 }
 
+async function listAllPontomaisEmployeesOnce(token: string): Promise<unknown[]> {
+  const query = new URLSearchParams();
+  query.set("page", "1");
+  query.set("per_page", "1000");
+  const url = `${getPontomaisBaseUrl()}/employees?${query.toString()}`;
+  const payload = await pontomaisGet(url, token);
+  const list = employeesFromPayload(payload);
+  console.log("[pontomais] busca coletiva de funcionários concluída", {
+    url,
+    totalRecebido: list.length,
+  });
+  return list;
+}
+
+export type PontomaisEmployeeMatch = {
+  employeeId: string;
+  cpf: string;
+};
+
+export async function buildPontomaisEmployeeMapByCpf(): Promise<Record<string, PontomaisEmployeeMatch>> {
+  const token = getPontomaisToken();
+  const employees = await listAllPontomaisEmployeesOnce(token);
+  const byCpf: Record<string, PontomaisEmployeeMatch> = {};
+  let ignoredWithoutCpf = 0;
+  let ignoredWithoutId = 0;
+  let duplicatedCpf = 0;
+
+  for (const row of employees) {
+    const cpf = cpfFromPontomaisEmployee(row);
+    if (!cpf) { ignoredWithoutCpf += 1; continue; }
+    const employeeId = employeeIdFromPontomaisRow(row);
+    if (!employeeId) { ignoredWithoutId += 1; continue; }
+    if (byCpf[cpf]) { duplicatedCpf += 1; continue; }
+    byCpf[cpf] = { cpf, employeeId: String(employeeId) };
+  }
+
+  console.log("[pontomais] mapa de funcionários por CPF criado", {
+    totalPontomais: employees.length,
+    totalComCpfEId: Object.keys(byCpf).length,
+    ignoredWithoutCpf,
+    ignoredWithoutId,
+    duplicatedCpf,
+  });
+  return byCpf;
+}
+
 function buildPontomaisTimeCardsReportBody(params: {
   employeeId: string;
   startDate: string;
