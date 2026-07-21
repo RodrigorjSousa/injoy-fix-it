@@ -593,7 +593,7 @@ function parsePontomaisRegistrosPayload(params: {
   return byDate;
 }
 
-function buildPontomaisWorkDaysReportBody(params: {
+function buildPontomaisTimeCardsReportBody(params: {
   employeeId: string;
   startDate: string;
   endDate: string;
@@ -602,47 +602,36 @@ function buildPontomaisWorkDaysReportBody(params: {
   const report: Record<string, unknown> = {
     start_date: params.startDate,
     end_date: params.endDate,
-    group_by: "employee",
-    row_filters: "with_inactives,has_time_cards",
-    columns:
-      "date,shift_name,time_breaks,shift_appointments,time_cards,time_cards_entries,time_card_entries,time_entries,punches,appointments,summary,extra_time,total_time,shift_time,custom_interval_time,overnight_time,registration_number,time_balance,motive,employee_id",
     format: "json",
   };
-
   if (params.includeEmployeeFilter) {
     report.employee_id = params.employeeId;
     report.employee_ids = [params.employeeId];
   }
-
   return { report };
 }
 
-async function fetchPontomaisWorkDaysReport(params: {
+async function fetchPontomaisTimeCardsReport(params: {
   token: string;
   employeeId: string;
   startDate: string;
   endDate: string;
 }): Promise<unknown> {
-  const url = `${getPontomaisBaseUrl()}/reports/work_days`;
-  const filteredBody = buildPontomaisWorkDaysReportBody({
+  const url = `${getPontomaisBaseUrl()}/reports/time_cards`;
+  const filteredBody = buildPontomaisTimeCardsReportBody({
     employeeId: params.employeeId,
     startDate: params.startDate,
     endDate: params.endDate,
     includeEmployeeFilter: true,
   });
-
   try {
     return await pontomaisPost(url, params.token, filteredBody);
   } catch (err) {
     if (err instanceof PontomaisApiError && (err.status === 400 || err.status === 422)) {
-      console.warn(
-        "[pontomais] relatório não aceitou filtro direto por employee_id; tentando relatório do período e filtrando localmente",
-        { employeeId: params.employeeId, status: err.status },
-      );
       return pontomaisPost(
         url,
         params.token,
-        buildPontomaisWorkDaysReportBody({
+        buildPontomaisTimeCardsReportBody({
           employeeId: params.employeeId,
           startDate: params.startDate,
           endDate: params.endDate,
@@ -654,71 +643,91 @@ async function fetchPontomaisWorkDaysReport(params: {
   }
 }
 
-async function listAllPontomaisEmployeesOnce(token: string): Promise<unknown[]> {
-  const query = new URLSearchParams();
-  query.set("page", "1");
-  query.set("per_page", "1000");
-
-  const url = `${getPontomaisBaseUrl()}/employees?${query.toString()}`;
-  const payload = await pontomaisGet(url, token);
-  const list = employeesFromPayload(payload);
-
-  console.log("[pontomais] busca coletiva de funcionários concluída", {
-    url,
-    totalRecebido: list.length,
-  });
-
-  return list;
+function parseBrazilianDate(value: unknown): string | null {
+  const raw = asStringish(value)?.trim();
+  if (!raw) return null;
+  const iso = raw.match(/(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
+  const br = raw.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (br) return `${br[3]}-${br[2]}-${br[1]}`;
+  return null;
 }
 
-export type PontomaisEmployeeMatch = {
-  employeeId: string;
-  cpf: string;
-};
+type PontomaisPunchRow = { date: string; time: string; employeeId: string | null };
 
-export async function buildPontomaisEmployeeMapByCpf(): Promise<Record<string, PontomaisEmployeeMatch>> {
-  const token = getPontomaisToken();
-  const employees = await listAllPontomaisEmployeesOnce(token);
-  const byCpf: Record<string, PontomaisEmployeeMatch> = {};
-  let ignoredWithoutCpf = 0;
-  let ignoredWithoutId = 0;
-  let duplicatedCpf = 0;
-
-  for (const row of employees) {
-    const cpf = cpfFromPontomaisEmployee(row);
-    if (!cpf) {
-      ignoredWithoutCpf += 1;
-      continue;
+function collectPunchRowsFromTimeCardsReport(
+  value: unknown,
+  targetEmployeeId: string,
+  startDate: string,
+  endDate: string,
+  out: PontomaisPunchRow[] = [],
+  depth = 0,
+): PontomaisPunchRow[] {
+  if (depth > 10 || value == null) return out;
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectPunchRowsFromTimeCardsReport(item, targetEmployeeId, startDate, endDate, out, depth + 1);
     }
+    return out;
+  }
+  const record = asRecord(value);
+  if (!record) return out;
 
-    const employeeId = employeeIdFromPontomaisRow(row);
-    if (!employeeId) {
-      ignoredWithoutId += 1;
-      continue;
+  // Punch leaf: has a time HH:MM(:SS) plus a date field
+  const timeRaw = asStringish(record.time ?? record.hour ?? record.hora);
+  const dateRaw = record.date ?? record.data ?? record.day;
+  const parsedDate = parseBrazilianDate(dateRaw);
+  const timeMatch = timeRaw?.match(/([01]?\d|2[0-3]):([0-5]\d)(?::([0-5]\d))?/);
+
+  if (parsedDate && timeMatch) {
+    const employeeId = normalizedEmployeeId(record.employee_id ?? record.employeeId);
+    const matchesEmployee =
+      !employeeId || sameEmployeeId(employeeId, targetEmployeeId);
+    const inRange = parsedDate >= startDate && parsedDate <= endDate;
+    if (matchesEmployee && inRange) {
+      const hh = timeMatch[1].padStart(2, "0");
+      const mm = timeMatch[2];
+      const ss = timeMatch[3] ?? "00";
+      out.push({ date: parsedDate, time: `${hh}:${mm}:${ss}`, employeeId });
+      return out;
     }
-
-    if (byCpf[cpf]) {
-      duplicatedCpf += 1;
-      console.warn("[pontomais] CPF duplicado na listagem; mantendo primeiro ID", {
-        cpf,
-        primeiroId: byCpf[cpf].employeeId,
-        idIgnorado: String(employeeId),
-      });
-      continue;
-    }
-
-    byCpf[cpf] = { cpf, employeeId: String(employeeId) };
   }
 
-  console.log("[pontomais] mapa de funcionários por CPF criado", {
-    totalPontomais: employees.length,
-    totalComCpfEId: Object.keys(byCpf).length,
-    ignoredWithoutCpf,
-    ignoredWithoutId,
-    duplicatedCpf,
-  });
+  for (const nested of Object.values(record)) {
+    if (nested && (Array.isArray(nested) || typeof nested === "object")) {
+      collectPunchRowsFromTimeCardsReport(nested, targetEmployeeId, startDate, endDate, out, depth + 1);
+    }
+  }
+  return out;
+}
 
-  return byCpf;
+function parsePontomaisTimeCardsPayload(params: {
+  payload: unknown;
+  employeeId: string;
+  startDate: string;
+  endDate: string;
+}): Record<string, PontomaisRegistro> {
+  const rows = collectPunchRowsFromTimeCardsReport(
+    params.payload,
+    params.employeeId,
+    params.startDate,
+    params.endDate,
+  );
+  const grouped: Record<string, string[]> = {};
+  for (const row of rows) {
+    (grouped[row.date] ??= []).push(row.time);
+  }
+  const byDate: Record<string, PontomaisRegistro> = {};
+  for (const [date, times] of Object.entries(grouped)) {
+    const ordered = uniqueSortedTimes(times);
+    byDate[date] = registroFromOrderedPunches(ordered);
+  }
+  console.log("[pontomais] batidas extraídas do relatório time_cards", {
+    employeeId: params.employeeId,
+    totalDias: Object.keys(byDate).length,
+    datas: Object.keys(byDate),
+  });
+  return byDate;
 }
 
 export async function fetchPontomaisRegistrosByEmployeeId(params: {
@@ -736,7 +745,7 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
 
   let payload: unknown;
   try {
-    payload = await fetchPontomaisWorkDaysReport({
+    payload = await fetchPontomaisTimeCardsReport({
       token,
       employeeId,
       startDate: params.startDate,
@@ -744,7 +753,7 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     });
   } catch (err) {
     if (err instanceof PontomaisApiError && err.status === 404) {
-      console.warn("[pontomais] batidas não encontradas para funcionário no período", {
+      console.warn("[pontomais] batidas não encontradas", {
         employeeId,
         cpf: cleanCpf,
         startDate: params.startDate,
@@ -755,24 +764,13 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     throw err;
   }
 
-  console.log("JSON completo de batidas retornado pela Pontomais:", payload);
-
-  const byDate = parsePontomaisRegistrosPayload({
+  const byDate = parsePontomaisTimeCardsPayload({
     payload,
     employeeId,
     startDate: params.startDate,
     endDate: params.endDate,
   });
 
-  if (Object.keys(byDate).length === 0) {
-    const payloadRecord = asRecord(payload);
-    console.log("[pontomais] nenhuma batida extraída do relatório", {
-      employeeId,
-      startDate: params.startDate,
-      endDate: params.endDate,
-      payloadKeys: payloadRecord ? Object.keys(payloadRecord) : null,
-    });
-  }
-
   return { byDate };
 }
+
