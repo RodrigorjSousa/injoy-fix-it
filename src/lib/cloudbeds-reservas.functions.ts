@@ -47,6 +47,15 @@ function dateOnly(value: unknown): string {
   return trimmed.slice(0, 10);
 }
 
+function cloudbedsDayRange(date: string) {
+  // O filtro resultsFrom/resultsTo da Cloudbeds exige data + hora.
+  // Enviar apenas YYYY-MM-DD retorna sucesso, porém lista vazia.
+  return {
+    from: `${date} 00:00:00`,
+    to: `${date} 23:59:59`,
+  };
+}
+
 function moneyNumber(value: unknown): number {
   if (typeof value === "number") return Number.isFinite(value) ? value : 0;
   if (typeof value !== "string") return 0;
@@ -369,12 +378,13 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
     const hoje = data.date ?? todayISO();
+    const range = cloudbedsDayRange(hoje);
 
     const fetchPage = async (pageNumber: number) => {
       const qs = new URLSearchParams({
-        resultsFrom: hoje,
-        resultsTo: hoje,
-        pageSize: "100",
+        resultsFrom: range.from,
+        resultsTo: range.to,
+        pageSize: "10",
         pageNumber: String(pageNumber),
         sortByRecent: "true",
       });
@@ -398,7 +408,11 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
 
     const firstPage = await fetchPage(1);
     if (firstPage.success === false) throw new Error("Cloudbeds retornou erro");
-    const rawList = [...(firstPage.data ?? [])];
+    const rawList = [...(firstPage.data ?? [])].sort((a, b) => {
+      const aDate = String((a as Record<string, unknown>).dateCreated ?? "");
+      const bDate = String((b as Record<string, unknown>).dateCreated ?? "");
+      return bDate.localeCompare(aDate);
+    });
 
     const reservas: ReservaFeita[] = rawList.map((r) => {
       const rec = r as Record<string, unknown>;
@@ -429,8 +443,7 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
       };
     });
 
-    // Ordena mais recentes primeiro e limita a 10 (como o painel do Cloudbeds).
-    reservas.sort((a, b) => (b.dateCreated || "").localeCompare(a.dateCreated || ""));
+    // Limita a 10 (como o painel do Cloudbeds).
     const top = reservas.slice(0, 10);
     return { reservas: top, total: reservas.length, data: hoje };
   });
