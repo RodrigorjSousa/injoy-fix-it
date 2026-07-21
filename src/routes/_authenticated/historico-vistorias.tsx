@@ -11,7 +11,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Camera,
-  Ban,
   Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
@@ -347,10 +346,8 @@ function HistoricoVistoriasPage() {
                 });
               }
 
-              const dndFotos = (dndByRoom[roomKey] ?? []).map((d) => ({
-                url: d.photo_url,
-                caption: `${d.camareira_name} · ${fmtDateTime(d.created_at)}`,
-              }));
+              // Fotos de "Não Perturbe" foram movidas para o Histórico de Produção de Limpeza
+
 
               return (
                 <div
@@ -413,15 +410,7 @@ function HistoricoVistoriasPage() {
                     onOpen={(idx) => setLightbox({ images: recepcaoFotos, index: idx })}
                   />
 
-                  {/* Galeria: Não Perturbe */}
-                  <PhotoGroup
-                    title='Status "Não Perturbe"'
-                    icon={<Ban size={13} className="text-rose-600" />}
-                    photos={dndFotos}
-                    loading={loadingExtras}
-                    emptyLabel="Nenhuma imagem de 'Não Perturbe' disponível"
-                    onOpen={(idx) => setLightbox({ images: dndFotos, index: idx })}
-                  />
+                  {/* Fotos de "Não Perturbe" agora aparecem exclusivamente no Histórico de Produção de Limpeza */}
                 </div>
               );
             })}
