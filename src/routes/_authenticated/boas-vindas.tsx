@@ -39,6 +39,11 @@ import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
 import { PontoFuncionariosPainel } from "@/components/gestao/ponto-funcionarios-painel";
 import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
+import { useBoasVindasView } from "@/hooks/use-boas-vindas-config";
+import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
+
+
+
 
 
 import { cn } from "@/lib/utils";
