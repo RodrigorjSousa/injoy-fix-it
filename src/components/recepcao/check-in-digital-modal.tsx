@@ -99,7 +99,7 @@ function CheckInDigitalModal({
     setIsLoading(true);
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
-        deviceId: DEVICE_ID_005,
+        deviceIds: DEVICE_IDS_005,
         guestName: nomeHospede,
         startTime: startTs,
         endTime: endTs,
