@@ -381,9 +381,20 @@ function PainelPreventiva({
           return (
             <div
               key={loc.name}
-              className="bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
+              className="relative bg-card border rounded-xl p-5 flex flex-col gap-4 shadow-sm w-full"
             >
+              {/* Bolinha de sinalização */}
+              <span
+                aria-hidden
+                className={cn(
+                  "absolute top-3 left-3 h-3 w-3 rounded-full ring-4",
+                  loc.health === "em-dia" && "bg-success ring-success/20",
+                  loc.health === "vence-breve" && "bg-amber-500 ring-amber-500/20",
+                  loc.health === "atrasado" && "bg-destructive ring-destructive/20 animate-pulse",
+                )}
+              />
               {/* CABEÇALHO DO CARD - ESTRUTURA À PROVA DE FALHAS */}
+
               <div className="flex flex-row items-start justify-between w-full gap-2">
                 
                 {/* Bloco da Esquerda: Ícone + Textos */}
