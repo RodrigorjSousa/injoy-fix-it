@@ -11,7 +11,9 @@ export type ReservaHoje = {
   reservationID: string;
   hospede: string;
   quarto: string;
+  tipoAcomodacao: string;
   checkIn: string;
+  checkInTime: string;
   checkOut: string;
   noites: number;
   receita: number;
