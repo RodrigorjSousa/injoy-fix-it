@@ -151,6 +151,7 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                       <tr>
                         <th className="text-left px-3 py-2 font-bold">Quarto</th>
                         <th className="text-left px-3 py-2 font-bold">Hóspede</th>
+                        <th className="text-left px-3 py-2 font-bold">Check-in</th>
                         <th className="text-left px-3 py-2 font-bold">Pax</th>
                         <th className="text-left px-3 py-2 font-bold">Noites</th>
                         <th className="text-left px-3 py-2 font-bold">Status</th>
@@ -163,8 +164,16 @@ export function ChegadasHojeCards({ unidade }: { unidade: Unidade }) {
                           key={`${r.reservationID}-${r.quarto}-${i}`}
                           className="border-t border-slate-800 text-slate-200"
                         >
-                          <td className="px-3 py-2 font-semibold">{r.quarto}</td>
+                          <td className="px-3 py-2 font-semibold">
+                            {r.quarto}
+                            {r.tipoAcomodacao ? (
+                              <div className="text-[11px] font-normal text-slate-400">{r.tipoAcomodacao}</div>
+                            ) : null}
+                          </td>
                           <td className="px-3 py-2">{r.hospede}</td>
+                          <td className="px-3 py-2 tabular-nums font-bold text-amber-300">
+                            {r.checkInTime || "—"}
+                          </td>
                           <td className="px-3 py-2 tabular-nums">
                             <span className="inline-flex items-center gap-1">
                               <Users size={12} className="text-slate-400" /> {r.adultos + r.criancas}
