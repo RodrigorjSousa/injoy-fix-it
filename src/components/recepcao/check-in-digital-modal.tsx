@@ -81,7 +81,9 @@ function CheckInDigitalModal({
     setEntrada(defaultEntrada());
     setSaida(defaultSaida());
     setSenhasGeradas(null);
+    setSenhaIds({});
     setDeviceStatus({});
+    setShowTips(false);
     setIsLoading(false);
   };
 
