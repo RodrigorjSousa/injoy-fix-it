@@ -328,11 +328,27 @@ function PainelPreventiva({
         />
       </div>
 
+      <div className="w-full flex items-center justify-between gap-3">
+        <h2 className="text-sm font-semibold text-slate-700">
+          {filter === "todos" && `Todos os locais (${filtered.length})`}
+          {filter === "em-dia" && `Em dia (${filtered.length})`}
+          {filter === "vence-breve" && `Vence em breve (${filtered.length})`}
+          {filter === "atrasado" && `A fazer / Atrasado (${filtered.length})`}
+        </h2>
+        {filter !== "todos" && (
+          <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
+            Limpar filtro
+          </Button>
+        )}
+      </div>
+
       {filtered.length === 0 && (
         <Card className="p-8 text-center text-sm text-muted-foreground">
           Nenhum local neste filtro.
         </Card>
       )}
+
+
 
       <div className="w-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {filtered.map((loc) => {
