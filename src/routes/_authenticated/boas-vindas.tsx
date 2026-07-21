@@ -119,6 +119,8 @@ function calcularStatus(rows: Array<{ status: string | null; condition: string |
 function BoasVindas() {
   const { data: me } = useMe();
   const { unidade, setUnidade, unidades } = useUnidade();
+  const { isVisible, orderedVisibleIds } = useBoasVindasView();
+
 
   const [nome, setNome] = useState<string>("");
   const [rating, setRating] = useState<number>(8.5);
