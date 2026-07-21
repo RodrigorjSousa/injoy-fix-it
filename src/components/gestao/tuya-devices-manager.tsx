@@ -346,6 +346,19 @@ export function TuyaDevicesManager() {
                   <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  {statuses[d.device_id] && (
+                    <span
+                      className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
+                        statuses[d.device_id].online
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-red-50 text-red-700 border-red-200"
+                      }`}
+                      title={statuses[d.device_id].msg ?? ""}
+                    >
+                      {statuses[d.device_id].online ? "● Online" : "● Offline"}
+                    </span>
+                  )}
+
                   <button
                     type="button"
                     onClick={() => toggleAtivo(d)}
