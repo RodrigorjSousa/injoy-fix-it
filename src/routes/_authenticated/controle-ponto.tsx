@@ -272,7 +272,7 @@ function ControlePontoPage() {
                 )}
                 {!loading && funcionariosUnidade.length === 0 && (
                   <tr>
-                    <td colSpan={8} className="text-center py-8 text-slate-400">
+                    <td colSpan={9} className="text-center py-8 text-slate-400">
                       Nenhum funcionário nesta unidade
                     </td>
                   </tr>
