@@ -368,6 +368,12 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
   query.set("end_date", params.endDate);
   query.set("employee_id", String(employeeId));
   query.set("q[employee_id_eq]", String(employeeId));
+  // Solicita explicitamente as batidas (entries) na resposta — sem isso a Pontomais
+  // devolve só resumos e o parser não encontra horários.
+  query.set(
+    "attributes",
+    "id,date,work_date,time_cards_entries,time_card_entries,time_entries,punches",
+  );
 
   const url = `${getPontomaisBaseUrl()}/time_cards?${query.toString()}`;
   let payload: unknown;
@@ -391,6 +397,22 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
     payloadRecord?.time_cards ?? payloadRecord?.data ?? payloadRecord?.registros ?? [];
   const rows: unknown[] = Array.isArray(rawRows) ? rawRows : [];
   const byDate: Record<string, PontomaisRegistro> = {};
+
+  if (rows.length > 0) {
+    console.log("[pontomais] estrutura da primeira batida recebida", {
+      employeeId,
+      totalRows: rows.length,
+      firstRowKeys: Object.keys(asRecord(rows[0]) ?? {}),
+      firstRowSample: JSON.stringify(rows[0]).slice(0, 800),
+    });
+  } else {
+    console.log("[pontomais] nenhuma batida retornada", {
+      employeeId,
+      startDate: params.startDate,
+      endDate: params.endDate,
+      payloadKeys: payloadRecord ? Object.keys(payloadRecord) : null,
+    });
+  }
 
   for (const row of rows) {
     const rowRecord = asRecord(row);
@@ -421,20 +443,42 @@ export async function fetchPontomaisRegistrosByEmployeeId(params: {
       continue;
     }
 
-    const rawPunches = rowRecord?.punches ?? rowRecord?.time_entries ?? [];
-    const punches: string[] = (Array.isArray(rawPunches) ? rawPunches : [])
+    // Coleta batidas de todas as chaves conhecidas da Pontomais.
+    const punchSources = [
+      rowRecord?.time_cards_entries,
+      rowRecord?.time_card_entries,
+      rowRecord?.time_entries,
+      rowRecord?.punches,
+      rowRecord?.entries,
+    ];
+    const rawPunches: unknown[] = [];
+    for (const src of punchSources) {
+      if (Array.isArray(src)) rawPunches.push(...src);
+    }
+
+    const punches: string[] = rawPunches
       .map((p) => {
         const punchRecord = asRecord(p);
-        return toTime(punchRecord?.time ?? punchRecord?.hora ?? p);
+        return toTime(
+          punchRecord?.time ??
+            punchRecord?.hora ??
+            punchRecord?.time_registration ??
+            punchRecord?.registered_at ??
+            punchRecord?.datetime ??
+            punchRecord?.date_time ??
+            p,
+        );
       })
       .filter(Boolean) as string[];
     punches.sort();
+
+    if (punches.length === 0) continue;
 
     byDate[key] = {
       entrada: punches[0] ?? null,
       almoco_saida: punches[1] ?? null,
       almoco_retorno: punches[2] ?? null,
-      saida: punches[3] ?? null,
+      saida: punches[punches.length - 1] ?? null,
     };
   }
 
