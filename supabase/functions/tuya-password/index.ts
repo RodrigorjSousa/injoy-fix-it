@@ -127,6 +127,70 @@ serve(async (req) => {
       throw new Error("Erro de Token Tuya: " + JSON.stringify(tokenData));
     const accessToken = tokenData.result.access_token;
 
+    // ============ AÇÃO: verificar status online das fechaduras ============
+    if (action === "check_status") {
+      const statuses: Array<{
+        deviceId: string;
+        online: boolean;
+        name?: string;
+        success: boolean;
+        code?: number;
+        msg?: string;
+      }> = [];
+
+      for (const deviceId of deviceIds ?? []) {
+        try {
+          const tDev = Date.now().toString();
+          const urlDev = `/v1.0/devices/${deviceId}`;
+          const signStrDev = `GET\n${await calcSha256("")}\n\n${urlDev}`;
+          const signDev = await calcSign(clientId, accessToken, tDev, "", signStrDev, secret);
+          const devRes = await fetch(`${baseUrl}${urlDev}`, {
+            method: "GET",
+            headers: {
+              client_id: clientId,
+              access_token: accessToken,
+              sign: signDev,
+              t: tDev,
+              sign_method: "HMAC-SHA256",
+            },
+          });
+          const devData = await devRes.json();
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: urlDev,
+            method: "GET",
+            response_payload: devData,
+            response_code: devData?.code ?? null,
+            response_msg: devData?.msg ?? null,
+            success: !!devData?.success,
+            unidade,
+          });
+          statuses.push({
+            deviceId,
+            online: !!devData?.result?.online,
+            name: devData?.result?.name,
+            success: !!devData?.success,
+            code: devData?.code,
+            msg: devData?.msg,
+          });
+        } catch (err) {
+          statuses.push({
+            deviceId,
+            online: false,
+            success: false,
+            msg: (err as Error).message,
+          });
+        }
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, statuses }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+
+
     // Regra Tuya: timestamps em segundos, arredondados para a hora cheia
     const effectiveTime = Math.floor(startTime / 3600000) * 3600;
     let invalidTime = Math.floor(endTime / 3600000) * 3600;
