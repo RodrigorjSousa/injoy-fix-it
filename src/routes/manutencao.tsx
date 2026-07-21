@@ -128,6 +128,7 @@ function daysBetween(a: Date, b: Date) {
 interface LocationTaskStatus {
   task: PreventiveTask;
   lastLogId: string | null;
+  lastCompletedAtIso: string | null;
   lastCompletedAt: Date | null;
   lastTechnician: string | null;
   nextDue: Date | null;
@@ -145,6 +146,7 @@ function computeStatus(tasks: PreventiveTask[], logs: PreventiveLog[]): Location
       return {
         task: t,
         lastLogId: null,
+        lastCompletedAtIso: null,
         lastCompletedAt: null,
         lastTechnician: null,
         nextDue: null,
@@ -157,6 +159,7 @@ function computeStatus(tasks: PreventiveTask[], logs: PreventiveLog[]): Location
     return {
       task: t,
       lastLogId: last.id,
+      lastCompletedAtIso: last.completed_at,
       lastCompletedAt: lastAt,
       lastTechnician: last.technician_name,
       nextDue: next,
@@ -728,9 +731,9 @@ function ChecklistModal({
                             logId: s.lastLogId!,
                             task: s.task,
                             taskName: s.task.task_name,
-                            completedAt: s.lastCompletedAt!.toISOString(),
+                            completedAt: s.lastCompletedAtIso ?? s.lastCompletedAt!.toISOString(),
                           });
-                          setExecutionDate(toDateInputValue(s.lastCompletedAt!.toISOString()));
+                          setExecutionDate(toDateInputValue(s.lastCompletedAtIso ?? s.lastCompletedAt!.toISOString()));
                         }}
                       >
                         <Pencil className="h-3.5 w-3.5 mr-1.5" />
