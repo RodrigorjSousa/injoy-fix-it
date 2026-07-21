@@ -17,8 +17,10 @@ type Funcionario = {
   nome: string;
   email: string;
   cpf: string | null;
+  pontomais_employee_id: string | null;
   categorias: string[];
 };
+
 
 type RegistroPonto = {
   funcionario_id: string;
@@ -66,7 +68,7 @@ function ControlePontoPage() {
     setLoading(true);
     try {
       const [{ data: fs, error: fErr }, { data: rs, error: rErr }] = await Promise.all([
-        supabase.from("funcionarios").select("id, nome, email, cpf, categorias").order("nome"),
+        supabase.from("funcionarios").select("id, nome, email, cpf, pontomais_employee_id, categorias").order("nome"),
         supabase
           .from("registro_ponto_pontomais")
           .select("*")
@@ -218,6 +220,7 @@ function ControlePontoPage() {
                 <tr>
                   <th className="text-left px-4 py-3">Funcionário</th>
                   <th className="text-left px-3 py-3">CPF</th>
+                  <th className="text-left px-3 py-3">ID Pontomais</th>
                   <th className="text-center px-3 py-3">Entrada</th>
                   <th className="text-center px-3 py-3">Almoço ida</th>
                   <th className="text-center px-3 py-3">Almoço volta</th>
@@ -228,14 +231,14 @@ function ControlePontoPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-slate-400">
+                    <td colSpan={8} className="text-center py-8 text-slate-400">
                       Carregando...
                     </td>
                   </tr>
                 )}
                 {!loading && funcionariosUnidade.length === 0 && (
                   <tr>
-                    <td colSpan={7} className="text-center py-8 text-slate-400">
+                    <td colSpan={8} className="text-center py-8 text-slate-400">
                       Nenhum funcionário nesta unidade
                     </td>
                   </tr>
@@ -243,6 +246,7 @@ function ControlePontoPage() {
                 {!loading &&
                   funcionariosUnidade.map((f) => {
                     const r = registrosPorFunc[f.id];
+                    const semVinculo = !f.pontomais_employee_id && !f.cpf;
                     return (
                       <tr key={f.id} className="border-t border-slate-100">
                         <td className="px-4 py-3">
@@ -250,8 +254,18 @@ function ControlePontoPage() {
                           <div className="text-[11px] text-slate-400">{f.email}</div>
                         </td>
                         <td className="px-3 py-3 font-mono text-xs text-slate-600">
-                          {f.cpf ?? <span className="text-amber-600">não cadastrado</span>}
+                          {f.cpf ?? <span className="text-slate-300">—</span>}
                         </td>
+                        <td className="px-3 py-3 font-mono text-xs">
+                          {f.pontomais_employee_id ? (
+                            <span className="text-emerald-700">{f.pontomais_employee_id}</span>
+                          ) : semVinculo ? (
+                            <span className="text-amber-600">não vinculado</span>
+                          ) : (
+                            <span className="text-slate-300">—</span>
+                          )}
+                        </td>
+
                         <td className="text-center font-mono">{formatTime(r?.entrada ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.almoco_saida ?? null)}</td>
                         <td className="text-center font-mono">{formatTime(r?.almoco_retorno ?? null)}</td>
@@ -282,8 +296,10 @@ function ControlePontoPage() {
 
         <p className="text-xs text-slate-400">
           Fonte: API Pontomais. Toque em <b>Sincronizar</b> para forçar a atualização.
-          O vínculo de funcionário é feito por CPF (se preenchido) ou pelo e-mail cadastrado.
+          O vínculo com a Pontomais usa, nesta ordem: <b>ID Pontomais</b> (mais confiável),
+          CPF ou e-mail. Se der erro 404, edite o funcionário e cole o ID da Pontomais.
         </p>
+
       </div>
 
       {editando && (
@@ -323,21 +339,30 @@ function EditarFuncionarioModal({
   const [nome, setNome] = useState(funcionario.nome);
   const [email, setEmail] = useState(funcionario.email);
   const [cpf, setCpf] = useState(funcionario.cpf ?? "");
+  const [pontomaisId, setPontomaisId] = useState(funcionario.pontomais_employee_id ?? "");
   const [saving, setSaving] = useState(false);
 
   const salvar = async () => {
     const nomeT = nome.trim();
     const emailT = email.trim().toLowerCase();
     const cpfT = cpf.replace(/\D/g, "").trim();
+    const pontomaisT = pontomaisId.replace(/\s/g, "").trim();
     if (!nomeT) return toast.error("Nome obrigatório");
     if (!/^\S+@\S+\.\S+$/.test(emailT)) return toast.error("E-mail inválido");
     if (cpfT && cpfT.length !== 11) return toast.error("CPF deve ter 11 dígitos");
+    if (pontomaisT && !/^\d+$/.test(pontomaisT))
+      return toast.error("ID Pontomais deve conter apenas números");
 
     setSaving(true);
     try {
       const { error } = await supabase
         .from("funcionarios")
-        .update({ nome: nomeT, email: emailT, cpf: cpfT || null })
+        .update({
+          nome: nomeT,
+          email: emailT,
+          cpf: cpfT || null,
+          pontomais_employee_id: pontomaisT || null,
+        })
         .eq("id", funcionario.id);
       if (error) throw error;
       toast.success("Funcionário atualizado");
@@ -348,6 +373,7 @@ function EditarFuncionarioModal({
       setSaving(false);
     }
   };
+
 
   return (
     <div
@@ -397,9 +423,28 @@ function EditarFuncionarioModal({
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
             />
             <span className="text-[11px] text-slate-400">
-              Usado para vincular ao Pontomais. Preencha para garantir a sincronização.
+              Usado para vincular ao Pontomais se o ID não estiver preenchido.
             </span>
           </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">
+              ID Pontomais <span className="text-slate-400 font-normal">(recomendado)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pontomaisId}
+              onChange={(e) => setPontomaisId(e.target.value)}
+              placeholder="Ex.: 123456"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
+            />
+            <span className="text-[11px] text-slate-400">
+              Encontre na Pontomais → Colaboradores → abra o perfil; o número
+              aparece na URL (…/employees/<b>123456</b>). Quando preenchido, é o
+              vínculo mais confiável e evita o erro 404.
+            </span>
+          </label>
+
         </div>
         <div className="flex justify-end gap-2 p-4 border-t border-slate-100">
           <button
@@ -434,6 +479,7 @@ function AdicionarFuncionarioModal({
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [cpf, setCpf] = useState("");
+  const [pontomaisId, setPontomaisId] = useState("");
   const [categoria, setCategoria] = useState<string>(unidade.toLowerCase());
   const [saving, setSaving] = useState(false);
 
@@ -441,9 +487,12 @@ function AdicionarFuncionarioModal({
     const nomeT = nome.trim();
     const emailT = email.trim().toLowerCase();
     const cpfT = cpf.replace(/\D/g, "").trim();
+    const pontomaisT = pontomaisId.replace(/\s/g, "").trim();
     if (!nomeT) return toast.error("Nome obrigatório");
     if (!/^\S+@\S+\.\S+$/.test(emailT)) return toast.error("E-mail inválido");
     if (cpfT && cpfT.length !== 11) return toast.error("CPF deve ter 11 dígitos");
+    if (pontomaisT && !/^\d+$/.test(pontomaisT))
+      return toast.error("ID Pontomais deve conter apenas números");
 
     setSaving(true);
     try {
@@ -451,6 +500,7 @@ function AdicionarFuncionarioModal({
         nome: nomeT,
         email: emailT,
         cpf: cpfT || null,
+        pontomais_employee_id: pontomaisT || null,
         categorias: categoria ? [categoria] : [],
       });
       if (error) throw error;
@@ -462,6 +512,7 @@ function AdicionarFuncionarioModal({
       setSaving(false);
     }
   };
+
 
   return (
     <div
@@ -511,6 +562,23 @@ function AdicionarFuncionarioModal({
               className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
             />
           </label>
+          <label className="block">
+            <span className="text-xs font-bold uppercase text-slate-500">
+              ID Pontomais <span className="text-slate-400 font-normal">(recomendado)</span>
+            </span>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={pontomaisId}
+              onChange={(e) => setPontomaisId(e.target.value)}
+              placeholder="Ex.: 123456"
+              className="mt-1 w-full rounded-lg border border-slate-200 px-3 py-2 text-sm font-mono outline-none focus:border-blue-500"
+            />
+            <span className="text-[11px] text-slate-400">
+              Visto na URL do perfil do colaborador na Pontomais.
+            </span>
+          </label>
+
           <label className="block">
             <span className="text-xs font-bold uppercase text-slate-500">Unidade</span>
             <select

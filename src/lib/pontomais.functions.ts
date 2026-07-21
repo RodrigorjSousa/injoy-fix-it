@@ -32,7 +32,9 @@ export const syncPontomais = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    let query = supabaseAdmin.from("funcionarios").select("id, nome, email, cpf");
+    let query = supabaseAdmin
+      .from("funcionarios")
+      .select("id, nome, email, cpf, pontomais_employee_id");
     if (data.funcionarioIds && data.funcionarioIds.length > 0) {
       query = query.in("id", data.funcionarioIds);
     }
@@ -51,9 +53,11 @@ export const syncPontomais = createServerFn({ method: "POST" })
         const byDate = await fetchPontomaisRegistros({
           cpf: (f as any).cpf ?? null,
           email: f.email,
+          pontomaisEmployeeId: (f as any).pontomais_employee_id ?? null,
           startDate: data.startDate,
           endDate: data.endDate,
         });
+
 
         const rows = Object.entries(byDate).map(([date, reg]) => ({
           funcionario_id: f.id,

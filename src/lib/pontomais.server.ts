@@ -206,6 +206,7 @@ async function resolveEmployeeId(params: {
 export async function fetchPontomaisRegistros(params: {
   cpf?: string | null;
   email?: string | null;
+  pontomaisEmployeeId?: string | number | null;
   startDate: string;
   endDate: string;
 }): Promise<Record<string, PontomaisRegistro>> {
@@ -213,26 +214,38 @@ export async function fetchPontomaisRegistros(params: {
 
   const cleanCpf = sanitizeCpf(params.cpf);
   const cleanEmail = params.email?.trim().toLowerCase() || null;
+  const explicitId =
+    params.pontomaisEmployeeId !== undefined && params.pontomaisEmployeeId !== null
+      ? String(params.pontomaisEmployeeId).trim()
+      : "";
 
-  if (!cleanCpf && !cleanEmail) {
-    throw new Error(
-      "Funcionário sem CPF válido (11 dígitos) ou e-mail cadastrado para vincular ao Pontomais.",
-    );
+  let employeeId: number | string | null = null;
+
+  if (explicitId) {
+    // ID fornecido explicitamente pelo gestor — pula a busca por CPF/e-mail.
+    employeeId = explicitId;
+  } else {
+    if (!cleanCpf && !cleanEmail) {
+      throw new Error(
+        "Funcionário sem CPF, e-mail ou ID Pontomais cadastrado. Preencha um destes campos em Controle de Ponto.",
+      );
+    }
+
+    employeeId = await resolveEmployeeId({
+      cpf: cleanCpf,
+      email: cleanEmail,
+      token,
+    });
+
+    if (!employeeId) {
+      throw new PontomaisApiError(
+        404,
+        "",
+        `Funcionário não localizado na Pontomais (CPF/e-mail sem correspondência). Cadastre o ID Pontomais deste funcionário em Controle de Ponto.`,
+      );
+    }
   }
 
-  const employeeId = await resolveEmployeeId({
-    cpf: cleanCpf,
-    email: cleanEmail,
-    token,
-  });
-
-  if (!employeeId) {
-    throw new PontomaisApiError(
-      404,
-      "",
-      `Funcionário não localizado na Pontomais (CPF/e-mail sem correspondência).`,
-    );
-  }
 
   const query = new URLSearchParams();
   query.set("start_date", params.startDate);
