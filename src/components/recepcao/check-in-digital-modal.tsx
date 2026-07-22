@@ -198,10 +198,6 @@ function CheckInDigitalModal({
   };
 
   const gerarSenhaTuya = async () => {
-    if (!nomeValido) {
-      toast.error("Nome do hóspede: use entre 4 e 6 letras/números (sem espaços ou acentos). Ex: JOAO, MARIA1.");
-      return;
-    }
     if (!quartoDevice) {
       toast.error(`Nenhuma fechadura cadastrada para o quarto ${roomNumber}.`);
       return;
@@ -225,13 +221,14 @@ function CheckInDigitalModal({
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
         deviceIds,
-        guestName: nomeSanitizado,
+        guestName: nomeHospede,
         startTime: entradaMs,
         endTime: saidaMs,
         roomNumber,
         unidade,
       },
     });
+
     setIsLoading(false);
 
     if (error) {
