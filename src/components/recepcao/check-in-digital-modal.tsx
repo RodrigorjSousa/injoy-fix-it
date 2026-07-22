@@ -425,26 +425,24 @@ function CheckInDigitalModal({
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                Nome do Hóspede <span className="text-slate-400 font-normal normal-case">(4–6 letras/números, sem espaços)</span>
+                Nome do Hóspede
               </label>
               <input
                 type="text"
                 value={nomeHospede}
                 onChange={(e) => setNomeHospede(e.target.value)}
-                placeholder="Ex: JOAO, MARIA1"
-                maxLength={20}
-                className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${nomeError ? "border-red-400" : "border-slate-300"}`}
+                placeholder="Ex: Rodrigo Sousa"
+                maxLength={60}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 disabled={isLoading}
               />
-              <div className="mt-1 flex justify-between text-[11px]">
-                <span className={nomeError ? "text-red-600" : "text-slate-500"}>
-                  {nomeError ?? (nomeSanitizado ? `Será enviado à fechadura como: “${nomeSanitizado}”` : "A Tuya aceita apenas 4 a 6 caracteres alfanuméricos.")}
-                </span>
-                <span className={`font-mono ${nomeSanitizado.length > 6 ? "text-red-600" : "text-slate-400"}`}>
-                  {nomeSanitizado.length}/6
-                </span>
-              </div>
+              {nomeHospede.trim() && (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Será enviado à fechadura como: <span className="font-mono font-semibold text-slate-700">{nomePreview}</span>
+                </p>
+              )}
             </div>
+
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
