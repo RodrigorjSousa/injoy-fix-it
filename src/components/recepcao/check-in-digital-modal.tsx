@@ -471,7 +471,7 @@ function CheckInDigitalModal({
                 <p className="text-[11px] text-red-600 -mt-2">{datasError}</p>
               ) : (
                 <p className="text-[11px] text-slate-500 -mt-2">
-                  Estadia: {duracaoHoras.toFixed(1)}h · arredondada para a hora cheia pela Tuya.
+                  Estadia: {duracaoHoras.toFixed(1)}h · ativação em até 2 minutos pela Tuya.
                 </p>
               )}
             </div>
@@ -603,7 +603,7 @@ function StatusList({
               <span className="flex flex-col items-end gap-0.5 text-right">
                 <span className="flex items-center gap-1 text-xs font-bold text-emerald-600">
                   <CheckCircle2 size={14} />
-                  Aceita pela Tuya
+                  Enviada à Tuya
                 </span>
                 {s.passwordId ? (
                   <span className="text-[10px] font-mono text-slate-500 truncate max-w-[180px]">
