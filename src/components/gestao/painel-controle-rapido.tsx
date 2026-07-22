@@ -14,6 +14,7 @@ import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useMe } from "@/lib/store";
 import { isCheckInTask } from "@/lib/task-labels";
+import { nowSP, spInstant } from "@/lib/tz";
 
 
 type Props = {
@@ -45,11 +46,11 @@ export function PainelControleRapido({ unidade }: Props) {
     let cancelled = false;
 
     const getCutoff = () => {
-      const now = new Date();
-      const cutoff = new Date(now);
-      cutoff.setHours(23, 0, 0, 0);
-      if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
-      return cutoff;
+      const now = nowSP();
+      const wall = new Date(now);
+      wall.setHours(23, 0, 0, 0);
+      if (now.getHours() < 23) wall.setDate(wall.getDate() - 1);
+      return spInstant(wall.getFullYear(), wall.getMonth() + 1, wall.getDate(), 23, 0, 0);
     };
 
     const carregar = async () => {

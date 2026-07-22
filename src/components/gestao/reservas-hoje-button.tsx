@@ -4,6 +4,7 @@ import { CalendarCheck, Loader2, RefreshCw, X, Users, Moon, DollarSign } from "l
 import { toast } from "sonner";
 import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
 import type { Unidade } from "@/lib/store";
+import { todaySP } from "@/lib/tz";
 
 function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", {
@@ -20,11 +21,6 @@ function fmtData(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-function todayISO() {
-  const d = new Date();
-  const off = d.getTimezoneOffset();
-  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10);
-}
 
 export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
   const [open, setOpen] = useState(false);
@@ -33,7 +29,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
   const [reservas, setReservas] = useState<ReservaHoje[] | null>(null);
   const [totalReceita, setTotalReceita] = useState(0);
   const [dataRef, setDataRef] = useState<string>("");
-  const [dataSelecionada, setDataSelecionada] = useState<string>(todayISO());
+  const [dataSelecionada, setDataSelecionada] = useState<string>(todaySP());
   const call = useServerFn(getReservasHoje);
 
   async function carregar(dateISO?: string) {

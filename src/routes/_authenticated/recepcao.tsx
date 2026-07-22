@@ -36,6 +36,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { nowSP, spInstant } from "@/lib/tz";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
@@ -154,11 +155,11 @@ function RecepcaoPage() {
   >(new Map());
 
   const getCutoff = useCallback(() => {
-    const now = new Date();
-    const cutoff = new Date(now);
-    cutoff.setHours(23, 0, 0, 0);
-    if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
-    return cutoff;
+    const now = nowSP();
+    const wall = new Date(now);
+    wall.setHours(23, 0, 0, 0);
+    if (now.getHours() < 23) wall.setDate(wall.getDate() - 1);
+    return spInstant(wall.getFullYear(), wall.getMonth() + 1, wall.getDate(), 23, 0, 0);
   }, []);
 
   const carregarVistoriados = useCallback(
@@ -244,15 +245,18 @@ function RecepcaoPage() {
       )
       .subscribe();
 
-    // Reset at 23:00
-    const now = new Date();
-    const next = new Date(now);
-    next.setHours(23, 0, 5, 0);
-    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    // Reset at 23:00 (São Paulo)
+    const nowLocal = new Date();
+    const nowSp = nowSP();
+    const nextSp = new Date(nowSp);
+    nextSp.setHours(23, 0, 5, 0);
+    if (nextSp.getTime() <= nowSp.getTime()) nextSp.setDate(nextSp.getDate() + 1);
+    const delay = nextSp.getTime() - nowSp.getTime();
     const timer = setTimeout(() => {
       setVistoriadosHoje(new Map());
       carregarVistoriados(unidadeAtiva);
-    }, next.getTime() - now.getTime());
+    }, delay);
+    void nowLocal;
 
     return () => {
       supabase.removeChannel(channel);

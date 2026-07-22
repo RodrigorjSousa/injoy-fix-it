@@ -24,6 +24,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncPontomais } from "@/lib/pontomais.functions";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { todaySP } from "@/lib/tz";
 
 type Funcionario = {
   id: string;
@@ -82,7 +83,7 @@ export function PontoFuncionariosModal({
   onOpenChange: (v: boolean) => void;
   unidade: Unidade;
 }) {
-  const [data, setData] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [data, setData] = useState<string>(() => todaySP());
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
   const [loading, setLoading] = useState(false);

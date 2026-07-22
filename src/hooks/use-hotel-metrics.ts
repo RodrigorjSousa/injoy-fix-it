@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
+import { todaySP } from "@/lib/tz";
 
 export type HotelMetricRow = {
   property: Unidade;
@@ -28,7 +29,7 @@ export function useHotelMetrics() {
     setLoading(true);
     setError(null);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todaySP();
       const { data, error: qErr } = await supabase
         .from("hotel_metrics")
         .select("*")

@@ -47,6 +47,7 @@ import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
 
 
 import { cn } from "@/lib/utils";
+import { nowSP, todaySP } from "@/lib/tz";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
 type RoomRow = {
@@ -86,7 +87,7 @@ export const Route = createFileRoute("/_authenticated/boas-vindas")({
 });
 
 function obterSaudacaoHora() {
-  const h = new Date().getHours();
+  const h = nowSP().getHours();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
@@ -236,7 +237,7 @@ function BoasVindas() {
     let cancelled = false;
 
     const buscarStatus = async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todaySP();
       const [{ data: metric }, { data: quartos }] = await Promise.all([
         supabase
           .from("hotel_metrics")
@@ -496,7 +497,7 @@ function BoasVindas() {
                   <Sparkles size={10} /> Sistema Ativo
                 </span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                  {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
+                  {nowSP().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
                 </span>
               </div>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">

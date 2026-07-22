@@ -7,6 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { syncPontomais } from "@/lib/pontomais.functions";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { todaySP } from "@/lib/tz";
 
 export const Route = createFileRoute("/_authenticated/controle-ponto")({
   component: ControlePontoPage,
@@ -65,7 +66,7 @@ function formatTime(t: string | null): string {
 function ControlePontoPage() {
   const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [dataSelecionada, setDataSelecionada] = useState<string>(
-    () => new Date().toISOString().split("T")[0],
+    () => todaySP(),
   );
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
