@@ -706,6 +706,9 @@ function SenhaAlmoxarifado() {
       </div>
     </Card>
   );
+}
+
+
 
 
 function EditarFuncoesDialog({
