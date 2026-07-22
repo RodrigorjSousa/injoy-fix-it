@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { PushNotificationsButton } from "@/components/push-notifications-button";
 import { useUnidade } from "@/lib/unidade-context";
 import { TELA_BY_KEY } from "@/lib/telas-catalog";
 import type { Unidade } from "@/lib/store";
@@ -275,7 +276,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="p-3 border-t border-sidebar-border space-y-2">
+          <PushNotificationsButton className="w-full justify-center" />
           <button
             onClick={handleSignOut}
             className="w-full flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-sidebar-foreground/80 hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
@@ -283,7 +285,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <LogOut className="h-4 w-4 shrink-0" />
             <span>Sair</span>
           </button>
-          <div className="px-3 pt-3 text-xs text-sidebar-foreground/50">v1.0</div>
+          <div className="px-3 pt-1 text-xs text-sidebar-foreground/50">v1.0</div>
         </div>
 
       </aside>
@@ -313,6 +315,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ChevronDown className="pointer-events-none absolute right-1 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           </div>
         </div>
+        <PushNotificationsButton compact />
         <button
           onClick={handleSignOut}
           aria-label="Sair"
