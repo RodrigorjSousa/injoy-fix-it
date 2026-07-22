@@ -4,6 +4,7 @@ import { CalendarCheck, Loader2, RefreshCw, X, Users, Moon, DollarSign } from "l
 import { toast } from "sonner";
 import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
 import type { Unidade } from "@/lib/store";
+import { todaySP } from "@/lib/tz";
 
 function fmtBRL(v: number): string {
   return v.toLocaleString("pt-BR", {
