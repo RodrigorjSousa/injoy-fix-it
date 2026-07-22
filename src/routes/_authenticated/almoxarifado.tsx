@@ -105,11 +105,21 @@ function AlmoxarifadoAdmin() {
   const [activeTab, setActiveTab] = useState<string>("inventario");
 
   useEffect(() => {
+    // Sempre bloqueia ao entrar na aba; limpa qualquer desbloqueio anterior
     try {
-      if (sessionStorage.getItem(ALMOX_UNLOCK_KEY) === "1") setUnlocked(true);
+      sessionStorage.removeItem(ALMOX_UNLOCK_KEY);
     } catch {
       // ignore
     }
+    setUnlocked(false);
+    return () => {
+      // Ao sair da aba, garante bloqueio novamente
+      try {
+        sessionStorage.removeItem(ALMOX_UNLOCK_KEY);
+      } catch {
+        // ignore
+      }
+    };
   }, []);
 
   const tryUnlock = async () => {
