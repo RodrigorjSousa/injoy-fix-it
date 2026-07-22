@@ -281,6 +281,7 @@ serve(async (req) => {
           throw new Error("Ticket Tuya inválido: chave descriptografada vazia.");
         }
 
+        const isZigbeeRoomLock = tipoPorDeviceId.get(String(deviceId)) === "quarto";
         const senhaOriginal = isZigbeeRoomLock ? senhaUnificada : senhaWifi;
         const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaOriginal);
         const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, aesKey, {
@@ -300,7 +301,6 @@ serve(async (req) => {
 
         // --- PASSO C: Enviar a Senha para a Fechadura (Online) ---
         const tCreate = Date.now().toString();
-        const isZigbeeRoomLock = tipoPorDeviceId.get(String(deviceId)) === "quarto";
         const bodyCreateBase = {
           ticket_id: ticketId,
           password: senhaCriptografada,
