@@ -1098,7 +1098,10 @@ function GestoresAdmin() {
         {!isLoading && usuarios.filter((u) => !u.isAdmin).length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum usuário cadastrado.</p>
         )}
-      </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </section>
   );
 }
