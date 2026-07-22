@@ -66,7 +66,7 @@ function formatTime(t: string | null): string {
 function ControlePontoPage() {
   const [unidade, setUnidade] = useState<Unidade>("Botafogo");
   const [dataSelecionada, setDataSelecionada] = useState<string>(
-    () => new Date().toISOString().split("T")[0],
+    () => todaySP(),
   );
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
