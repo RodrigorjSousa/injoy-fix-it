@@ -257,7 +257,7 @@ function CheckInDigitalModal({
     const friendlyMsg = (code?: number, raw?: string) => {
       switch (code) {
         case 1109:
-          return "Parâmetro inválido — verifique nome do hóspede (apenas letras/números, até 6 caracteres) e as datas de entrada/saída.";
+          return "A Tuya recusou os parâmetros. Nome do hóspede: 4–6 letras/números (sem espaços/acentos). Datas: entrada não pode ser no passado e saída deve ser ≥ 1h depois da entrada.";
         case 2007:
         case 28841002:
           return "Fechadura offline no momento. Aguarde alguns segundos e tente de novo.";
