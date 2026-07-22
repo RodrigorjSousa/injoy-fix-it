@@ -403,7 +403,10 @@ function Configuracoes() {
           {funcionarios.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">Nenhum funcionário cadastrado.</p>
           )}
-        </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </section>
 
       <SenhaResetTurno />
