@@ -3,6 +3,7 @@ import { Key } from "lucide-react";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import { TuyaLogsButton } from "@/components/recepcao/tuya-logs-modal";
 import { AbrirPortasRemoto } from "@/components/recepcao/abrir-portas-remoto";
+import { SenhasAtivasPanel } from "@/components/recepcao/senhas-ativas-panel";
 import { useUnidade } from "@/lib/unidade-context";
 
 export const Route = createFileRoute("/_authenticated/check-in-digital")({
@@ -47,6 +48,7 @@ function CheckInDigitalPage() {
           </div>
 
           <AbrirPortasRemoto unidade={unidade} />
+          <SenhasAtivasPanel unidade={unidade} />
         </>
       ) : (
         <>
@@ -60,6 +62,7 @@ function CheckInDigitalPage() {
           </div>
 
           <AbrirPortasRemoto unidade={unidade} />
+          <SenhasAtivasPanel unidade={unidade} />
         </>
       )}
     </div>

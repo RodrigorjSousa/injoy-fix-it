@@ -338,6 +338,49 @@ serve(async (req) => {
       );
     }
 
+    // ============ AÇÃO: revogar senha temporária (door-lock Zigbee/WiFi) ============
+    // Remove imediatamente uma senha temporária da fechadura. Usado tanto pelo
+    // painel de emergência da recepção quanto pelo cron de limpeza automática
+    // (senhas expiradas ou reservas canceladas no Cloudbeds).
+    if (action === "revoke") {
+      const revokes: Array<{ deviceId: string; passwordId: string | number; success: boolean; code?: number; msg?: string }> = [];
+      const items: Array<{ deviceId: string; passwordId: string | number }> = payload.items ?? [];
+      for (const { deviceId, passwordId } of items) {
+        if (!deviceId || !passwordId || String(passwordId) === "senha_fixa") {
+          revokes.push({ deviceId, passwordId, success: false, msg: "skip:senha_fixa_ou_id_ausente" });
+          continue;
+        }
+        try {
+          const endpoint = `/v1.0/devices/${deviceId}/door-lock/temp-passwords/${passwordId}`;
+          const r = await tuyaRequest("DELETE", endpoint);
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: `${endpoint} [revoke]`,
+            method: "DELETE",
+            response_payload: r.data,
+            response_code: r.data?.code ?? r.httpStatus,
+            response_msg: r.data?.msg ?? null,
+            success: !!r.data?.success,
+            room_number: roomNumber,
+            unidade,
+          });
+          revokes.push({
+            deviceId,
+            passwordId,
+            success: !!r.data?.success,
+            code: r.data?.code,
+            msg: r.data?.msg,
+          });
+        } catch (err) {
+          revokes.push({ deviceId, passwordId, success: false, msg: (err as Error).message });
+        }
+      }
+      return new Response(
+        JSON.stringify({ success: true, revokes }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
 
 

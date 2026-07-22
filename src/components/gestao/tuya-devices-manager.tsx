@@ -427,7 +427,7 @@ export function TuyaDevicesManager() {
                   </div>
                 </div>
                 {usaSenhaFixa(d.tipo) && (
-                  <div className="flex items-center gap-2 pl-1">
+                  <div className="flex items-center gap-2 pl-1 flex-wrap">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Senha fixa:
                     </span>
@@ -451,6 +451,35 @@ export function TuyaDevicesManager() {
                       {savingSenha === d.id ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
                       Salvar
                     </button>
+                    {d.senha_fixa && (
+                      <button
+                        type="button"
+                        disabled={savingSenha === d.id}
+                        onClick={async () => {
+                          if (!confirm(`Excluir a senha fixa de "${d.label}"?\n\nATENÇÃO: apague também no app Tuya Smart e cadastre uma nova senha lá antes de informá-la aqui novamente.`)) return;
+                          setSavingSenha(d.id);
+                          const { error } = await supabase
+                            .from("tuya_devices")
+                            .update({ senha_fixa: null })
+                            .eq("id", d.id);
+                          setSavingSenha(null);
+                          if (error) return toast.error(error.message);
+                          toast.success("Senha fixa excluída. Cadastre uma nova para continuar usando.");
+                          invalidateTuyaDevicesCache();
+                          setEditSenha((s) => {
+                            const n = { ...s };
+                            delete n[d.id];
+                            return n;
+                          });
+                          refresh();
+                        }}
+                        className="text-[11px] font-bold px-2 py-1 rounded-md bg-red-50 hover:bg-red-100 text-red-700 border border-red-200 flex items-center gap-1 disabled:opacity-50"
+                        title="Excluir senha fixa (para trocar rotineiramente)"
+                      >
+                        <Trash2 size={12} />
+                        Excluir
+                      </button>
+                    )}
                   </div>
                 )}
               </li>
