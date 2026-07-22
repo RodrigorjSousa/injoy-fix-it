@@ -632,6 +632,81 @@ function SenhaResetTurno() {
   );
 }
 
+function SenhaAlmoxarifado() {
+  const [senha, setSenha] = useState("");
+  const [carregando, setCarregando] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+  const [mostrar, setMostrar] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      const { data, error } = await supabase
+        .from("app_settings" as never)
+        .select("value")
+        .eq("key", "almox_password")
+        .maybeSingle();
+      if (!error) setSenha(((data as { value?: string } | null)?.value) ?? "");
+      setCarregando(false);
+    })();
+  }, []);
+
+  const salvar = async () => {
+    if (!senha.trim()) {
+      toast.error("A senha não pode ficar vazia");
+      return;
+    }
+    setSalvando(true);
+    const { error } = await supabase
+      .from("app_settings" as never)
+      .upsert({ key: "almox_password", value: senha, updated_at: new Date().toISOString() } as never);
+    setSalvando(false);
+    if (error) {
+      toast.error("Falha ao salvar senha: " + error.message);
+      return;
+    }
+    try {
+      sessionStorage.removeItem("almox_unlocked_v1");
+    } catch {
+      // ignore
+    }
+    toast.success("Senha do Almoxarifado atualizada");
+  };
+
+  return (
+    <Card className="p-5 space-y-4">
+      <div className="flex items-center gap-2">
+        <KeyRound className="h-5 w-5 text-primary" />
+        <h2 className="font-semibold">Senha do Almoxarifado</h2>
+      </div>
+      <p className="text-sm text-muted-foreground">
+        Essa senha protege o acesso às áreas de Inventário, Solicitações, Auditoria, Histórico, Setores, Relatório e Novo Item do Almoxarifado. A aba Compras permanece livre.
+      </p>
+      <div className="flex flex-col sm:flex-row gap-2">
+        <div className="relative flex-1">
+          <Input
+            type={mostrar ? "text" : "password"}
+            value={senha}
+            onChange={(e) => setSenha(e.target.value)}
+            placeholder="Digite a nova senha"
+            disabled={carregando}
+            className="pr-10"
+          />
+          <button
+            type="button"
+            onClick={() => setMostrar((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label={mostrar ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {mostrar ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        <Button onClick={salvar} disabled={carregando || salvando}>
+          {salvando ? "Salvando..." : "Salvar"}
+        </Button>
+      </div>
+    </Card>
+  );
+
 
 function EditarFuncoesDialog({
   funcionario,
