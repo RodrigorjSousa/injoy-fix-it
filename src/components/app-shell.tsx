@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { PushNotificationsButton } from "@/components/push-notifications-button";
 import { useUnidade } from "@/lib/unidade-context";
 import { TELA_BY_KEY } from "@/lib/telas-catalog";
 import type { Unidade } from "@/lib/store";
