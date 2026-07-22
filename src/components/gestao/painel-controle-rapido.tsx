@@ -46,7 +46,7 @@ export function PainelControleRapido({ unidade }: Props) {
     let cancelled = false;
 
     const getCutoff = () => {
-      const now = new Date();
+      const now = nowSP();
       const cutoff = new Date(now);
       cutoff.setHours(23, 0, 0, 0);
       if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
