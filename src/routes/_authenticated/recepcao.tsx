@@ -245,15 +245,18 @@ function RecepcaoPage() {
       )
       .subscribe();
 
-    // Reset at 23:00
-    const now = new Date();
-    const next = new Date(now);
-    next.setHours(23, 0, 5, 0);
-    if (next.getTime() <= now.getTime()) next.setDate(next.getDate() + 1);
+    // Reset at 23:00 (São Paulo)
+    const nowLocal = new Date();
+    const nowSp = nowSP();
+    const nextSp = new Date(nowSp);
+    nextSp.setHours(23, 0, 5, 0);
+    if (nextSp.getTime() <= nowSp.getTime()) nextSp.setDate(nextSp.getDate() + 1);
+    const delay = nextSp.getTime() - nowSp.getTime();
     const timer = setTimeout(() => {
       setVistoriadosHoje(new Map());
       carregarVistoriados(unidadeAtiva);
-    }, next.getTime() - now.getTime());
+    }, delay);
+    void nowLocal;
 
     return () => {
       supabase.removeChannel(channel);
