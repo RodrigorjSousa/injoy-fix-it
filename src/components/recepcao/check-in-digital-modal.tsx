@@ -134,6 +134,25 @@ function CheckInDigitalModal({
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const nomeSanitizado = nomeHospede.replace(/[^A-Za-z0-9]/g, "").slice(0, 6);
+  const nomeValido = nomeSanitizado.length >= 4 && nomeSanitizado.length <= 6;
+  const nomeError = nomeHospede.trim().length === 0
+    ? null
+    : nomeSanitizado.length < 4
+      ? "Use entre 4 e 6 letras/números (sem espaços ou acentos)."
+      : null;
+
+  const entradaMs = new Date(entrada).getTime();
+  const saidaMs = new Date(saida).getTime();
+  const duracaoHoras = (saidaMs - entradaMs) / 3600000;
+  const datasError = !Number.isFinite(entradaMs) || !Number.isFinite(saidaMs)
+    ? "Preencha entrada e saída."
+    : saidaMs <= entradaMs
+      ? "A saída deve ser posterior à entrada."
+      : duracaoHoras < 1
+        ? "A estadia deve ter pelo menos 1 hora."
+        : null;
+
   useEffect(() => {
     let ativo = true;
     loadTuyaDevices()
