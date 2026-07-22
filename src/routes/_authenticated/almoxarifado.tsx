@@ -150,8 +150,8 @@ function AlmoxarifadoAdmin() {
   };
 
   const requireUnlock = (tab: string) => {
-    // Compras é livre; demais precisam da senha
-    if (tab === "compras") {
+    // Compras e Inventário (consulta) são livres; demais precisam da senha
+    if (tab === "compras" || tab === "inventario") {
       setActiveTab(tab);
       return;
     }
@@ -162,6 +162,7 @@ function AlmoxarifadoAdmin() {
       toast.error("Área protegida — informe a senha para acessar.");
     }
   };
+
 
   const [novoSetor, setNovoSetor] = useState("");
 
@@ -516,8 +517,9 @@ function AlmoxarifadoAdmin() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black text-amber-900">Área protegida</p>
                 <p className="text-[11px] text-amber-700 mb-2">
-                  Informe a senha para acessar Inventário, Solicitações, Auditoria e Histórico. A aba <b>Compras</b> permanece livre.
+                  Informe a senha para editar itens, gerenciar Solicitações, Auditoria e Histórico. As abas <b>Compras</b> e <b>Inventário</b> (consulta) permanecem livres.
                 </p>
+
                 <div className="flex gap-2">
                   <input
                     type="password"
@@ -548,8 +550,9 @@ function AlmoxarifadoAdmin() {
         <Tabs value={activeTab} onValueChange={requireUnlock} className="w-full">
           <TabsList className="grid grid-cols-5 max-w-3xl">
             <TabsTrigger value="inventario">
-              <Package size={14} className="mr-1" /> Inventário {!unlocked && <Lock size={10} className="ml-1" />}
+              <Package size={14} className="mr-1" /> Inventário
             </TabsTrigger>
+
             <TabsTrigger value="solicitacoes">
               <ShoppingBag size={14} className="mr-1" /> Solicitações {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
@@ -566,17 +569,12 @@ function AlmoxarifadoAdmin() {
 
 
           <TabsContent value="inventario" className="mt-4">
-            {!unlocked ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
-                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
-                Área protegida. Informe a senha acima para acessar.
-              </div>
-            ) : isLoading ? (
-
+            {isLoading ? (
               <div className="text-center p-8 text-slate-500">
                 <Loader2 size={16} className="animate-spin inline mr-2" />Carregando…
               </div>
             ) : (
+
               <div className="space-y-4">
                 {porSetor.map(([setor, list]) => (
                   <div key={setor} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
@@ -611,8 +609,13 @@ function AlmoxarifadoAdmin() {
                                     <input
                                       type="text"
                                       defaultValue={it.name}
+                                      readOnly={!unlocked}
+                                      disabled={!unlocked}
                                       onChange={(e) => updateDirty(it.id, { name: e.target.value })}
-                                      className="w-full min-w-[160px] border border-slate-200 rounded-md px-2 py-1 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                                      className={cn(
+                                        "w-full min-w-[160px] border border-slate-200 rounded-md px-2 py-1 text-sm font-semibold focus:outline-none focus:border-blue-500",
+                                        !unlocked && "bg-slate-50 text-slate-700 cursor-default",
+                                      )}
                                     />
                                   </div>
                                 </td>
@@ -621,6 +624,8 @@ function AlmoxarifadoAdmin() {
                                     type="number"
                                     min={0}
                                     defaultValue={it.current_stock}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) =>
                                       updateDirty(it.id, {
                                         current_stock: Math.max(0, parseInt(e.target.value || "0", 10)),
@@ -629,6 +634,7 @@ function AlmoxarifadoAdmin() {
                                     className={cn(
                                       "w-20 border rounded-md px-2 py-1 text-center text-sm font-bold",
                                       critico ? "border-red-300 text-red-700" : "border-slate-200",
+                                      !unlocked && "bg-slate-50 cursor-default",
                                     )}
                                   />
                                 </td>
@@ -637,56 +643,73 @@ function AlmoxarifadoAdmin() {
                                     type="number"
                                     min={0}
                                     defaultValue={it.min_stock}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) =>
                                       updateDirty(it.id, {
                                         min_stock: Math.max(0, parseInt(e.target.value || "0", 10)),
                                       })
                                     }
-                                    className="w-20 border border-slate-200 rounded-md px-2 py-1 text-center text-sm"
+                                    className={cn(
+                                      "w-20 border border-slate-200 rounded-md px-2 py-1 text-center text-sm",
+                                      !unlocked && "bg-slate-50 cursor-default",
+                                    )}
                                   />
                                 </td>
                                 <td className="p-2">
                                   <input
                                     type="text"
                                     defaultValue={it.unit_type}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) => updateDirty(it.id, { unit_type: e.target.value })}
-                                    className="w-24 border border-slate-200 rounded-md px-2 py-1 text-center text-xs focus:outline-none focus:border-blue-500"
+                                    className={cn(
+                                      "w-24 border border-slate-200 rounded-md px-2 py-1 text-center text-xs focus:outline-none focus:border-blue-500",
+                                      !unlocked && "bg-slate-50 cursor-default",
+                                    )}
                                   />
                                 </td>
                                 <td className="p-2">
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => salvar(it)}
-                                      disabled={!changed || savingId === it.id}
-                                      className={cn(
-                                        "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
-                                        changed
-                                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                          : "bg-slate-100 text-slate-400 cursor-not-allowed",
-                                      )}
-                                    >
-                                      {savingId === it.id ? (
-                                        <Loader2 size={12} className="animate-spin" />
-                                      ) : (
-                                        <Save size={12} />
-                                      )}
-                                      Salvar
-                                    </button>
-                                    <button
-                                      onClick={() => excluir(it)}
-                                      disabled={deletingId === it.id}
-                                      title="Excluir item"
-                                      className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
-                                    >
-                                      {deletingId === it.id ? (
-                                        <Loader2 size={12} className="animate-spin" />
-                                      ) : (
-                                        <Trash2 size={12} />
-                                      )}
-                                    </button>
-                                  </div>
+                                  {unlocked ? (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => salvar(it)}
+                                        disabled={!changed || savingId === it.id}
+                                        className={cn(
+                                          "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
+                                          changed
+                                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                            : "bg-slate-100 text-slate-400 cursor-not-allowed",
+                                        )}
+                                      >
+                                        {savingId === it.id ? (
+                                          <Loader2 size={12} className="animate-spin" />
+                                        ) : (
+                                          <Save size={12} />
+                                        )}
+                                        Salvar
+                                      </button>
+                                      <button
+                                        onClick={() => excluir(it)}
+                                        disabled={deletingId === it.id}
+                                        title="Excluir item"
+                                        className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                                      >
+                                        {deletingId === it.id ? (
+                                          <Loader2 size={12} className="animate-spin" />
+                                        ) : (
+                                          <Trash2 size={12} />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      <Lock size={10} /> Consulta
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
+
                             );
                           })}
                         </tbody>
