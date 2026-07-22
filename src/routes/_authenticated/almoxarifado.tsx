@@ -568,17 +568,12 @@ function AlmoxarifadoAdmin() {
 
 
           <TabsContent value="inventario" className="mt-4">
-            {!unlocked ? (
-              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
-                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
-                Área protegida. Informe a senha acima para acessar.
-              </div>
-            ) : isLoading ? (
-
+            {isLoading ? (
               <div className="text-center p-8 text-slate-500">
                 <Loader2 size={16} className="animate-spin inline mr-2" />Carregando…
               </div>
             ) : (
+
               <div className="space-y-4">
                 {porSetor.map(([setor, list]) => (
                   <div key={setor} className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
