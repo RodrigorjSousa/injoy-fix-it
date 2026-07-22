@@ -152,9 +152,8 @@ export function PainelControleRapido({ unidade }: Props) {
 
         {/* CARD 2 - Vistoria da Recepção (apenas Gestor/Admin) */}
         {isGestor && (
-        <button
-          type="button"
-          onClick={() => setVistoriaOpen(true)}
+        <Link
+          to="/historico-vistorias"
           className={cn(cardBase, "text-left")}
         >
           <div className="flex items-start justify-between">
@@ -168,7 +167,7 @@ export function PainelControleRapido({ unidade }: Props) {
               {vistoriados.length}
               <span className="text-slate-500"> / {totalQuartos || 0}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2">Quartos vistoriados hoje</p>
+            <p className="text-xs text-slate-500 mt-2">Check-ins vistoriados hoje</p>
           </div>
           <div className="mt-4 h-1.5 rounded-full bg-slate-800 overflow-hidden">
             <div
@@ -178,7 +177,7 @@ export function PainelControleRapido({ unidade }: Props) {
               }}
             />
           </div>
-        </button>
+        </Link>
         )}
 
         {/* CARD 3 - Troca de Turnos */}
