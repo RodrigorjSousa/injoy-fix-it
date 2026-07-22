@@ -455,27 +455,35 @@ function AlmoxarifadoAdmin() {
             </div>
           </div>
           <button
-            onClick={() => setShowSetores(true)}
+            onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
+              setShowSetores(true);
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
           >
-            <Package size={14} /> Setores
-          </button>
-          <button
-            onClick={() => setShowReport(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-          >
-            <FileText size={14} /> Relatório
+            <Package size={14} /> Setores {!unlocked && <Lock size={10} />}
           </button>
           <button
             onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
+              setShowReport(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+          >
+            <FileText size={14} /> Relatório {!unlocked && <Lock size={10} />}
+          </button>
+          <button
+            onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
               setNovo((s) => ({ ...s, sector: s.sector || SETORES[0] || "" }));
               setShowNewItem(true);
             }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
-            <Plus size={14} /> Novo Item
+            <Plus size={14} /> Novo Item {!unlocked && <Lock size={10} />}
           </button>
         </div>
+
 
         {!unlocked && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
@@ -536,7 +544,13 @@ function AlmoxarifadoAdmin() {
 
 
           <TabsContent value="inventario" className="mt-4">
-            {isLoading ? (
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : isLoading ? (
+
               <div className="text-center p-8 text-slate-500">
                 <Loader2 size={16} className="animate-spin inline mr-2" />Carregando…
               </div>
@@ -668,8 +682,16 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="solicitacoes" className="mt-4">
-            <SolicitacoesCompraPanel unidade={unidade} />
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+              <SolicitacoesCompraPanel unidade={unidade} />
+            )}
           </TabsContent>
+
 
           <TabsContent value="compras" className="mt-4">
             <ComprasForm
@@ -686,10 +708,24 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="auditoria" className="mt-4">
-            <AuditoriaDesignarPanel unidade={unidade} />
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+              <AuditoriaDesignarPanel unidade={unidade} />
+            )}
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-800">Retiradas Aprovadas</h3>
@@ -733,7 +769,9 @@ function AlmoxarifadoAdmin() {
                 </table>
               </div>
             </div>
+            )}
           </TabsContent>
+
         </Tabs>
       </div>
 
