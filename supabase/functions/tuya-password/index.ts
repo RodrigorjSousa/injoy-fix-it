@@ -268,9 +268,10 @@ serve(async (req) => {
           password_type: "ticket",
           effective_time: effectiveTime,
           invalid_time: invalidTime,
-          type: 2,
+          type: 0,
           name: guestName ? guestName.substring(0, 10).trim() : "Visita",
         };
+
 
 
         const bodyCreateStr = JSON.stringify(bodyCreate);
