@@ -672,7 +672,17 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="compras" className="mt-4">
-            <ComprasForm itens={itens} setores={SETORES} onDone={() => qc.invalidateQueries({ queryKey: ["inv_items"] })} />
+            <ComprasForm
+              unidade={unidade}
+              performer={me?.funcionario?.nome || me?.email || "—"}
+              performerUserId={me?.userId ?? null}
+              itens={itens}
+              setores={SETORES}
+              onDone={() => {
+                qc.invalidateQueries({ queryKey: ["inv_items"] });
+                qc.invalidateQueries({ queryKey: ["inv_movements"] });
+              }}
+            />
           </TabsContent>
 
           <TabsContent value="auditoria" className="mt-4">
