@@ -995,6 +995,35 @@ function ComprasForm({
           />
         </div>
 
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Fornecedor / Origem
+            </label>
+            <input
+              type="text"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Ex.: Fornecedor X, NF 1234"
+              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              maxLength={120}
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+              Observações
+            </label>
+            <input
+              type="text"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Opcional"
+              className="mt-1 w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500"
+              maxLength={200}
+            />
+          </div>
+        </div>
+
         {item && qtd > 0 && (
           <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-600">
             Novo saldo será:{" "}
