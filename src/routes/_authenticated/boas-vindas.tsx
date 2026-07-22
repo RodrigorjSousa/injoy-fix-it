@@ -55,6 +55,7 @@ type RoomRow = {
   room_number: string;
   room_type: string | null;
   status: string | null;
+  service_status: string | null;
   condition: string | null;
   assigned_camareira: string | null;
   guest_name: string | null;
@@ -68,12 +69,14 @@ type RoomRow = {
 };
 
 type MetricDetail = "ocupacao" | "balcao" | "docs";
-function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
+function classifyRoom(r: Pick<RoomRow, "status" | "service_status" | "condition">): StatusKey | null {
   if (r.condition === "maintenance") return "bloqueados";
+  if (r.service_status === "done") return "prontos";
+  if (r.service_status === "in_progress") return "emFaxina";
   if (r.status === "clean") return "prontos";
   if (r.status === "cleaning") return "emFaxina";
   if (r.status === "dirty") return "sujos";
-  return null;
+  return "sujos";
 }
 const STATUS_LABEL: Record<StatusKey, string> = {
   prontos: "Quartos Prontos e Liberados",
@@ -114,13 +117,11 @@ type Clima = {
 
 const EMPTY_STATUS: StatusQuartos = { prontos: 0, emFaxina: 0, sujos: 0, bloqueados: 0 };
 
-function calcularStatus(rows: Array<{ status: string | null; condition: string | null }>): StatusQuartos {
+function calcularStatus(rows: Array<{ status: string | null; service_status: string | null; condition: string | null }>): StatusQuartos {
   const c = { ...EMPTY_STATUS };
   for (const r of rows) {
-    if (r.condition === "maintenance") c.bloqueados++;
-    else if (r.status === "clean") c.prontos++;
-    else if (r.status === "cleaning") c.emFaxina++;
-    else if (r.status === "dirty") c.sujos++;
+    const k = classifyRoom(r);
+    if (k) c[k]++;
   }
   return c;
 }
@@ -247,7 +248,7 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
+          .select("id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
       ]);
@@ -259,9 +260,6 @@ function BoasVindas() {
             occupancy_percentage?: number | null;
             pending_balance?: number | null;
             pending_docs_count?: number | null;
-            clean_rooms?: number | null;
-            dirty_rooms?: number | null;
-            maintenance_rooms?: number | null;
           }
         | null;
       setRating(m?.rating != null ? Number(m.rating) : unidade === "Botafogo" ? 8.6 : 7.8);
@@ -270,23 +268,10 @@ function BoasVindas() {
         receberBalcao: Number(m?.pending_balance ?? 0),
         docsPendentes: Number(m?.pending_docs_count ?? 0),
       });
-      // "Em faxina" só existe no controle local
-      const emFaxinaLocal = (quartos ?? []).filter(
-        (r: { status: string | null; condition: string | null }) =>
-          r.status === "cleaning" && r.condition !== "maintenance",
-      ).length;
-      if (m) {
-        setStatusQuartos({
-          prontos: Number(m.clean_rooms ?? 0),
-          emFaxina: emFaxinaLocal,
-          sujos: Math.max(0, Number(m.dirty_rooms ?? 0) - emFaxinaLocal),
-          bloqueados: Number(m.maintenance_rooms ?? 0),
-        });
-      } else {
-        setStatusQuartos(
-          calcularStatus((quartos ?? []) as Array<{ status: string | null; condition: string | null }>),
-        );
-      }
+      // Fonte da verdade: produção das camareiras (room_housekeeping)
+      setStatusQuartos(
+        calcularStatus((quartos ?? []) as Array<{ status: string | null; service_status: string | null; condition: string | null }>),
+      );
     };
 
     const carregar = async () => {
