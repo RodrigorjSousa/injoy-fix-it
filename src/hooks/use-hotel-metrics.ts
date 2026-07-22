@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
+import { todaySP } from "@/lib/tz";
 
 export type HotelMetricRow = {
   property: Unidade;
