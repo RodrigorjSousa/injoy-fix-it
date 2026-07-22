@@ -534,37 +534,92 @@ function CheckInDigitalModal({
 
             <div className="rounded-xl border-2 border-dashed border-teal-300 bg-teal-50 py-4 px-4 space-y-2">
               <p className="text-[10px] font-bold uppercase tracking-wider text-teal-700 text-center">
-                🔐 Senha de Acesso Online
+                🔐 Senha do Quarto (temporária)
               </p>
               <div className="flex items-center justify-center gap-2">
                 <input
                   type="text"
                   readOnly
-                  value={senhaUnica ?? ""}
+                  value={senhaQuarto ?? "—"}
                   className="flex-1 bg-white border border-teal-200 rounded-lg px-3 py-2 font-mono text-3xl font-bold tracking-widest text-teal-800 text-center focus:outline-none"
                 />
               </div>
-              <p className="text-[11px] text-teal-700 text-center">
-                Use esta senha em <strong>todas</strong> as portas abaixo.
-              </p>
               <p className="text-[10px] text-teal-600 text-center">
                 Válida de {new Date(entrada).toLocaleString("pt-BR")} até{" "}
                 {new Date(saida).toLocaleString("pt-BR")}.
               </p>
             </div>
 
+            {(devices ?? []).filter((d) => d.tipo !== "quarto").length > 0 && (
+              <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                  Portas compartilhadas (senha fixa da casa)
+                </p>
+                <ul className="space-y-2">
+                  {(devices ?? [])
+                    .filter((d) => d.tipo !== "quarto")
+                    .map((d) => {
+                      const senhaFixa = senhasGeradas?.[d.device_id] ?? d.senha_fixa ?? null;
+                      const status = deviceStatus[d.device_id];
+                      return (
+                        <li
+                          key={d.device_id}
+                          className="flex flex-col gap-1 rounded-lg bg-white border border-slate-200 px-3 py-2"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-semibold text-slate-700 truncate">
+                              {iconForTipo(d.tipo)} {d.label}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => abrirRemotamente(d.device_id)}
+                              disabled={unlockingId === d.device_id}
+                              className="text-[11px] font-bold px-2 py-1 rounded-md bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1 disabled:opacity-60"
+                            >
+                              {unlockingId === d.device_id ? (
+                                <Loader2 size={12} className="animate-spin" />
+                              ) : (
+                                <Key size={12} />
+                              )}
+                              Abrir remoto
+                            </button>
+                          </div>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[11px] text-slate-500">Senha fixa:</span>
+                            {senhaFixa ? (
+                              <span className="font-mono text-sm font-bold tracking-widest text-teal-800">
+                                {senhaFixa}
+                              </span>
+                            ) : (
+                              <span className="text-[11px] text-red-600">
+                                não cadastrada — configure em Gestão → Fechaduras
+                              </span>
+                            )}
+                          </div>
+                          {status?.state === "error" && status.message && (
+                            <p className="text-[10px] text-red-600">{status.message}</p>
+                          )}
+                        </li>
+                      );
+                    })}
+                </ul>
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={copiarSenha}
-                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2"
+                disabled={!senhaQuarto}
+                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Copy size={14} /> Copiar
               </button>
               <button
                 type="button"
                 onClick={compartilharSenha}
-                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2"
+                disabled={!senhaQuarto}
+                className="py-2.5 rounded-xl font-bold text-sm border border-teal-300 bg-white hover:bg-teal-50 text-teal-700 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Share2 size={14} /> Compartilhar
               </button>
@@ -575,7 +630,8 @@ function CheckInDigitalModal({
             <button
               type="button"
               onClick={copiarWhatsapp}
-              className="w-full py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2"
+              disabled={!senhaQuarto}
+              className="w-full py-3 rounded-xl font-bold text-sm bg-emerald-600 hover:bg-emerald-700 text-white flex items-center justify-center gap-2 disabled:opacity-60"
             >
               <Copy size={16} />
               Copiar mensagem para WhatsApp
