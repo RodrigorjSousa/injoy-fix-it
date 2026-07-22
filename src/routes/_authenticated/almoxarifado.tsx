@@ -1055,3 +1055,239 @@ function ComprasForm({
     </div>
   );
 }
+
+function RelatorioMovimentacoesModal({ unidade, onClose }: { unidade: Unidade; onClose: () => void }) {
+  const [tipo, setTipo] = useState<"todos" | "in" | "out">("todos");
+  const [dateFrom, setDateFrom] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().slice(0, 10);
+  });
+  const [dateTo, setDateTo] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [busca, setBusca] = useState("");
+
+  const { data: movimentos = [], isLoading } = useQuery({
+    queryKey: ["inv_movements", unidade, dateFrom, dateTo],
+    queryFn: async () => {
+      const start = new Date(dateFrom + "T00:00:00").toISOString();
+      const end = new Date(dateTo + "T23:59:59").toISOString();
+
+      const [movRes, reqRes] = await Promise.all([
+        supabase
+          .from("inventory_movements" as never)
+          .select("*")
+          .eq("property", unidade)
+          .gte("created_at", start)
+          .lte("created_at", end)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("inventory_requests" as never)
+          .select("id,property,requested_by,quantity,purpose,status,audited_by,created_at,updated_at,item:inventory_items(name,unit_type,sector)")
+          .eq("property", unidade)
+          .eq("status", "approved")
+          .gte("updated_at", start)
+          .lte("updated_at", end)
+          .order("updated_at", { ascending: false }),
+      ]);
+
+      if (movRes.error) throw movRes.error;
+      if (reqRes.error) throw reqRes.error;
+
+      const movs: Movement[] = (movRes.data as unknown as Movement[]) ?? [];
+
+      // Converte retiradas aprovadas em movimentações "out" para exibição unificada
+      const outFromReqs: Movement[] = ((reqRes.data as unknown as Array<{
+        id: string;
+        property: string;
+        requested_by: string;
+        quantity: number;
+        purpose: string | null;
+        audited_by: string | null;
+        updated_at: string;
+        item: { name: string; unit_type: string; sector: string } | null;
+      }>) ?? []).map((r) => ({
+        id: `req-${r.id}`,
+        property: r.property,
+        item_id: null,
+        item_name: r.item?.name ?? "—",
+        unit_type: r.item?.unit_type ?? null,
+        sector: r.item?.sector ?? null,
+        movement_type: "out" as const,
+        quantity: r.quantity,
+        source: null,
+        destination: r.purpose,
+        performed_by: r.requested_by,
+        notes: r.audited_by ? `Auditor: ${r.audited_by}` : null,
+        created_at: r.updated_at,
+      }));
+
+      return [...movs, ...outFromReqs].sort(
+        (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime(),
+      );
+    },
+  });
+
+  const filtrados = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return movimentos
+      .filter((m) => tipo === "todos" || m.movement_type === tipo)
+      .filter((m) => !q || m.item_name.toLowerCase().includes(q) || (m.performed_by ?? "").toLowerCase().includes(q));
+  }, [movimentos, tipo, busca]);
+
+  const totais = useMemo(() => {
+    let entradas = 0;
+    let saidas = 0;
+    filtrados.forEach((m) => {
+      if (m.movement_type === "in") entradas += Number(m.quantity);
+      else saidas += Number(m.quantity);
+    });
+    return { entradas, saidas, total: filtrados.length };
+  }, [filtrados]);
+
+  const imprimir = () => window.print();
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 grid place-items-center p-4 print:static print:bg-white print:p-0" onClick={onClose}>
+      <div
+        className="bg-white rounded-2xl shadow-xl w-full max-w-5xl max-h-[90vh] flex flex-col print:max-w-full print:max-h-none print:rounded-none print:shadow-none"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-4 border-b border-slate-200 print:border-b-2 print:border-black">
+          <div>
+            <h3 className="text-base font-black text-slate-800">📊 Relatório de Movimentações</h3>
+            <p className="text-[11px] text-slate-500">
+              INJOY {unidade} · {dateFrom} até {dateTo}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 print:hidden">
+            <button
+              onClick={imprimir}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg text-sm font-bold bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              <Printer size={14} /> Imprimir
+            </button>
+            <button onClick={onClose} className="h-9 w-9 rounded-lg hover:bg-slate-100 grid place-items-center text-slate-500">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        <div className="p-4 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-3 print:hidden">
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">De</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => setDateFrom(e.target.value)}
+              className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Até</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => setDateTo(e.target.value)}
+              className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm"
+            />
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Tipo</label>
+            <Select value={tipo} onValueChange={(v) => setTipo(v as "todos" | "in" | "out")}>
+              <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="todos">Todos</SelectItem>
+                <SelectItem value="in">Entradas</SelectItem>
+                <SelectItem value="out">Saídas</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Buscar</label>
+            <input
+              type="text"
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              placeholder="Item ou responsável…"
+              className="mt-1 w-full border border-slate-200 rounded-lg px-2 py-1.5 text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="px-4 py-3 border-b border-slate-100 grid grid-cols-3 gap-3 text-center">
+          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+            <p className="text-[10px] font-bold text-emerald-700 uppercase">Entradas</p>
+            <p className="text-lg font-black text-emerald-700">{totais.entradas}</p>
+          </div>
+          <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+            <p className="text-[10px] font-bold text-red-700 uppercase">Saídas</p>
+            <p className="text-lg font-black text-red-700">{totais.saidas}</p>
+          </div>
+          <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+            <p className="text-[10px] font-bold text-slate-600 uppercase">Registros</p>
+            <p className="text-lg font-black text-slate-800">{totais.total}</p>
+          </div>
+        </div>
+
+        <div className="overflow-auto flex-1">
+          {isLoading ? (
+            <div className="text-center p-8 text-slate-500">
+              <Loader2 size={16} className="animate-spin inline mr-2" />Carregando…
+            </div>
+          ) : filtrados.length === 0 ? (
+            <div className="text-center p-8 text-slate-400">Nenhuma movimentação no período.</div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead className="bg-slate-50 sticky top-0 print:bg-white">
+                <tr className="text-[10px] uppercase tracking-wider text-slate-500 border-b border-slate-200">
+                  <th className="text-left p-2 font-bold">Data / Hora</th>
+                  <th className="text-left p-2 font-bold">Tipo</th>
+                  <th className="text-left p-2 font-bold">Item</th>
+                  <th className="text-left p-2 font-bold">Setor</th>
+                  <th className="p-2 font-bold">Qtd.</th>
+                  <th className="text-left p-2 font-bold">Responsável</th>
+                  <th className="text-left p-2 font-bold">Origem / Destino</th>
+                  <th className="text-left p-2 font-bold">Obs.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtrados.map((m) => (
+                  <tr key={m.id} className="border-b border-slate-100 last:border-0">
+                    <td className="p-2 text-xs text-slate-600 whitespace-nowrap">
+                      {new Date(m.created_at).toLocaleString("pt-BR")}
+                    </td>
+                    <td className="p-2">
+                      <span
+                        className={cn(
+                          "inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-black uppercase",
+                          m.movement_type === "in"
+                            ? "bg-emerald-100 text-emerald-700"
+                            : "bg-red-100 text-red-700",
+                        )}
+                      >
+                        {m.movement_type === "in" ? <ArrowDownCircle size={10} /> : <ArrowUpCircle size={10} />}
+                        {m.movement_type === "in" ? "Entrada" : "Saída"}
+                      </span>
+                    </td>
+                    <td className="p-2 font-semibold text-slate-800">{m.item_name}</td>
+                    <td className="p-2 text-xs text-slate-600">{m.sector ?? "—"}</td>
+                    <td className="p-2 text-center font-black">
+                      {m.quantity}{" "}
+                      <span className="text-[10px] text-slate-400 font-normal">{m.unit_type ?? ""}</span>
+                    </td>
+                    <td className="p-2 text-xs text-slate-700">{m.performed_by ?? "—"}</td>
+                    <td className="p-2 text-xs text-slate-600">
+                      {m.movement_type === "in" ? m.source ?? "—" : m.destination ?? "—"}
+                    </td>
+                    <td className="p-2 text-xs text-slate-500">{m.notes ?? "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
