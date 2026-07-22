@@ -98,7 +98,51 @@ function AlmoxarifadoAdmin() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [showNewItem, setShowNewItem] = useState(false);
   const [showSetores, setShowSetores] = useState(false);
+  const [showReport, setShowReport] = useState(false);
+  const [unlocked, setUnlocked] = useState(false);
+  const [pwdInput, setPwdInput] = useState("");
+  const [pwdError, setPwdError] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("inventario");
+
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem(ALMOX_UNLOCK_KEY) === "1") setUnlocked(true);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const tryUnlock = () => {
+    if (pwdInput === ALMOX_PASSWORD) {
+      setUnlocked(true);
+      setPwdError(false);
+      setPwdInput("");
+      try {
+        sessionStorage.setItem(ALMOX_UNLOCK_KEY, "1");
+      } catch {
+        // ignore
+      }
+    } else {
+      setPwdError(true);
+    }
+  };
+
+  const requireUnlock = (tab: string) => {
+    // Compras é livre; demais precisam da senha
+    if (tab === "compras") {
+      setActiveTab(tab);
+      return;
+    }
+    if (unlocked) {
+      setActiveTab(tab);
+    } else {
+      setActiveTab("compras");
+      toast.error("Área protegida — informe a senha para acessar.");
+    }
+  };
+
   const [novoSetor, setNovoSetor] = useState("");
+
   const [savingSetor, setSavingSetor] = useState(false);
   const [deletingSetorId, setDeletingSetorId] = useState<string | null>(null);
   const [novo, setNovo] = useState<{ name: string; sector: string; unit_type: string; current_stock: number; min_stock: number }>({
