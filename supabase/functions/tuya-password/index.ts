@@ -220,9 +220,85 @@ serve(async (req) => {
       (deviceRows ?? []).map((row: any) => [String(row.device_id), String(row.tipo ?? "")]),
     );
 
+    // Code DP configurável para dispositivos "mk" (WiFi Access Controller).
+    // Se `unlock_password_kit` não for aceito, altere aqui para testar
+    // `temp_password` ou `synch_method` sem tocar em nada mais.
+    const MK_DP_CODE = "unlock_password_kit";
+
     // 3. Loop para Gravar a Senha Online nas Fechaduras
     for (const deviceId of deviceIds) {
       try {
+        const tipo = tipoPorDeviceId.get(String(deviceId)) ?? "";
+        const isZigbeeRoomLock = tipo === "quarto";
+        const isMkAccessController = tipo === "portao" || tipo === "vidro";
+
+        // ============ FLUXO NOVO: categoria "mk" via /commands ============
+        if (isMkAccessController) {
+          const senhaOriginal = senhaWifi;
+          const tCmd = Date.now().toString();
+          const urlCmd = `/v1.0/devices/${deviceId}/commands`;
+          const bodyCmd = {
+            commands: [
+              {
+                code: MK_DP_CODE,
+                value: senhaOriginal,
+              },
+            ],
+          };
+          const bodyCmdStr = JSON.stringify(bodyCmd);
+          const signStrCmd = `POST\n${await calcSha256(bodyCmdStr)}\n\n${urlCmd}`;
+          const signCmd = await calcSign(clientId, accessToken, tCmd, "", signStrCmd, secret);
+
+          let cmdData: any = null;
+          let cmdHttpStatus: number | null = null;
+          try {
+            const cmdRes = await fetch(`${baseUrl}${urlCmd}`, {
+              method: "POST",
+              headers: {
+                client_id: clientId,
+                access_token: accessToken,
+                sign: signCmd,
+                t: tCmd,
+                sign_method: "HMAC-SHA256",
+                "Content-Type": "application/json",
+              },
+              body: bodyCmdStr,
+            });
+            cmdHttpStatus = cmdRes.status;
+            cmdData = await cmdRes.json().catch(() => ({ raw: "no-json" }));
+          } catch (netErr) {
+            cmdData = { network_error: (netErr as Error).message };
+          }
+
+          const ok = !!cmdData?.success;
+          console.log(
+            `[tuya-password][mk] deviceId=${deviceId} tipo=${tipo} code=${MK_DP_CODE} http=${cmdHttpStatus} success=${ok} response=`,
+            JSON.stringify(cmdData),
+          );
+
+          results.push({ deviceId, status: cmdData });
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: urlCmd,
+            method: "POST",
+            request_payload: bodyCmd,
+            response_payload: cmdData,
+            response_code: cmdData?.code ?? cmdHttpStatus,
+            response_msg: cmdData?.msg ?? null,
+            success: ok,
+            guest_name: guestName,
+            room_number: roomNumber,
+            unidade,
+          });
+
+          if (ok) {
+            senhasGeradas[deviceId] = senhaOriginal;
+            senhaIds[deviceId] = cmdData?.result?.id ?? "";
+          }
+          continue;
+        }
+
+        // ============ FLUXO ORIGINAL: door-lock (Zigbee/Wi-Fi door lock) ============
         // --- PASSO A: Obter o Ticket de Segurança (Password Ticket) ---
         const tTicket = Date.now().toString();
         const urlTicket = `/v1.0/devices/${deviceId}/door-lock/password-ticket`;
@@ -261,46 +337,9 @@ serve(async (req) => {
           continue;
         }
 
-        const isZigbeeRoomLock = tipoPorDeviceId.get(String(deviceId)) === "quarto";
-
-        if (!isZigbeeRoomLock) {
-          const tSync = Date.now().toString();
-          const urlSync = `/v1.0/smart-lock/devices/${deviceId}/opmodes/actions/sync?codes=unlock_password`;
-          const signStrSync = `POST\n${await calcSha256("")}\n\n${urlSync}`;
-          const signSync = await calcSign(clientId, accessToken, tSync, "", signStrSync, secret);
-          const syncRes = await fetch(`${baseUrl}${urlSync}`, {
-            method: "POST",
-            headers: {
-              client_id: clientId,
-              access_token: accessToken,
-              sign: signSync,
-              t: tSync,
-              sign_method: "HMAC-SHA256",
-            },
-          });
-          const syncData = await syncRes.json();
-          await logTuyaCall({
-            device_id: deviceId,
-            endpoint: urlSync,
-            method: "POST",
-            response_payload: syncData,
-            response_code: syncData?.code ?? null,
-            response_msg: syncData?.msg ?? null,
-            success: !!syncData?.success,
-            guest_name: guestName,
-            room_number: roomNumber,
-            unidade,
-          });
-        }
-
         const ticketId = ticketData.result.ticket_id;
         const ticketKeyHex = ticketData.result.ticket_key as string;
 
-        // --- PASSO B: Criptografar a senha com o ticket_key ---
-        // Fluxo correto Tuya:
-        // 1) `ticket_key` vem criptografado em HEX e precisa ser descriptografado
-        //    com o Access Secret como texto UTF-8 (AES/ECB/PKCS7).
-        // 2) A senha numérica é criptografada com a chave original descriptografada.
         const encryptedTicketKeyHex = CryptoJS.enc.Hex.parse(ticketKeyHex);
         const encryptedTicketKeyBase64 = CryptoJS.enc.Base64.stringify(encryptedTicketKeyHex);
         const accessSecretKey = CryptoJS.enc.Utf8.parse(secret);
@@ -313,7 +352,7 @@ serve(async (req) => {
           throw new Error("Ticket Tuya inválido: chave descriptografada vazia.");
         }
 
-        const senhaOriginal = isZigbeeRoomLock ? senhaUnificada : senhaWifi;
+        const senhaOriginal = senhaUnificada;
         const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaOriginal);
         const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, aesKey, {
           mode: CryptoJS.mode.ECB,
@@ -340,8 +379,6 @@ serve(async (req) => {
           effective_time: effectiveTime,
           invalid_time: invalidTime,
         };
-        // Ambos (Zigbee e Wi-Fi) usam o endpoint V1, que exige `name`.
-        // O V2 estava retornando 500 "system error" para as fechaduras Wi-Fi.
         const bodyCreate = { ...bodyCreateBase, name: nomeTuya };
 
         const bodyCreateStr = JSON.stringify(bodyCreate);
