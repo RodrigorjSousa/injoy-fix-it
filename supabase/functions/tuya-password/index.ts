@@ -191,9 +191,18 @@ serve(async (req) => {
 
 
 
-    // Regra Tuya: timestamps em segundos, arredondados para a hora cheia
-    const effectiveTime = Math.floor(startTime / 3600000) * 3600;
-    let invalidTime = Math.floor(endTime / 3600000) * 3600;
+    // Regra Tuya: timestamps em SEGUNDOS (UNIX). effective_time precisa ser
+    // >= "agora"; se o usuário escolher horário anterior, arredondamos para
+    // cima em vez de para baixo (senão a Tuya devolve code 1109
+    // "param is illegal").
+    const nowSec = Math.floor(Date.now() / 1000);
+    const startSec = Math.floor(startTime / 1000);
+    const endSec = Math.floor(endTime / 1000);
+    let effectiveTime = Math.floor(startSec / 3600) * 3600;
+    if (effectiveTime < nowSec) {
+      effectiveTime = Math.ceil(nowSec / 3600) * 3600;
+    }
+    let invalidTime = Math.floor(endSec / 3600) * 3600;
     if (invalidTime <= effectiveTime) invalidTime = effectiveTime + 3600;
 
     const results: Array<{ deviceId: string; status: any }> = [];
@@ -269,7 +278,7 @@ serve(async (req) => {
           effective_time: effectiveTime,
           invalid_time: invalidTime,
           type: 0,
-          name: guestName ? guestName.substring(0, 10).trim() : "Visita",
+          name: (guestName ? guestName.replace(/[^A-Za-z0-9]/g, "").substring(0, 6).trim() : "Visita") || "Visita",
         };
 
 
