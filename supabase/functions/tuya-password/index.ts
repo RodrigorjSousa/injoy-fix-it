@@ -278,7 +278,7 @@ serve(async (req) => {
           effective_time: effectiveTime,
           invalid_time: invalidTime,
           type: 0,
-          name: guestName ? guestName.substring(0, 10).trim() : "Visita",
+          name: (guestName ? guestName.replace(/[^A-Za-z0-9]/g, "").substring(0, 6).trim() : "Visita") || "Visita",
         };
 
 
