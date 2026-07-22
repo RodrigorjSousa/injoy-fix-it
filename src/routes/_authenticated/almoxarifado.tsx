@@ -873,6 +873,10 @@ function AlmoxarifadoAdmin() {
           </div>
         </div>
       )}
+
+      {showReport && (
+        <RelatorioMovimentacoesModal unidade={unidade} onClose={() => setShowReport(false)} />
+      )}
     </div>
   );
 }
