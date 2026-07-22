@@ -112,8 +112,20 @@ function AlmoxarifadoAdmin() {
     }
   }, []);
 
-  const tryUnlock = () => {
-    if (pwdInput === ALMOX_PASSWORD) {
+  const tryUnlock = async () => {
+    let expected = ALMOX_PASSWORD;
+    try {
+      const { data } = await supabase
+        .from("app_settings" as never)
+        .select("value")
+        .eq("key", "almox_password")
+        .maybeSingle();
+      const stored = ((data as { value?: string } | null)?.value ?? "").trim();
+      if (stored) expected = stored;
+    } catch {
+      // fallback to default
+    }
+    if (pwdInput === expected) {
       setUnlocked(true);
       setPwdError(false);
       setPwdInput("");
