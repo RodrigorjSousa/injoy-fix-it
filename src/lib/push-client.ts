@@ -70,9 +70,13 @@ export async function enablePushNotifications(): Promise<
 
   let subscription = await reg.pushManager.getSubscription();
   if (!subscription) {
+    const keyBytes = urlBase64ToUint8Array(vapidPublicKey);
     subscription = await reg.pushManager.subscribe({
       userVisibleOnly: true,
-      applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      applicationServerKey: keyBytes.buffer.slice(
+        keyBytes.byteOffset,
+        keyBytes.byteOffset + keyBytes.byteLength,
+      ) as ArrayBuffer,
     });
   }
 
