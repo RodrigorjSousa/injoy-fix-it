@@ -4,25 +4,16 @@ import {
   Wrench,
   ClipboardCheck,
   RefreshCw,
-  Clock,
   ArrowUpRight,
-  CheckCircle2,
-  AlertCircle,
   Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useMe } from "@/lib/store";
+import { isCheckInTask } from "@/lib/task-labels";
 
 
 type Props = {
