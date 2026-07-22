@@ -461,6 +461,12 @@ function AlmoxarifadoAdmin() {
             <Package size={14} /> Setores
           </button>
           <button
+            onClick={() => setShowReport(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+          >
+            <FileText size={14} /> Relatório
+          </button>
+          <button
             onClick={() => {
               setNovo((s) => ({ ...s, sector: s.sector || SETORES[0] || "" }));
               setShowNewItem(true);
@@ -471,25 +477,63 @@ function AlmoxarifadoAdmin() {
           </button>
         </div>
 
+        {!unlocked && (
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
+            <div className="flex items-start gap-3">
+              <div className="h-9 w-9 rounded-lg bg-amber-500 text-white grid place-items-center shrink-0">
+                <Lock size={16} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-black text-amber-900">Área protegida</p>
+                <p className="text-[11px] text-amber-700 mb-2">
+                  Informe a senha para acessar Inventário, Solicitações, Auditoria e Histórico. A aba <b>Compras</b> permanece livre.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="password"
+                    value={pwdInput}
+                    onChange={(e) => { setPwdInput(e.target.value); setPwdError(false); }}
+                    onKeyDown={(e) => { if (e.key === "Enter") tryUnlock(); }}
+                    placeholder="Senha do almoxarifado"
+                    className={cn(
+                      "flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none",
+                      pwdError ? "border-red-500" : "border-amber-300 focus:border-amber-500",
+                    )}
+                  />
+                  <button
+                    onClick={tryUnlock}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-amber-600 hover:bg-amber-700 text-white shadow-sm"
+                  >
+                    <Lock size={14} /> Desbloquear
+                  </button>
+                </div>
+                {pwdError && (
+                  <p className="text-[11px] text-red-600 mt-1.5 font-semibold">Senha incorreta.</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
 
-        <Tabs defaultValue="inventario" className="w-full">
+        <Tabs value={activeTab} onValueChange={requireUnlock} className="w-full">
           <TabsList className="grid grid-cols-5 max-w-3xl">
             <TabsTrigger value="inventario">
-              <Package size={14} className="mr-1" /> Inventário
+              <Package size={14} className="mr-1" /> Inventário {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
             <TabsTrigger value="solicitacoes">
-              <ShoppingBag size={14} className="mr-1" /> Solicitações
+              <ShoppingBag size={14} className="mr-1" /> Solicitações {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
             <TabsTrigger value="compras">
               <ShoppingCart size={14} className="mr-1" /> Compras
             </TabsTrigger>
             <TabsTrigger value="auditoria">
-              <ClipboardList size={14} className="mr-1" /> Auditoria
+              <ClipboardList size={14} className="mr-1" /> Auditoria {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
             <TabsTrigger value="historico">
-              <History size={14} className="mr-1" /> Histórico
+              <History size={14} className="mr-1" /> Histórico {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
           </TabsList>
+
 
           <TabsContent value="inventario" className="mt-4">
             {isLoading ? (
