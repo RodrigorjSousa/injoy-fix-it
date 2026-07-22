@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import {
@@ -16,6 +16,11 @@ import {
   Trash2,
   X,
   ClipboardList,
+  FileText,
+  Printer,
+  Lock,
+  ArrowDownCircle,
+  ArrowUpCircle,
 } from "lucide-react";
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { AuditoriaDesignarPanel } from "@/components/almoxarifado/auditoria-designar-panel";
@@ -32,9 +37,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+const ALMOX_PASSWORD = "injoy2014";
+const ALMOX_UNLOCK_KEY = "almox_unlocked_v1";
+
 export const Route = createFileRoute("/_authenticated/almoxarifado")({
   component: AlmoxarifadoAdmin,
 });
+
+type Movement = {
+  id: string;
+  property: string;
+  item_id: string | null;
+  item_name: string;
+  unit_type: string | null;
+  sector: string | null;
+  movement_type: "in" | "out";
+  quantity: number;
+  source: string | null;
+  destination: string | null;
+  performed_by: string | null;
+  notes: string | null;
+  created_at: string;
+};
+
 
 type Item = {
   id: string;
