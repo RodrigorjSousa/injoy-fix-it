@@ -708,10 +708,24 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="auditoria" className="mt-4">
-            <AuditoriaDesignarPanel unidade={unidade} />
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+              <AuditoriaDesignarPanel unidade={unidade} />
+            )}
           </TabsContent>
 
           <TabsContent value="historico" className="mt-4">
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+
             <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
               <div className="px-4 py-3 border-b border-slate-100">
                 <h3 className="text-sm font-black text-slate-800">Retiradas Aprovadas</h3>
