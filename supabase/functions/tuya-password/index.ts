@@ -279,10 +279,16 @@ serve(async (req) => {
           invalid_time: invalidTime,
           type: 0,
           name: (() => {
-            const raw = (guestName ?? "").replace(/[^A-Za-z0-9]/g, "").slice(0, 6);
-            const base = raw.length >= 4 ? raw : (raw + "Guest").slice(0, 6);
-            return base || "Guest";
+            const normalized = (guestName ?? "")
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^A-Za-z0-9]/g, "");
+            if (normalized.length === 0) return "Guest";
+            if (normalized.length > 6) return normalized.slice(0, 6);
+            if (normalized.length < 4) return normalized.padEnd(4, "X");
+            return normalized;
           })(),
+
         };
 
 
