@@ -45,6 +45,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   CATEGORIAS,
   TELAS_PERMITIDAS,
   useAdicionarFuncionario,
@@ -1037,14 +1043,19 @@ function GestoresAdmin() {
 
   return (
     <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <ShieldCheck className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold text-lg">Gestores (administrador)</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Promova ou remova gestores do sistema. Administradores não aparecem nesta lista.
-      </p>
-      <div className="space-y-2">
+      <Accordion type="single" collapsible defaultValue="">
+        <AccordionItem value="gestores" className="border rounded-lg bg-card">
+          <AccordionTrigger className="px-4 hover:no-underline">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="h-5 w-5 text-primary" />
+              <span className="font-semibold text-lg">Gestores (administrador)</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4">
+            <p className="text-sm text-muted-foreground mb-3">
+              Promova ou remova gestores do sistema. Administradores não aparecem nesta lista.
+            </p>
+            <div className="space-y-2">
         {isLoading && <p className="text-sm text-muted-foreground">Carregando...</p>}
         {usuarios
           .filter((u) => !u.isAdmin)
@@ -1093,7 +1104,10 @@ function GestoresAdmin() {
         {!isLoading && usuarios.filter((u) => !u.isAdmin).length === 0 && (
           <p className="text-sm text-muted-foreground text-center py-6">Nenhum usuário cadastrado.</p>
         )}
-      </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </section>
   );
 }
