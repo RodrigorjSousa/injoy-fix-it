@@ -44,13 +44,16 @@ export function PainelControleRapido({ unidade }: Props) {
   useEffect(() => {
     let cancelled = false;
 
+    const getCutoff = () => {
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setHours(23, 0, 0, 0);
+      if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
+      return cutoff;
+    };
+
     const carregar = async () => {
-      const today = new Date();
-      const startISO = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-      ).toISOString();
+      const startISO = getCutoff().toISOString();
 
       const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
@@ -84,16 +87,33 @@ export function PainelControleRapido({ unidade }: Props) {
       }
       const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
       const checkInRooms = allRooms.filter((r) => isCheckInTask(r.assigned_task));
-      setRooms(checkInRooms.map((r) => ({ room_number: r.room_number })));
-      setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => r.room_number)));
+      setRooms(checkInRooms.map((r) => ({ room_number: String(r.room_number) })));
+      setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => String(r.room_number))));
       setTrocasNovas((trocaData ?? []).length);
     };
 
     carregar().catch((e) => console.error("[PainelControleRapido]", e));
+
+    const inspChannel = supabase
+      .channel(`painel-inspections-${unidade}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_inspections", filter: `property=eq.${unidade}` },
+        () => carregar().catch(() => {}),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_housekeeping", filter: `property=eq.${unidade}` },
+        () => carregar().catch(() => {}),
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      supabase.removeChannel(inspChannel);
     };
   }, [unidade]);
+
 
   const totalChamadosAtivos = chamados.abertos + chamados.andamento;
   const totalQuartos = rooms.length;
@@ -155,24 +175,30 @@ export function PainelControleRapido({ unidade }: Props) {
         {isGestor && (
         <Link
           to="/historico-vistorias"
-          className={cn(cardBase, "text-left")}
+          className={cn(cardBase, "text-left overflow-hidden pb-7")}
         >
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Vistoria da Recepção
             </p>
-            <ClipboardCheck className="h-5 w-5 text-indigo-400" />
+            <ClipboardCheck className="h-5 w-5 text-emerald-400" />
           </div>
           <div className="mt-4">
             <p className="text-4xl font-black text-white leading-none">
               {vistoriados.length}
               <span className="text-slate-500"> / {totalQuartos || 0}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2">Check-ins vistoriados hoje</p>
+            <p className="text-xs text-slate-500 mt-2">
+              {totalQuartos - vistoriados.length > 0
+                ? `Falta${totalQuartos - vistoriados.length > 1 ? "m" : ""} ${totalQuartos - vistoriados.length} vistoria${totalQuartos - vistoriados.length > 1 ? "s" : ""} hoje`
+                : totalQuartos > 0
+                  ? "Todas as vistorias concluídas"
+                  : "Sem check-ins hoje"}
+            </p>
           </div>
-          <div className="mt-4 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+          <div className="absolute left-0 right-0 bottom-0 h-2 bg-slate-800 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+              className="h-full bg-emerald-500 transition-all duration-500"
               style={{
                 width: `${totalQuartos ? Math.round((vistoriados.length / totalQuartos) * 100) : 0}%`,
               }}
@@ -180,6 +206,7 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
         )}
+
 
         {/* CARD 3 - Troca de Turnos */}
         <Link to="/relatorios-turno" className={cardBase}>
