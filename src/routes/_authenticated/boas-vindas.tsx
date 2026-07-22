@@ -87,7 +87,7 @@ export const Route = createFileRoute("/_authenticated/boas-vindas")({
 });
 
 function obterSaudacaoHora() {
-  const h = new Date().getHours();
+  const h = nowSP().getHours();
   if (h < 12) return "Bom dia";
   if (h < 18) return "Boa tarde";
   return "Boa noite";
