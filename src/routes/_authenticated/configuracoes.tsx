@@ -392,6 +392,8 @@ function Configuracoes() {
 
       <SenhaResetTurno />
 
+      <SenhaAlmoxarifado />
+
       {me?.isAdmin && <GestoresAdmin />}
 
       <EditarFuncoesDialog
