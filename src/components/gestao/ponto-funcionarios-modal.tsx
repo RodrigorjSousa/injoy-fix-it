@@ -83,7 +83,7 @@ export function PontoFuncionariosModal({
   onOpenChange: (v: boolean) => void;
   unidade: Unidade;
 }) {
-  const [data, setData] = useState<string>(() => new Date().toISOString().split("T")[0]);
+  const [data, setData] = useState<string>(() => todaySP());
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
   const [loading, setLoading] = useState(false);
