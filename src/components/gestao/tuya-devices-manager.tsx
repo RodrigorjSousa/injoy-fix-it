@@ -19,6 +19,9 @@ const TIPO_LABEL: Record<TuyaDeviceTipo, string> = {
 
 const UNIDADES = ["Botafogo", "Ipanema"];
 
+const usaSenhaFixa = (tipo: TuyaDeviceTipo) =>
+  tipo === "portao" || tipo === "vidro" || tipo === "outro";
+
 export function TuyaDevicesManager() {
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -28,17 +31,20 @@ export function TuyaDevicesManager() {
     room_number: "",
     device_id: "",
     label: "",
+    senha_fixa: "",
   });
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
   const [statuses, setStatuses] = useState<Record<string, { online: boolean; success: boolean; msg?: string }>>({});
+  const [editSenha, setEditSenha] = useState<Record<string, string>>({});
+  const [savingSenha, setSavingSenha] = useState<string | null>(null);
 
 
   const refresh = async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("tuya_devices")
-      .select("id,unidade,tipo,room_number,device_id,label,ativo")
+      .select("id,unidade,tipo,room_number,device_id,label,ativo,senha_fixa")
       .order("unidade")
       .order("tipo")
       .order("room_number");
