@@ -363,10 +363,13 @@ serve(async (req) => {
     const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
     const { data: deviceRows } = await supabaseAdmin
       .from("tuya_devices")
-      .select("device_id,tipo")
+      .select("device_id,tipo,senha_fixa")
       .in("device_id", deviceIds ?? []);
-    const tipoPorDeviceId = new Map<string, string>(
-      (deviceRows ?? []).map((row: any) => [String(row.device_id), String(row.tipo ?? "")]),
+    const infoPorDeviceId = new Map<string, { tipo: string; senha_fixa: string | null }>(
+      (deviceRows ?? []).map((row: any) => [
+        String(row.device_id),
+        { tipo: String(row.tipo ?? ""), senha_fixa: row.senha_fixa ?? null },
+      ]),
     );
 
     // Codes DP candidatos para "mk" (WiFi Access Controller). Tentamos em
