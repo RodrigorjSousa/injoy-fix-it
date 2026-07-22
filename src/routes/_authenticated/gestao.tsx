@@ -219,24 +219,8 @@ function DashboardGestao() {
           <ArrowUpRight className="h-4 w-4 text-slate-400" />
         </Link>
 
-        <button
-          type="button"
-          onClick={() => setTuyaOpen(true)}
-          className="flex items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm hover:border-teal-500 transition-colors text-left"
-        >
-          <div className="flex items-center gap-3">
-            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 grid place-items-center text-white shadow-sm">
-              <KeyRound className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm font-black text-slate-900">Fechaduras Tuya</p>
-              <p className="text-xs text-slate-500">Cadastro por unidade e por quarto — habilita o check-in digital em cada quarto</p>
-            </div>
-          </div>
-          <ArrowUpRight className="h-4 w-4 text-slate-400" />
-        </button>
 
-        <TuyaDevicesManagerModal open={tuyaOpen} onOpenChange={setTuyaOpen} />
+
 
 
 
