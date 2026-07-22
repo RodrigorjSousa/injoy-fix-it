@@ -105,6 +105,7 @@ export function PainelControleRapido({ unidade }: Props) {
     () => rooms.filter((r) => !inspectedToday.has(r.room_number)),
     [rooms, inspectedToday],
   );
+  void naoVistoriados;
 
   const cardBase =
     "relative bg-slate-900 rounded-2xl border border-slate-800 p-5 cursor-pointer hover:bg-slate-800 transition-all group flex flex-col justify-between min-h-[190px]";
