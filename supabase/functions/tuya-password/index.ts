@@ -239,66 +239,106 @@ serve(async (req) => {
 
         // ============ FLUXO NOVO: categoria "mk" via /commands ============
         if (isMkAccessController) {
-          const senhaOriginal = senhaWifi;
-          const tCmd = Date.now().toString();
-          const urlCmd = `/v1.0/devices/${deviceId}/commands`;
-          const bodyCmd = {
-            commands: [
-              {
-                code: MK_DP_CODE,
-                value: senhaOriginal,
-              },
-            ],
-          };
-          const bodyCmdStr = JSON.stringify(bodyCmd);
-          const signStrCmd = `POST\n${await calcSha256(bodyCmdStr)}\n\n${urlCmd}`;
-          const signCmd = await calcSign(clientId, accessToken, tCmd, "", signStrCmd, secret);
+          const senhaOriginal = senhaUnificada;
+          const nomeTuyaMk = (() => {
+            const normalized = (guestName ?? "")
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^A-Za-z0-9]/g, "");
+            const base = normalized.length === 0 ? "Guest" : normalized.padEnd(4, "X");
+            return `${base.slice(0, 4)}${senhaOriginal.slice(-2)}`;
+          })();
 
-          let cmdData: any = null;
-          let cmdHttpStatus: number | null = null;
-          try {
-            const cmdRes = await fetch(`${baseUrl}${urlCmd}`, {
-              method: "POST",
-              headers: {
-                client_id: clientId,
-                access_token: accessToken,
-                sign: signCmd,
-                t: tCmd,
-                sign_method: "HMAC-SHA256",
-                "Content-Type": "application/json",
-              },
-              body: bodyCmdStr,
-            });
-            cmdHttpStatus = cmdRes.status;
-            cmdData = await cmdRes.json().catch(() => ({ raw: "no-json" }));
-          } catch (netErr) {
-            cmdData = { network_error: (netErr as Error).message };
+          // Value estruturado como a Tuya exige para controle de acesso.
+          // Alguns firmwares aceitam JSON-string, outros exigem base64 do JSON.
+          const valuePayload = {
+            password: senhaOriginal,
+            effective_time: effectiveTime,
+            invalid_time: invalidTime,
+            name: nomeTuyaMk,
+            time_zone: "+03:00",
+            schedule_list: [] as unknown[],
+          };
+          const valueJson = JSON.stringify(valuePayload);
+          const valueBase64 = btoa(valueJson);
+
+          let lastResp: any = null;
+          let lastHttp: number | null = null;
+          let lastCode = "";
+          let succeeded = false;
+
+          for (const dpCode of MK_DP_CANDIDATES) {
+            // Duas variantes de value: JSON-string e base64. Se a primeira
+            // falhar por "value invalid", tentamos base64 antes de trocar o code.
+            for (const valueVariant of [valueJson, valueBase64, senhaOriginal]) {
+              const tCmd = Date.now().toString();
+              const urlCmd = `/v1.0/devices/${deviceId}/commands`;
+              const bodyCmd = { commands: [{ code: dpCode, value: valueVariant }] };
+              const bodyCmdStr = JSON.stringify(bodyCmd);
+              const signStrCmd = `POST\n${await calcSha256(bodyCmdStr)}\n\n${urlCmd}`;
+              const signCmd = await calcSign(clientId, accessToken, tCmd, "", signStrCmd, secret);
+
+              let cmdData: any = null;
+              let cmdHttpStatus: number | null = null;
+              try {
+                const cmdRes = await fetch(`${baseUrl}${urlCmd}`, {
+                  method: "POST",
+                  headers: {
+                    client_id: clientId,
+                    access_token: accessToken,
+                    sign: signCmd,
+                    t: tCmd,
+                    sign_method: "HMAC-SHA256",
+                    "Content-Type": "application/json",
+                  },
+                  body: bodyCmdStr,
+                });
+                cmdHttpStatus = cmdRes.status;
+                cmdData = await cmdRes.json().catch(() => ({ raw: "no-json" }));
+              } catch (netErr) {
+                cmdData = { network_error: (netErr as Error).message };
+              }
+
+              lastResp = cmdData;
+              lastHttp = cmdHttpStatus;
+              lastCode = dpCode;
+              const ok = !!cmdData?.success;
+              const variantLabel =
+                valueVariant === valueJson
+                  ? "json"
+                  : valueVariant === valueBase64
+                    ? "base64"
+                    : "plain";
+              console.log(
+                `[tuya-password][mk] deviceId=${deviceId} code=${dpCode} variant=${variantLabel} http=${cmdHttpStatus} success=${ok} response=`,
+                JSON.stringify(cmdData),
+              );
+              await logTuyaCall({
+                device_id: deviceId,
+                endpoint: `${urlCmd} [${dpCode}/${variantLabel}]`,
+                method: "POST",
+                request_payload: bodyCmd,
+                response_payload: cmdData,
+                response_code: cmdData?.code ?? cmdHttpStatus,
+                response_msg: cmdData?.msg ?? null,
+                success: ok,
+                guest_name: guestName,
+                room_number: roomNumber,
+                unidade,
+              });
+
+              if (ok) {
+                succeeded = true;
+                break;
+              }
+            }
+            if (succeeded) break;
           }
 
-          const ok = !!cmdData?.success;
-          console.log(
-            `[tuya-password][mk] deviceId=${deviceId} tipo=${tipo} code=${MK_DP_CODE} http=${cmdHttpStatus} success=${ok} response=`,
-            JSON.stringify(cmdData),
-          );
-
-          results.push({ deviceId, status: cmdData });
-          await logTuyaCall({
-            device_id: deviceId,
-            endpoint: urlCmd,
-            method: "POST",
-            request_payload: bodyCmd,
-            response_payload: cmdData,
-            response_code: cmdData?.code ?? cmdHttpStatus,
-            response_msg: cmdData?.msg ?? null,
-            success: ok,
-            guest_name: guestName,
-            room_number: roomNumber,
-            unidade,
-          });
-
-          if (ok) {
+          results.push({ deviceId, status: lastResp });
+          if (succeeded) {
             senhasGeradas[deviceId] = senhaOriginal;
-            senhaIds[deviceId] = cmdData?.result?.id ?? "";
+            senhaIds[deviceId] = lastResp?.result?.id ?? lastCode ?? "";
           }
           continue;
         }
