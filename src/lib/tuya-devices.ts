@@ -10,6 +10,7 @@ export type TuyaDevice = {
   device_id: string;
   label: string;
   ativo: boolean;
+  senha_fixa: string | null;
 };
 
 let cache: Promise<TuyaDevice[]> | null = null;
