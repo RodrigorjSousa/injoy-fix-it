@@ -161,7 +161,7 @@ export function PainelControleRapido({ unidade }: Props) {
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
         {/* CARD 1 - Chamados Ativos */}
-        <Link to="/manutencao" className={cardBase}>
+        <Link to="/painel" className={cardBase}>
           <div className="flex items-start justify-between">
             <div className="h-11 w-11 rounded-full bg-blue-600/20 border border-blue-500/40 grid place-items-center text-blue-400">
               <Wrench className="h-5 w-5" />
