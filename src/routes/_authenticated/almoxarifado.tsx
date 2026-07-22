@@ -769,7 +769,9 @@ function AlmoxarifadoAdmin() {
                 </table>
               </div>
             </div>
+            )}
           </TabsContent>
+
         </Tabs>
       </div>
 
