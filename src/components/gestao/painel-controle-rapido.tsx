@@ -44,13 +44,16 @@ export function PainelControleRapido({ unidade }: Props) {
   useEffect(() => {
     let cancelled = false;
 
+    const getCutoff = () => {
+      const now = new Date();
+      const cutoff = new Date(now);
+      cutoff.setHours(23, 0, 0, 0);
+      if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
+      return cutoff;
+    };
+
     const carregar = async () => {
-      const today = new Date();
-      const startISO = new Date(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate(),
-      ).toISOString();
+      const startISO = getCutoff().toISOString();
 
       const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
@@ -84,16 +87,33 @@ export function PainelControleRapido({ unidade }: Props) {
       }
       const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
       const checkInRooms = allRooms.filter((r) => isCheckInTask(r.assigned_task));
-      setRooms(checkInRooms.map((r) => ({ room_number: r.room_number })));
-      setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => r.room_number)));
+      setRooms(checkInRooms.map((r) => ({ room_number: String(r.room_number) })));
+      setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => String(r.room_number))));
       setTrocasNovas((trocaData ?? []).length);
     };
 
     carregar().catch((e) => console.error("[PainelControleRapido]", e));
+
+    const inspChannel = supabase
+      .channel(`painel-inspections-${unidade}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_inspections", filter: `property=eq.${unidade}` },
+        () => carregar().catch(() => {}),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_housekeeping", filter: `property=eq.${unidade}` },
+        () => carregar().catch(() => {}),
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
+      supabase.removeChannel(inspChannel);
     };
   }, [unidade]);
+
 
   const totalChamadosAtivos = chamados.abertos + chamados.andamento;
   const totalQuartos = rooms.length;
