@@ -74,6 +74,7 @@ export function TuyaDevicesManager() {
       device_id: form.device_id.trim(),
       label: form.label.trim(),
       ativo: true,
+      senha_fixa: usaSenhaFixa(form.tipo) ? (form.senha_fixa.trim() || null) : null,
     };
     const { error } = await supabase.from("tuya_devices").insert(payload);
     setSaving(false);
@@ -83,7 +84,30 @@ export function TuyaDevicesManager() {
     }
     toast.success("Fechadura cadastrada!");
     invalidateTuyaDevicesCache();
-    setForm((f) => ({ ...f, room_number: "", device_id: "", label: "" }));
+    setForm((f) => ({ ...f, room_number: "", device_id: "", label: "", senha_fixa: "" }));
+    refresh();
+  };
+
+  const salvarSenhaFixa = async (d: TuyaDevice) => {
+    const nova = (editSenha[d.id] ?? "").trim();
+    if (nova && !/^\d{4,10}$/.test(nova)) {
+      toast.error("A senha fixa deve ter apenas dígitos (4–10).");
+      return;
+    }
+    setSavingSenha(d.id);
+    const { error } = await supabase
+      .from("tuya_devices")
+      .update({ senha_fixa: nova || null })
+      .eq("id", d.id);
+    setSavingSenha(null);
+    if (error) return toast.error(error.message);
+    toast.success("Senha fixa atualizada!");
+    invalidateTuyaDevicesCache();
+    setEditSenha((s) => {
+      const n = { ...s };
+      delete n[d.id];
+      return n;
+    });
     refresh();
   };
 
