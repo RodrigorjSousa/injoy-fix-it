@@ -878,9 +878,25 @@ function AlmoxarifadoAdmin() {
 }
 
 
-function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: string[]; onDone: () => void }) {
+function ComprasForm({
+  unidade,
+  performer,
+  performerUserId,
+  itens,
+  setores,
+  onDone,
+}: {
+  unidade: Unidade;
+  performer: string;
+  performerUserId: string | null;
+  itens: Item[];
+  setores: string[];
+  onDone: () => void;
+}) {
   const [itemId, setItemId] = useState<string>("");
   const [qtd, setQtd] = useState<number>(0);
+  const [source, setSource] = useState<string>("");
+  const [notes, setNotes] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   const item = itens.find((i) => i.id === itemId);
@@ -894,8 +910,29 @@ function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: strin
         .update({ current_stock: item.current_stock + qtd } as never)
         .eq("id", item.id);
       if (error) throw error;
+
+      // Log de movimentação (entrada por compra)
+      const { error: movErr } = await supabase
+        .from("inventory_movements" as never)
+        .insert({
+          property: unidade,
+          item_id: item.id,
+          item_name: item.name,
+          unit_type: item.unit_type,
+          sector: item.sector,
+          movement_type: "in",
+          quantity: qtd,
+          source: source.trim() || "Compra",
+          performed_by: performer,
+          performed_by_user_id: performerUserId,
+          notes: notes.trim() || null,
+        } as never);
+      if (movErr) console.warn("[compras] falha ao registrar movimentação:", movErr.message);
+
       toast.success(`+${qtd} ${item.unit_type} de ${item.name} adicionados ao estoque`);
       setQtd(0);
+      setSource("");
+      setNotes("");
       onDone();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao registrar entrada");
@@ -903,6 +940,7 @@ function ComprasForm({ itens, setores, onDone }: { itens: Item[]; setores: strin
       setSaving(false);
     }
   };
+
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 max-w-2xl">
