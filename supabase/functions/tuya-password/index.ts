@@ -264,7 +264,79 @@ serve(async (req) => {
         JSON.stringify({ success: true, diagnostics }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+
+    // ============ AÇÃO: destravamento remoto (WiFi Access Controller "mk") ============
+    // Usa o fluxo password-ticket + password-free/open-door, que é o único endpoint
+    // público da Tuya que efetivamente aciona a fechadura das categorias mk.
+    if (action === "unlock") {
+      const unlocks: Array<{
+        deviceId: string;
+        success: boolean;
+        code?: number;
+        msg?: string;
+      }> = [];
+      for (const deviceId of deviceIds ?? []) {
+        try {
+          const tk = await tuyaRequest(
+            "POST",
+            `/v1.0/devices/${deviceId}/door-lock/password-ticket`,
+          );
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: `/v1.0/devices/${deviceId}/door-lock/password-ticket [unlock]`,
+            method: "POST",
+            response_payload: tk.data,
+            response_code: tk.data?.code ?? tk.httpStatus,
+            response_msg: tk.data?.msg ?? null,
+            success: !!tk.data?.success,
+            unidade,
+          });
+          if (!tk.data?.success) {
+            unlocks.push({
+              deviceId,
+              success: false,
+              code: tk.data?.code,
+              msg: tk.data?.msg ?? "ticket_failed",
+            });
+            continue;
+          }
+          const ticketId = tk.data.result.ticket_id;
+          const open = await tuyaRequest(
+            "POST",
+            `/v1.0/devices/${deviceId}/door-lock/password-free/open-door`,
+            { ticket_id: ticketId },
+          );
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: `/v1.0/devices/${deviceId}/door-lock/password-free/open-door`,
+            method: "POST",
+            request_payload: { ticket_id: "[TICKET]" },
+            response_payload: open.data,
+            response_code: open.data?.code ?? open.httpStatus,
+            response_msg: open.data?.msg ?? null,
+            success: !!open.data?.success,
+            unidade,
+          });
+          unlocks.push({
+            deviceId,
+            success: !!open.data?.success,
+            code: open.data?.code,
+            msg: open.data?.msg,
+          });
+        } catch (err) {
+          unlocks.push({
+            deviceId,
+            success: false,
+            msg: (err as Error).message,
+          });
+        }
+      }
+      return new Response(
+        JSON.stringify({ success: true, unlocks }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
+
 
 
 
