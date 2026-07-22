@@ -198,8 +198,8 @@ function CheckInDigitalModal({
   };
 
   const gerarSenhaTuya = async () => {
-    if (!nomeHospede.trim()) {
-      toast.error("Informe o nome do hóspede.");
+    if (!nomeValido) {
+      toast.error("Nome do hóspede: use entre 4 e 6 letras/números (sem espaços ou acentos). Ex: JOAO, MARIA1.");
       return;
     }
     if (!quartoDevice) {
@@ -210,10 +210,8 @@ function CheckInDigitalModal({
       toast.error("Nenhuma fechadura ativa para esta unidade.");
       return;
     }
-    const startTs = new Date(entrada).getTime();
-    const endTs = new Date(saida).getTime();
-    if (!(endTs > startTs)) {
-      toast.error("A saída deve ser posterior à entrada.");
+    if (datasError) {
+      toast.error(datasError);
       return;
     }
 
@@ -227,9 +225,9 @@ function CheckInDigitalModal({
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
         deviceIds,
-        guestName: nomeHospede,
-        startTime: startTs,
-        endTime: endTs,
+        guestName: nomeSanitizado,
+        startTime: entradaMs,
+        endTime: saidaMs,
         roomNumber,
         unidade,
       },
