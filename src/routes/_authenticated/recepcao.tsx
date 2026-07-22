@@ -36,6 +36,7 @@ import { useUnidade } from "@/lib/unidade-context";
 import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
+import { nowSP } from "@/lib/tz";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
