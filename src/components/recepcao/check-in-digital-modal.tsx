@@ -134,12 +134,11 @@ function CheckInDigitalModal({
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const nomePreview = nomeHospede
+  const nomePreviewBase = nomeHospede
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^A-Za-z0-9]/g, "")
-    .slice(0, 6)
-    .padEnd(4, "X") || "Guest";
+    .replace(/[^A-Za-z0-9]/g, "");
+  const nomePreview = `${(nomePreviewBase || "Guest").padEnd(4, "X").slice(0, 4)}##`;
 
 
   const entradaMs = new Date(entrada).getTime();
