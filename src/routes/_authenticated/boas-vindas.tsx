@@ -47,6 +47,7 @@ import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
 
 
 import { cn } from "@/lib/utils";
+import { nowSP, todaySP } from "@/lib/tz";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
 type RoomRow = {
