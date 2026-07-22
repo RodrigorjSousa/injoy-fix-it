@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { ArrowUpRight, TrendingUp, Building2, RefreshCw, ClipboardList, ShieldCheck, RefreshCcw, Clock, Wrench, KeyRound } from "lucide-react";
+import { ArrowUpRight, TrendingUp, Building2, RefreshCw, ClipboardList, ShieldCheck, RefreshCcw, Clock, Wrench } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Unidade } from "@/lib/store";
 import { useHotelMetrics } from "@/hooks/use-hotel-metrics";
@@ -11,7 +11,7 @@ import { StatusOperacaoQuartos } from "@/components/gestao/status-operacao-quart
 import { BookingReviewsCard } from "@/components/gestao/booking-reviews-card";
 import { CheckoutsCloudbedsCard } from "@/components/gestao/checkouts-cloudbeds-card";
 import { RecebimentosBalcaoCard } from "@/components/gestao/recebimentos-balcao-card";
-import { TuyaDevicesManagerModal } from "@/components/gestao/tuya-devices-manager";
+
 
 
 export const Route = createFileRoute("/_authenticated/gestao")({
