@@ -40,3 +40,18 @@ export function todaySP(): string {
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
 }
+
+/**
+ * Retorna o instante UTC real correspondente a um wall-clock em São Paulo.
+ * São Paulo não observa horário de verão desde 2019 e está fixo em UTC-3.
+ */
+export function spInstant(
+  year: number,
+  month: number,
+  day: number,
+  hour = 0,
+  minute = 0,
+  second = 0,
+): Date {
+  return new Date(Date.UTC(year, month - 1, day, hour + 3, minute, second));
+}
