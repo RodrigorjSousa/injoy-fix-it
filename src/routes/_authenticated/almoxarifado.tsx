@@ -455,27 +455,35 @@ function AlmoxarifadoAdmin() {
             </div>
           </div>
           <button
-            onClick={() => setShowSetores(true)}
+            onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
+              setShowSetores(true);
+            }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200"
           >
-            <Package size={14} /> Setores
-          </button>
-          <button
-            onClick={() => setShowReport(true)}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-          >
-            <FileText size={14} /> Relatório
+            <Package size={14} /> Setores {!unlocked && <Lock size={10} />}
           </button>
           <button
             onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
+              setShowReport(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
+          >
+            <FileText size={14} /> Relatório {!unlocked && <Lock size={10} />}
+          </button>
+          <button
+            onClick={() => {
+              if (!unlocked) { toast.error("Área protegida — informe a senha para acessar."); return; }
               setNovo((s) => ({ ...s, sector: s.sector || SETORES[0] || "" }));
               setShowNewItem(true);
             }}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
           >
-            <Plus size={14} /> Novo Item
+            <Plus size={14} /> Novo Item {!unlocked && <Lock size={10} />}
           </button>
         </div>
+
 
         {!unlocked && (
           <div className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 shadow-sm">
