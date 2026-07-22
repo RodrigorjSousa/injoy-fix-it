@@ -312,6 +312,25 @@ export function TuyaDevicesManager() {
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
+          {usaSenhaFixa(form.tipo) && (
+            <div className="md:col-span-2">
+              <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                Senha fixa compartilhada (cadastrada no app Tuya Smart)
+              </label>
+              <input
+                type="text"
+                inputMode="numeric"
+                value={form.senha_fixa}
+                onChange={(e) => setForm((f) => ({ ...f, senha_fixa: e.target.value.replace(/\D/g, "") }))}
+                placeholder="Ex: 123456"
+                maxLength={10}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono tracking-widest"
+              />
+              <p className="mt-1 text-[11px] text-slate-500">
+                Esta é a senha permanente que a recepção informa ao hóspede para portão/porta de vidro. Cadastre-a antes no app Tuya Smart e digite aqui a mesma senha.
+              </p>
+            </div>
+          )}
         </div>
         <button
           type="button"
