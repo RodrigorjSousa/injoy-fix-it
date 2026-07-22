@@ -1,0 +1,1 @@
+ALTER TABLE public.tuya_devices ADD COLUMN IF NOT EXISTS senha_fixa TEXT;

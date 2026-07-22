@@ -1678,6 +1678,7 @@ export type Database = {
           id: string
           label: string
           room_number: string | null
+          senha_fixa: string | null
           tipo: string
           unidade: string
           updated_at: string
@@ -1689,6 +1690,7 @@ export type Database = {
           id?: string
           label: string
           room_number?: string | null
+          senha_fixa?: string | null
           tipo: string
           unidade: string
           updated_at?: string
@@ -1700,6 +1702,7 @@ export type Database = {
           id?: string
           label?: string
           room_number?: string | null
+          senha_fixa?: string | null
           tipo?: string
           unidade?: string
           updated_at?: string
