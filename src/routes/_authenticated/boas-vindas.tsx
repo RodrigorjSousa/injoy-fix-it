@@ -497,7 +497,7 @@ function BoasVindas() {
                   <Sparkles size={10} /> Sistema Ativo
                 </span>
                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">
-                  {new Date().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
+                  {nowSP().toLocaleDateString("pt-BR", { weekday: "long", day: "numeric", month: "short" })}
                 </span>
               </div>
               <h2 className="text-4xl md:text-5xl font-black tracking-tight leading-tight">
