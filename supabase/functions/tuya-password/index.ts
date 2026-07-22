@@ -305,11 +305,12 @@ serve(async (req) => {
           ticket_id: ticketId,
           password: senhaCriptografada,
           password_type: "ticket",
+          type: 0,
           effective_time: effectiveTime,
           invalid_time: invalidTime,
         };
         const bodyCreate = isZigbeeRoomLock
-          ? { ...bodyCreateBase, type: 0, name: nomeTuya }
+          ? { ...bodyCreateBase, name: nomeTuya }
           : bodyCreateBase;
 
 
