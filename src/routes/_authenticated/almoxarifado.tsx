@@ -682,8 +682,16 @@ function AlmoxarifadoAdmin() {
           </TabsContent>
 
           <TabsContent value="solicitacoes" className="mt-4">
-            <SolicitacoesCompraPanel unidade={unidade} />
+            {!unlocked ? (
+              <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center text-slate-500">
+                <Lock className="mx-auto mb-2 text-amber-500" size={24} />
+                Área protegida. Informe a senha acima para acessar.
+              </div>
+            ) : (
+              <SolicitacoesCompraPanel unidade={unidade} />
+            )}
           </TabsContent>
+
 
           <TabsContent value="compras" className="mt-4">
             <ComprasForm
