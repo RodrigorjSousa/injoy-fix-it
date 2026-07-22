@@ -248,7 +248,7 @@ function BoasVindas() {
           .maybeSingle(),
         supabase
           .from("room_housekeeping")
-          .select("id, room_number, room_type, status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
+          .select("id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, pax, has_pending_payment, pending_payment_amount, has_pending_docs, arrival_time, assigned_task, updated_at")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
       ]);
@@ -260,9 +260,6 @@ function BoasVindas() {
             occupancy_percentage?: number | null;
             pending_balance?: number | null;
             pending_docs_count?: number | null;
-            clean_rooms?: number | null;
-            dirty_rooms?: number | null;
-            maintenance_rooms?: number | null;
           }
         | null;
       setRating(m?.rating != null ? Number(m.rating) : unidade === "Botafogo" ? 8.6 : 7.8);
@@ -271,23 +268,10 @@ function BoasVindas() {
         receberBalcao: Number(m?.pending_balance ?? 0),
         docsPendentes: Number(m?.pending_docs_count ?? 0),
       });
-      // "Em faxina" só existe no controle local
-      const emFaxinaLocal = (quartos ?? []).filter(
-        (r: { status: string | null; condition: string | null }) =>
-          r.status === "cleaning" && r.condition !== "maintenance",
-      ).length;
-      if (m) {
-        setStatusQuartos({
-          prontos: Number(m.clean_rooms ?? 0),
-          emFaxina: emFaxinaLocal,
-          sujos: Math.max(0, Number(m.dirty_rooms ?? 0) - emFaxinaLocal),
-          bloqueados: Number(m.maintenance_rooms ?? 0),
-        });
-      } else {
-        setStatusQuartos(
-          calcularStatus((quartos ?? []) as Array<{ status: string | null; condition: string | null }>),
-        );
-      }
+      // Fonte da verdade: produção das camareiras (room_housekeeping)
+      setStatusQuartos(
+        calcularStatus((quartos ?? []) as Array<{ status: string | null; service_status: string | null; condition: string | null }>),
+      );
     };
 
     const carregar = async () => {
