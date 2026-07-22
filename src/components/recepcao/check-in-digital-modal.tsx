@@ -479,7 +479,7 @@ function CheckInDigitalModal({
             <button
               type="button"
               onClick={gerarSenhaTuya}
-              disabled={isLoading || !devices || devices.length === 0 || !nomeValido || !!datasError}
+              disabled={isLoading || !devices || devices.length === 0 || !!datasError}
               className="w-full py-3 rounded-xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
