@@ -244,64 +244,6 @@ export function PainelControleRapido({ unidade }: Props) {
       <BonificacaoPanelModal open={bonifOpen} onOpenChange={setBonifOpen} unidade={unidade} />
       
 
-
-      {/* Modal Vistoria */}
-      <Dialog open={vistoriaOpen} onOpenChange={setVistoriaOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Vistoria da Recepção · INJOY {unidade}</DialogTitle>
-            <DialogDescription>
-              {vistoriados.length} de {totalQuartos} quartos vistoriados hoje
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-emerald-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <h4 className="text-xs font-black uppercase tracking-wide">
-                  Vistoriados ({vistoriados.length})
-                </h4>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto space-y-1 pr-1">
-                {vistoriados.length === 0 && (
-                  <p className="text-xs text-slate-500">Nenhum ainda hoje.</p>
-                )}
-                {vistoriados.map((r) => (
-                  <div
-                    key={r.room_number}
-                    className="text-xs font-bold rounded-md px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  >
-                    Quarto {r.room_number}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                <h4 className="text-xs font-black uppercase tracking-wide">
-                  Faltam ({naoVistoriados.length})
-                </h4>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto space-y-1 pr-1">
-                {naoVistoriados.length === 0 && (
-                  <p className="text-xs text-slate-500">Todos vistoriados! 🎉</p>
-                )}
-                {naoVistoriados.map((r) => (
-                  <div
-                    key={r.room_number}
-                    className="text-xs font-bold rounded-md px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200"
-                  >
-                    Quarto {r.room_number}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
