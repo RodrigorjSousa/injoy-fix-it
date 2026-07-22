@@ -29,7 +29,7 @@ export function useHotelMetrics() {
     setLoading(true);
     setError(null);
     try {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todaySP();
       const { data, error: qErr } = await supabase
         .from("hotel_metrics")
         .select("*")
