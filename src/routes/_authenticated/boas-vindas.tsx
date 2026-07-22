@@ -55,6 +55,7 @@ type RoomRow = {
   room_number: string;
   room_type: string | null;
   status: string | null;
+  service_status: string | null;
   condition: string | null;
   assigned_camareira: string | null;
   guest_name: string | null;
@@ -68,12 +69,14 @@ type RoomRow = {
 };
 
 type MetricDetail = "ocupacao" | "balcao" | "docs";
-function classifyRoom(r: Pick<RoomRow, "status" | "condition">): StatusKey | null {
+function classifyRoom(r: Pick<RoomRow, "status" | "service_status" | "condition">): StatusKey | null {
   if (r.condition === "maintenance") return "bloqueados";
+  if (r.service_status === "done") return "prontos";
+  if (r.service_status === "in_progress") return "emFaxina";
   if (r.status === "clean") return "prontos";
   if (r.status === "cleaning") return "emFaxina";
   if (r.status === "dirty") return "sujos";
-  return null;
+  return "sujos";
 }
 const STATUS_LABEL: Record<StatusKey, string> = {
   prontos: "Quartos Prontos e Liberados",
