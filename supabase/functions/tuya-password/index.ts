@@ -278,7 +278,11 @@ serve(async (req) => {
           effective_time: effectiveTime,
           invalid_time: invalidTime,
           type: 0,
-          name: (guestName ? guestName.replace(/[^A-Za-z0-9]/g, "").substring(0, 6).trim() : "Visita") || "Visita",
+          name: (() => {
+            const raw = (guestName ?? "").replace(/[^A-Za-z0-9]/g, "").slice(0, 6);
+            const base = raw.length >= 4 ? raw : (raw + "Guest").slice(0, 6);
+            return base || "Guest";
+          })(),
         };
 
 
