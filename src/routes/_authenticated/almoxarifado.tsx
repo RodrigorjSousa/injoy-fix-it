@@ -549,8 +549,9 @@ function AlmoxarifadoAdmin() {
         <Tabs value={activeTab} onValueChange={requireUnlock} className="w-full">
           <TabsList className="grid grid-cols-5 max-w-3xl">
             <TabsTrigger value="inventario">
-              <Package size={14} className="mr-1" /> Inventário {!unlocked && <Lock size={10} className="ml-1" />}
+              <Package size={14} className="mr-1" /> Inventário
             </TabsTrigger>
+
             <TabsTrigger value="solicitacoes">
               <ShoppingBag size={14} className="mr-1" /> Solicitações {!unlocked && <Lock size={10} className="ml-1" />}
             </TabsTrigger>
