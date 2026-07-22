@@ -428,16 +428,25 @@ function CheckInDigitalModal({
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                Nome do Hóspede
+                Nome do Hóspede <span className="text-slate-400 font-normal normal-case">(4–6 letras/números, sem espaços)</span>
               </label>
               <input
                 type="text"
                 value={nomeHospede}
                 onChange={(e) => setNomeHospede(e.target.value)}
-                placeholder="Ex: João Silva"
-                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                placeholder="Ex: JOAO, MARIA1"
+                maxLength={20}
+                className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${nomeError ? "border-red-400" : "border-slate-300"}`}
                 disabled={isLoading}
               />
+              <div className="mt-1 flex justify-between text-[11px]">
+                <span className={nomeError ? "text-red-600" : "text-slate-500"}>
+                  {nomeError ?? (nomeSanitizado ? `Será enviado à fechadura como: “${nomeSanitizado}”` : "A Tuya aceita apenas 4 a 6 caracteres alfanuméricos.")}
+                </span>
+                <span className={`font-mono ${nomeSanitizado.length > 6 ? "text-red-600" : "text-slate-400"}`}>
+                  {nomeSanitizado.length}/6
+                </span>
+              </div>
             </div>
             <div className="grid grid-cols-1 gap-3">
               <div>
@@ -448,7 +457,7 @@ function CheckInDigitalModal({
                   type="datetime-local"
                   value={entrada}
                   onChange={(e) => setEntrada(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${datasError ? "border-red-400" : "border-slate-300"}`}
                   disabled={isLoading}
                 />
               </div>
@@ -460,15 +469,22 @@ function CheckInDigitalModal({
                   type="datetime-local"
                   value={saida}
                   onChange={(e) => setSaida(e.target.value)}
-                  className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${datasError ? "border-red-400" : "border-slate-300"}`}
                   disabled={isLoading}
                 />
               </div>
+              {datasError ? (
+                <p className="text-[11px] text-red-600 -mt-2">{datasError}</p>
+              ) : (
+                <p className="text-[11px] text-slate-500 -mt-2">
+                  Estadia: {duracaoHoras.toFixed(1)}h · arredondada para a hora cheia pela Tuya.
+                </p>
+              )}
             </div>
             <button
               type="button"
               onClick={gerarSenhaTuya}
-              disabled={isLoading || !devices || devices.length === 0}
+              disabled={isLoading || !devices || devices.length === 0 || !nomeValido || !!datasError}
               className="w-full py-3 rounded-xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
