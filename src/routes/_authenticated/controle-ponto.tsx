@@ -7,6 +7,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { syncPontomais } from "@/lib/pontomais.functions";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { todaySP } from "@/lib/tz";
 
 export const Route = createFileRoute("/_authenticated/controle-ponto")({
   component: ControlePontoPage,
