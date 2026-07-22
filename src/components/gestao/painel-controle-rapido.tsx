@@ -86,9 +86,20 @@ export function PainelControleRapido({ unidade }: Props) {
         setChamados(counts);
       }
       const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
-      const checkInRooms = allRooms.filter((r) => isCheckInTask(r.assigned_task));
-      setRooms(checkInRooms.map((r) => ({ room_number: String(r.room_number) })));
-      setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => String(r.room_number))));
+      const inspectedSet = new Set(
+        (inspData ?? []).map((r: { room_number: string }) => String(r.room_number)),
+      );
+      // Inclui quartos com tarefa de check-in E quartos já vistoriados hoje
+      // (o modal de vistoria troca o assigned_task para "VERIFICAÇÃO" após liberar).
+      const relevantes = new Map<string, true>();
+      for (const r of allRooms) {
+        const num = String(r.room_number);
+        if (isCheckInTask(r.assigned_task) || inspectedSet.has(num)) {
+          relevantes.set(num, true);
+        }
+      }
+      setRooms(Array.from(relevantes.keys()).map((room_number) => ({ room_number })));
+      setInspectedToday(inspectedSet);
       setTrocasNovas((trocaData ?? []).length);
     };
 
