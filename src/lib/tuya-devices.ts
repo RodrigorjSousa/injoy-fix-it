@@ -10,6 +10,7 @@ export type TuyaDevice = {
   device_id: string;
   label: string;
   ativo: boolean;
+  senha_fixa: string | null;
 };
 
 let cache: Promise<TuyaDevice[]> | null = null;
@@ -19,7 +20,7 @@ export function loadTuyaDevices(force = false): Promise<TuyaDevice[]> {
     cache = (async () => {
       const { data, error } = await supabase
         .from("tuya_devices")
-        .select("id,unidade,tipo,room_number,device_id,label,ativo")
+        .select("id,unidade,tipo,room_number,device_id,label,ativo,senha_fixa")
         .eq("ativo", true);
       if (error) {
         cache = null;
