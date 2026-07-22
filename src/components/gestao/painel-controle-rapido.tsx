@@ -52,11 +52,11 @@ export function PainelControleRapido({ unidade }: Props) {
         today.getDate(),
       ).toISOString();
 
-      const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }, { data: funcData }] = await Promise.all([
+      const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
         supabase
           .from("room_housekeeping")
-          .select("room_number")
+          .select("room_number, assigned_task")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
         supabase
@@ -69,7 +69,6 @@ export function PainelControleRapido({ unidade }: Props) {
           .select("id")
           .eq("unidade", unidade)
           .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()),
-        supabase.from("funcionarios").select("id", { count: "exact", head: false }),
       ]);
 
       if (cancelled) return;
@@ -83,10 +82,11 @@ export function PainelControleRapido({ unidade }: Props) {
         }
         setChamados(counts);
       }
-      setRooms((roomsData ?? []) as Array<{ room_number: string }>);
+      const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
+      const checkInRooms = allRooms.filter((r) => isCheckInTask(r.assigned_task));
+      setRooms(checkInRooms.map((r) => ({ room_number: r.room_number })));
       setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => r.room_number)));
       setTrocasNovas((trocaData ?? []).length);
-      setFuncionariosCount((funcData ?? []).length);
     };
 
     carregar().catch((e) => console.error("[PainelControleRapido]", e));
