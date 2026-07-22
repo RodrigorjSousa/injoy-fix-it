@@ -55,13 +55,14 @@ export function PainelControleRapido({ unidade }: Props) {
     const carregar = async () => {
       const startISO = getCutoff().toISOString();
 
-      const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }] = await Promise.all([
+      const [
+        { data: chamadosData },
+        recepcaoRes,
+        { data: inspData },
+        { data: trocaData },
+      ] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
-        supabase
-          .from("room_housekeeping")
-          .select("room_number, assigned_task")
-          .eq("property", unidade)
-          .order("room_number", { ascending: true }),
+        supabase.functions.invoke(`dados-recepcao?property=${unidade}`, { method: "GET" }),
         supabase
           .from("room_inspections")
           .select("room_number, created_at")
@@ -85,20 +86,26 @@ export function PainelControleRapido({ unidade }: Props) {
         }
         setChamados(counts);
       }
-      const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
+      // Fonte de verdade: dados-recepcao (mesma base do card da Recepção).
+      // Só conta como "vistoria do dia" o que a Recepção mostra: quartos
+      // não bloqueados com tarefa de check-in OU já vistoriados hoje.
+      const recepcaoData = (recepcaoRes.data?.data ?? []) as Array<{
+        quarto: string;
+        assignedTask: string | null;
+        ocupacao: string;
+      }>;
       const inspectedSet = new Set(
         (inspData ?? []).map((r: { room_number: string }) => String(r.room_number)),
       );
-      // Inclui quartos com tarefa de check-in E quartos já vistoriados hoje
-      // (o modal de vistoria troca o assigned_task para "VERIFICAÇÃO" após liberar).
-      const relevantes = new Map<string, true>();
-      for (const r of allRooms) {
-        const num = String(r.room_number);
-        if (isCheckInTask(r.assigned_task) || inspectedSet.has(num)) {
-          relevantes.set(num, true);
+      const relevantes = new Set<string>();
+      for (const q of recepcaoData) {
+        const num = String(q.quarto);
+        if (q.ocupacao === "Bloqueado") continue;
+        if (isCheckInTask(q.assignedTask) || inspectedSet.has(num)) {
+          relevantes.add(num);
         }
       }
-      setRooms(Array.from(relevantes.keys()).map((room_number) => ({ room_number })));
+      setRooms(Array.from(relevantes).map((room_number) => ({ room_number })));
       setInspectedToday(inspectedSet);
       setTrocasNovas((trocaData ?? []).length);
     };
