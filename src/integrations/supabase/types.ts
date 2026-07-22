@@ -652,6 +652,65 @@ export type Database = {
         }
         Relationships: []
       }
+      inventory_movements: {
+        Row: {
+          created_at: string
+          destination: string | null
+          id: string
+          item_id: string | null
+          item_name: string
+          movement_type: string
+          notes: string | null
+          performed_by: string | null
+          performed_by_user_id: string | null
+          property: string
+          quantity: number
+          sector: string | null
+          source: string | null
+          unit_type: string | null
+        }
+        Insert: {
+          created_at?: string
+          destination?: string | null
+          id?: string
+          item_id?: string | null
+          item_name: string
+          movement_type: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_user_id?: string | null
+          property: string
+          quantity: number
+          sector?: string | null
+          source?: string | null
+          unit_type?: string | null
+        }
+        Update: {
+          created_at?: string
+          destination?: string | null
+          id?: string
+          item_id?: string | null
+          item_name?: string
+          movement_type?: string
+          notes?: string | null
+          performed_by?: string | null
+          performed_by_user_id?: string | null
+          property?: string
+          quantity?: number
+          sector?: string | null
+          source?: string | null
+          unit_type?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "inventory_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       inventory_requests: {
         Row: {
           audited_by: string | null
