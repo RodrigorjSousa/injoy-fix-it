@@ -405,9 +405,6 @@ serve(async (req) => {
           continue;
         }
 
-        // ============ FLUXO ORIGINAL: door-lock (Zigbee door lock) ============
-        }
-
         // ============ FLUXO ORIGINAL: door-lock (Zigbee/Wi-Fi door lock) ============
         // --- PASSO A: Obter o Ticket de Segurança (Password Ticket) ---
         const tTicket = Date.now().toString();
