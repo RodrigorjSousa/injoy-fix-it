@@ -106,7 +106,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
       const { data, error } = await supabase
         .from("room_housekeeping")
         .select(
-          "id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at",
+          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at",
         )
         .eq("property", unidade)
         .order("room_number", { ascending: true });
