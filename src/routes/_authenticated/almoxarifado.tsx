@@ -608,8 +608,13 @@ function AlmoxarifadoAdmin() {
                                     <input
                                       type="text"
                                       defaultValue={it.name}
+                                      readOnly={!unlocked}
+                                      disabled={!unlocked}
                                       onChange={(e) => updateDirty(it.id, { name: e.target.value })}
-                                      className="w-full min-w-[160px] border border-slate-200 rounded-md px-2 py-1 text-sm font-semibold focus:outline-none focus:border-blue-500"
+                                      className={cn(
+                                        "w-full min-w-[160px] border border-slate-200 rounded-md px-2 py-1 text-sm font-semibold focus:outline-none focus:border-blue-500",
+                                        !unlocked && "bg-slate-50 text-slate-700 cursor-default",
+                                      )}
                                     />
                                   </div>
                                 </td>
@@ -618,6 +623,8 @@ function AlmoxarifadoAdmin() {
                                     type="number"
                                     min={0}
                                     defaultValue={it.current_stock}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) =>
                                       updateDirty(it.id, {
                                         current_stock: Math.max(0, parseInt(e.target.value || "0", 10)),
@@ -626,6 +633,7 @@ function AlmoxarifadoAdmin() {
                                     className={cn(
                                       "w-20 border rounded-md px-2 py-1 text-center text-sm font-bold",
                                       critico ? "border-red-300 text-red-700" : "border-slate-200",
+                                      !unlocked && "bg-slate-50 cursor-default",
                                     )}
                                   />
                                 </td>
@@ -634,56 +642,73 @@ function AlmoxarifadoAdmin() {
                                     type="number"
                                     min={0}
                                     defaultValue={it.min_stock}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) =>
                                       updateDirty(it.id, {
                                         min_stock: Math.max(0, parseInt(e.target.value || "0", 10)),
                                       })
                                     }
-                                    className="w-20 border border-slate-200 rounded-md px-2 py-1 text-center text-sm"
+                                    className={cn(
+                                      "w-20 border border-slate-200 rounded-md px-2 py-1 text-center text-sm",
+                                      !unlocked && "bg-slate-50 cursor-default",
+                                    )}
                                   />
                                 </td>
                                 <td className="p-2">
                                   <input
                                     type="text"
                                     defaultValue={it.unit_type}
+                                    readOnly={!unlocked}
+                                    disabled={!unlocked}
                                     onChange={(e) => updateDirty(it.id, { unit_type: e.target.value })}
-                                    className="w-24 border border-slate-200 rounded-md px-2 py-1 text-center text-xs focus:outline-none focus:border-blue-500"
+                                    className={cn(
+                                      "w-24 border border-slate-200 rounded-md px-2 py-1 text-center text-xs focus:outline-none focus:border-blue-500",
+                                      !unlocked && "bg-slate-50 cursor-default",
+                                    )}
                                   />
                                 </td>
                                 <td className="p-2">
-                                  <div className="flex items-center gap-1">
-                                    <button
-                                      onClick={() => salvar(it)}
-                                      disabled={!changed || savingId === it.id}
-                                      className={cn(
-                                        "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
-                                        changed
-                                          ? "bg-blue-600 hover:bg-blue-700 text-white"
-                                          : "bg-slate-100 text-slate-400 cursor-not-allowed",
-                                      )}
-                                    >
-                                      {savingId === it.id ? (
-                                        <Loader2 size={12} className="animate-spin" />
-                                      ) : (
-                                        <Save size={12} />
-                                      )}
-                                      Salvar
-                                    </button>
-                                    <button
-                                      onClick={() => excluir(it)}
-                                      disabled={deletingId === it.id}
-                                      title="Excluir item"
-                                      className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
-                                    >
-                                      {deletingId === it.id ? (
-                                        <Loader2 size={12} className="animate-spin" />
-                                      ) : (
-                                        <Trash2 size={12} />
-                                      )}
-                                    </button>
-                                  </div>
+                                  {unlocked ? (
+                                    <div className="flex items-center gap-1">
+                                      <button
+                                        onClick={() => salvar(it)}
+                                        disabled={!changed || savingId === it.id}
+                                        className={cn(
+                                          "inline-flex items-center gap-1 px-2.5 py-1.5 rounded-md text-xs font-bold",
+                                          changed
+                                            ? "bg-blue-600 hover:bg-blue-700 text-white"
+                                            : "bg-slate-100 text-slate-400 cursor-not-allowed",
+                                        )}
+                                      >
+                                        {savingId === it.id ? (
+                                          <Loader2 size={12} className="animate-spin" />
+                                        ) : (
+                                          <Save size={12} />
+                                        )}
+                                        Salvar
+                                      </button>
+                                      <button
+                                        onClick={() => excluir(it)}
+                                        disabled={deletingId === it.id}
+                                        title="Excluir item"
+                                        className="inline-flex items-center justify-center h-7 w-7 rounded-md bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 disabled:opacity-50"
+                                      >
+                                        {deletingId === it.id ? (
+                                          <Loader2 size={12} className="animate-spin" />
+                                        ) : (
+                                          <Trash2 size={12} />
+                                        )}
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                                      <Lock size={10} /> Consulta
+                                    </span>
+                                  )}
                                 </td>
                               </tr>
+
                             );
                           })}
                         </tbody>
