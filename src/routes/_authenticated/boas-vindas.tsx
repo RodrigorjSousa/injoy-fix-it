@@ -117,13 +117,11 @@ type Clima = {
 
 const EMPTY_STATUS: StatusQuartos = { prontos: 0, emFaxina: 0, sujos: 0, bloqueados: 0 };
 
-function calcularStatus(rows: Array<{ status: string | null; condition: string | null }>): StatusQuartos {
+function calcularStatus(rows: Array<{ status: string | null; service_status: string | null; condition: string | null }>): StatusQuartos {
   const c = { ...EMPTY_STATUS };
   for (const r of rows) {
-    if (r.condition === "maintenance") c.bloqueados++;
-    else if (r.status === "clean") c.prontos++;
-    else if (r.status === "cleaning") c.emFaxina++;
-    else if (r.status === "dirty") c.sujos++;
+    const k = classifyRoom(r);
+    if (k) c[k]++;
   }
   return c;
 }
