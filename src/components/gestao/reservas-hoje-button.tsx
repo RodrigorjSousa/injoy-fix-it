@@ -21,11 +21,6 @@ function fmtData(iso: string): string {
   return `${d}/${m}/${y}`;
 }
 
-function todayISO() {
-  const d = new Date();
-  const off = d.getTimezoneOffset();
-  return new Date(d.getTime() - off * 60_000).toISOString().slice(0, 10);
-}
 
 export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
   const [open, setOpen] = useState(false);
