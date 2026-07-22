@@ -264,6 +264,7 @@ serve(async (req) => {
         JSON.stringify({ success: true, diagnostics }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
+    }
 
     // ============ AÇÃO: destravamento remoto (WiFi Access Controller "mk") ============
     // Usa o fluxo password-ticket + password-free/open-door, que é o único endpoint
