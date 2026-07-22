@@ -29,7 +29,7 @@ export function ReservasHojeButton({ unidade }: { unidade: Unidade }) {
   const [reservas, setReservas] = useState<ReservaHoje[] | null>(null);
   const [totalReceita, setTotalReceita] = useState(0);
   const [dataRef, setDataRef] = useState<string>("");
-  const [dataSelecionada, setDataSelecionada] = useState<string>(todayISO());
+  const [dataSelecionada, setDataSelecionada] = useState<string>(todaySP());
   const call = useServerFn(getReservasHoje);
 
   async function carregar(dateISO?: string) {
