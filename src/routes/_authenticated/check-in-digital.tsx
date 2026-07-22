@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Key } from "lucide-react";
+import { useState } from "react";
+import { Key, KeyRound } from "lucide-react";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import { TuyaLogsButton } from "@/components/recepcao/tuya-logs-modal";
 import { AbrirPortasRemoto } from "@/components/recepcao/abrir-portas-remoto";
 import { SenhasAtivasPanel } from "@/components/recepcao/senhas-ativas-panel";
+import { TuyaDevicesManagerModal } from "@/components/gestao/tuya-devices-manager";
 import { useUnidade } from "@/lib/unidade-context";
 
 export const Route = createFileRoute("/_authenticated/check-in-digital")({
@@ -12,6 +14,8 @@ export const Route = createFileRoute("/_authenticated/check-in-digital")({
 
 function CheckInDigitalPage() {
   const { unidade } = useUnidade();
+  const [tuyaOpen, setTuyaOpen] = useState(false);
+
 
   return (
     <div className="space-y-6">
