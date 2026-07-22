@@ -211,6 +211,14 @@ serve(async (req) => {
 
     // 2. Gerar UMA ÚNICA senha de 6 dígitos para todas as portas
     const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
+    const senhaWifi = Math.floor(1000000 + Math.random() * 9000000).toString();
+    const { data: deviceRows } = await supabaseAdmin
+      .from("tuya_devices")
+      .select("device_id,tipo")
+      .in("device_id", deviceIds ?? []);
+    const tipoPorDeviceId = new Map<string, string>(
+      (deviceRows ?? []).map((row: any) => [String(row.device_id), String(row.tipo ?? "")]),
+    );
 
     // 3. Loop para Gravar a Senha Online nas Fechaduras
     for (const deviceId of deviceIds) {
@@ -253,48 +261,95 @@ serve(async (req) => {
           continue;
         }
 
+        const isZigbeeRoomLock = tipoPorDeviceId.get(String(deviceId)) === "quarto";
+
+        if (!isZigbeeRoomLock) {
+          const tSync = Date.now().toString();
+          const urlSync = `/v1.0/smart-lock/devices/${deviceId}/opmodes/actions/sync?codes=unlock_password`;
+          const signStrSync = `POST\n${await calcSha256("")}\n\n${urlSync}`;
+          const signSync = await calcSign(clientId, accessToken, tSync, "", signStrSync, secret);
+          const syncRes = await fetch(`${baseUrl}${urlSync}`, {
+            method: "POST",
+            headers: {
+              client_id: clientId,
+              access_token: accessToken,
+              sign: signSync,
+              t: tSync,
+              sign_method: "HMAC-SHA256",
+            },
+          });
+          const syncData = await syncRes.json();
+          await logTuyaCall({
+            device_id: deviceId,
+            endpoint: urlSync,
+            method: "POST",
+            response_payload: syncData,
+            response_code: syncData?.code ?? null,
+            response_msg: syncData?.msg ?? null,
+            success: !!syncData?.success,
+            guest_name: guestName,
+            room_number: roomNumber,
+            unidade,
+          });
+        }
+
         const ticketId = ticketData.result.ticket_id;
         const ticketKeyHex = ticketData.result.ticket_key as string;
 
         // --- PASSO B: Criptografar a senha com o ticket_key ---
-        // Docs Tuya: `ticket_key` já É a chave AES em formato HEX (64 chars = 32 bytes).
-        // Deve ser interpretada como bytes hex (AES-256-ECB), não como texto UTF-8.
-        const aesKey = CryptoJS.enc.Hex.parse(ticketKeyHex);
-        const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaUnificada);
+        // Fluxo correto Tuya:
+        // 1) `ticket_key` vem criptografado em HEX e precisa ser descriptografado
+        //    com o Access Secret como texto UTF-8 (AES/ECB/PKCS7).
+        // 2) A senha numérica é criptografada com a chave original descriptografada.
+        const encryptedTicketKeyHex = CryptoJS.enc.Hex.parse(ticketKeyHex);
+        const encryptedTicketKeyBase64 = CryptoJS.enc.Base64.stringify(encryptedTicketKeyHex);
+        const accessSecretKey = CryptoJS.enc.Utf8.parse(secret);
+        const aesKey = CryptoJS.AES.decrypt(encryptedTicketKeyBase64, accessSecretKey, {
+          mode: CryptoJS.mode.ECB,
+          padding: CryptoJS.pad.Pkcs7,
+        });
+
+        if (!aesKey.sigBytes || aesKey.sigBytes < 16) {
+          throw new Error("Ticket Tuya inválido: chave descriptografada vazia.");
+        }
+
+        const senhaOriginal = isZigbeeRoomLock ? senhaUnificada : senhaWifi;
+        const plaintextUtf8 = CryptoJS.enc.Utf8.parse(senhaOriginal);
         const encrypted = CryptoJS.AES.encrypt(plaintextUtf8, aesKey, {
           mode: CryptoJS.mode.ECB,
           padding: CryptoJS.pad.Pkcs7,
         });
 
-        // A string final precisa ser Hexadecimal estritamente em letras MINÚSCULAS
-        const senhaCriptografada = encrypted.ciphertext.toString(CryptoJS.enc.Hex).toLowerCase();
+        const senhaCriptografada = encrypted.ciphertext.toString(CryptoJS.enc.Hex).toUpperCase();
+        const nomeTuya = (() => {
+          const normalized = (guestName ?? "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .replace(/[^A-Za-z0-9]/g, "");
+          const base = normalized.length === 0 ? "Guest" : normalized.padEnd(4, "X");
+          return `${base.slice(0, 4)}${senhaOriginal.slice(-2)}`;
+        })();
 
         // --- PASSO C: Enviar a Senha para a Fechadura (Online) ---
         const tCreate = Date.now().toString();
-        const bodyCreate = {
+        const bodyCreateBase = {
           ticket_id: ticketId,
           password: senhaCriptografada,
           password_type: "ticket",
+          type: 0,
           effective_time: effectiveTime,
           invalid_time: invalidTime,
-          type: 0,
-          name: (() => {
-            const normalized = (guestName ?? "")
-              .normalize("NFD")
-              .replace(/[\u0300-\u036f]/g, "")
-              .replace(/[^A-Za-z0-9]/g, "");
-            if (normalized.length === 0) return "Guest";
-            if (normalized.length > 6) return normalized.slice(0, 6);
-            if (normalized.length < 4) return normalized.padEnd(4, "X");
-            return normalized;
-          })(),
-
         };
+        const bodyCreate = isZigbeeRoomLock
+          ? { ...bodyCreateBase, name: nomeTuya }
+          : bodyCreateBase;
 
 
 
         const bodyCreateStr = JSON.stringify(bodyCreate);
-        const urlCreate = `/v1.0/devices/${deviceId}/door-lock/temp-password`;
+        const urlCreate = isZigbeeRoomLock
+          ? `/v1.0/devices/${deviceId}/door-lock/temp-password`
+          : `/v2.0/devices/${deviceId}/door-lock/temp-password`;
         const signStrCreate = `POST\n${await calcSha256(bodyCreateStr)}\n\n${urlCreate}`;
         const signCreate = await calcSign(clientId, accessToken, tCreate, "", signStrCreate, secret);
 
@@ -329,7 +384,7 @@ serve(async (req) => {
         });
 
         if (createData.success) {
-          senhasGeradas[deviceId] = senhaUnificada;
+          senhasGeradas[deviceId] = senhaOriginal;
           senhaIds[deviceId] =
             createData.result?.id ?? createData.result?.password_id ?? "";
         }
