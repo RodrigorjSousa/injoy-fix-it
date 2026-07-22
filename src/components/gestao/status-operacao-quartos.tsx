@@ -18,18 +18,24 @@ type Room = {
   room_number: string;
   room_type: string | null;
   status: string | null;
+  service_status: string | null;
   condition: string | null;
   assigned_camareira: string | null;
   guest_name: string | null;
   updated_at: string;
 };
 
-function classify(r: Pick<Room, "status" | "condition">): StatusKey | null {
+function classify(r: Pick<Room, "status" | "service_status" | "condition">): StatusKey | null {
+  // Bloqueio (manutenção) tem prioridade sobre qualquer outro status
   if (r.condition === "maintenance") return "bloqueados";
+  // A produção da camareira é a fonte da verdade: service_status
+  if (r.service_status === "done") return "prontos";
+  if (r.service_status === "in_progress") return "emFaxina";
+  // Fallback pelo status bruto quando service_status estiver ausente
   if (r.status === "clean") return "prontos";
   if (r.status === "cleaning") return "emFaxina";
   if (r.status === "dirty") return "sujos";
-  return null;
+  return "sujos";
 }
 
 const CARDS: {
@@ -100,7 +106,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
       const { data, error } = await supabase
         .from("room_housekeeping")
         .select(
-          "id, room_number, room_type, status, condition, assigned_camareira, guest_name, updated_at",
+          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at",
         )
         .eq("property", unidade)
         .order("room_number", { ascending: true });
