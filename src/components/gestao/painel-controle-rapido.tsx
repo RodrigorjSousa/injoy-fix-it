@@ -47,10 +47,10 @@ export function PainelControleRapido({ unidade }: Props) {
 
     const getCutoff = () => {
       const now = nowSP();
-      const cutoff = new Date(now);
-      cutoff.setHours(23, 0, 0, 0);
-      if (now.getHours() < 23) cutoff.setDate(cutoff.getDate() - 1);
-      return cutoff;
+      const wall = new Date(now);
+      wall.setHours(23, 0, 0, 0);
+      if (now.getHours() < 23) wall.setDate(wall.getDate() - 1);
+      return spInstant(wall.getFullYear(), wall.getMonth() + 1, wall.getDate(), 23, 0, 0);
     };
 
     const carregar = async () => {
