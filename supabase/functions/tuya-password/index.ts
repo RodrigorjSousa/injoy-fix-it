@@ -265,11 +265,13 @@ serve(async (req) => {
         const bodyCreate = {
           ticket_id: ticketId,
           password: senhaCriptografada,
+          password_type: "ticket",
           effective_time: effectiveTime,
           invalid_time: invalidTime,
           type: 2,
           name: guestName ? guestName.substring(0, 10).trim() : "Visita",
         };
+
 
         const bodyCreateStr = JSON.stringify(bodyCreate);
         const urlCreate = `/v1.0/devices/${deviceId}/door-lock/temp-password`;
