@@ -4,25 +4,16 @@ import {
   Wrench,
   ClipboardCheck,
   RefreshCw,
-  Clock,
   ArrowUpRight,
-  CheckCircle2,
-  AlertCircle,
   Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useMe } from "@/lib/store";
+import { isCheckInTask } from "@/lib/task-labels";
 
 
 type Props = {
@@ -43,10 +34,7 @@ export function PainelControleRapido({ unidade }: Props) {
   const [rooms, setRooms] = useState<Array<{ room_number: string }>>([]);
   const [inspectedToday, setInspectedToday] = useState<Set<string>>(new Set());
   const [trocasNovas, setTrocasNovas] = useState<number>(0);
-  const [funcionariosCount, setFuncionariosCount] = useState<number>(0);
-  const [vistoriaOpen, setVistoriaOpen] = useState(false);
   const [bonifOpen, setBonifOpen] = useState(false);
-  const [pontoOpen, setPontoOpen] = useState(false);
   const { data: registrosBonif = [] } = useRegistrosBonificacaoMes(unidade);
   const totalBonif = useMemo(
     () => registrosBonif.reduce((s, r) => s + Number(r.valor_calculado), 0),
@@ -64,11 +52,11 @@ export function PainelControleRapido({ unidade }: Props) {
         today.getDate(),
       ).toISOString();
 
-      const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }, { data: funcData }] = await Promise.all([
+      const [{ data: chamadosData }, { data: roomsData }, { data: inspData }, { data: trocaData }] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
         supabase
           .from("room_housekeeping")
-          .select("room_number")
+          .select("room_number, assigned_task")
           .eq("property", unidade)
           .order("room_number", { ascending: true }),
         supabase
@@ -81,7 +69,6 @@ export function PainelControleRapido({ unidade }: Props) {
           .select("id")
           .eq("unidade", unidade)
           .gte("created_at", new Date(Date.now() - 60 * 60 * 1000).toISOString()),
-        supabase.from("funcionarios").select("id", { count: "exact", head: false }),
       ]);
 
       if (cancelled) return;
@@ -95,10 +82,11 @@ export function PainelControleRapido({ unidade }: Props) {
         }
         setChamados(counts);
       }
-      setRooms((roomsData ?? []) as Array<{ room_number: string }>);
+      const allRooms = (roomsData ?? []) as Array<{ room_number: string; assigned_task: string | null }>;
+      const checkInRooms = allRooms.filter((r) => isCheckInTask(r.assigned_task));
+      setRooms(checkInRooms.map((r) => ({ room_number: r.room_number })));
       setInspectedToday(new Set((inspData ?? []).map((r: { room_number: string }) => r.room_number)));
       setTrocasNovas((trocaData ?? []).length);
-      setFuncionariosCount((funcData ?? []).length);
     };
 
     carregar().catch((e) => console.error("[PainelControleRapido]", e));
@@ -117,6 +105,7 @@ export function PainelControleRapido({ unidade }: Props) {
     () => rooms.filter((r) => !inspectedToday.has(r.room_number)),
     [rooms, inspectedToday],
   );
+  void naoVistoriados;
 
   const cardBase =
     "relative bg-slate-900 rounded-2xl border border-slate-800 p-5 cursor-pointer hover:bg-slate-800 transition-all group flex flex-col justify-between min-h-[190px]";
@@ -164,9 +153,8 @@ export function PainelControleRapido({ unidade }: Props) {
 
         {/* CARD 2 - Vistoria da Recepção (apenas Gestor/Admin) */}
         {isGestor && (
-        <button
-          type="button"
-          onClick={() => setVistoriaOpen(true)}
+        <Link
+          to="/historico-vistorias"
           className={cn(cardBase, "text-left")}
         >
           <div className="flex items-start justify-between">
@@ -180,7 +168,7 @@ export function PainelControleRapido({ unidade }: Props) {
               {vistoriados.length}
               <span className="text-slate-500"> / {totalQuartos || 0}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2">Quartos vistoriados hoje</p>
+            <p className="text-xs text-slate-500 mt-2">Check-ins vistoriados hoje</p>
           </div>
           <div className="mt-4 h-1.5 rounded-full bg-slate-800 overflow-hidden">
             <div
@@ -190,7 +178,7 @@ export function PainelControleRapido({ unidade }: Props) {
               }}
             />
           </div>
-        </button>
+        </Link>
         )}
 
         {/* CARD 3 - Troca de Turnos */}
@@ -257,64 +245,6 @@ export function PainelControleRapido({ unidade }: Props) {
       <BonificacaoPanelModal open={bonifOpen} onOpenChange={setBonifOpen} unidade={unidade} />
       
 
-
-      {/* Modal Vistoria */}
-      <Dialog open={vistoriaOpen} onOpenChange={setVistoriaOpen}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Vistoria da Recepção · INJOY {unidade}</DialogTitle>
-            <DialogDescription>
-              {vistoriados.length} de {totalQuartos} quartos vistoriados hoje
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="grid grid-cols-2 gap-3 mt-2">
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-emerald-600">
-                <CheckCircle2 className="h-4 w-4" />
-                <h4 className="text-xs font-black uppercase tracking-wide">
-                  Vistoriados ({vistoriados.length})
-                </h4>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto space-y-1 pr-1">
-                {vistoriados.length === 0 && (
-                  <p className="text-xs text-slate-500">Nenhum ainda hoje.</p>
-                )}
-                {vistoriados.map((r) => (
-                  <div
-                    key={r.room_number}
-                    className="text-xs font-bold rounded-md px-2 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  >
-                    Quarto {r.room_number}
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center gap-2 mb-2 text-amber-600">
-                <AlertCircle className="h-4 w-4" />
-                <h4 className="text-xs font-black uppercase tracking-wide">
-                  Faltam ({naoVistoriados.length})
-                </h4>
-              </div>
-              <div className="max-h-[45vh] overflow-y-auto space-y-1 pr-1">
-                {naoVistoriados.length === 0 && (
-                  <p className="text-xs text-slate-500">Todos vistoriados! 🎉</p>
-                )}
-                {naoVistoriados.map((r) => (
-                  <div
-                    key={r.room_number}
-                    className="text-xs font-bold rounded-md px-2 py-1 bg-amber-50 text-amber-700 border border-amber-200"
-                  >
-                    Quarto {r.room_number}
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
