@@ -309,8 +309,18 @@ function Configuracoes() {
 
 
       <section className="space-y-3">
-        <h2 className="font-semibold text-lg">Funcionários cadastrados</h2>
-        <div className="space-y-2">
+        <Accordion type="single" collapsible defaultValue="">
+          <AccordionItem value="funcionarios" className="border rounded-lg bg-card">
+            <AccordionTrigger className="px-4 hover:no-underline">
+              <span className="font-semibold text-lg">
+                Funcionários cadastrados{" "}
+                <span className="text-sm text-muted-foreground font-normal">
+                  ({funcionarios.length})
+                </span>
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-4 pb-4">
+              <div className="space-y-2">
           {funcionarios.map((f) => (
             <Card key={f.id} className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
@@ -393,7 +403,10 @@ function Configuracoes() {
           {funcionarios.length === 0 && (
             <p className="text-sm text-muted-foreground text-center py-6">Nenhum funcionário cadastrado.</p>
           )}
-        </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        </Accordion>
       </section>
 
       <SenhaResetTurno />
