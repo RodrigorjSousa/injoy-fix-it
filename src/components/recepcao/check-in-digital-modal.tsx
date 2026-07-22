@@ -87,11 +87,10 @@ export function CheckInDigitalButton({
     <>
       <button
         type="button"
-        disabled
-        title="Temporariamente indisponível — aguardando suporte técnico da Tuya sobre o algoritmo de criptografia da senha online."
-        className="w-full py-2.5 rounded-xl font-bold text-sm border border-neutral-300 bg-neutral-100 text-neutral-500 flex items-center justify-center gap-2 cursor-not-allowed opacity-70"
+        onClick={() => setOpen(true)}
+        className="w-full py-2.5 rounded-xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2 transition-all"
       >
-        <Key size={16} /> Check-in Digital Online (em análise)
+        <Key size={16} /> Gerar Senha de Check-in Digital
       </button>
 
       {open && (
