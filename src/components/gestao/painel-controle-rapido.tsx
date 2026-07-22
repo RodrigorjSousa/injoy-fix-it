@@ -175,24 +175,30 @@ export function PainelControleRapido({ unidade }: Props) {
         {isGestor && (
         <Link
           to="/historico-vistorias"
-          className={cn(cardBase, "text-left")}
+          className={cn(cardBase, "text-left overflow-hidden pb-7")}
         >
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Vistoria da Recepção
             </p>
-            <ClipboardCheck className="h-5 w-5 text-indigo-400" />
+            <ClipboardCheck className="h-5 w-5 text-emerald-400" />
           </div>
           <div className="mt-4">
             <p className="text-4xl font-black text-white leading-none">
               {vistoriados.length}
               <span className="text-slate-500"> / {totalQuartos || 0}</span>
             </p>
-            <p className="text-xs text-slate-500 mt-2">Check-ins vistoriados hoje</p>
+            <p className="text-xs text-slate-500 mt-2">
+              {totalQuartos - vistoriados.length > 0
+                ? `Falta${totalQuartos - vistoriados.length > 1 ? "m" : ""} ${totalQuartos - vistoriados.length} vistoria${totalQuartos - vistoriados.length > 1 ? "s" : ""} hoje`
+                : totalQuartos > 0
+                  ? "Todas as vistorias concluídas"
+                  : "Sem check-ins hoje"}
+            </p>
           </div>
-          <div className="mt-4 h-1.5 rounded-full bg-slate-800 overflow-hidden">
+          <div className="absolute left-0 right-0 bottom-0 h-2 bg-slate-800 overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full transition-all"
+              className="h-full bg-emerald-500 transition-all duration-500"
               style={{
                 width: `${totalQuartos ? Math.round((vistoriados.length / totalQuartos) * 100) : 0}%`,
               }}
@@ -200,6 +206,7 @@ export function PainelControleRapido({ unidade }: Props) {
           </div>
         </Link>
         )}
+
 
         {/* CARD 3 - Troca de Turnos */}
         <Link to="/relatorios-turno" className={cardBase}>
