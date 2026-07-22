@@ -340,16 +340,12 @@ serve(async (req) => {
           effective_time: effectiveTime,
           invalid_time: invalidTime,
         };
-        const bodyCreate = isZigbeeRoomLock
-          ? { ...bodyCreateBase, name: nomeTuya }
-          : bodyCreateBase;
-
-
+        // Ambos (Zigbee e Wi-Fi) usam o endpoint V1, que exige `name`.
+        // O V2 estava retornando 500 "system error" para as fechaduras Wi-Fi.
+        const bodyCreate = { ...bodyCreateBase, name: nomeTuya };
 
         const bodyCreateStr = JSON.stringify(bodyCreate);
-        const urlCreate = isZigbeeRoomLock
-          ? `/v1.0/devices/${deviceId}/door-lock/temp-password`
-          : `/v2.0/devices/${deviceId}/door-lock/temp-password`;
+        const urlCreate = `/v1.0/devices/${deviceId}/door-lock/temp-password`;
         const signStrCreate = `POST\n${await calcSha256(bodyCreateStr)}\n\n${urlCreate}`;
         const signCreate = await calcSign(clientId, accessToken, tCreate, "", signStrCreate, secret);
 
