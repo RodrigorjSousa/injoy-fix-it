@@ -39,6 +39,7 @@ import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authentic
 import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
+import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
@@ -204,6 +205,11 @@ const AuthenticatedAlmoxarifadoRoute =
     path: '/almoxarifado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
+  id: '/api/public/tuya-cleanup',
+  path: '/api/public/tuya-cleanup',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPushDispatcherRoute = ApiPublicPushDispatcherRouteImport.update({
   id: '/api/public/push-dispatcher',
   path: '/api/public/push-dispatcher',
@@ -254,6 +260,7 @@ export interface FileRoutesByFullPath {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
 }
 export interface FileRoutesByTo {
   '/manutencao': typeof ManutencaoRoute
@@ -287,6 +294,7 @@ export interface FileRoutesByTo {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -323,6 +331,7 @@ export interface FileRoutesById {
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -359,6 +368,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
+    | '/api/public/tuya-cleanup'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/manutencao'
@@ -392,6 +402,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
+    | '/api/public/tuya-cleanup'
   id:
     | '__root__'
     | '/_authenticated'
@@ -427,6 +438,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chamados/$id'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
+    | '/api/public/tuya-cleanup'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -435,6 +447,7 @@ export interface RootRouteChildren {
   ManutencaoRoute: typeof ManutencaoRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
+  ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -649,6 +662,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/api/public/tuya-cleanup': {
+      id: '/api/public/tuya-cleanup'
+      path: '/api/public/tuya-cleanup'
+      fullPath: '/api/public/tuya-cleanup'
+      preLoaderRoute: typeof ApiPublicTuyaCleanupRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/push-dispatcher': {
       id: '/api/public/push-dispatcher'
       path: '/api/public/push-dispatcher'
@@ -752,6 +772,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManutencaoRoute: ManutencaoRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
+  ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
