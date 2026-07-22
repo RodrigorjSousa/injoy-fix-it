@@ -14,6 +14,7 @@ import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useMe } from "@/lib/store";
 import { isCheckInTask } from "@/lib/task-labels";
+import { nowSP } from "@/lib/tz";
 
 
 type Props = {
