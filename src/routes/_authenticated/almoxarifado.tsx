@@ -517,8 +517,9 @@ function AlmoxarifadoAdmin() {
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-black text-amber-900">Área protegida</p>
                 <p className="text-[11px] text-amber-700 mb-2">
-                  Informe a senha para acessar Inventário, Solicitações, Auditoria e Histórico. A aba <b>Compras</b> permanece livre.
+                  Informe a senha para editar itens, gerenciar Solicitações, Auditoria e Histórico. As abas <b>Compras</b> e <b>Inventário</b> (consulta) permanecem livres.
                 </p>
+
                 <div className="flex gap-2">
                   <input
                     type="password"
