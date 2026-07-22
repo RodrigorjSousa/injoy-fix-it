@@ -150,8 +150,8 @@ function AlmoxarifadoAdmin() {
   };
 
   const requireUnlock = (tab: string) => {
-    // Compras é livre; demais precisam da senha
-    if (tab === "compras") {
+    // Compras e Inventário (consulta) são livres; demais precisam da senha
+    if (tab === "compras" || tab === "inventario") {
       setActiveTab(tab);
       return;
     }
@@ -162,6 +162,7 @@ function AlmoxarifadoAdmin() {
       toast.error("Área protegida — informe a senha para acessar.");
     }
   };
+
 
   const [novoSetor, setNovoSetor] = useState("");
 
