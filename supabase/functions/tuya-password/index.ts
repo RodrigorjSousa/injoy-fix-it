@@ -209,9 +209,9 @@ serve(async (req) => {
     const senhasGeradas: Record<string, string> = {};
     const senhaIds: Record<string, string | number> = {};
 
-    // 2. Gerar UMA ÚNICA senha de 6 dígitos para todas as portas
+    // 2. Gerar UMA ÚNICA senha de 6 dígitos usada em TODAS as portas
+    //    (quarto Zigbee + portão/vidro WiFi Access Controller).
     const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
-    const senhaWifi = Math.floor(1000000 + Math.random() * 9000000).toString();
     const { data: deviceRows } = await supabaseAdmin
       .from("tuya_devices")
       .select("device_id,tipo")
@@ -220,10 +220,15 @@ serve(async (req) => {
       (deviceRows ?? []).map((row: any) => [String(row.device_id), String(row.tipo ?? "")]),
     );
 
-    // Code DP configurável para dispositivos "mk" (WiFi Access Controller).
-    // Se `unlock_password_kit` não for aceito, altere aqui para testar
-    // `temp_password` ou `synch_method` sem tocar em nada mais.
-    const MK_DP_CODE = "unlock_password_kit";
+    // Codes DP candidatos para "mk" (WiFi Access Controller). Tentamos em
+    // ordem até um retornar success:true; assim descobrimos qual o firmware
+    // realmente aceita, e o value vai como JSON completo (formato exigido
+    // pelas categorias de controle de acesso, não string crua).
+    const MK_DP_CANDIDATES = [
+      "temp_password_creat",
+      "unlock_password_kit",
+      "unlock_method_create",
+    ];
 
     // 3. Loop para Gravar a Senha Online nas Fechaduras
     for (const deviceId of deviceIds) {
