@@ -237,6 +237,22 @@ function CheckInDigitalModal({
       };
     }> = data?.tuyaResults ?? [];
 
+    const friendlyMsg = (code?: number, raw?: string) => {
+      switch (code) {
+        case 1109:
+          return "Parâmetro inválido — verifique nome do hóspede (apenas letras/números, até 6 caracteres) e as datas de entrada/saída.";
+        case 2007:
+        case 28841002:
+          return "Fechadura offline no momento. Aguarde alguns segundos e tente de novo.";
+        case 1106:
+          return "Sem permissão na conta Tuya para esta fechadura.";
+        case 1010:
+          return "Sessão Tuya expirou. Tente novamente.";
+        default:
+          return raw || (code ? `Falha (code ${code})` : "Sem resposta");
+      }
+    };
+
     const finalStatus: Record<string, DeviceStatus> = {};
     for (const id of deviceIds) {
       const r = tuyaResults.find((x) => x.deviceId === id);
@@ -251,18 +267,19 @@ function CheckInDigitalModal({
       } else if (r) {
         finalStatus[id] = {
           state: "error",
-          message: r.status?.msg || `Falha (code ${r.status?.code ?? "?"})`,
+          message: friendlyMsg(r.status?.code, r.status?.msg),
           code: r.status?.code,
         };
       } else {
-        finalStatus[id] = { state: "error", message: "Sem resposta" };
+        finalStatus[id] = { state: "error", message: "Sem resposta da Tuya." };
       }
     }
     setDeviceStatus(finalStatus);
     setSenhaIds(idsSenha);
 
     if (Object.keys(senhas).length === 0) {
-      toast.error("Nenhuma fechadura retornou senha. Verifique o status abaixo.");
+      const primeiroErro = Object.values(finalStatus).find((s) => s.state === "error");
+      toast.error(primeiroErro?.message ?? "Nenhuma fechadura retornou senha.");
       return;
     }
     setSenhasGeradas(senhas);
