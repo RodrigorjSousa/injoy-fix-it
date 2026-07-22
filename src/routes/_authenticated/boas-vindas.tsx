@@ -237,7 +237,7 @@ function BoasVindas() {
     let cancelled = false;
 
     const buscarStatus = async () => {
-      const today = new Date().toISOString().split("T")[0];
+      const today = todaySP();
       const [{ data: metric }, { data: quartos }] = await Promise.all([
         supabase
           .from("hotel_metrics")
