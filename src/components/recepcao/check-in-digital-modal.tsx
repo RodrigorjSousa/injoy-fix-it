@@ -335,12 +335,14 @@ function CheckInDigitalModal({
     }
   };
 
-  const senhaUnica = senhasGeradas ? Object.values(senhasGeradas)[0] ?? null : null;
+  const senhaQuarto = senhasGeradas
+    ? Object.entries(senhasGeradas).find(([id]) => quartoDevice?.device_id === id)?.[1] ?? null
+    : null;
 
   const copiarSenha = async () => {
-    if (!senhaUnica) return;
+    if (!senhaQuarto) return;
     try {
-      await navigator.clipboard.writeText(senhaUnica);
+      await navigator.clipboard.writeText(senhaQuarto);
       toast.success("Senha copiada!");
     } catch {
       toast.error("Não foi possível copiar.");
@@ -349,12 +351,33 @@ function CheckInDigitalModal({
 
   const listaPortasTexto = useMemo(() => {
     return (devices ?? [])
-      .map((d) => `${iconForTipo(d.tipo)} ${d.label}`)
+      .map((d) => {
+        const senhaDoDispositivo = senhasGeradas?.[d.device_id];
+        const usaFixa = d.tipo === "portao" || d.tipo === "vidro" || d.tipo === "outro";
+        const senhaExtra =
+          senhaDoDispositivo && usaFixa && senhaDoDispositivo !== senhaQuarto
+            ? ` — senha fixa: *${senhaDoDispositivo}*`
+            : "";
+        return `${iconForTipo(d.tipo)} ${d.label}${senhaExtra}`;
+      })
       .join("\n");
-  }, [devices]);
+  }, [devices, senhasGeradas, senhaQuarto]);
+
+  const [unlockingId, setUnlockingId] = useState<string | null>(null);
+  const abrirRemotamente = async (deviceId: string) => {
+    setUnlockingId(deviceId);
+    const { data, error } = await supabase.functions.invoke("tuya-password", {
+      body: { action: "unlock", deviceIds: [deviceId], unidade },
+    });
+    setUnlockingId(null);
+    if (error) return toast.error("Falha: " + error.message);
+    const ok = data?.unlocks?.[0]?.success;
+    if (ok) toast.success("Porta destravada!");
+    else toast.error(data?.unlocks?.[0]?.msg ?? "Não foi possível abrir.");
+  };
 
   const copiarWhatsapp = async () => {
-    if (!senhaUnica) return;
+    if (!senhaQuarto) return;
     const saidaFmt = new Date(saida).toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -362,7 +385,7 @@ function CheckInDigitalModal({
       hour: "2-digit",
       minute: "2-digit",
     });
-    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY ${unidade}.\n\n🔐 *Sua senha de acesso online (única para todas as portas):* ${senhaUnica}\n\n⚠️ *IMPORTANTE:* Digite a senha no teclado e aperte a tecla *#* (Jogo da Velha) no final para a porta abrir.\n\nUse a mesma senha em:\n${listaPortasTexto}\n\nO seu acesso é válido até ${saidaFmt}.\nTenha uma excelente estadia!`;
+    const texto = `Olá ${nomeHospede}! Bem-vindo ao INJOY ${unidade}.\n\n🔐 *Senha do seu quarto (única e temporária):* ${senhaQuarto}\n\n⚠️ *IMPORTANTE:* Digite a senha no teclado e aperte a tecla *#* (Jogo da Velha) no final para a porta abrir.\n\nAcessos desta estadia:\n${listaPortasTexto}\n\nO seu acesso é válido até ${saidaFmt}.\nTenha uma excelente estadia!`;
     try {
       await navigator.clipboard.writeText(texto);
       toast.success("Mensagem copiada!");
@@ -372,11 +395,11 @@ function CheckInDigitalModal({
   };
 
   const compartilharSenha = async () => {
-    if (!senhaUnica) return;
-    const texto = `Senha de acesso online INJOY ${unidade} (Quarto ${roomNumber}): ${senhaUnica}`;
+    if (!senhaQuarto) return;
+    const texto = `Senha do quarto ${roomNumber} — INJOY ${unidade}: ${senhaQuarto}`;
     if (navigator.share) {
       try {
-        await navigator.share({ title: "Senha de Acesso Online", text: texto });
+        await navigator.share({ title: "Senha do Quarto", text: texto });
       } catch {
         /* user cancelled */
       }
