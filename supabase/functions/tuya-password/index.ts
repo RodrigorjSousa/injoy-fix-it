@@ -127,6 +127,27 @@ serve(async (req) => {
       throw new Error("Erro de Token Tuya: " + JSON.stringify(tokenData));
     const accessToken = tokenData.result.access_token;
 
+    const tuyaRequest = async (method: string, endpoint: string, body?: unknown) => {
+      const tReq = Date.now().toString();
+      const bodyStr = body === undefined ? "" : JSON.stringify(body);
+      const signStr = `${method}\n${await calcSha256(bodyStr)}\n\n${endpoint}`;
+      const sign = await calcSign(clientId, accessToken, tReq, "", signStr, secret);
+      const res = await fetch(`${baseUrl}${endpoint}`, {
+        method,
+        headers: {
+          client_id: clientId,
+          access_token: accessToken,
+          sign,
+          t: tReq,
+          sign_method: "HMAC-SHA256",
+          ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        },
+        ...(body === undefined ? {} : { body: bodyStr }),
+      });
+      const data = await res.json().catch(() => ({ raw: "no-json" }));
+      return { httpStatus: res.status, data };
+    };
+
     // ============ AÇÃO: verificar status online das fechaduras ============
     if (action === "check_status") {
       const statuses: Array<{
@@ -189,21 +210,77 @@ serve(async (req) => {
       );
     }
 
+    // ============ AÇÃO: diagnóstico funcional via API Tuya ============
+    // Não abre a porta fisicamente, mas confirma se o dispositivo está online,
+    // quais comandos/funções a Tuya expõe e se a senha temporária aparece listada
+    // no caso das fechaduras door-lock.
+    if (action === "diagnose") {
+      const diagnostics: Array<{
+        deviceId: string;
+        device?: unknown;
+        functions?: unknown;
+        status?: unknown;
+        tempPasswords?: unknown;
+      }> = [];
+
+      for (const deviceId of deviceIds ?? []) {
+        const entry: {
+          deviceId: string;
+          device?: unknown;
+          functions?: unknown;
+          status?: unknown;
+          tempPasswords?: unknown;
+        } = { deviceId };
+
+        for (const [key, endpoint] of [
+          ["device", `/v1.0/devices/${deviceId}`],
+          ["functions", `/v1.0/devices/${deviceId}/functions`],
+          ["status", `/v1.0/devices/${deviceId}/status`],
+          ["tempPasswords", `/v1.0/devices/${deviceId}/door-lock/temp-passwords?valid=true`],
+        ] as const) {
+          try {
+            const result = await tuyaRequest("GET", endpoint);
+            entry[key] = result.data;
+            await logTuyaCall({
+              device_id: deviceId,
+              endpoint: `${endpoint} [diagnose]`,
+              method: "GET",
+              response_payload: result.data,
+              response_code: result.data?.code ?? result.httpStatus,
+              response_msg: result.data?.msg ?? null,
+              success: !!result.data?.success,
+              room_number: roomNumber,
+              unidade,
+            });
+          } catch (err) {
+            entry[key] = { success: false, error: (err as Error).message };
+          }
+        }
+
+        diagnostics.push(entry);
+      }
+
+      return new Response(
+        JSON.stringify({ success: true, diagnostics }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
 
 
     // Regra Tuya: timestamps em SEGUNDOS (UNIX). effective_time precisa ser
-    // >= "agora"; se o usuário escolher horário anterior, arredondamos para
-    // cima em vez de para baixo (senão a Tuya devolve code 1109
-    // "param is illegal").
+    // >= "agora". Antes arredondávamos para a próxima hora cheia, o que fazia
+    // uma senha gerada às 19:03 só começar às 20:00; isso parece sucesso na API,
+    // mas falha no teste físico imediato. Agora a senha entra em vigor em poucos
+    // segundos/minutos, mantendo uma pequena margem para evitar code 1109.
     const nowSec = Math.floor(Date.now() / 1000);
     const startSec = Math.floor(startTime / 1000);
     const endSec = Math.floor(endTime / 1000);
-    let effectiveTime = Math.floor(startSec / 3600) * 3600;
-    if (effectiveTime < nowSec) {
-      effectiveTime = Math.ceil(nowSec / 3600) * 3600;
-    }
-    let invalidTime = Math.floor(endSec / 3600) * 3600;
-    if (invalidTime <= effectiveTime) invalidTime = effectiveTime + 3600;
+    const activationGraceSeconds = 90;
+    let effectiveTime = Math.max(startSec, nowSec + activationGraceSeconds);
+    let invalidTime = endSec;
+    if (invalidTime <= effectiveTime + 300) invalidTime = effectiveTime + 3600;
+    const tuyaTimeZone = "-03:00";
 
     const results: Array<{ deviceId: string; status: any }> = [];
     const senhasGeradas: Record<string, string> = {};
@@ -256,7 +333,7 @@ serve(async (req) => {
             effective_time: effectiveTime,
             invalid_time: invalidTime,
             name: nomeTuyaMk,
-            time_zone: "+03:00",
+            time_zone: tuyaTimeZone,
             schedule_list: [] as unknown[],
           };
           const valueJson = JSON.stringify(valuePayload);
@@ -423,6 +500,7 @@ serve(async (req) => {
           type: 0,
           effective_time: effectiveTime,
           invalid_time: invalidTime,
+          time_zone: tuyaTimeZone,
         };
         const bodyCreate = { ...bodyCreateBase, name: nomeTuya };
 
