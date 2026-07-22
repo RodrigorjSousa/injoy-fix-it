@@ -55,7 +55,7 @@ const DADOS_POR_UNIDADE: Record<Unidade, DadosHotel> = {
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
-  const [tuyaOpen, setTuyaOpen] = useState(false);
+
   const { metrics, syncing, sincronizar, error: metricsError } = useHotelMetrics();
   const live = metrics[unidadeAtiva];
   const dadosHotel: DadosHotel = useMemo(() => {
