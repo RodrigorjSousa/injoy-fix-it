@@ -17,6 +17,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { syncPontomais } from "@/lib/pontomais.functions";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { todaySP } from "@/lib/tz";
 
 type Funcionario = {
   id: string;
