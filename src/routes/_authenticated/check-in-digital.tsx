@@ -48,6 +48,7 @@ function CheckInDigitalPage() {
           </div>
 
           <AbrirPortasRemoto unidade={unidade} />
+          <SenhasAtivasPanel unidade={unidade} />
         </>
       ) : (
         <>
@@ -61,6 +62,7 @@ function CheckInDigitalPage() {
           </div>
 
           <AbrirPortasRemoto unidade={unidade} />
+          <SenhasAtivasPanel unidade={unidade} />
         </>
       )}
     </div>
