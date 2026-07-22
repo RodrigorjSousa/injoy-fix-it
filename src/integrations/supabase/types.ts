@@ -1719,8 +1719,12 @@ export type Database = {
           guest_name: string
           id: string
           password: string
+          revoke_reason: string | null
+          revoked_at: string | null
+          revoked_by_name: string | null
           room_number: string
           saida: string
+          senha_ids: Json
           unidade: string | null
         }
         Insert: {
@@ -1732,8 +1736,12 @@ export type Database = {
           guest_name: string
           id?: string
           password: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by_name?: string | null
           room_number: string
           saida: string
+          senha_ids?: Json
           unidade?: string | null
         }
         Update: {
@@ -1745,8 +1753,12 @@ export type Database = {
           guest_name?: string
           id?: string
           password?: string
+          revoke_reason?: string | null
+          revoked_at?: string | null
+          revoked_by_name?: string | null
           room_number?: string
           saida?: string
+          senha_ids?: Json
           unidade?: string | null
         }
         Relationships: []
