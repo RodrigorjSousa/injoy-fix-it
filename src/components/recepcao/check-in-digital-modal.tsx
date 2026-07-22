@@ -134,13 +134,13 @@ function CheckInDigitalModal({
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
-  const nomeSanitizado = nomeHospede.replace(/[^A-Za-z0-9]/g, "").slice(0, 6);
-  const nomeValido = nomeSanitizado.length >= 4 && nomeSanitizado.length <= 6;
-  const nomeError = nomeHospede.trim().length === 0
-    ? null
-    : nomeSanitizado.length < 4
-      ? "Use entre 4 e 6 letras/números (sem espaços ou acentos)."
-      : null;
+  const nomePreview = nomeHospede
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^A-Za-z0-9]/g, "")
+    .slice(0, 6)
+    .padEnd(4, "X") || "Guest";
+
 
   const entradaMs = new Date(entrada).getTime();
   const saidaMs = new Date(saida).getTime();
@@ -198,10 +198,6 @@ function CheckInDigitalModal({
   };
 
   const gerarSenhaTuya = async () => {
-    if (!nomeValido) {
-      toast.error("Nome do hóspede: use entre 4 e 6 letras/números (sem espaços ou acentos). Ex: JOAO, MARIA1.");
-      return;
-    }
     if (!quartoDevice) {
       toast.error(`Nenhuma fechadura cadastrada para o quarto ${roomNumber}.`);
       return;
@@ -225,13 +221,14 @@ function CheckInDigitalModal({
     const { data, error } = await supabase.functions.invoke("tuya-password", {
       body: {
         deviceIds,
-        guestName: nomeSanitizado,
+        guestName: nomeHospede,
         startTime: entradaMs,
         endTime: saidaMs,
         roomNumber,
         unidade,
       },
     });
+
     setIsLoading(false);
 
     if (error) {
@@ -428,26 +425,24 @@ function CheckInDigitalModal({
           <div className="space-y-4">
             <div>
               <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
-                Nome do Hóspede <span className="text-slate-400 font-normal normal-case">(4–6 letras/números, sem espaços)</span>
+                Nome do Hóspede
               </label>
               <input
                 type="text"
                 value={nomeHospede}
                 onChange={(e) => setNomeHospede(e.target.value)}
-                placeholder="Ex: JOAO, MARIA1"
-                maxLength={20}
-                className={`mt-1 w-full rounded-lg border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500 ${nomeError ? "border-red-400" : "border-slate-300"}`}
+                placeholder="Ex: Rodrigo Sousa"
+                maxLength={60}
+                className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-teal-500"
                 disabled={isLoading}
               />
-              <div className="mt-1 flex justify-between text-[11px]">
-                <span className={nomeError ? "text-red-600" : "text-slate-500"}>
-                  {nomeError ?? (nomeSanitizado ? `Será enviado à fechadura como: “${nomeSanitizado}”` : "A Tuya aceita apenas 4 a 6 caracteres alfanuméricos.")}
-                </span>
-                <span className={`font-mono ${nomeSanitizado.length > 6 ? "text-red-600" : "text-slate-400"}`}>
-                  {nomeSanitizado.length}/6
-                </span>
-              </div>
+              {nomeHospede.trim() && (
+                <p className="mt-1 text-[11px] text-slate-500">
+                  Será enviado à fechadura como: <span className="font-mono font-semibold text-slate-700">{nomePreview}</span>
+                </p>
+              )}
             </div>
+
             <div className="grid grid-cols-1 gap-3">
               <div>
                 <label className="text-xs font-bold text-slate-600 uppercase tracking-wider">
@@ -484,7 +479,7 @@ function CheckInDigitalModal({
             <button
               type="button"
               onClick={gerarSenhaTuya}
-              disabled={isLoading || !devices || devices.length === 0 || !nomeValido || !!datasError}
+              disabled={isLoading || !devices || devices.length === 0 || !!datasError}
               className="w-full py-3 rounded-xl font-bold text-sm bg-teal-600 hover:bg-teal-700 text-white flex items-center justify-center gap-2 transition-all disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {isLoading ? (
