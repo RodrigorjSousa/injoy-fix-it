@@ -326,6 +326,7 @@ function CheckInDigitalModal({
         entrada: new Date(entrada).toISOString(),
         saida: new Date(saida).toISOString(),
         device_ids: deviceIds,
+        senha_ids: idsSenha as Record<string, string | number>,
         unidade,
         generated_by_user_id: uid,
         generated_by_name: nome,
