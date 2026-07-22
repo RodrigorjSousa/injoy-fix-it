@@ -378,52 +378,81 @@ export function TuyaDevicesManager() {
         ) : (
           <ul className="divide-y divide-slate-100">
             {(devices ?? []).map((d) => (
-              <li key={d.id} className="flex items-center justify-between gap-3 px-3 py-2">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-slate-800 truncate">
-                    {d.label}{" "}
-                    {!d.ativo && (
-                      <span className="ml-1 text-[10px] font-bold text-slate-400">
-                        (inativa)
+              <li key={d.id} className="flex flex-col gap-2 px-3 py-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-slate-800 truncate">
+                      {d.label}{" "}
+                      {!d.ativo && (
+                        <span className="ml-1 text-[10px] font-bold text-slate-400">
+                          (inativa)
+                        </span>
+                      )}
+                    </p>
+                    <p className="text-[11px] text-slate-500">
+                      {d.unidade} · {TIPO_LABEL[d.tipo]}
+                      {d.room_number ? ` · Quarto ${d.room_number}` : ""}
+                    </p>
+                    <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {statuses[d.device_id] && (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
+                          statuses[d.device_id].online
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-red-50 text-red-700 border-red-200"
+                        }`}
+                        title={statuses[d.device_id].msg ?? ""}
+                      >
+                        {statuses[d.device_id].online ? "● Online" : "● Offline"}
                       </span>
                     )}
-                  </p>
-                  <p className="text-[11px] text-slate-500">
-                    {d.unidade} · {TIPO_LABEL[d.tipo]}
-                    {d.room_number ? ` · Quarto ${d.room_number}` : ""}
-                  </p>
-                  <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  {statuses[d.device_id] && (
-                    <span
-                      className={`text-[10px] font-bold px-2 py-1 rounded-md border ${
-                        statuses[d.device_id].online
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-red-50 text-red-700 border-red-200"
-                      }`}
-                      title={statuses[d.device_id].msg ?? ""}
-                    >
-                      {statuses[d.device_id].online ? "● Online" : "● Offline"}
-                    </span>
-                  )}
 
-                  <button
-                    type="button"
-                    onClick={() => toggleAtivo(d)}
-                    className={`text-[10px] font-bold px-2 py-1 rounded-md ${d.ativo ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"}`}
-                  >
-                    {d.ativo ? "Ativa" : "Inativa"}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => excluir(d)}
-                    className="p-1.5 rounded-md text-red-600 hover:bg-red-50"
-                    title="Excluir"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleAtivo(d)}
+                      className={`text-[10px] font-bold px-2 py-1 rounded-md ${d.ativo ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-500 border border-slate-200"}`}
+                    >
+                      {d.ativo ? "Ativa" : "Inativa"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => excluir(d)}
+                      className="p-1.5 rounded-md text-red-600 hover:bg-red-50"
+                      title="Excluir"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </div>
+                {usaSenhaFixa(d.tipo) && (
+                  <div className="flex items-center gap-2 pl-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                      Senha fixa:
+                    </span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={10}
+                      value={editSenha[d.id] ?? d.senha_fixa ?? ""}
+                      onChange={(e) =>
+                        setEditSenha((s) => ({ ...s, [d.id]: e.target.value.replace(/\D/g, "") }))
+                      }
+                      placeholder="não cadastrada"
+                      className="flex-1 max-w-[140px] rounded-md border border-slate-300 px-2 py-1 text-xs font-mono tracking-widest"
+                    />
+                    <button
+                      type="button"
+                      disabled={savingSenha === d.id || (editSenha[d.id] ?? "") === (d.senha_fixa ?? "")}
+                      onClick={() => salvarSenhaFixa(d)}
+                      className="text-[11px] font-bold px-2 py-1 rounded-md bg-teal-600 hover:bg-teal-700 text-white flex items-center gap-1 disabled:opacity-50"
+                    >
+                      {savingSenha === d.id ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                      Salvar
+                    </button>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
