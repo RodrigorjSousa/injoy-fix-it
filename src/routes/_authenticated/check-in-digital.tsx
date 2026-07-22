@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { Key } from "lucide-react";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import { TuyaLogsButton } from "@/components/recepcao/tuya-logs-modal";
+import { AbrirPortasRemoto } from "@/components/recepcao/abrir-portas-remoto";
 import { useUnidade } from "@/lib/unidade-context";
 
 export const Route = createFileRoute("/_authenticated/check-in-digital")({
