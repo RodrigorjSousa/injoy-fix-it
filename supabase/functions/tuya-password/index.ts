@@ -209,9 +209,9 @@ serve(async (req) => {
     const senhasGeradas: Record<string, string> = {};
     const senhaIds: Record<string, string | number> = {};
 
-    // 2. Gerar UMA ÚNICA senha de 6 dígitos para todas as portas
+    // 2. Gerar UMA ÚNICA senha de 6 dígitos usada em TODAS as portas
+    //    (quarto Zigbee + portão/vidro WiFi Access Controller).
     const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
-    const senhaWifi = Math.floor(1000000 + Math.random() * 9000000).toString();
     const { data: deviceRows } = await supabaseAdmin
       .from("tuya_devices")
       .select("device_id,tipo")
@@ -220,10 +220,15 @@ serve(async (req) => {
       (deviceRows ?? []).map((row: any) => [String(row.device_id), String(row.tipo ?? "")]),
     );
 
-    // Code DP configurável para dispositivos "mk" (WiFi Access Controller).
-    // Se `unlock_password_kit` não for aceito, altere aqui para testar
-    // `temp_password` ou `synch_method` sem tocar em nada mais.
-    const MK_DP_CODE = "unlock_password_kit";
+    // Codes DP candidatos para "mk" (WiFi Access Controller). Tentamos em
+    // ordem até um retornar success:true; assim descobrimos qual o firmware
+    // realmente aceita, e o value vai como JSON completo (formato exigido
+    // pelas categorias de controle de acesso, não string crua).
+    const MK_DP_CANDIDATES = [
+      "temp_password_creat",
+      "unlock_password_kit",
+      "unlock_method_create",
+    ];
 
     // 3. Loop para Gravar a Senha Online nas Fechaduras
     for (const deviceId of deviceIds) {
@@ -234,66 +239,106 @@ serve(async (req) => {
 
         // ============ FLUXO NOVO: categoria "mk" via /commands ============
         if (isMkAccessController) {
-          const senhaOriginal = senhaWifi;
-          const tCmd = Date.now().toString();
-          const urlCmd = `/v1.0/devices/${deviceId}/commands`;
-          const bodyCmd = {
-            commands: [
-              {
-                code: MK_DP_CODE,
-                value: senhaOriginal,
-              },
-            ],
-          };
-          const bodyCmdStr = JSON.stringify(bodyCmd);
-          const signStrCmd = `POST\n${await calcSha256(bodyCmdStr)}\n\n${urlCmd}`;
-          const signCmd = await calcSign(clientId, accessToken, tCmd, "", signStrCmd, secret);
+          const senhaOriginal = senhaUnificada;
+          const nomeTuyaMk = (() => {
+            const normalized = (guestName ?? "")
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^A-Za-z0-9]/g, "");
+            const base = normalized.length === 0 ? "Guest" : normalized.padEnd(4, "X");
+            return `${base.slice(0, 4)}${senhaOriginal.slice(-2)}`;
+          })();
 
-          let cmdData: any = null;
-          let cmdHttpStatus: number | null = null;
-          try {
-            const cmdRes = await fetch(`${baseUrl}${urlCmd}`, {
-              method: "POST",
-              headers: {
-                client_id: clientId,
-                access_token: accessToken,
-                sign: signCmd,
-                t: tCmd,
-                sign_method: "HMAC-SHA256",
-                "Content-Type": "application/json",
-              },
-              body: bodyCmdStr,
-            });
-            cmdHttpStatus = cmdRes.status;
-            cmdData = await cmdRes.json().catch(() => ({ raw: "no-json" }));
-          } catch (netErr) {
-            cmdData = { network_error: (netErr as Error).message };
+          // Value estruturado como a Tuya exige para controle de acesso.
+          // Alguns firmwares aceitam JSON-string, outros exigem base64 do JSON.
+          const valuePayload = {
+            password: senhaOriginal,
+            effective_time: effectiveTime,
+            invalid_time: invalidTime,
+            name: nomeTuyaMk,
+            time_zone: "+03:00",
+            schedule_list: [] as unknown[],
+          };
+          const valueJson = JSON.stringify(valuePayload);
+          const valueBase64 = btoa(valueJson);
+
+          let lastResp: any = null;
+          let lastHttp: number | null = null;
+          let lastCode = "";
+          let succeeded = false;
+
+          for (const dpCode of MK_DP_CANDIDATES) {
+            // Duas variantes de value: JSON-string e base64. Se a primeira
+            // falhar por "value invalid", tentamos base64 antes de trocar o code.
+            for (const valueVariant of [valueJson, valueBase64, senhaOriginal]) {
+              const tCmd = Date.now().toString();
+              const urlCmd = `/v1.0/devices/${deviceId}/commands`;
+              const bodyCmd = { commands: [{ code: dpCode, value: valueVariant }] };
+              const bodyCmdStr = JSON.stringify(bodyCmd);
+              const signStrCmd = `POST\n${await calcSha256(bodyCmdStr)}\n\n${urlCmd}`;
+              const signCmd = await calcSign(clientId, accessToken, tCmd, "", signStrCmd, secret);
+
+              let cmdData: any = null;
+              let cmdHttpStatus: number | null = null;
+              try {
+                const cmdRes = await fetch(`${baseUrl}${urlCmd}`, {
+                  method: "POST",
+                  headers: {
+                    client_id: clientId,
+                    access_token: accessToken,
+                    sign: signCmd,
+                    t: tCmd,
+                    sign_method: "HMAC-SHA256",
+                    "Content-Type": "application/json",
+                  },
+                  body: bodyCmdStr,
+                });
+                cmdHttpStatus = cmdRes.status;
+                cmdData = await cmdRes.json().catch(() => ({ raw: "no-json" }));
+              } catch (netErr) {
+                cmdData = { network_error: (netErr as Error).message };
+              }
+
+              lastResp = cmdData;
+              lastHttp = cmdHttpStatus;
+              lastCode = dpCode;
+              const ok = !!cmdData?.success;
+              const variantLabel =
+                valueVariant === valueJson
+                  ? "json"
+                  : valueVariant === valueBase64
+                    ? "base64"
+                    : "plain";
+              console.log(
+                `[tuya-password][mk] deviceId=${deviceId} code=${dpCode} variant=${variantLabel} http=${cmdHttpStatus} success=${ok} response=`,
+                JSON.stringify(cmdData),
+              );
+              await logTuyaCall({
+                device_id: deviceId,
+                endpoint: `${urlCmd} [${dpCode}/${variantLabel}]`,
+                method: "POST",
+                request_payload: bodyCmd,
+                response_payload: cmdData,
+                response_code: cmdData?.code ?? cmdHttpStatus,
+                response_msg: cmdData?.msg ?? null,
+                success: ok,
+                guest_name: guestName,
+                room_number: roomNumber,
+                unidade,
+              });
+
+              if (ok) {
+                succeeded = true;
+                break;
+              }
+            }
+            if (succeeded) break;
           }
 
-          const ok = !!cmdData?.success;
-          console.log(
-            `[tuya-password][mk] deviceId=${deviceId} tipo=${tipo} code=${MK_DP_CODE} http=${cmdHttpStatus} success=${ok} response=`,
-            JSON.stringify(cmdData),
-          );
-
-          results.push({ deviceId, status: cmdData });
-          await logTuyaCall({
-            device_id: deviceId,
-            endpoint: urlCmd,
-            method: "POST",
-            request_payload: bodyCmd,
-            response_payload: cmdData,
-            response_code: cmdData?.code ?? cmdHttpStatus,
-            response_msg: cmdData?.msg ?? null,
-            success: ok,
-            guest_name: guestName,
-            room_number: roomNumber,
-            unidade,
-          });
-
-          if (ok) {
+          results.push({ deviceId, status: lastResp });
+          if (succeeded) {
             senhasGeradas[deviceId] = senhaOriginal;
-            senhaIds[deviceId] = cmdData?.result?.id ?? "";
+            senhaIds[deviceId] = lastResp?.result?.id ?? lastCode ?? "";
           }
           continue;
         }
