@@ -202,6 +202,24 @@ export function useChamados() {
 }
 
 export function useChamado(id: string) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`chamado-${id}-realtime`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chamados", filter: `id=eq.${id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chamados", id] });
+          qc.invalidateQueries({ queryKey: ["chamados"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, qc]);
   return useQuery({
     queryKey: ["chamados", id],
     queryFn: async (): Promise<Chamado | null> => {
