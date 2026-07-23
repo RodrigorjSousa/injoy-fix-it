@@ -31,9 +31,11 @@ import {
   useExcluirChamado,
   useFuncionarios,
   useMe,
+  type Midia,
   type Status,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { MediaCapture } from "@/components/media-capture";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   component: ChamadoDetalhe,
