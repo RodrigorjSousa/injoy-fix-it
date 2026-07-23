@@ -98,12 +98,20 @@ export type Tela = {
   icon: IconType;
 };
 
-export const TELAS_CATALOG: Tela[] = Object.keys(modules)
-  .map((p) => {
-    const m = p.match(/\/([^/]+)\.tsx$/);
-    return m ? m[1] : "";
-  })
-  .filter((slug) => slug && !EXCLUDE.has(slug) && !slug.includes("$") && !slug.includes("."))
+// Rotas extras (fora de _authenticated) que também devem ser liberáveis pelo gestor.
+const EXTRA_SLUGS = ["manutencao"];
+
+export const TELAS_CATALOG: Tela[] = Array.from(
+  new Set(
+    [
+      ...Object.keys(modules).map((p) => {
+        const m = p.match(/\/([^/]+)\.tsx$/);
+        return m ? m[1] : "";
+      }),
+      ...EXTRA_SLUGS,
+    ].filter((slug) => slug && !EXCLUDE.has(slug) && !slug.includes("$") && !slug.includes(".")),
+  ),
+)
   .sort((a, b) => (LABELS[a] ?? humanize(a)).localeCompare(LABELS[b] ?? humanize(b), "pt-BR"))
   .map((slug) => ({
     key: slug,
