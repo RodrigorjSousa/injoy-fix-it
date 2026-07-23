@@ -32,11 +32,35 @@ const isTecnicoAC = (me: Me) =>
 // Permissões individuais por funcionário (definidas em EQUIPE).
 // Se o funcionário tiver `telasPermitidas` configurado, ele passa a valer sobre as regras de papel.
 type TelaKey = "servicos" | "manutencao" | "recepcao" | "camareiras" | "preventiva" | "painel";
+const ALWAYS_ALLOWED_TELAS: TelaKey[] = ["painel", "servicos", "preventiva", "manutencao", "recepcao", "camareiras"];
+const MOBILE_PRIORITY: Record<string, number> = {
+  painel: 0,
+  servicos: 1,
+  preventiva: 2,
+  manutencao: 3,
+  recepcao: 4,
+  camareiras: 5,
+  chat: 6,
+};
+
+const telaKeyFromPath = (path: string) => path.replace(/^\//, "").split("/")[0] ?? path;
+
 const temPermissaoIndividual = (me: Me, tela: TelaKey) => {
   const lista = me?.funcionario?.telasPermitidas;
   if (!lista) return null; // não configurado — usa fallback por papel
   return lista.includes(tela);
 };
+
+const requiredTelaKeys = (me: Me): TelaKey[] =>
+  ALWAYS_ALLOWED_TELAS.filter((tela) => {
+    if (tela === "servicos") return podeServicos(me);
+    if (tela === "manutencao") return podeManutencao(me);
+    if (tela === "recepcao") return podeRecepcao(me);
+    if (tela === "camareiras") return podeCamareira(me);
+    if (tela === "preventiva") return podePreventiva(me);
+    if (tela === "painel") return podePainel(me);
+    return false;
+  });
 
 // Abas condicionais por papel (fallback quando não há permissão individual)
 const podeRecepcao = (me: Me) => {
@@ -121,7 +145,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const listaCustom = me?.funcionario?.telasPermitidas ?? null;
   const nav: NavItem[] = (() => {
     if (listaCustom && !isAdmin(me)) {
-      const custom: NavItem[] = listaCustom
+      const keys = Array.from(new Set([...listaCustom, ...requiredTelaKeys(me), "chat"]));
+      const custom: NavItem[] = keys
         .map((k) => TELA_BY_KEY[k])
         .filter((t): t is NonNullable<typeof t> => !!t)
         .map((t) => ({ to: t.path, label: t.label, icon: t.icon }));
@@ -157,7 +182,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     .filter(
       (item, index, items) =>
         items.findIndex((candidate) => candidate.to === item.to) === index,
-    );
+    )
+    .sort((a, b) => {
+      const pa = MOBILE_PRIORITY[telaKeyFromPath(a.to)] ?? 99;
+      const pb = MOBILE_PRIORITY[telaKeyFromPath(b.to)] ?? 99;
+      return pa === pb ? 0 : pa - pb;
+    });
   const mobileNav = mobileNavItems.slice(0, 4);
   const mobileMoreNav = mobileNavItems.slice(4);
 
