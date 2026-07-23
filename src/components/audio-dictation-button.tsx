@@ -5,6 +5,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { transcribeAudio } from "@/lib/transcribe.functions";
+import { uploadMediaFile } from "@/components/media-capture";
 
 const blobToBase64 = (blob: Blob) =>
   new Promise<string>((resolve, reject) => {
@@ -20,9 +21,11 @@ const blobToBase64 = (blob: Blob) =>
 
 export function AudioDictationButton({
   onTranscript,
+  onAudioSaved,
   disabled,
 }: {
   onTranscript: (text: string) => void;
+  onAudioSaved?: (url: string) => void;
   disabled?: boolean;
 }) {
   const transcribe = useServerFn(transcribeAudio);
