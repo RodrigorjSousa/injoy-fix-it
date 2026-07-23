@@ -307,6 +307,9 @@ function NovoChamado() {
           onTranscript={(text) =>
             setDescricao((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))
           }
+          onAudioSaved={(url) =>
+            setMidias((prev) => [...prev, { type: "audio", url }])
+          }
         />
         <Textarea
           value={descricao}
