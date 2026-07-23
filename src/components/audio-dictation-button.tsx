@@ -71,16 +71,32 @@ export function AudioDictationButton({
         setBusy(true);
         try {
           const audioBase64 = await blobToBase64(blob);
-          const { text } = await transcribe({ data: { audioBase64, mimeType: type } });
-          const clean = (text || "").trim();
-          if (!clean) {
-            toast.error("Não foi possível entender o áudio.");
-          } else {
+          const [transcribeRes, savedUrl] = await Promise.all([
+            transcribe({ data: { audioBase64, mimeType: type } }).catch((e) => {
+              toast.error(e instanceof Error ? e.message : "Falha ao transcrever");
+              return { text: "" };
+            }),
+            onAudioSaved
+              ? (async () => {
+                  const ext = type.includes("mp4") ? "m4a" : type.includes("ogg") ? "ogg" : "webm";
+                  try {
+                    return await uploadMediaFile(blob, "audio", ext);
+                  } catch (e) {
+                    toast.error(e instanceof Error ? e.message : "Falha ao salvar áudio");
+                    return null;
+                  }
+                })()
+              : Promise.resolve(null),
+          ]);
+          const clean = (transcribeRes.text || "").trim();
+          if (clean) {
             onTranscript(clean);
             toast.success("Áudio transcrito");
           }
-        } catch (e) {
-          toast.error(e instanceof Error ? e.message : "Falha ao transcrever");
+          if (savedUrl && onAudioSaved) {
+            onAudioSaved(savedUrl);
+            toast.success("Áudio anexado ao chamado");
+          }
         } finally {
           setBusy(false);
         }
