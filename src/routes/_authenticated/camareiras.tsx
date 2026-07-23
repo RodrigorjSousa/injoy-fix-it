@@ -1151,6 +1151,12 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
         autorNome={nomeAutomatico ?? ""}
       />
+
+      <HistoricoLimpezaModal
+        open={historicoOpen}
+        onClose={() => setHistoricoOpen(false)}
+        unidade={unidadeAtiva}
+      />
     </div>
   );
 }
