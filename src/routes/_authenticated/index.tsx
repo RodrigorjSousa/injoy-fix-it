@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, redirect } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
 import {
@@ -11,18 +11,12 @@ import {
   PaintRoller,
   MapPin,
   ArrowRight,
-  Camera,
-  Video,
-  X,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { compressImage } from "@/lib/image-compression";
 import {
   CATEGORIAS,
   UNIDADES,
@@ -35,6 +29,7 @@ import {
 } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
 import { AudioDictationButton } from "@/components/audio-dictation-button";
+import { MediaCapture } from "@/components/media-capture";
 
 type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
 
@@ -312,6 +307,9 @@ function NovoChamado() {
           onTranscript={(text) =>
             setDescricao((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))
           }
+          onAudioSaved={(url) =>
+            setMidias((prev) => [...prev, { type: "audio", url }])
+          }
         />
         <Textarea
           value={descricao}
@@ -407,166 +405,3 @@ function StepLabel({ n, title }: { n: number; title: string }) {
   );
 }
 
-const MAX_VIDEO_SECONDS = 15;
-const MAX_VIDEO_MB = 60;
-
-async function checkVideoDuration(file: File): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const url = URL.createObjectURL(file);
-    const video = document.createElement("video");
-    video.preload = "metadata";
-    video.src = url;
-    video.onloadedmetadata = () => {
-      URL.revokeObjectURL(url);
-      resolve(video.duration);
-    };
-    video.onerror = () => {
-      URL.revokeObjectURL(url);
-      reject(new Error("Não foi possível ler o vídeo"));
-    };
-  });
-}
-
-function MediaCapture({
-  midias,
-  onAdd,
-  onRemove,
-  uploading,
-  setUploading,
-}: {
-  midias: Midia[];
-  onAdd: (m: Midia) => void;
-  onRemove: (url: string) => void;
-  uploading: boolean;
-  setUploading: (v: boolean) => void;
-}) {
-  const photoRef = useRef<HTMLInputElement>(null);
-  const videoRef = useRef<HTMLInputElement>(null);
-
-  const hasVideo = midias.some((m) => m.type === "video");
-
-  const upload = async (file: File, type: "photo" | "video") => {
-    setUploading(true);
-    try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr || !userData.user) throw new Error("Sessão expirada.");
-
-      let toUpload: File = file;
-      if (type === "photo") {
-        toUpload = await compressImage(file);
-      } else {
-        if (file.size > MAX_VIDEO_MB * 1024 * 1024) {
-          throw new Error(`Vídeo muito grande (máx. ${MAX_VIDEO_MB}MB).`);
-        }
-        const duration = await checkVideoDuration(file);
-        if (duration > MAX_VIDEO_SECONDS + 0.5) {
-          throw new Error(`Vídeo deve ter no máximo ${MAX_VIDEO_SECONDS} segundos.`);
-        }
-      }
-
-      const ext = toUpload.name.split(".").pop() || (type === "photo" ? "jpg" : "mp4");
-      const path = `${userData.user.id}/${crypto.randomUUID()}.${ext}`;
-      const { error: upErr } = await supabase.storage
-        .from("fotos-manutencao")
-        .upload(path, toUpload, { upsert: false, contentType: toUpload.type });
-      if (upErr) throw upErr;
-
-      const { data: signed, error: signErr } = await supabase.storage
-        .from("fotos-manutencao")
-        .createSignedUrl(path, 60 * 60 * 24 * 365 * 10);
-      if (signErr) throw signErr;
-
-      onAdd({ type, url: signed.signedUrl });
-      toast.success(type === "photo" ? "Foto anexada" : "Vídeo anexado");
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Falha no upload";
-      toast.error(msg);
-    } finally {
-      setUploading(false);
-    }
-  };
-
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={uploading}
-          onClick={() => photoRef.current?.click()}
-          className="gap-2"
-        >
-          <Camera className="h-4 w-4" /> Adicionar foto
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          disabled={uploading || hasVideo}
-          onClick={() => videoRef.current?.click()}
-          className="gap-2"
-        >
-          <Video className="h-4 w-4" /> {hasVideo ? "Vídeo anexado" : `Gravar vídeo (até ${MAX_VIDEO_SECONDS}s)`}
-        </Button>
-        {uploading && (
-          <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" /> Enviando...
-          </span>
-        )}
-      </div>
-
-      <input
-        ref={photoRef}
-        type="file"
-        accept="image/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) upload(f, "photo");
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={videoRef}
-        type="file"
-        accept="video/*"
-        capture="environment"
-        className="hidden"
-        onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) upload(f, "video");
-          e.target.value = "";
-        }}
-      />
-
-      {midias.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-          {midias.map((m) => (
-            <div key={m.url} className="relative rounded-lg overflow-hidden border bg-card">
-              {m.type === "photo" ? (
-                <img src={m.url} alt="Anexo" className="w-full aspect-square object-cover" />
-              ) : (
-                <video src={m.url} className="w-full aspect-square object-cover" muted playsInline />
-              )}
-              <button
-                type="button"
-                onClick={() => onRemove(m.url)}
-                className="absolute top-1 right-1 bg-white/90 backdrop-blur rounded-full p-1 shadow"
-                aria-label="Remover anexo"
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
-              {m.type === "video" && (
-                <span className="absolute bottom-1 left-1 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                  VÍDEO
-                </span>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}

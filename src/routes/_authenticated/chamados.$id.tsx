@@ -31,9 +31,11 @@ import {
   useExcluirChamado,
   useFuncionarios,
   useMe,
+  type Midia,
   type Status,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { MediaCapture } from "@/components/media-capture";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
   component: ChamadoDetalhe,
@@ -75,6 +77,17 @@ function ChamadoDetalhe() {
 
   const setFoto = (field: "fotoAntes" | "fotoDepois", value: string | null) => {
     atualizar.mutate({ id: chamado.id, patch: { [field]: value } });
+  };
+
+  const [uploadingExtra, setUploadingExtra] = useState(false);
+
+  const addMidia = (m: Midia) => {
+    const next = [...chamado.midias, m];
+    atualizar.mutate({ id: chamado.id, patch: { midias: next } });
+  };
+  const removeMidia = (url: string) => {
+    const next = chamado.midias.filter((m) => m.url !== url);
+    atualizar.mutate({ id: chamado.id, patch: { midias: next } });
   };
 
   return (
@@ -123,33 +136,24 @@ function ChamadoDetalhe() {
         />
       </div>
 
-      {chamado.midias.length > 0 && (
-        <Card className="p-4 sm:p-5 space-y-3">
-          <div className="text-sm font-semibold">Anexos da abertura ({chamado.midias.length})</div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {chamado.midias.map((m) => (
-              <a
-                key={m.url}
-                href={m.url}
-                target="_blank"
-                rel="noreferrer"
-                className="relative block rounded-lg overflow-hidden border bg-card"
-              >
-                {m.type === "photo" ? (
-                  <img src={m.url} alt="Anexo" className="w-full aspect-square object-cover" />
-                ) : (
-                  <video src={m.url} className="w-full aspect-square object-cover" controls playsInline />
-                )}
-                {m.type === "video" && (
-                  <span className="absolute top-1 left-1 bg-black/60 text-white text-[10px] font-semibold px-1.5 py-0.5 rounded">
-                    VÍDEO
-                  </span>
-                )}
-              </a>
-            ))}
+      <Card className="p-4 sm:p-5 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="text-sm font-semibold">
+            Mídias do chamado{chamado.midias.length > 0 ? ` (${chamado.midias.length})` : ""}
           </div>
-        </Card>
-      )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Adicione fotos ou grave um vídeo de até 15s do atendimento.
+        </p>
+        <MediaCapture
+          midias={chamado.midias}
+          onAdd={addMidia}
+          onRemove={removeMidia}
+          uploading={uploadingExtra}
+          setUploading={setUploadingExtra}
+          singleVideo={false}
+        />
+      </Card>
 
 
       <div className="flex flex-wrap gap-2">

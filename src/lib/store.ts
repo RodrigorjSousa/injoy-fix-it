@@ -49,7 +49,7 @@ export interface Funcionario {
   telasPermitidas: TelaPermitida[] | null;
 }
 
-export type Midia = { type: "photo" | "video"; url: string };
+export type Midia = { type: "photo" | "video" | "audio"; url: string };
 
 export interface Chamado {
   id: string;
@@ -463,11 +463,13 @@ export function useAtualizarChamado() {
         foto_antes?: string | null;
         foto_depois?: string | null;
         responsavel_id?: string | null;
+        midias?: Midia[];
       } = {};
       if (input.patch.status !== undefined) patch.status = input.patch.status;
       if (input.patch.fotoAntes !== undefined) patch.foto_antes = input.patch.fotoAntes;
       if (input.patch.fotoDepois !== undefined) patch.foto_depois = input.patch.fotoDepois;
       if (input.patch.responsavelId !== undefined) patch.responsavel_id = input.patch.responsavelId;
+      if (input.patch.midias !== undefined) patch.midias = input.patch.midias;
       const { error } = await supabase.from("chamados").update(patch).eq("id", input.id);
       if (error) throw error;
     },
