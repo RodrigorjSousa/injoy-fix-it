@@ -144,27 +144,30 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const toggleGroup = (label: string, defaultOpen: boolean) =>
     setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? defaultOpen) }));
 
-  // Flat list for mobile bottom nav — apenas abas operacionais (máx 5).
-  // Abas de administrador (Dashboard/Gestão/Equipe) ficam ocultas no mobile.
-  const MOBILE_ALLOWED = new Set(["/servicos", "/manutencao", "/recepcao", "/camareiras", "/painel", "/chat"]);
-  const mobileNav: NavChild[] = nav
+  // Lista plana para mobile: mostra até 4 atalhos e coloca todo o restante no "Mais".
+  // Isso garante que telas liberadas individualmente (ex.: Preventiva AC) nunca fiquem escondidas.
+  const mobileNavItems: NavChild[] = nav
     .flatMap((n) =>
       n.children
-        ? [] // grupos admin não vão para o bottom nav do celular
+        ? n.children
         : n.to
         ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
         : [],
     )
-    .filter((item) => MOBILE_ALLOWED.has(item.to))
-    .slice(0, 4);
+    .filter(
+      (item, index, items) =>
+        items.findIndex((candidate) => candidate.to === item.to) === index,
+    );
+  const mobileNav = mobileNavItems.slice(0, 4);
+  const mobileMoreNav = mobileNavItems.slice(4);
 
   // Unidade ativa vinda do contexto global
   const { unidade, setUnidade, unidades: UNIDADES } = useUnidade();
 
-  // Sheet "Mais" (mobile) — links administrativos
+  // Sheet "Mais" (mobile) — links restantes permitidos para o usuário
   const [maisOpen, setMaisOpen] = useState(false);
-  const adminGroup = ALL_NAV.find((n) => n.label === "ADMINISTRADOR");
-  const showMais = isAdmin(me) && !!adminGroup?.children?.length;
+  const showMais = mobileMoreNav.length > 0;
+  const moreActive = mobileMoreNav.some((item) => isActive(item.to, item.exact));
 
   const handleSignOut = async () => {
     await queryClient.cancelQueries();
@@ -371,7 +374,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setMaisOpen(true)}
               className={cn(
                 "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
-                maisOpen ? "text-primary" : "text-muted-foreground",
+                maisOpen || moreActive ? "text-primary" : "text-muted-foreground",
               )}
               aria-label="Mais opções"
             >
@@ -382,21 +385,21 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </nav>
 
-      {/* Mais — gaveta com links administrativos (mobile) */}
+      {/* Mais — gaveta com links restantes permitidos (mobile) */}
       {showMais && (
         <Sheet open={maisOpen} onOpenChange={setMaisOpen}>
           <SheetContent side="bottom" className="rounded-t-2xl">
             <SheetHeader className="text-left">
               <SheetTitle className="flex items-center gap-2 text-base">
-                <ShieldCheck className="h-4 w-4 text-primary" />
-                Administrador
+                <MoreHorizontal className="h-4 w-4 text-primary" />
+                Mais opções
               </SheetTitle>
               <SheetDescription>
-                Acesso rápido às telas de gestão e configuração.
+                Acesso rápido às demais telas liberadas para este usuário.
               </SheetDescription>
             </SheetHeader>
             <div className="mt-4 space-y-1">
-              {adminGroup?.children?.map((c) => {
+              {mobileMoreNav.map((c) => {
                 const active = isActive(c.to, c.exact);
                 const CIcon = c.icon;
                 return (
