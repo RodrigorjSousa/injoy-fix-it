@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate, Navigate, redirect } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { toast } from "sonner";
 import {
@@ -11,18 +11,12 @@ import {
   PaintRoller,
   MapPin,
   ArrowRight,
-  Camera,
-  Video,
-  X,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import { compressImage } from "@/lib/image-compression";
 import {
   CATEGORIAS,
   UNIDADES,
@@ -35,6 +29,7 @@ import {
 } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
 import { AudioDictationButton } from "@/components/audio-dictation-button";
+import { MediaCapture } from "@/components/media-capture";
 
 type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
 
