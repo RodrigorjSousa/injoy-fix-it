@@ -34,6 +34,7 @@ import {
   type Unidade,
 } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
+import { AudioDictationButton } from "@/components/audio-dictation-button";
 
 type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
 
@@ -307,10 +308,15 @@ function NovoChamado() {
 
       <section className="space-y-3">
         <StepLabel n={precisaQuarto ? 4 : 3} title="Descreva brevemente" />
+        <AudioDictationButton
+          onTranscript={(text) =>
+            setDescricao((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))
+          }
+        />
         <Textarea
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
-          placeholder="Ex.: Tomada do quarto 302 sem energia desde a manhã."
+          placeholder="Digite ou grave um áudio (ex.: Tomada do quarto 302 sem energia desde a manhã)."
           className="min-h-[110px] resize-none bg-card"
         />
       </section>
