@@ -163,6 +163,22 @@ export function useFuncionarios() {
 }
 
 export function useChamados() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("chamados-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chamados" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chamados"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
   return useQuery({
     queryKey: ["chamados"],
     queryFn: async (): Promise<Chamado[]> => {
