@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compression";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, CheckCircle2, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, ImageIcon, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
