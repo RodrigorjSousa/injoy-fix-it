@@ -123,8 +123,8 @@ function NovoChamado() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [categoriaFromUrl]);
 
-  // Apenas gestores, recepção e camareiras abrem chamados
-  const podeCriar = !!me && (me.isGestor || me.isAdmin || me.isRecepcao || me.isCamareira);
+  // Qualquer usuário autenticado pode abrir chamados
+  const podeCriar = !!me;
   if (me && !podeCriar) return <Navigate to="/painel" replace />;
 
 
