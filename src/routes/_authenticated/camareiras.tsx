@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film, History } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
