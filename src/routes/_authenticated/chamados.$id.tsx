@@ -3,7 +3,7 @@ import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { compressImage } from "@/lib/image-compression";
 import { toast } from "sonner";
-import { ArrowLeft, Camera, CheckCircle2, Trash2, X } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, ImageIcon, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -216,7 +216,8 @@ function PhotoSlot({
   onChange: (v: string | null) => void;
   accent?: boolean;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const cameraInputRef = useRef<HTMLInputElement>(null);
+  const galleryInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false);
 
   const handleFile = async (file: File) => {
@@ -265,20 +266,45 @@ function PhotoSlot({
       {value ? (
         <img src={value} alt={label} className="w-full aspect-square object-cover rounded-lg" />
       ) : (
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          className="w-full aspect-square rounded-lg bg-muted/50 hover:bg-muted transition-colors flex flex-col items-center justify-center gap-2 text-muted-foreground"
-        >
-          <Camera className="h-8 w-8" />
-          <span className="text-xs font-medium">{loading ? "Carregando..." : "Adicionar foto"}</span>
-        </button>
+        <div className="w-full aspect-square rounded-lg bg-muted/50 flex flex-col items-center justify-center gap-3 p-3">
+          {loading ? (
+            <span className="text-xs font-medium text-muted-foreground">Carregando...</span>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => cameraInputRef.current?.click()}
+                className="w-full max-w-[180px] inline-flex items-center justify-center gap-2 rounded-lg bg-primary text-primary-foreground px-3 py-2 text-xs font-semibold hover:bg-primary/90 transition-colors"
+              >
+                <Camera className="h-4 w-4" /> Tirar foto
+              </button>
+              <button
+                type="button"
+                onClick={() => galleryInputRef.current?.click()}
+                className="w-full max-w-[180px] inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+              >
+                <ImageIcon className="h-4 w-4" /> Escolher da galeria
+              </button>
+            </>
+          )}
+        </div>
       )}
       <input
-        ref={inputRef}
+        ref={cameraInputRef}
         type="file"
         accept="image/*"
         capture="environment"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleFile(f);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={galleryInputRef}
+        type="file"
+        accept="image/*"
         className="hidden"
         onChange={(e) => {
           const f = e.target.files?.[0];
