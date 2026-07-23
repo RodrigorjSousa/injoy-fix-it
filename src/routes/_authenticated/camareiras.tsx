@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film, History } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -14,6 +14,7 @@ import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-mod
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -139,6 +140,7 @@ function PainelCamareiras() {
   const [compraOpen, setCompraOpen] = useState(false);
   const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
+  const [historicoOpen, setHistoricoOpen] = useState(false);
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
@@ -558,6 +560,14 @@ function PainelCamareiras() {
           >
             <ShoppingBag size={16} />
             Solicitar Compra
+          </button>
+          <button
+            onClick={() => setHistoricoOpen(true)}
+            className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-700 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-sm"
+            title="Consultar histórico de limpeza do dia"
+          >
+            <History size={12} />
+            Histórico
           </button>
           <button
             onClick={resetarServicosTurno}
@@ -1140,6 +1150,12 @@ function PainelCamareiras() {
         onClose={() => setRecadoRecepcaoOpen(false)}
         unidade={unidadeAtiva}
         autorNome={nomeAutomatico ?? ""}
+      />
+
+      <HistoricoLimpezaModal
+        open={historicoOpen}
+        onClose={() => setHistoricoOpen(false)}
+        unidade={unidadeAtiva}
       />
     </div>
   );
