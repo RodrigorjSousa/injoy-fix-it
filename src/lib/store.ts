@@ -5,6 +5,7 @@ import {
   useQueryClient,
   type UseMutationOptions,
 } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type Unidade = "Botafogo" | "Ipanema";
@@ -162,6 +163,22 @@ export function useFuncionarios() {
 }
 
 export function useChamados() {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const channel = supabase
+      .channel("chamados-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chamados" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chamados"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [qc]);
   return useQuery({
     queryKey: ["chamados"],
     queryFn: async (): Promise<Chamado[]> => {
@@ -185,6 +202,24 @@ export function useChamados() {
 }
 
 export function useChamado(id: string) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!id) return;
+    const channel = supabase
+      .channel(`chamado-${id}-realtime`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "chamados", filter: `id=eq.${id}` },
+        () => {
+          qc.invalidateQueries({ queryKey: ["chamados", id] });
+          qc.invalidateQueries({ queryKey: ["chamados"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, qc]);
   return useQuery({
     queryKey: ["chamados", id],
     queryFn: async (): Promise<Chamado | null> => {
