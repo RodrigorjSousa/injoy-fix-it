@@ -79,6 +79,17 @@ function ChamadoDetalhe() {
     atualizar.mutate({ id: chamado.id, patch: { [field]: value } });
   };
 
+  const [uploadingExtra, setUploadingExtra] = useState(false);
+
+  const addMidia = (m: Midia) => {
+    const next = [...chamado.midias, m];
+    atualizar.mutate({ id: chamado.id, patch: { midias: next } });
+  };
+  const removeMidia = (url: string) => {
+    const next = chamado.midias.filter((m) => m.url !== url);
+    atualizar.mutate({ id: chamado.id, patch: { midias: next } });
+  };
+
   return (
     <div className="space-y-6 max-w-3xl">
       <Link to="/painel" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground">
