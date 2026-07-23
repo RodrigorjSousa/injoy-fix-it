@@ -35,27 +35,9 @@ import {
 } from "@/lib/store";
 import { useQuery } from "@tanstack/react-query";
 
-// Mapa fixo de técnicos por categoria — garante que a lista sempre apareça
-// para qualquer perfil (recepção, camareiras, manutenção, gestão),
-// independentemente das regras de RLS.
-const TECNICOS_POR_CATEGORIA: Record<string, string[]> = {
-  "Elétrica": ["Cristiano", "Rodrigo"],
-  "Ar condicionado": ["Cristiano", "Rodrigo"],
-  "Automação": ["Cristiano", "Rodrigo"],
-  "Hidráulica": ["Cristiano", "Walter"],
-  "Pintura": ["Cristiano", "Walter"],
-  "Marcenaria": ["Cristiano", "Walter"],
-  "Alvenaria": ["Cristiano", "Walter"],
-};
-const TECNICOS_FALLBACK = ["Cristiano", "Rodrigo", "Walter"];
-
-function nomesTecnicosDaCategoria(categoria: string | null): string[] {
-  if (!categoria) return [];
-  const key = Object.keys(TECNICOS_POR_CATEGORIA).find((k) => categoria.includes(k));
-  return key ? TECNICOS_POR_CATEGORIA[key] : TECNICOS_FALLBACK;
-}
-
 type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
+
+const normalize = (s: string) => s.trim().toLowerCase();
 
 
 
@@ -142,7 +124,16 @@ function NovoChamado() {
     },
   });
 
-  const nomesDisponiveis = useMemo(() => nomesTecnicosDaCategoria(categoria), [categoria]);
+  const tecnicosDisponiveis = useMemo(() => {
+    if (!categoria) return [];
+    const fonte: TecnicoRPC[] = todosTecnicos.length
+      ? todosTecnicos
+      : funcionarios.map((f) => ({ id: f.id, nome: f.nome, categorias: f.categorias ?? [] }));
+    const categoriaAtual = normalize(categoria);
+    return fonte
+      .filter((t) => (t.categorias ?? []).some((c) => normalize(c) === categoriaAtual))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  }, [categoria, funcionarios, todosTecnicos]);
   const [tecnicoNome, setTecnicoNome] = useState<string | null>(null);
 
   // Reseta a seleção ao trocar de categoria — escolha é sempre obrigatória.
@@ -153,13 +144,13 @@ function NovoChamado() {
 
   const responsavel = useMemo(() => {
     if (!tecnicoNome) return null;
-    const norm = (s: string) => s.trim().toLowerCase();
     return (
-      todosTecnicos.find((t) => norm(t.nome) === norm(tecnicoNome)) ||
-      funcionarios.find((f) => norm(f.nome) === norm(tecnicoNome)) ||
+      tecnicosDisponiveis.find((t) => normalize(t.nome) === normalize(tecnicoNome)) ||
+      todosTecnicos.find((t) => normalize(t.nome) === normalize(tecnicoNome)) ||
+      funcionarios.find((f) => normalize(f.nome) === normalize(tecnicoNome)) ||
       null
     );
-  }, [tecnicoNome, todosTecnicos, funcionarios]);
+  }, [tecnicoNome, tecnicosDisponiveis, todosTecnicos, funcionarios]);
 
   const quartosDisponiveis = unidade ? QUARTOS_POR_UNIDADE[unidade] : [];
   const precisaQuarto = !!unidade && quartosDisponiveis.length > 0;
@@ -168,7 +159,7 @@ function NovoChamado() {
     !!unidade &&
     quartoOk &&
     !!categoria &&
-    !!tecnicoNome &&
+    !!responsavel?.id &&
     descricao.trim().length > 3 &&
     !criar.isPending &&
     !uploading;
@@ -347,20 +338,20 @@ function NovoChamado() {
           />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {nomesDisponiveis.map((nome) => {
-              const active = tecnicoNome === nome;
+            {tecnicosDisponiveis.map((tecnico) => {
+              const active = tecnicoNome === tecnico.nome;
               return (
                 <button
-                  key={nome}
+                  key={tecnico.id}
                   type="button"
-                  onClick={() => setTecnicoNome(nome)}
+                  onClick={() => setTecnicoNome(tecnico.nome)}
                   className={cn(
                     "rounded-xl border bg-card p-3 text-left transition-all",
                     "hover:border-primary/50 hover:shadow-sm",
                     active && "border-primary ring-2 ring-primary/30 bg-primary/5",
                   )}
                 >
-                  <div className="font-semibold truncate">🛠️ {nome}</div>
+                  <div className="font-semibold truncate">🛠️ {tecnico.nome}</div>
                   <div className="text-xs text-muted-foreground truncate">
                     Técnico de {categoria}
                   </div>
@@ -368,6 +359,11 @@ function NovoChamado() {
               );
             })}
           </div>
+          {tecnicosDisponiveis.length === 0 && (
+            <p className="text-xs text-destructive font-medium">
+              Nenhum técnico cadastrado para esta categoria. Atualize o cadastro da equipe antes de abrir o chamado.
+            </p>
+          )}
           {!tecnicoNome && (
             <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
               Selecione obrigatoriamente o técnico que deve atender este chamado.
