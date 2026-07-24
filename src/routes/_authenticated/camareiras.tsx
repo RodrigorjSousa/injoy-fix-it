@@ -1177,14 +1177,12 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
       />
 
-      {unidadeAtiva === "Botafogo" && (
-        <TarefasExtrasModal
-          open={tarefasExtrasOpen}
-          onClose={() => setTarefasExtrasOpen(false)}
-          unidade={unidadeAtiva}
-          camareiraName={nomeAutomatico ?? ""}
-        />
-      )}
+      <TarefasExtrasModal
+        open={tarefasExtrasOpen}
+        onClose={() => setTarefasExtrasOpen(false)}
+        unidade={unidadeAtiva}
+        camareiraName={nomeAutomatico ?? ""}
+      />
     </div>
   );
 }
