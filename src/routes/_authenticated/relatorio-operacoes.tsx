@@ -146,18 +146,7 @@ function RelatorioOperacoes() {
     },
   });
 
-  const { data: checklists = [], isLoading: loadingChecklists } = useQuery({
-    queryKey: ["period_checklist_logs", unidade],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("period_checklist_logs" as never)
-        .select("*")
-        .eq("property", unidade)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data as unknown as PeriodChecklistLog[]) ?? [];
-    },
-  });
+  // Checklists de período foram movidos para "Histórico de Produção de Limpeza"
 
   const { data: laundryDir = [] } = useQuery({
     queryKey: ["laundry_items_directory"],
@@ -188,9 +177,8 @@ function RelatorioOperacoes() {
     const set = new Set<string>();
     laundry.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     extras.forEach((l) => l.camareira_name && set.add(l.camareira_name));
-    checklists.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     return Array.from(set).sort();
-  }, [laundry, extras, checklists]);
+  }, [laundry, extras]);
 
   const laundryFiltrado = useMemo(
     () =>
@@ -205,13 +193,6 @@ function RelatorioOperacoes() {
         ? extras
         : extras.filter((l) => l.camareira_name === camareiraFiltro),
     [extras, camareiraFiltro],
-  );
-  const checklistsFiltrado = useMemo(
-    () =>
-      camareiraFiltro === "__all"
-        ? checklists
-        : checklists.filter((l) => l.camareira_name === camareiraFiltro),
-    [checklists, camareiraFiltro],
   );
 
   // ---- KPIs (últimos 365 dias) --------------------------------------------
@@ -235,8 +216,7 @@ function RelatorioOperacoes() {
   // ---- Registros unificados agrupados por mês -----------------------------
   type Registro =
     | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog }
-    | { tipo: "checklist"; log: PeriodChecklistLog };
+    | { tipo: "tarefa"; log: ExtraTaskLog };
 
   const registrosPorMes = useMemo(() => {
     const map = new Map<string, Registro[]>();
@@ -250,11 +230,6 @@ function RelatorioOperacoes() {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push({ tipo: "tarefa", log });
     });
-    checklistsFiltrado.forEach((log) => {
-      const k = monthKey(log.created_at);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push({ tipo: "checklist", log });
-    });
     const keys = Array.from(map.keys()).sort().reverse();
     return keys.map((k) => ({
       key: k,
@@ -267,7 +242,7 @@ function RelatorioOperacoes() {
             new Date(a.log.created_at).getTime(),
         ),
     }));
-  }, [laundryFiltrado, extrasFiltrado, checklistsFiltrado]);
+  }, [laundryFiltrado, extrasFiltrado]);
 
   // ---- PDF Export ---------------------------------------------------------
   const exportPDF = async () => {
@@ -578,7 +553,7 @@ function RelatorioOperacoes() {
 
           {/* Registros por mês */}
           <TabsContent value="registros" className="mt-4">
-            {loadingLaundry || loadingExtras || loadingChecklists ? (
+            {loadingLaundry || loadingExtras ? (
               <div className="p-8 text-center text-slate-500">
                 <Loader2 className="animate-spin inline mr-2" size={16} />
                 Carregando registros…

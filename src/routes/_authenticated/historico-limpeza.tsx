@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2, MessageSquare, ExternalLink } from "lucide-react";
+import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2, MessageSquare, ExternalLink, ClipboardList, Sunrise } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -235,6 +235,68 @@ function HistoricoLimpezaPage() {
     return { total, dnd, limpezas };
   }, [filtrados]);
 
+  // ---- Checklists de Turno (period_checklist_logs) -----------------------
+  type ChecklistLog = {
+    id: string;
+    property: string;
+    camareira_name: string;
+    period: "manha" | "tarde" | "noite";
+    completed_items: string[];
+    created_at: string;
+  };
+  const [checklists, setChecklists] = useState<ChecklistLog[]>([]);
+  const [openChecklist, setOpenChecklist] = useState<string | null>(null);
+
+  const carregarChecklists = useCallback(async () => {
+    let q = supabase
+      .from("period_checklist_logs" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (unidade !== "Todas") q = q.eq("property", unidade);
+    if (data) {
+      const r = rangeForDay(data);
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    } else if (mes) {
+      const r = rangeForMonth(mes, ano || String(new Date().getFullYear()));
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    } else if (ano) {
+      const r = rangeForYear(ano);
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    }
+    const { data: d } = await q;
+    let list = (d as unknown as ChecklistLog[]) ?? [];
+    if (camareira) {
+      const cq = camareira.toLowerCase();
+      list = list.filter((l) => l.camareira_name?.toLowerCase().includes(cq));
+    }
+    setChecklists(list);
+  }, [unidade, data, mes, ano, camareira]);
+
+  useEffect(() => {
+    if (isFull) carregarChecklists();
+  }, [carregarChecklists, isFull]);
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("period_checklist_logs_history")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "period_checklist_logs" },
+        () => carregarChecklists(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [carregarChecklists]);
+
+  const PERIOD_LABEL: Record<"manha" | "tarde" | "noite", string> = {
+    manha: "Manhã",
+    tarde: "Tarde",
+    noite: "Noite",
+  };
+
   if (!isFull) {
     return (
       <div className="max-w-md mx-auto mt-20 text-center space-y-3">
@@ -351,6 +413,69 @@ function HistoricoLimpezaPage() {
             <p className="text-2xl font-black text-red-600">{resumo.dnd}</p>
           </div>
         </div>
+
+        {/* Checklists de Turno das Camareiras */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 p-4 border-b border-slate-100">
+            <div className="h-8 w-8 rounded-lg bg-amber-500 text-white grid place-items-center">
+              <ClipboardList size={16} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black text-slate-800">Checklists de Turno</p>
+              <p className="text-[11px] text-slate-500">
+                Rotinas de manhã, tarde e noite registradas pelas camareiras
+              </p>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">
+              {checklists.length} registro{checklists.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          {checklists.length === 0 ? (
+            <p className="p-4 text-xs text-slate-400 text-center">
+              Nenhum checklist de turno no período selecionado.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {checklists.map((cl) => {
+                const isOpen = openChecklist === cl.id;
+                return (
+                  <div key={cl.id} className="p-3">
+                    <button
+                      onClick={() => setOpenChecklist(isOpen ? null : cl.id)}
+                      className="w-full flex items-center gap-3 text-left"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-amber-500 text-white grid place-items-center shrink-0">
+                        <Sunrise size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {cl.camareira_name || "—"}
+                          <span className="ml-2 text-[11px] font-semibold text-amber-600">
+                            {PERIOD_LABEL[cl.period]}
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {fmtDateTime(cl.created_at)} · INJOY {cl.property}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {isOpen ? "Fechar" : "Ver"}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <ul className="mt-3 ml-11 list-disc list-inside space-y-1 text-xs text-slate-700">
+                        {(cl.completed_items ?? []).map((t, i) => (
+                          <li key={i}>{t}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
 
         {loading && rows.length === 0 ? (
           <LoadingState label="Carregando histórico..." />
