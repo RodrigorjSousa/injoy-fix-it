@@ -242,7 +242,7 @@ function RelatorioOperacoes() {
             new Date(a.log.created_at).getTime(),
         ),
     }));
-  }, [laundryFiltrado, extrasFiltrado, checklistsFiltrado]);
+  }, [laundryFiltrado, extrasFiltrado]);
 
   // ---- PDF Export ---------------------------------------------------------
   const exportPDF = async () => {
