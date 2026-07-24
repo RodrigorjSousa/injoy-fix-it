@@ -15,6 +15,7 @@ import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-mo
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
+import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -141,6 +142,7 @@ function PainelCamareiras() {
   const [recadoRecepcaoOpen, setRecadoRecepcaoOpen] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
+  const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
@@ -553,6 +555,14 @@ function PainelCamareiras() {
           >
             <Package size={16} />
             Almoxarifado
+          </button>
+          <button
+            onClick={() => setEstoqueGeralOpen(true)}
+            title="Consultar estoque geral do almoxarifado"
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-[#8A2BE2] to-[#6A0DAD] hover:from-[#7B22C9] hover:to-[#5A0C93] active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/10 transition-all"
+          >
+            <Package size={16} />
+            Estoque Geral
           </button>
           <button
             onClick={() => setCompraOpen(true)}
@@ -1155,6 +1165,12 @@ function PainelCamareiras() {
       <HistoricoLimpezaModal
         open={historicoOpen}
         onClose={() => setHistoricoOpen(false)}
+        unidade={unidadeAtiva}
+      />
+
+      <EstoqueGeralModal
+        open={estoqueGeralOpen}
+        onClose={() => setEstoqueGeralOpen(false)}
         unidade={unidadeAtiva}
       />
     </div>
