@@ -27,6 +27,7 @@ import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-e
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
+import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
 import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
@@ -140,6 +141,7 @@ function RecepcaoPage() {
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
+  const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const [trocaTurnoOpen, setTrocaTurnoOpen] = useState(false);
   const [recadoAlvo, setRecadoAlvo] = useState<
     { unidade: Unidade; quarto: string | null } | null
@@ -344,6 +346,15 @@ function RecepcaoPage() {
           <ShoppingBag size={18} />
           <span className="hidden sm:inline">Solicitar compra</span>
           <span className="sm:hidden">🛒</span>
+        </button>
+        <button
+          onClick={() => setEstoqueGeralOpen(true)}
+          title="Consultar estoque do almoxarifado"
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-full font-black text-sm uppercase tracking-wider text-white bg-gradient-to-br from-[#8A2BE2] to-[#6A0DAD] shadow-lg shadow-purple-900/30 ring-1 ring-white/10 hover:brightness-110 active:translate-y-px transition-all"
+        >
+          <Package size={18} />
+          <span className="hidden sm:inline">Almoxarifado</span>
+          <span className="sm:hidden">📦</span>
         </button>
         {unidadeAtiva === "Botafogo" && (
           <button
@@ -781,6 +792,12 @@ function RecepcaoPage() {
         onClose={() => setCompraOpen(false)}
         unidade={unidadeAtiva}
         origem="recepcao"
+      />
+
+      <EstoqueGeralModal
+        open={estoqueGeralOpen}
+        onClose={() => setEstoqueGeralOpen(false)}
+        unidade={unidadeAtiva}
       />
 
       {receberSaldoAlvo && (
