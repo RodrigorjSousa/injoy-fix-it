@@ -603,3 +603,88 @@ function HistoricoTab({
     </div>
   );
 }
+
+function HouseAccountConfig({ unidade }: { unidade: string }) {
+  const get = useServerFn(getCloudbedsHouseAccounts);
+  const set = useServerFn(setCloudbedsHouseAccount);
+  const [loading, setLoading] = useState(true);
+  const [permitido, setPermitido] = useState(true);
+  const [ipanema, setIpanema] = useState("");
+  const [botafogo, setBotafogo] = useState("");
+  const [salvando, setSalvando] = useState<"ipanema" | "botafogo" | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      try {
+        const res = await get();
+        if (!alive) return;
+        setIpanema(res.ipanema);
+        setBotafogo(res.botafogo);
+        setPermitido(true);
+      } catch {
+        if (alive) setPermitido(false);
+      } finally {
+        if (alive) setLoading(false);
+      }
+    })();
+    return () => { alive = false; };
+  }, [get]);
+
+  if (loading) return null;
+  if (!permitido) return null;
+
+  const salvar = async (prop: "Ipanema" | "Botafogo", value: string) => {
+    setSalvando(prop.toLowerCase() as "ipanema" | "botafogo");
+    try {
+      await set({ data: { property: prop, reservationID: value } });
+      toast.success(`Conta-balcão de ${prop} salva`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar");
+    } finally {
+      setSalvando(null);
+    }
+  };
+
+  const atual = unidade === "Ipanema" ? ipanema : botafogo;
+  const setAtual = unidade === "Ipanema" ? setIpanema : setBotafogo;
+
+  return (
+    <div className="rounded-2xl border border-sky-500/40 bg-sky-500/5 p-4">
+      <div className="flex items-start gap-3">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-sky-500 to-indigo-600 grid place-items-center text-white shrink-0">
+          <DollarSign size={18} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-black">Conta-Balcão do Cloudbeds — INJOY {unidade}</p>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            ID da reserva "House Account" (ex.: <span className="font-mono">Frigobar Balcão</span>) usada para lançar vendas de balcão. Todo balcão vai baixar estoque nessa conta.
+          </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <input
+              value={atual}
+              onChange={(e) => setAtual(e.target.value)}
+              placeholder="Reservation ID (Cloudbeds)"
+              className="flex-1 min-w-[220px] bg-background border border-input rounded-lg px-3 py-2 text-sm font-mono"
+            />
+            <button
+              onClick={() => salvar(unidade as "Ipanema" | "Botafogo", atual)}
+              disabled={salvando !== null}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-xl text-white font-bold text-sm shadow-md transition-all",
+                salvando ? "bg-slate-500" : "bg-gradient-to-br from-emerald-500 to-green-600 hover:brightness-110",
+              )}
+            >
+              <Save size={16} /> Salvar
+            </button>
+          </div>
+          {!atual && (
+            <p className="text-[11px] text-amber-600 dark:text-amber-400 font-semibold mt-2">
+              ⚠️ Sem esse ID configurado, as vendas de balcão não conseguirão baixar estoque no Cloudbeds.
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
