@@ -146,18 +146,7 @@ function RelatorioOperacoes() {
     },
   });
 
-  const { data: checklists = [], isLoading: loadingChecklists } = useQuery({
-    queryKey: ["period_checklist_logs", unidade],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("period_checklist_logs" as never)
-        .select("*")
-        .eq("property", unidade)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data as unknown as PeriodChecklistLog[]) ?? [];
-    },
-  });
+  // Checklists de período foram movidos para "Histórico de Produção de Limpeza"
 
   const { data: laundryDir = [] } = useQuery({
     queryKey: ["laundry_items_directory"],
