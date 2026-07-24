@@ -194,13 +194,6 @@ function RelatorioOperacoes() {
         : extras.filter((l) => l.camareira_name === camareiraFiltro),
     [extras, camareiraFiltro],
   );
-  const checklistsFiltrado = useMemo(
-    () =>
-      camareiraFiltro === "__all"
-        ? checklists
-        : checklists.filter((l) => l.camareira_name === camareiraFiltro),
-    [checklists, camareiraFiltro],
-  );
 
   // ---- KPIs (últimos 365 dias) --------------------------------------------
   const kpis = useMemo(() => {
