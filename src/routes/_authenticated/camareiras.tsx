@@ -536,13 +536,6 @@ function PainelCamareiras() {
         </div>
         <div className="flex flex-wrap gap-2 items-center">
           <button
-            onClick={() => setExtraTasksOpen(true)}
-            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-emerald-500 to-emerald-600 hover:from-emerald-600 hover:to-emerald-700 text-white flex items-center justify-center gap-2 shadow-md shadow-emerald-500/20 transition-all"
-          >
-            <ListChecks size={16} />
-            Tarefas Extras
-          </button>
-          <button
             onClick={() => setLaundryOpen(true)}
             className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-sky-500 to-sky-600 hover:from-sky-600 hover:to-sky-700 text-white flex items-center justify-center gap-2 shadow-md shadow-sky-500/20 transition-all"
           >
