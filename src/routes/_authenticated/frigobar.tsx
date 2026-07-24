@@ -26,6 +26,7 @@ import {
   syncCloudbedsItems,
   getCloudbedsHouseAccounts,
   setCloudbedsHouseAccount,
+  setCloudbedsItemStock,
 } from "@/lib/cloudbeds-pdv.functions";
 
 export const Route = createFileRoute("/_authenticated/frigobar")({
@@ -44,7 +45,9 @@ type Beverage = {
   price: number;
   current_stock: number;
   min_stock: number;
+  cloudbeds_item_id: string | null;
 };
+
 
 type Sale = {
   id: string;
