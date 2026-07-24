@@ -218,12 +218,14 @@ export const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]
 const storageKey = (unidade: string, cat: CategoryKey) =>
   `injoy:tarefas-extras:${unidade}:${cat}`;
 
-function loadItems(unidade: string, cat: CategoryKey, defaults: string[]): string[] {
+export function loadItems(unidade: string, cat: CategoryKey, defaults: string[]): string[] {
   try {
     const raw = localStorage.getItem(storageKey(unidade, cat));
     if (raw) {
       const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length === 10) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((v) => typeof v === "string")) {
+        return parsed;
+      }
     }
   } catch {
     // ignore
@@ -231,7 +233,7 @@ function loadItems(unidade: string, cat: CategoryKey, defaults: string[]): strin
   return defaults;
 }
 
-function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
+export function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
   try {
     localStorage.setItem(storageKey(unidade, cat), JSON.stringify(items));
   } catch {
