@@ -43,7 +43,7 @@ const LABELS: Record<string, string> = {
   frigobar: "Frigobar",
   bonificacao: "Bonificação",
   chat: "Chat",
-  dashboard: "Dashboard",
+  
   gestao: "Gestão",
   escala: "Escala",
   "controle-ponto": "Controle de Ponto",
