@@ -330,6 +330,7 @@ function HistoricoLimpezaPage() {
       <div className="p-4 space-y-4">
         {(me?.isAdmin || me?.isGestor) && <PeriodItemsManager />}
         {(me?.isAdmin || me?.isGestor) && <TarefasExtrasPeriodicityManager />}
+        {(me?.isAdmin || me?.isGestor) && <TarefasExtrasChecklistManager />}
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm space-y-3">
           <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Filtros</p>
