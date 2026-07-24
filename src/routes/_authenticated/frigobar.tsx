@@ -22,7 +22,11 @@ import { useUnidade } from "@/lib/unidade-context";
 import { cn } from "@/lib/utils";
 import { ErrorState, friendlyError } from "@/components/ui/data-state";
 import { useServerFn } from "@tanstack/react-start";
-import { syncCloudbedsItems } from "@/lib/cloudbeds-pdv.functions";
+import {
+  syncCloudbedsItems,
+  getCloudbedsHouseAccounts,
+  setCloudbedsHouseAccount,
+} from "@/lib/cloudbeds-pdv.functions";
 
 export const Route = createFileRoute("/_authenticated/frigobar")({
   component: FrigobarPage,
