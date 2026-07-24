@@ -81,13 +81,16 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
 
     let matched = 0;
     let created = 0;
+    const seenCatalogIds = new Set<string>();
     for (const item of collected) {
       const existing =
         byCloudbedsId.get(item.id) ?? byName.get(item.name.trim().toLowerCase());
       if (existing) {
+        seenCatalogIds.add(existing.id);
         const { error } = await supabase
           .from("beverage_catalog")
           .update({
+            name: item.name,
             price: item.price,
             cloudbeds_item_id: item.id,
           })
@@ -95,16 +98,35 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         if (!error) matched += 1;
       } else {
         // Cria novo produto sem estoque; gestor ajusta manualmente depois
-        const { error } = await supabase.from("beverage_catalog").insert({
-          property: data.property,
-          name: item.name,
-          price: item.price,
-          current_stock: 0,
-          min_stock: 0,
-          cloudbeds_item_id: item.id,
-        });
-        if (!error) created += 1;
+        const { data: inserted, error } = await supabase
+          .from("beverage_catalog")
+          .insert({
+            property: data.property,
+            name: item.name,
+            price: item.price,
+            current_stock: 0,
+            min_stock: 0,
+            cloudbeds_item_id: item.id,
+          })
+          .select("id")
+          .single();
+        if (!error) {
+          created += 1;
+          if (inserted?.id) seenCatalogIds.add(inserted.id);
+        }
       }
+    }
+
+    // Cloudbeds é a fonte da verdade: itens antigos que sobraram no catálogo
+    // e não correspondem a nenhum item vindo do Cloudbeds são removidos.
+    const stale = (catalog ?? []).filter((b) => !seenCatalogIds.has(b.id));
+    let removed = 0;
+    for (const b of stale) {
+      const { error } = await supabase
+        .from("beverage_catalog")
+        .delete()
+        .eq("id", b.id);
+      if (!error) removed += 1;
     }
 
     return {
@@ -112,6 +134,7 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
       totalCloudbeds: collected.length,
       updated: matched,
       created,
+      removed,
     };
   });
 
