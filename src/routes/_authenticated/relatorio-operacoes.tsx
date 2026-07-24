@@ -177,9 +177,8 @@ function RelatorioOperacoes() {
     const set = new Set<string>();
     laundry.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     extras.forEach((l) => l.camareira_name && set.add(l.camareira_name));
-    checklists.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     return Array.from(set).sort();
-  }, [laundry, extras, checklists]);
+  }, [laundry, extras]);
 
   const laundryFiltrado = useMemo(
     () =>
