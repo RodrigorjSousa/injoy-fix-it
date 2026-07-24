@@ -21,9 +21,11 @@ interface Props {
   onClose: () => void;
   unidade: "Botafogo" | "Ipanema";
   camareiraName: string;
+  initialCategory?: CategoryKey | null;
 }
 
-type CategoryKey =
+
+export type CategoryKey =
   | "cozinha"
   | "patio"
   | "salas_terreo"
@@ -32,6 +34,7 @@ type CategoryKey =
   | "patio_ipanema"
   | "banheiro_ipanema"
   | "escadas_corredores_ipanema";
+
 
 interface Category {
   key: CategoryKey;
@@ -43,7 +46,7 @@ interface Category {
   defaults: string[];
 }
 
-const CATEGORIES: Category[] = [
+export const CATEGORIES: Category[] = [
   {
     key: "cozinha",
     label: "Geral Cozinha",
@@ -206,10 +209,11 @@ const CATEGORIES: Category[] = [
   },
 ];
 
-const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]> = {
+export const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]> = {
   Botafogo: ["cozinha", "patio", "salas_terreo", "sala_401", "area_servico"],
   Ipanema: ["patio_ipanema", "banheiro_ipanema", "escadas_corredores_ipanema"],
 };
+
 
 const storageKey = (unidade: string, cat: CategoryKey) =>
   `injoy:tarefas-extras:${unidade}:${cat}`;
@@ -235,8 +239,8 @@ function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
   }
 }
 
-export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Props) {
-  const [active, setActive] = useState<CategoryKey | null>(null);
+export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, initialCategory = null }: Props) {
+  const [active, setActive] = useState<CategoryKey | null>(initialCategory);
   const [items, setItems] = useState<string[]>([]);
   const [checked, setChecked] = useState<boolean[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -249,11 +253,15 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Pr
   );
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setActive(initialCategory);
+      setEditingIdx(null);
+    } else {
       setActive(null);
       setEditingIdx(null);
     }
-  }, [open]);
+  }, [open, initialCategory]);
+
 
   useEffect(() => {
     if (!activeCat) return;

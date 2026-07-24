@@ -16,7 +16,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
-import { TarefasExtrasModal } from "@/components/camareiras/tarefas-extras-modal";
+import { TarefasExtrasModal, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -145,6 +145,8 @@ function PainelCamareiras() {
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const [tarefasExtrasOpen, setTarefasExtrasOpen] = useState(false);
+  const [tarefasExtrasInitial, setTarefasExtrasInitial] = useState<TarefaExtraKey | null>(null);
+
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
@@ -567,14 +569,6 @@ function PainelCamareiras() {
             Solicitar Compra
           </button>
           <button
-            onClick={() => setTarefasExtrasOpen(true)}
-            title="Checklists de áreas comuns"
-            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-600 hover:brightness-110 active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/20 transition-all"
-          >
-            <Sparkles size={16} />
-            Tarefas Extras
-          </button>
-          <button
             onClick={() => setHistoricoOpen(true)}
             className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-700 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-sm"
             title="Consultar histórico de limpeza do dia"
@@ -591,8 +585,70 @@ function PainelCamareiras() {
             Resetar Turno
           </button>
         </div>
-
       </div>
+
+      {/* Tarefas Extras — sempre visível para lembrar as camareiras das áreas comuns */}
+      <div className="px-4 pt-4">
+      <section className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700 shadow-xl ring-1 ring-white/10">
+
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2 text-white">
+            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
+              <Sparkles size={18} />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-100">
+                Áreas comuns · INJOY {unidadeAtiva}
+              </p>
+              <h3 className="text-base sm:text-lg font-black leading-tight">
+                Tarefas Extras
+              </h3>
+            </div>
+          </div>
+          <span className="hidden sm:inline text-[11px] font-semibold text-fuchsia-100/90">
+            Toque para abrir o checklist
+          </span>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+          {TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
+            TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
+          ).map((c) => {
+            const Icon = c.icon;
+            return (
+              <button
+                key={c.key}
+                onClick={() => {
+                  setTarefasExtrasInitial(c.key);
+                  setTarefasExtrasOpen(true);
+                }}
+                className={cn(
+                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 ring-white/30 bg-gradient-to-br",
+                  c.gradient,
+                )}
+              >
+                <div className="flex items-center gap-2">
+                  <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm shrink-0">
+                    <Icon size={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-widest opacity-90">
+                      Checklist
+                    </p>
+                    <p className="text-[12px] sm:text-sm font-black leading-tight break-words">
+                      {c.label}
+                    </p>
+                    <p className="text-[10px] opacity-90">10 itens</p>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+      </div>
+
+
 
       <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
 
@@ -1179,10 +1235,15 @@ function PainelCamareiras() {
 
       <TarefasExtrasModal
         open={tarefasExtrasOpen}
-        onClose={() => setTarefasExtrasOpen(false)}
+        onClose={() => {
+          setTarefasExtrasOpen(false);
+          setTarefasExtrasInitial(null);
+        }}
         unidade={unidadeAtiva}
         camareiraName={nomeAutomatico ?? ""}
+        initialCategory={tarefasExtrasInitial}
       />
+
     </div>
   );
 }
