@@ -346,7 +346,7 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Pr
         <div className="overflow-y-auto flex-1 p-4 bg-slate-50">
           {!activeCat ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CATEGORIES.map((c) => {
+              {CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)).map((c) => {
                 const Icon = c.icon;
                 return (
                   <button
