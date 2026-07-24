@@ -1,5 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, X, Send, Package, PackageCheck, CheckCircle2, AlertTriangle } from "lucide-react";
+import {
+  Loader2,
+  X,
+  Send,
+  Package,
+  PackageCheck,
+  Truck,
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+} from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -37,15 +47,23 @@ const ITENS_FALLBACK = [
   "Pano de Chão",
 ];
 
+// ------- Tipos -------
+// items_sent no banco (jsonb) — campos preenchidos ao longo do ciclo de vida do malote.
 type ItemSent = {
   item: string;
-  enviado: number;
-  saida_hotel?: number;
-  ent_lav?: number;
-  diferenca?: number;
-  saida_lav?: number;
+  enviado: number; // alias legado = saida_hotel
+  saida_hotel: number; // 1ª contagem — camareira ao fechar o malote
+  ent_lav?: number; // 2ª contagem — lavanderia confirma o que recebeu
+  retorno_hotel?: number; // 3ª contagem — camareira ao receber de volta
 };
-type ItemReceived = { item: string; enviado: number; retornado: number; em_falta: number };
+type ItemReceived = {
+  item: string;
+  enviado: number;
+  retornado: number;
+  em_falta: number;
+  diff_transporte?: number;
+  diff_lavanderia?: number;
+};
 
 type Batch = {
   batch_id: string;
@@ -65,11 +83,16 @@ interface Props {
 }
 
 const PREFIX: Record<string, string> = { Botafogo: "BOT", Ipanema: "IPA" };
+const ALERTA_DIAS = 3; // ≥ 3 dias em trânsito vira vermelho
 
 function ddmm(d = new Date()) {
   const dd = String(d.getDate()).padStart(2, "0");
   const mm = String(d.getMonth() + 1).padStart(2, "0");
   return `${dd}${mm}`;
+}
+
+function diasEmTransito(iso: string) {
+  return Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
 }
 
 async function generateBatchId(unidade: string): Promise<string> {
@@ -85,8 +108,9 @@ async function generateBatchId(unidade: string): Promise<string> {
 }
 
 export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
-  const [tab, setTab] = useState<"enviar" | "receber">("enviar");
+  const [tab, setTab] = useState<"enviar" | "transito" | "receber">("enviar");
   const [itens, setItens] = useState<string[]>(ITENS_FALLBACK);
+  const [transitCount, setTransitCount] = useState(0);
 
   useEffect(() => {
     if (!open) return;
@@ -101,6 +125,19 @@ export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
     })();
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    const load = async () => {
+      const { data } = await supabase
+        .from("laundry_batches" as any)
+        .select("batch_id", { count: "exact", head: true })
+        .eq("property", unidade)
+        .in("status", ["transit", "at_laundry", "partial"]);
+      setTransitCount((data as unknown as { length?: number })?.length ?? 0);
+    };
+    load();
+  }, [open, unidade, tab]);
+
   if (!open) return null;
 
   return (
@@ -109,10 +146,12 @@ export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
         <div className="flex items-center justify-between p-4 border-b border-slate-800">
           <div>
             <p className="text-[11px] font-bold text-sky-400 uppercase tracking-wider">
-              🧺 Lavanderia · Gestão por Lotes
+              🧺 Lavanderia · Gestão por Malote
             </p>
-            <h3 className="text-base font-black text-white">Malote de Enxoval</h3>
-            <p className="text-xs text-slate-400">INJOY {unidade} · {camareiraName || "—"}</p>
+            <h3 className="text-base font-black text-white">Controle de Ida e Volta</h3>
+            <p className="text-xs text-slate-400">
+              INJOY {unidade} · {camareiraName || "—"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -123,39 +162,43 @@ export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 border-b border-slate-800 shrink-0">
-          <button
+        <div className="grid grid-cols-3 border-b border-slate-800 shrink-0">
+          <TabButton
+            active={tab === "enviar"}
             onClick={() => setTab("enviar")}
-            className={cn(
-              "py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors",
-              tab === "enviar"
-                ? "bg-sky-500 text-white"
-                : "bg-slate-900 text-slate-400 hover:bg-slate-800",
-            )}
-          >
-            <Package size={16} /> 📤 Enviar Sujo
-          </button>
-          <button
+            color="sky"
+            icon={<Package size={16} />}
+            label="📤 Enviar"
+          />
+          <TabButton
+            active={tab === "transito"}
+            onClick={() => setTab("transito")}
+            color="amber"
+            icon={<Truck size={16} />}
+            label="🚚 Em Trânsito"
+            badge={transitCount}
+          />
+          <TabButton
+            active={tab === "receber"}
             onClick={() => setTab("receber")}
-            className={cn(
-              "py-3 text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-colors",
-              tab === "receber"
-                ? "bg-emerald-500 text-white"
-                : "bg-slate-900 text-slate-400 hover:bg-slate-800",
-            )}
-          >
-            <PackageCheck size={16} /> 📥 Receber Limpo
-          </button>
+            color="emerald"
+            icon={<PackageCheck size={16} />}
+            label="📥 Receber"
+          />
         </div>
 
-        {tab === "enviar" ? (
+        {tab === "enviar" && (
           <EnviarSujo
             itens={itens}
             unidade={unidade}
             camareiraName={camareiraName}
-            onDone={onClose}
+            onDone={() => setTab("transito")}
           />
-        ) : (
+        )}
+        {tab === "transito" && (
+          <EmTransito unidade={unidade} camareiraName={camareiraName} onGoReceber={() => setTab("receber")} />
+        )}
+        {tab === "receber" && (
           <ReceberLimpo unidade={unidade} camareiraName={camareiraName} onDone={onClose} />
         )}
       </div>
@@ -163,7 +206,50 @@ export function LaundryModal({ open, onClose, unidade, camareiraName }: Props) {
   );
 }
 
-/* -------------------- ABA 1: ENVIAR SUJO -------------------- */
+function TabButton({
+  active,
+  onClick,
+  color,
+  icon,
+  label,
+  badge,
+}: {
+  active: boolean;
+  onClick: () => void;
+  color: "sky" | "amber" | "emerald";
+  icon: React.ReactNode;
+  label: string;
+  badge?: number;
+}) {
+  const activeBg = {
+    sky: "bg-sky-500 text-white",
+    amber: "bg-amber-500 text-slate-950",
+    emerald: "bg-emerald-500 text-white",
+  }[color];
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "py-3 px-2 text-[11px] font-black uppercase tracking-wider flex items-center justify-center gap-1.5 transition-colors relative",
+        active ? activeBg : "bg-slate-900 text-slate-400 hover:bg-slate-800",
+      )}
+    >
+      {icon} {label}
+      {badge && badge > 0 ? (
+        <span
+          className={cn(
+            "ml-1 min-w-[1.25rem] h-5 px-1 rounded-full text-[10px] font-black flex items-center justify-center",
+            active ? "bg-slate-950/30 text-white" : "bg-amber-500 text-slate-950",
+          )}
+        >
+          {badge}
+        </span>
+      ) : null}
+    </button>
+  );
+}
+
+/* ================== ABA 1: ENVIAR SUJO ================== */
 
 function EnviarSujo({
   itens,
@@ -176,9 +262,7 @@ function EnviarSujo({
   camareiraName: string;
   onDone: () => void;
 }) {
-  const [dados, setDados] = useState<
-    Record<string, { saida_hotel: string; ent_lav: string; saida_lav: string }>
-  >({});
+  const [quantidades, setQuantidades] = useState<Record<string, string>>({});
   const [talao, setTalao] = useState("");
   const [notas, setNotas] = useState("");
   const [salvando, setSalvando] = useState(false);
@@ -187,56 +271,52 @@ function EnviarSujo({
   const linhas = useMemo(
     () =>
       itens.map((item) => {
-        const row = dados[item] ?? { saida_hotel: "", ent_lav: "", saida_lav: "" };
-        const saidaHotel = parseInt(row.saida_hotel || "0", 10) || 0;
-        const entLav = parseInt(row.ent_lav || "0", 10) || 0;
-        const saidaLav = parseInt(row.saida_lav || "0", 10) || 0;
-        const diferenca = saidaHotel - entLav;
-        return { item, row, saidaHotel, entLav, saidaLav, diferenca };
+        const raw = quantidades[item] ?? "";
+        const qtd = parseInt(raw || "0", 10) || 0;
+        return { item, raw, qtd };
       }),
-    [dados, itens],
+    [quantidades, itens],
   );
 
-  const totalSaidaHotel = linhas.reduce((s, l) => s + l.saidaHotel, 0);
-  const totalEntLav = linhas.reduce((s, l) => s + l.entLav, 0);
-  const totalDiferenca = linhas.reduce((s, l) => s + l.diferenca, 0);
-  const totalSaidaLav = linhas.reduce((s, l) => s + l.saidaLav, 0);
-  const totalPecas = totalSaidaHotel;
-
-  const totalItens = linhas.filter((l) => l.saidaHotel > 0).length;
+  const totalPecas = linhas.reduce((s, l) => s + l.qtd, 0);
+  const totalItens = linhas.filter((l) => l.qtd > 0).length;
   const canSubmit = totalItens > 0 && talao.trim().length > 0 && !salvando;
 
-  const setCampo = (
-    item: string,
-    campo: "saida_hotel" | "ent_lav" | "saida_lav",
-    valor: string,
-  ) => {
+  const setCampo = (item: string, valor: string) => {
     const clean = valor.replace(/[^0-9]/g, "");
-    setDados((s) => {
-      const prev = s[item] ?? { saida_hotel: "", ent_lav: "", saida_lav: "" };
-      return { ...s, [item]: { ...prev, [campo]: clean } };
-    });
+    setQuantidades((s) => ({ ...s, [item]: clean }));
   };
 
   const enviar = async () => {
     if (!canSubmit) return;
     setSalvando(true);
     try {
+      // Bloqueia envio duplicado do mesmo talão em malotes abertos
+      const talaoNum = talao.trim();
+      const { data: existente } = await supabase
+        .from("laundry_batches" as any)
+        .select("batch_id, notes")
+        .eq("property", unidade)
+        .in("status", ["transit", "at_laundry", "partial"]);
+      const conflito = ((existente as { notes?: string | null }[] | null) ?? []).find((r) =>
+        (r.notes ?? "").includes(`Talão nº ${talaoNum}`),
+      );
+      if (conflito) {
+        toast.error(`Talão nº ${talaoNum} já está em um malote aberto. Verifique antes de reenviar.`);
+        setSalvando(false);
+        return;
+      }
+
       const items_sent: ItemSent[] = linhas
-        .filter((l) => l.saidaHotel > 0 || l.entLav > 0 || l.saidaLav > 0)
+        .filter((l) => l.qtd > 0)
         .map((l) => ({
           item: l.item,
-          enviado: l.saidaHotel,
-          saida_hotel: l.saidaHotel,
-          ent_lav: l.entLav,
-          diferenca: l.diferenca,
-          saida_lav: l.saidaLav,
+          enviado: l.qtd,
+          saida_hotel: l.qtd,
         }));
       const batch_id = await generateBatchId(unidade);
-      const talaoPrefix = `Talão nº ${talao.trim()}`;
-      const notesFinal = notas.trim()
-        ? `${talaoPrefix} — ${notas.trim()}`
-        : talaoPrefix;
+      const talaoPrefix = `Talão nº ${talaoNum}`;
+      const notesFinal = notas.trim() ? `${talaoPrefix} — ${notas.trim()}` : talaoPrefix;
       const { error } = await supabase.from("laundry_batches" as any).insert({
         batch_id,
         property: unidade,
@@ -249,7 +329,7 @@ function EnviarSujo({
       setCriado(batch_id);
     } catch (err) {
       console.error("[laundry] enviar erro:", err);
-      toast.error(err instanceof Error ? err.message : "Falha ao criar lote");
+      toast.error(err instanceof Error ? err.message : "Falha ao criar malote");
     } finally {
       setSalvando(false);
     }
@@ -261,23 +341,24 @@ function EnviarSujo({
         <div className="w-20 h-20 rounded-full bg-emerald-500/20 flex items-center justify-center">
           <CheckCircle2 size={48} className="text-emerald-400" />
         </div>
-        <h4 className="text-2xl font-black text-white">Lote criado com sucesso!</h4>
+        <h4 className="text-2xl font-black text-white">Malote criado!</h4>
         <p className="text-sm text-slate-300 max-w-md">
-          Talão nº <span className="text-sky-300 font-black">{talao}</span>. Anote na guia de
-          remessa o número do lote abaixo. Ao receber a roupa limpa, use a aba{" "}
-          <span className="text-emerald-400 font-bold">📥 Receber Limpo</span> para dar baixa.
+          Talão nº <span className="text-sky-300 font-black">{talao}</span>. Escreva o número
+          abaixo na guia de remessa. Quando a lavanderia devolver o recibo, entre em{" "}
+          <span className="text-amber-400 font-bold">🚚 Em Trânsito</span> e confirme o que ela
+          contou.
         </p>
         <div className="bg-slate-800 border-2 border-sky-500 rounded-2xl px-6 py-4">
           <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">
-            Número do Lote
+            Número do Malote
           </p>
           <p className="text-3xl font-black text-sky-300 tracking-wider">{criado}</p>
         </div>
         <button
           onClick={onDone}
-          className="mt-2 bg-sky-500 hover:bg-sky-600 text-white font-black px-6 py-3 rounded-xl uppercase text-sm tracking-wider"
+          className="mt-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-black px-6 py-3 rounded-xl uppercase text-sm tracking-wider"
         >
-          Fechar
+          Ver malotes em trânsito
         </button>
       </div>
     );
@@ -287,7 +368,7 @@ function EnviarSujo({
     <>
       <div className="p-4 border-b border-slate-800 bg-slate-900/60">
         <label className="block text-[10px] font-black uppercase tracking-wider text-sky-300 mb-1.5">
-          Número do Talão
+          Número do Talão da Lavanderia
         </label>
         <input
           type="text"
@@ -297,16 +378,16 @@ function EnviarSujo({
           placeholder="Nº 19389"
           className="w-full sm:w-64 bg-slate-800 border-2 border-slate-700 focus:border-sky-500 rounded-lg px-4 py-3 text-2xl font-black text-sky-200 tracking-widest outline-none placeholder:text-slate-600 placeholder:font-black"
         />
+        <p className="text-[10px] text-slate-500 mt-1.5">
+          Este número acompanha o malote na ida e na volta. Sem talão não é possível enviar.
+        </p>
       </div>
       <div className="overflow-auto flex-1">
         <table className="w-full text-sm border-collapse">
           <thead className="sticky top-0 bg-slate-900 border-b-2 border-slate-700 z-10">
             <tr className="text-[10px] uppercase tracking-wider text-slate-300">
               <th className="text-left p-3 font-black border-r border-slate-800">Material</th>
-              <th className="p-2 font-black w-24 border-r border-slate-800">Saída Hotel</th>
-              <th className="p-2 font-black w-24 border-r border-slate-800">Ent. Lav.</th>
-              <th className="p-2 font-black w-24 border-r border-slate-800">Diferença</th>
-              <th className="p-2 font-black w-24">Saída Lav</th>
+              <th className="p-2 font-black w-28">Saída do Hotel</th>
             </tr>
           </thead>
           <tbody>
@@ -321,50 +402,14 @@ function EnviarSujo({
                 <td className="p-3 text-slate-200 font-semibold text-xs border-r border-slate-800">
                   {l.item}
                 </td>
-                <td className="p-1 border-r border-slate-800">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={l.row.saida_hotel}
-                    onChange={(e) => setCampo(l.item, "saida_hotel", e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
-                    placeholder="0"
-                  />
-                </td>
-                <td className="p-1 border-r border-slate-800">
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={0}
-                    value={l.row.ent_lav}
-                    onChange={(e) => setCampo(l.item, "ent_lav", e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
-                    placeholder="0"
-                  />
-                </td>
-                <td className="p-1 text-center border-r border-slate-800">
-                  <span
-                    className={cn(
-                      "inline-block min-w-[2.5rem] px-2 py-1 rounded-md text-xs font-black",
-                      l.diferenca > 0
-                        ? "bg-red-500/20 text-red-300"
-                        : l.diferenca < 0
-                          ? "bg-amber-500/20 text-amber-300"
-                          : "text-slate-500",
-                    )}
-                  >
-                    {l.saidaHotel === 0 && l.entLav === 0 ? "—" : l.diferenca}
-                  </span>
-                </td>
                 <td className="p-1">
                   <input
                     type="number"
                     inputMode="numeric"
                     min={0}
-                    value={l.row.saida_lav}
-                    onChange={(e) => setCampo(l.item, "saida_lav", e.target.value)}
-                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
+                    value={l.raw}
+                    onChange={(e) => setCampo(l.item, e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-2 text-center text-white text-base font-bold outline-none focus:border-sky-500"
                     placeholder="0"
                   />
                 </td>
@@ -374,26 +419,7 @@ function EnviarSujo({
               <td className="p-3 text-sky-200 font-black uppercase text-xs tracking-wider border-r border-sky-500/30">
                 Total de Peças
               </td>
-              <td className="p-2 text-center text-white font-black text-sm border-r border-sky-500/30">
-                {totalSaidaHotel}
-              </td>
-              <td className="p-2 text-center text-white font-black text-sm border-r border-sky-500/30">
-                {totalEntLav}
-              </td>
-              <td className="p-2 text-center font-black text-sm border-r border-sky-500/30">
-                <span
-                  className={cn(
-                    totalDiferenca > 0
-                      ? "text-red-300"
-                      : totalDiferenca < 0
-                        ? "text-amber-300"
-                        : "text-slate-400",
-                  )}
-                >
-                  {totalDiferenca}
-                </span>
-              </td>
-              <td className="p-2 text-center text-white font-black text-sm">{totalSaidaLav}</td>
+              <td className="p-2 text-center text-white font-black text-lg">{totalPecas}</td>
             </tr>
           </tbody>
         </table>
@@ -401,19 +427,16 @@ function EnviarSujo({
       <div className="p-4 border-t border-slate-800 space-y-3">
         <div>
           <label className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
-            <AlertTriangle size={12} /> Observações do Lote (Avarias ou Manchas)
+            <AlertTriangle size={12} /> Observações (avarias, manchas etc.)
           </label>
           <textarea
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             rows={2}
             maxLength={500}
-            placeholder="Ex.: 2 lençóis enviados com mancha de vinho para lavagem química"
+            placeholder="Ex.: 2 lençóis com mancha de vinho — lavagem química"
             className="w-full bg-slate-800 border border-slate-700 focus:border-amber-500 rounded-md px-3 py-2 text-sm text-white outline-none resize-none placeholder:text-slate-500"
           />
-          <p className="text-[10px] text-slate-500 mt-1">
-            Este alerta aparece para Recepção e Gestor no painel do lote.
-          </p>
         </div>
         <button
           onClick={enviar}
@@ -426,14 +449,346 @@ function EnviarSujo({
           )}
         >
           {salvando ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          Gerar Lote · Talão {talao || "—"} · {totalPecas} peças
+          Gerar Malote · Talão {talao || "—"} · {totalPecas} peças
         </button>
       </div>
     </>
   );
 }
 
-/* -------------------- ABA 2: RECEBER LIMPO -------------------- */
+/* ================== ABA 2: EM TRÂNSITO ================== */
+
+function EmTransito({
+  unidade,
+  camareiraName,
+  onGoReceber,
+}: {
+  unidade: "Botafogo" | "Ipanema";
+  camareiraName: string;
+  onGoReceber: () => void;
+}) {
+  const [lotes, setLotes] = useState<Batch[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirmando, setConfirmando] = useState<Batch | null>(null);
+
+  const carregar = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("laundry_batches" as any)
+      .select("batch_id, property, sent_by, sent_at, status, items_sent, notes")
+      .eq("property", unidade)
+      .in("status", ["transit", "at_laundry", "partial"])
+      .order("sent_at", { ascending: true });
+    if (error) {
+      toast.error(error.message);
+    } else {
+      setLotes((data as unknown as Batch[]) ?? []);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    carregar();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unidade]);
+
+  if (confirmando) {
+    return (
+      <ConfirmarEntradaLavanderia
+        batch={confirmando}
+        camareiraName={camareiraName}
+        onBack={() => setConfirmando(null)}
+        onDone={() => {
+          setConfirmando(null);
+          carregar();
+        }}
+      />
+    );
+  }
+
+  return (
+    <div className="flex-1 overflow-auto p-4">
+      {loading ? (
+        <div className="text-center text-slate-400 py-12">
+          <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando…
+        </div>
+      ) : lotes.length === 0 ? (
+        <div className="text-center text-slate-400 py-12">
+          Nenhum malote em trânsito para {unidade}.
+        </div>
+      ) : (
+        <div className="grid gap-3">
+          {lotes.map((b) => {
+            const totalPecas = (b.items_sent ?? []).reduce((s, it) => s + (it.enviado || 0), 0);
+            const dias = diasEmTransito(b.sent_at);
+            const alerta = dias >= ALERTA_DIAS;
+            const aviso = !alerta && dias >= 2;
+            const bordaCor = alerta
+              ? "border-red-500"
+              : aviso
+                ? "border-amber-500"
+                : "border-slate-700";
+            const badgeCor = alerta
+              ? "bg-red-500 text-white"
+              : aviso
+                ? "bg-amber-500 text-slate-950"
+                : "bg-sky-500/20 text-sky-300";
+            const statusLabel =
+              b.status === "at_laundry"
+                ? "Na Lavanderia"
+                : b.status === "partial"
+                  ? "Parcial"
+                  : "Aguardando entrada";
+            const talao = (b.notes ?? "").match(/Talão nº (\S+)/)?.[1] ?? "—";
+            return (
+              <div
+                key={b.batch_id}
+                className={cn("bg-slate-800 border-2 rounded-2xl p-4", bordaCor)}
+              >
+                <div className="flex items-center justify-between mb-2 gap-2">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Talão
+                    </p>
+                    <p className="text-2xl font-black text-sky-200 tracking-wider leading-tight">
+                      Nº {talao}
+                    </p>
+                    <p className="text-[10px] text-slate-500 font-mono mt-0.5">{b.batch_id}</p>
+                  </div>
+                  <div className="flex flex-col items-end gap-1">
+                    <span
+                      className={cn(
+                        "text-[10px] font-black uppercase px-2 py-1 rounded-md",
+                        badgeCor,
+                      )}
+                    >
+                      {statusLabel}
+                    </span>
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-[11px] font-black",
+                        alerta ? "text-red-300" : aviso ? "text-amber-300" : "text-slate-400",
+                      )}
+                    >
+                      <Clock size={11} />
+                      {dias === 0 ? "hoje" : `há ${dias} dia${dias > 1 ? "s" : ""}`}
+                    </span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2 text-xs mb-3">
+                  <div>
+                    <p className="text-slate-500 font-bold uppercase text-[10px]">Peças</p>
+                    <p className="text-white font-black">{totalPecas}</p>
+                  </div>
+                  <div>
+                    <p className="text-slate-500 font-bold uppercase text-[10px]">Enviado por</p>
+                    <p className="text-slate-200 font-bold truncate">{b.sent_by}</p>
+                  </div>
+                </div>
+                {b.notes ? (
+                  <div className="mb-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+                    <AlertTriangle size={14} className="text-amber-300 mt-0.5 shrink-0" />
+                    <p className="text-[11px] text-amber-200 leading-snug">{b.notes}</p>
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setConfirmando(b)}
+                    disabled={b.status === "at_laundry"}
+                    className={cn(
+                      "py-2.5 rounded-lg font-black text-[11px] uppercase tracking-wider transition-colors",
+                      b.status === "at_laundry"
+                        ? "bg-slate-700 text-slate-500 cursor-not-allowed"
+                        : "bg-amber-500 hover:bg-amber-600 text-slate-950",
+                    )}
+                  >
+                    {b.status === "at_laundry" ? "✓ Entrada confirmada" : "Confirmar entrada Lav."}
+                  </button>
+                  <button
+                    onClick={onGoReceber}
+                    className="py-2.5 rounded-lg font-black text-[11px] uppercase tracking-wider bg-emerald-500 hover:bg-emerald-600 text-white"
+                  >
+                    Receber de volta →
+                  </button>
+                </div>
+                {alerta && (
+                  <p className="mt-2 text-[11px] text-red-300 font-bold">
+                    ⚠ Malote fora há {dias} dias. Cobre a lavanderia.
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* -------- Passo: confirmar 2ª contagem (entrada na lavanderia) -------- */
+
+function ConfirmarEntradaLavanderia({
+  batch,
+  camareiraName,
+  onBack,
+  onDone,
+}: {
+  batch: Batch;
+  camareiraName: string;
+  onBack: () => void;
+  onDone: () => void;
+}) {
+  const [ents, setEnts] = useState<Record<string, string>>(() => {
+    const init: Record<string, string> = {};
+    (batch.items_sent ?? []).forEach((it) => {
+      // por default, pré-preenche com a saída do hotel (caso a lavanderia bata igual)
+      init[it.item] = String(it.ent_lav ?? it.saida_hotel ?? it.enviado ?? 0);
+    });
+    return init;
+  });
+  const [salvando, setSalvando] = useState(false);
+
+  const linhas = useMemo(() => {
+    return (batch.items_sent ?? []).map((it) => {
+      const raw = ents[it.item] ?? "";
+      const entNum = parseInt(raw || "0", 10) || 0;
+      const saida = it.saida_hotel ?? it.enviado ?? 0;
+      return { ...it, entRaw: raw, entNum, saida, dif: saida - entNum };
+    });
+  }, [batch, ents]);
+
+  const totalDif = linhas.reduce((s, l) => s + l.dif, 0);
+
+  const salvar = async () => {
+    setSalvando(true);
+    try {
+      const items_sent: ItemSent[] = linhas.map((l) => ({
+        item: l.item,
+        enviado: l.saida,
+        saida_hotel: l.saida,
+        ent_lav: l.entNum,
+        retorno_hotel: l.retorno_hotel,
+      }));
+      const { error } = await supabase
+        .from("laundry_batches" as any)
+        .update({
+          items_sent,
+          status: "at_laundry",
+          notes: batch.notes
+            ? `${batch.notes} · Entrada Lav. confirmada por ${camareiraName || "—"}`
+            : `Entrada Lav. confirmada por ${camareiraName || "—"}`,
+        })
+        .eq("batch_id", batch.batch_id);
+      if (error) throw error;
+      toast.success(`Entrada da lavanderia registrada no malote ${batch.batch_id}`);
+      onDone();
+    } catch (err) {
+      console.error("[laundry] confirmar entrada erro:", err);
+      toast.error(err instanceof Error ? err.message : "Falha ao confirmar");
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  const talao = (batch.notes ?? "").match(/Talão nº (\S+)/)?.[1] ?? "—";
+
+  return (
+    <>
+      <div className="p-3 border-b border-slate-800 flex items-center gap-3">
+        <button onClick={onBack} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1">
+          ← Voltar
+        </button>
+        <div>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Confirmar 2ª contagem — Talão Nº {talao}
+          </p>
+          <p className="text-sm font-black text-amber-300">
+            O que a lavanderia disse que recebeu
+          </p>
+        </div>
+      </div>
+      <div className="overflow-auto flex-1">
+        <table className="w-full text-sm">
+          <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 z-10">
+            <tr className="text-[10px] uppercase tracking-wider text-slate-400">
+              <th className="text-left p-3 font-bold">Item</th>
+              <th className="p-2 font-bold w-24">Saída Hotel</th>
+              <th className="p-2 font-bold w-24">Ent. Lav.</th>
+              <th className="p-2 font-bold w-20">Dif.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l, i) => (
+              <tr
+                key={l.item}
+                className={cn(
+                  "border-b border-slate-800/60",
+                  i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/30",
+                )}
+              >
+                <td className="p-3 text-slate-200 font-semibold text-xs">{l.item}</td>
+                <td className="p-2 text-center text-slate-300 font-bold">{l.saida}</td>
+                <td className="p-1">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={l.entRaw}
+                    onChange={(e) =>
+                      setEnts((s) => ({
+                        ...s,
+                        [l.item]: e.target.value.replace(/[^0-9]/g, ""),
+                      }))
+                    }
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-amber-500"
+                    placeholder="0"
+                  />
+                </td>
+                <td className="p-1 text-center">
+                  <span
+                    className={cn(
+                      "inline-block min-w-[2.5rem] px-2 py-1 rounded-md text-xs font-black",
+                      l.dif > 0
+                        ? "bg-red-500/30 text-red-200"
+                        : l.dif < 0
+                          ? "bg-amber-500/30 text-amber-200"
+                          : "text-slate-500",
+                    )}
+                  >
+                    {l.dif === 0 ? "—" : l.dif > 0 ? `-${l.dif}` : `+${-l.dif}`}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div className="p-4 border-t border-slate-800 space-y-2">
+        {totalDif !== 0 && (
+          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
+            <AlertTriangle size={14} />
+            <span>
+              Divergência de transporte: {totalDif > 0 ? `${totalDif} peça(s) que saíram não chegaram` : `${-totalDif} peça(s) a mais que a lavanderia contou`}. Será separada de perdas da lavanderia no fechamento.
+            </span>
+          </div>
+        )}
+        <button
+          onClick={salvar}
+          disabled={salvando}
+          className={cn(
+            "w-full py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-colors flex items-center justify-center gap-2",
+            salvando ? "bg-slate-800 text-slate-500" : "bg-amber-500 hover:bg-amber-600 text-slate-950",
+          )}
+        >
+          {salvando ? <Loader2 size={16} className="animate-spin" /> : <CheckCircle2 size={16} />}
+          Confirmar entrada na lavanderia
+        </button>
+      </div>
+    </>
+  );
+}
+
+/* ================== ABA 3: RECEBER LIMPO ================== */
 
 function ReceberLimpo({
   unidade,
@@ -454,8 +809,8 @@ function ReceberLimpo({
       .from("laundry_batches" as any)
       .select("batch_id, property, sent_by, sent_at, status, items_sent, notes")
       .eq("property", unidade)
-      .in("status", ["transit", "partial"])
-      .order("sent_at", { ascending: false });
+      .in("status", ["transit", "at_laundry", "partial"])
+      .order("sent_at", { ascending: true });
     if (error) {
       toast.error(error.message);
     } else {
@@ -488,37 +843,38 @@ function ReceberLimpo({
     <div className="flex-1 overflow-auto p-4">
       {loading ? (
         <div className="text-center text-slate-400 py-12">
-          <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando lotes…
+          <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando…
         </div>
       ) : lotes.length === 0 ? (
         <div className="text-center text-slate-400 py-12">
-          Nenhum lote em trânsito para {unidade}. Envie um novo lote pela aba{" "}
-          <span className="text-sky-400 font-bold">📤 Enviar Sujo</span>.
+          Nenhum malote em trânsito para {unidade}.
         </div>
       ) : (
         <div className="grid gap-3">
+          <p className="text-[11px] text-slate-400 mb-1">
+            Escolha o malote que está voltando. Confira pelo <span className="font-black text-sky-300">número do talão</span>.
+          </p>
           {lotes.map((b) => {
             const totalPecas = (b.items_sent ?? []).reduce((s, it) => s + (it.enviado || 0), 0);
-            const dias = Math.floor(
-              (Date.now() - new Date(b.sent_at).getTime()) / (1000 * 60 * 60 * 24),
-            );
+            const dias = diasEmTransito(b.sent_at);
+            const talao = (b.notes ?? "").match(/Talão nº (\S+)/)?.[1] ?? "—";
             return (
               <button
                 key={b.batch_id}
                 onClick={() => setSelecionado(b)}
-                className="text-left bg-slate-800 hover:bg-slate-750 border border-slate-700 hover:border-sky-500 rounded-2xl p-4 transition-colors"
+                className="text-left bg-slate-800 hover:bg-slate-750 border-2 border-slate-700 hover:border-emerald-500 rounded-2xl p-4 transition-colors"
               >
                 <div className="flex items-center justify-between mb-2">
-                  <p className="text-lg font-black text-sky-300 tracking-wider">{b.batch_id}</p>
-                  <span
-                    className={cn(
-                      "text-[10px] font-black uppercase px-2 py-1 rounded-md",
-                      b.status === "partial"
-                        ? "bg-amber-500/20 text-amber-300"
-                        : "bg-sky-500/20 text-sky-300",
-                    )}
-                  >
-                    {b.status === "partial" ? "Parcial" : "Em Trânsito"}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      Talão
+                    </p>
+                    <p className="text-2xl font-black text-sky-200 tracking-wider leading-tight">
+                      Nº {talao}
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-black uppercase px-2 py-1 rounded-md bg-emerald-500/20 text-emerald-300">
+                    {b.status === "at_laundry" ? "Pronto p/ receber" : "Em trânsito"}
                   </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
@@ -537,15 +893,6 @@ function ReceberLimpo({
                     </p>
                   </div>
                 </div>
-                {b.notes ? (
-                  <div className="mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
-                    <AlertTriangle size={14} className="text-amber-300 mt-0.5 shrink-0" />
-                    <p className="text-[11px] text-amber-200 leading-snug">
-                      <span className="font-black uppercase tracking-wider">Obs:</span>{" "}
-                      {b.notes}
-                    </p>
-                  </div>
-                ) : null}
               </button>
             );
           })}
@@ -573,21 +920,48 @@ function ContagemRetorno({
     return (batch.items_sent ?? []).map((it) => {
       const raw = recebidos[it.item] ?? "";
       const ret = parseInt(raw || "0", 10) || 0;
-      const emFalta = Math.max(0, it.enviado - ret);
-      return { ...it, retornado: raw, retNum: ret, emFalta };
+      const saida = it.saida_hotel ?? it.enviado ?? 0;
+      const entLavRegistrado = typeof it.ent_lav === "number";
+      const entLav = entLavRegistrado ? (it.ent_lav as number) : saida;
+      const diffTransporte = Math.max(0, saida - entLav);
+      const diffLavanderia = Math.max(0, entLav - ret);
+      const emFalta = diffTransporte + diffLavanderia;
+      return {
+        ...it,
+        retornado: raw,
+        retNum: ret,
+        saida,
+        entLav,
+        entLavRegistrado,
+        diffTransporte,
+        diffLavanderia,
+        emFalta,
+      };
     });
   }, [batch, recebidos]);
 
   const totalFalta = linhas.reduce((s, l) => s + l.emFalta, 0);
+  const totalTransp = linhas.reduce((s, l) => s + l.diffTransporte, 0);
+  const totalLav = linhas.reduce((s, l) => s + l.diffLavanderia, 0);
+  const algumaEntLavRegistrada = linhas.some((l) => l.entLavRegistrado);
 
   const salvar = async () => {
     setSalvando(true);
     try {
       const items_received: ItemReceived[] = linhas.map((l) => ({
         item: l.item,
-        enviado: l.enviado,
+        enviado: l.saida,
         retornado: l.retNum,
         em_falta: l.emFalta,
+        diff_transporte: l.diffTransporte,
+        diff_lavanderia: l.diffLavanderia,
+      }));
+      const items_sent_final: ItemSent[] = linhas.map((l) => ({
+        item: l.item,
+        enviado: l.saida,
+        saida_hotel: l.saida,
+        ent_lav: l.entLavRegistrado ? l.entLav : undefined,
+        retorno_hotel: l.retNum,
       }));
       const missing = items_received.filter((r) => r.em_falta > 0);
       const status = missing.length === 0 ? "completed" : "partial";
@@ -597,6 +971,7 @@ function ContagemRetorno({
         .update({
           received_by: camareiraName || "—",
           received_at: new Date().toISOString(),
+          items_sent: items_sent_final,
           items_received,
           missing_items: missing,
           status,
@@ -605,18 +980,40 @@ function ContagemRetorno({
       if (e1) throw e1;
 
       if (missing.length > 0) {
-        const rows = missing.map((m) => ({
-          property: batch.property,
-          batch_id: batch.batch_id,
-          item_name: m.item,
-          quantity_missing: m.em_falta,
-          status: "pending" as const,
-        }));
-        const { error: e2 } = await supabase.from("laundry_debt" as any).insert(rows);
-        if (e2) throw e2;
-        toast.warning(`Lote ${batch.batch_id} fechado com ${missing.length} item(ns) em falta`);
+        const rows: {
+          property: string;
+          batch_id: string;
+          item_name: string;
+          quantity_missing: number;
+          status: "pending";
+        }[] = [];
+        for (const l of linhas) {
+          if (l.diffTransporte > 0) {
+            rows.push({
+              property: batch.property,
+              batch_id: batch.batch_id,
+              item_name: `${l.item} [Transporte]`,
+              quantity_missing: l.diffTransporte,
+              status: "pending",
+            });
+          }
+          if (l.diffLavanderia > 0) {
+            rows.push({
+              property: batch.property,
+              batch_id: batch.batch_id,
+              item_name: `${l.item} [Lavanderia]`,
+              quantity_missing: l.diffLavanderia,
+              status: "pending",
+            });
+          }
+        }
+        if (rows.length) {
+          const { error: e2 } = await supabase.from("laundry_debt" as any).insert(rows);
+          if (e2) throw e2;
+        }
+        toast.warning(`Malote ${batch.batch_id} fechado com ${missing.length} item(ns) em falta`);
       } else {
-        toast.success(`Lote ${batch.batch_id} fechado — tudo conferido ✅`);
+        toast.success(`Malote ${batch.batch_id} fechado — tudo conferido ✅`);
       }
       onDone();
     } catch (err) {
@@ -627,39 +1024,39 @@ function ContagemRetorno({
     }
   };
 
+  const talao = (batch.notes ?? "").match(/Talão nº (\S+)/)?.[1] ?? "—";
+
   return (
     <>
       <div className="p-3 border-b border-slate-800 flex items-center gap-3">
-        <button
-          onClick={onBack}
-          className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1"
-        >
+        <button onClick={onBack} className="text-xs font-bold text-slate-400 hover:text-white px-2 py-1">
           ← Voltar
         </button>
         <div>
-          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">Lote</p>
-          <p className="text-sm font-black text-sky-300">{batch.batch_id}</p>
+          <p className="text-[10px] uppercase tracking-wider text-slate-500 font-bold">
+            Receber malote — Talão Nº {talao}
+          </p>
+          <p className="text-sm font-black text-emerald-300">{batch.batch_id}</p>
         </div>
       </div>
-      {batch.notes ? (
-        <div className="mx-3 mt-3 flex items-start gap-2 bg-amber-500/10 border border-amber-500/40 rounded-lg p-3">
-          <AlertTriangle size={16} className="text-amber-300 mt-0.5 shrink-0" />
-          <div>
-            <p className="text-[10px] font-black uppercase tracking-wider text-amber-300">
-              Observações do envio
-            </p>
-            <p className="text-xs text-amber-100 mt-0.5 leading-snug">{batch.notes}</p>
-          </div>
+      {!algumaEntLavRegistrada && (
+        <div className="mx-3 mt-3 flex items-start gap-2 bg-sky-500/10 border border-sky-500/40 rounded-lg p-3">
+          <AlertTriangle size={16} className="text-sky-300 mt-0.5 shrink-0" />
+          <p className="text-[11px] text-sky-100 leading-snug">
+            A entrada na lavanderia não foi confirmada. As diferenças serão contadas apenas contra a
+            saída do hotel — sem separar culpa de transporte × lavanderia.
+          </p>
         </div>
-      ) : null}
+      )}
       <div className="overflow-auto flex-1">
         <table className="w-full text-sm">
           <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 z-10">
             <tr className="text-[10px] uppercase tracking-wider text-slate-400">
               <th className="text-left p-3 font-bold">Item</th>
-              <th className="p-2 font-bold w-20">Enviado</th>
-              <th className="p-2 font-bold w-24">Recebido</th>
-              <th className="p-2 font-bold w-20">Em Falta</th>
+              <th className="p-2 font-bold w-20">Hotel</th>
+              <th className="p-2 font-bold w-20">Lav.</th>
+              <th className="p-2 font-bold w-24">Retorno</th>
+              <th className="p-2 font-bold w-20">Falta</th>
             </tr>
           </thead>
           <tbody>
@@ -672,7 +1069,10 @@ function ContagemRetorno({
                 )}
               >
                 <td className="p-3 text-slate-200 font-semibold text-xs">{l.item}</td>
-                <td className="p-2 text-center text-slate-300 font-bold">{l.enviado}</td>
+                <td className="p-2 text-center text-slate-300 font-bold text-xs">{l.saida}</td>
+                <td className="p-2 text-center text-slate-300 font-bold text-xs">
+                  {l.entLavRegistrado ? l.entLav : "—"}
+                </td>
                 <td className="p-1">
                   <input
                     type="number"
@@ -691,9 +1091,17 @@ function ContagemRetorno({
                 </td>
                 <td className="p-1 text-center">
                   {l.emFalta > 0 ? (
-                    <span className="inline-block min-w-[2.5rem] px-2 py-1 rounded-md text-xs font-black bg-red-500 text-white shadow-lg shadow-red-500/30">
-                      -{l.emFalta}
-                    </span>
+                    <div className="flex flex-col items-center gap-0.5">
+                      <span className="inline-block min-w-[2.5rem] px-2 py-0.5 rounded-md text-xs font-black bg-red-500 text-white">
+                        -{l.emFalta}
+                      </span>
+                      {l.entLavRegistrado && (
+                        <span className="text-[9px] font-bold text-slate-400 leading-tight">
+                          {l.diffTransporte > 0 && <>T:{l.diffTransporte} </>}
+                          {l.diffLavanderia > 0 && <>L:{l.diffLavanderia}</>}
+                        </span>
+                      )}
+                    </div>
                   ) : (
                     <span className="text-slate-600 text-xs">—</span>
                   )}
@@ -705,11 +1113,23 @@ function ContagemRetorno({
       </div>
       <div className="p-4 border-t border-slate-800 space-y-2">
         {totalFalta > 0 && (
-          <div className="flex items-center gap-2 text-xs text-amber-300 bg-amber-500/10 border border-amber-500/30 rounded-lg p-2">
-            <AlertTriangle size={14} />
-            <span>
-              {totalFalta} peça(s) em falta — serão registradas na Conta Corrente da Lavanderia.
-            </span>
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-2 text-xs text-red-200 bg-red-500/10 border border-red-500/30 rounded-lg p-2">
+              <AlertTriangle size={14} />
+              <span>
+                <span className="font-black">{totalFalta}</span> peça(s) em falta.
+                {algumaEntLavRegistrada && (
+                  <>
+                    {" "}
+                    Transporte: <span className="font-black">{totalTransp}</span> · Lavanderia:{" "}
+                    <span className="font-black">{totalLav}</span>.
+                  </>
+                )}
+              </span>
+            </div>
+            <p className="text-[10px] text-slate-500">
+              Registrado automaticamente na Conta Corrente da Lavanderia, separado por origem.
+            </p>
           </div>
         )}
         <button
@@ -717,13 +1137,11 @@ function ContagemRetorno({
           disabled={salvando}
           className={cn(
             "w-full py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-colors flex items-center justify-center gap-2",
-            salvando
-              ? "bg-slate-800 text-slate-500"
-              : "bg-emerald-500 hover:bg-emerald-600 text-white",
+            salvando ? "bg-slate-800 text-slate-500" : "bg-emerald-500 hover:bg-emerald-600 text-white",
           )}
         >
           {salvando ? <Loader2 size={16} className="animate-spin" /> : <PackageCheck size={16} />}
-          Fechar Lote
+          Fechar Malote
         </button>
       </div>
     </>
