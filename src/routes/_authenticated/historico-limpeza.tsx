@@ -9,6 +9,7 @@ import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/component
 import { InspectionImage } from "@/components/InspectionImage";
 import { PeriodItemsManager } from "@/components/configuracoes/period-items-manager";
 import { TarefasExtrasPeriodicityManager } from "@/components/configuracoes/tarefas-extras-periodicity-manager";
+import { TarefasExtrasChecklistManager } from "@/components/configuracoes/tarefas-extras-checklist-manager";
 
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
   component: HistoricoLimpezaPage,
