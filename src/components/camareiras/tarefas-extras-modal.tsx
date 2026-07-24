@@ -239,8 +239,8 @@ function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
   }
 }
 
-export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Props) {
-  const [active, setActive] = useState<CategoryKey | null>(null);
+export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, initialCategory = null }: Props) {
+  const [active, setActive] = useState<CategoryKey | null>(initialCategory);
   const [items, setItems] = useState<string[]>([]);
   const [checked, setChecked] = useState<boolean[]>([]);
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
@@ -253,11 +253,15 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Pr
   );
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setActive(initialCategory);
+      setEditingIdx(null);
+    } else {
       setActive(null);
       setEditingIdx(null);
     }
-  }, [open]);
+  }, [open, initialCategory]);
+
 
   useEffect(() => {
     if (!activeCat) return;
