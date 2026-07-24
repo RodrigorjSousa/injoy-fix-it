@@ -146,6 +146,77 @@ function PainelCamareiras() {
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const [tarefasExtrasOpen, setTarefasExtrasOpen] = useState(false);
   const [tarefasExtrasInitial, setTarefasExtrasInitial] = useState<TarefaExtraKey | null>(null);
+  const [tarefasExtrasOverdue, setTarefasExtrasOverdue] = useState<Set<TarefaExtraKey>>(new Set());
+
+  useEffect(() => {
+    let cancelled = false;
+    const carregar = async () => {
+      const cats = TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
+        TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
+      );
+      const [{ data: cfg }, { data: logs }] = await Promise.all([
+        supabase
+          .from("app_settings" as never)
+          .select("value")
+          .eq("key", "tarefas_extras_periodicity")
+          .maybeSingle(),
+        supabase
+          .from("extra_tasks_logs")
+          .select("completed_tasks, created_at")
+          .eq("property", unidadeAtiva)
+          .order("created_at", { ascending: false })
+          .limit(300),
+      ]);
+      if (cancelled) return;
+      let periodicity: Partial<Record<TarefaExtraKey, number>> = {};
+      const raw = (cfg as { value?: string } | null)?.value;
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed && typeof parsed === "object") periodicity = parsed;
+        } catch {
+          // ignore
+        }
+      }
+      const lastByCat = new Map<TarefaExtraKey, number>();
+      for (const row of (logs ?? []) as Array<{ completed_tasks: unknown; created_at: string }>) {
+        const arr = Array.isArray(row.completed_tasks) ? (row.completed_tasks as string[]) : [];
+        const ts = new Date(row.created_at).getTime();
+        for (const c of cats) {
+          const prefix = `[${c.label}]`;
+          if (arr.some((t) => typeof t === "string" && t.startsWith(prefix))) {
+            if (!lastByCat.has(c.key)) lastByCat.set(c.key, ts);
+          }
+        }
+      }
+      const now = Date.now();
+      const overdue = new Set<TarefaExtraKey>();
+      for (const c of cats) {
+        const days = typeof periodicity[c.key] === "number" && periodicity[c.key]! > 0 ? periodicity[c.key]! : 7;
+        const last = lastByCat.get(c.key);
+        if (last === undefined || now - last > days * 86_400_000) overdue.add(c.key);
+      }
+      setTarefasExtrasOverdue(overdue);
+    };
+    carregar();
+    const channel = supabase
+      .channel(`extra_tasks_overdue_${unidadeAtiva}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "extra_tasks_logs" },
+        () => carregar(),
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "app_settings" },
+        () => carregar(),
+      )
+      .subscribe();
+    return () => {
+      cancelled = true;
+      supabase.removeChannel(channel);
+    };
+  }, [unidadeAtiva]);
 
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
@@ -615,6 +686,7 @@ function PainelCamareiras() {
             TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
           ).map((c) => {
             const Icon = c.icon;
+            const overdue = tarefasExtrasOverdue.has(c.key);
             return (
               <button
                 key={c.key}
@@ -623,10 +695,21 @@ function PainelCamareiras() {
                   setTarefasExtrasOpen(true);
                 }}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 ring-white/30 bg-gradient-to-br",
+                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 bg-gradient-to-br",
                   c.gradient,
+                  overdue ? "ring-red-400" : "ring-white/30",
                 )}
               >
+                {overdue && (
+                  <span
+                    className="absolute top-1.5 right-1.5 flex h-3 w-3"
+                    title="Tarefa em atraso"
+                    aria-label="Tarefa em atraso"
+                  >
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 ring-2 ring-white" />
+                  </span>
+                )}
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm shrink-0">
                     <Icon size={18} />
