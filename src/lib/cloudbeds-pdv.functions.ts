@@ -28,7 +28,14 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
 
     // Cloudbeds /getItems – paginação simples
-    const collected: Array<{ id: string; name: string; price: number }> = [];
+    const collected: Array<{
+      id: string;
+      name: string;
+      price: number;
+      stockInventory: boolean;
+      itemQuantity: number | null;
+      reorderThreshold: number | null;
+    }> = [];
     let pageNumber = 1;
     while (true) {
       const qs = new URLSearchParams({
@@ -54,10 +61,6 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         const priceRaw = it.grossPrice ?? it.price ?? it.itemPrice ?? it.defaultPrice;
         const price = Number(priceRaw);
         if (!id || !name) continue;
-        // Cloudbeds mistura serviços (late check-out, chave, diária pet, troca
-        // de roupa, cama extra, day use) com produtos do frigobar. Filtramos:
-        //  - sem preço unitário definido (serviços com preço variável)
-        //  - nomes que combinam com padrões de serviço conhecidos
         if (priceRaw === null || priceRaw === undefined || !Number.isFinite(price) || price <= 0) continue;
         const lower = name.toLowerCase();
         const isService =
@@ -70,12 +73,24 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
           /early\s+check/.test(lower) ||
           /troco\s+h[oó]spede/.test(lower);
         if (isService) continue;
-        collected.push({ id, name, price });
+        const stockInventory = Boolean(it.stockInventory);
+        const qtyRaw = it.itemQuantity;
+        const itemQuantity =
+          stockInventory && qtyRaw !== null && qtyRaw !== undefined && Number.isFinite(Number(qtyRaw))
+            ? Number(qtyRaw)
+            : null;
+        const reorderRaw = it.reorderThreshold;
+        const reorderThreshold =
+          reorderRaw !== null && reorderRaw !== undefined && Number.isFinite(Number(reorderRaw))
+            ? Number(reorderRaw)
+            : null;
+        collected.push({ id, name, price, stockInventory, itemQuantity, reorderThreshold });
       }
       if (rows.length < 100) break;
       pageNumber += 1;
       if (pageNumber > 20) break; // proteção
     }
+
 
     // Catálogo atual da unidade
     const { data: catalog, error: catErr } = await supabase
