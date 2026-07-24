@@ -51,10 +51,14 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
       for (const it of rows) {
         const id = String(it.itemID ?? it.id ?? "").trim();
         const name = String(it.name ?? it.itemName ?? "").trim();
-        const priceRaw = it.grossPrice ?? it.price ?? it.itemPrice ?? it.defaultPrice ?? 0;
+        const priceRaw = it.grossPrice ?? it.price ?? it.itemPrice ?? it.defaultPrice;
         const price = Number(priceRaw);
         if (!id || !name) continue;
-        collected.push({ id, name, price: Number.isFinite(price) ? price : 0 });
+        // Cloudbeds mistura serviços (late check-out, chave, day use, troca de
+        // roupa) com produtos do frigobar. Só sincronizamos itens que têm
+        // preço unitário definido — os serviços vêm com preço nulo/0.
+        if (priceRaw === null || priceRaw === undefined || !Number.isFinite(price) || price <= 0) continue;
+        collected.push({ id, name, price });
       }
       if (rows.length < 100) break;
       pageNumber += 1;
