@@ -646,6 +646,8 @@ function PainelCamareiras() {
           })}
         </div>
       </section>
+      </div>
+
 
 
       <PeriodChecklistSection unidade={unidadeAtiva} camareiraName={nomeAutomatico} />
