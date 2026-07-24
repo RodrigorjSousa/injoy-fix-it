@@ -28,7 +28,10 @@ type CategoryKey =
   | "patio"
   | "salas_terreo"
   | "sala_401"
-  | "area_servico";
+  | "area_servico"
+  | "patio_ipanema"
+  | "banheiro_ipanema"
+  | "escadas_corredores_ipanema";
 
 interface Category {
   key: CategoryKey;
