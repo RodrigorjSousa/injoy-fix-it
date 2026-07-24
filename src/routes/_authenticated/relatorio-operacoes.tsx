@@ -216,8 +216,7 @@ function RelatorioOperacoes() {
   // ---- Registros unificados agrupados por mês -----------------------------
   type Registro =
     | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog }
-    | { tipo: "checklist"; log: PeriodChecklistLog };
+    | { tipo: "tarefa"; log: ExtraTaskLog };
 
   const registrosPorMes = useMemo(() => {
     const map = new Map<string, Registro[]>();
