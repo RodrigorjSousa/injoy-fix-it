@@ -532,7 +532,7 @@ function CatalogoTab({
                       <div className="flex justify-end gap-1">
                         {isEdit ? (
                           <>
-                            <button onClick={() => salvar(b.id)} className="p-2 rounded-lg bg-emerald-500 text-white" aria-label="Salvar"><Save size={14} /></button>
+                            <button onClick={() => salvar(b.id)} disabled={salvandoId === b.id} className={cn("p-2 rounded-lg text-white", salvandoId === b.id ? "bg-slate-400" : "bg-emerald-500")} aria-label="Salvar">{salvandoId === b.id ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}</button>
                             <button onClick={() => setEditando(null)} className="p-2 rounded-lg bg-muted" aria-label="Cancelar"><X size={14} /></button>
                           </>
                         ) : (
