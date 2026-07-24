@@ -28,7 +28,14 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
 
     // Cloudbeds /getItems – paginação simples
-    const collected: Array<{ id: string; name: string; price: number }> = [];
+    const collected: Array<{
+      id: string;
+      name: string;
+      price: number;
+      stockInventory: boolean;
+      itemQuantity: number | null;
+      reorderThreshold: number | null;
+    }> = [];
     let pageNumber = 1;
     while (true) {
       const qs = new URLSearchParams({
@@ -54,10 +61,6 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         const priceRaw = it.grossPrice ?? it.price ?? it.itemPrice ?? it.defaultPrice;
         const price = Number(priceRaw);
         if (!id || !name) continue;
-        // Cloudbeds mistura serviços (late check-out, chave, diária pet, troca
-        // de roupa, cama extra, day use) com produtos do frigobar. Filtramos:
-        //  - sem preço unitário definido (serviços com preço variável)
-        //  - nomes que combinam com padrões de serviço conhecidos
         if (priceRaw === null || priceRaw === undefined || !Number.isFinite(price) || price <= 0) continue;
         const lower = name.toLowerCase();
         const isService =
@@ -70,12 +73,24 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
           /early\s+check/.test(lower) ||
           /troco\s+h[oó]spede/.test(lower);
         if (isService) continue;
-        collected.push({ id, name, price });
+        const stockInventory = Boolean(it.stockInventory);
+        const qtyRaw = it.itemQuantity;
+        const itemQuantity =
+          stockInventory && qtyRaw !== null && qtyRaw !== undefined && Number.isFinite(Number(qtyRaw))
+            ? Number(qtyRaw)
+            : null;
+        const reorderRaw = it.reorderThreshold;
+        const reorderThreshold =
+          reorderRaw !== null && reorderRaw !== undefined && Number.isFinite(Number(reorderRaw))
+            ? Number(reorderRaw)
+            : null;
+        collected.push({ id, name, price, stockInventory, itemQuantity, reorderThreshold });
       }
       if (rows.length < 100) break;
       pageNumber += 1;
       if (pageNumber > 20) break; // proteção
     }
+
 
     // Catálogo atual da unidade
     const { data: catalog, error: catErr } = await supabase
@@ -97,27 +112,43 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
     for (const item of collected) {
       const existing =
         byCloudbedsId.get(item.id) ?? byName.get(item.name.trim().toLowerCase());
+      const patch: {
+        name: string;
+        price: number;
+        cloudbeds_item_id: string;
+        current_stock?: number;
+        min_stock?: number;
+      } = {
+        name: item.name,
+        price: item.price,
+        cloudbeds_item_id: item.id,
+      };
+      // Cloudbeds é a fonte da verdade quando o item tem controle de estoque.
+      if (item.stockInventory && item.itemQuantity !== null) {
+        patch.current_stock = item.itemQuantity;
+      }
+      if (item.reorderThreshold !== null) {
+        patch.min_stock = item.reorderThreshold;
+      }
+
+
+
       if (existing) {
         seenCatalogIds.add(existing.id);
         const { error } = await supabase
           .from("beverage_catalog")
-          .update({
-            name: item.name,
-            price: item.price,
-            cloudbeds_item_id: item.id,
-          })
+          .update(patch)
           .eq("id", existing.id);
         if (!error) matched += 1;
       } else {
-        // Cria novo produto sem estoque; gestor ajusta manualmente depois
         const { data: inserted, error } = await supabase
           .from("beverage_catalog")
           .insert({
             property: data.property,
             name: item.name,
             price: item.price,
-            current_stock: 0,
-            min_stock: 0,
+            current_stock: item.stockInventory && item.itemQuantity !== null ? item.itemQuantity : 0,
+            min_stock: item.reorderThreshold ?? 0,
             cloudbeds_item_id: item.id,
           })
           .select("id")
@@ -128,6 +159,7 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         }
       }
     }
+
 
     // Cloudbeds é a fonte da verdade: itens antigos que sobraram no catálogo
     // e não correspondem a nenhum item vindo do Cloudbeds são removidos.
@@ -335,3 +367,84 @@ export const setCloudbedsHouseAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ============================================================
+// 4) Ajustar estoque de um item no Cloudbeds (fonte da verdade)
+// ============================================================
+const stockSchema = z.object({
+  beverage_id: z.string().uuid(),
+  property: propertySchema,
+  itemQuantity: z.number().int().min(0),
+  reorderThreshold: z.number().int().min(0).optional(),
+});
+
+export const setCloudbedsItemStock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => stockSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roleSet = new Set((roles ?? []).map((r) => r.role));
+    if (!roleSet.has("gestor") && !roleSet.has("admin")) {
+      throw new Error("Somente gestores podem repor estoque");
+    }
+
+    // Recupera item para pegar cloudbeds_item_id + nome (necessário no PUT).
+    const { data: item, error: itemErr } = await supabase
+      .from("beverage_catalog")
+      .select("id, name, cloudbeds_item_id, property, min_stock")
+      .eq("id", data.beverage_id)
+      .single();
+    if (itemErr || !item) throw new Error("Item não encontrado no catálogo");
+    if (!item.cloudbeds_item_id) {
+      throw new Error(
+        `"${item.name}" ainda não está vinculado ao Cloudbeds. Sincronize o catálogo primeiro.`,
+      );
+    }
+
+    const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
+    const property = data.property.toLowerCase() as "ipanema" | "botafogo";
+
+    const body = new URLSearchParams({
+      itemID: item.cloudbeds_item_id,
+      itemName: item.name,
+      stockInventory: "true",
+      itemQuantity: String(data.itemQuantity),
+    });
+    const reorder = data.reorderThreshold ?? item.min_stock ?? null;
+    if (reorder !== null && reorder !== undefined) {
+      body.set("reorderThreshold", String(reorder));
+    }
+
+    const res = await cloudbedsFetch(property, `/putItemToInventory`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      success?: boolean;
+      message?: string;
+    };
+    if (!res.ok || json.success === false) {
+      throw new Error(
+        json.message ?? `Cloudbeds recusou o ajuste de estoque (${res.status})`,
+      );
+    }
+
+    // Espelha no catálogo local (Cloudbeds é a fonte da verdade, mas
+    // atualizamos localmente para não depender do próximo sync).
+    const localPatch: { current_stock: number; min_stock?: number } = {
+      current_stock: data.itemQuantity,
+    };
+    if (data.reorderThreshold !== undefined) {
+      localPatch.min_stock = data.reorderThreshold;
+    }
+    await supabase.from("beverage_catalog").update(localPatch).eq("id", item.id);
+
+    return { ok: true, itemQuantity: data.itemQuantity };
+  });
+
