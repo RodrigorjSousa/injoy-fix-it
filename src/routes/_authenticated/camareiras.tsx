@@ -566,16 +566,14 @@ function PainelCamareiras() {
             <ShoppingBag size={16} />
             Solicitar Compra
           </button>
-          {unidadeAtiva === "Botafogo" && (
-            <button
-              onClick={() => setTarefasExtrasOpen(true)}
-              title="Checklists de áreas comuns"
-              className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-600 hover:brightness-110 active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/20 transition-all"
-            >
-              <Sparkles size={16} />
-              Tarefas Extras
-            </button>
-          )}
+          <button
+            onClick={() => setTarefasExtrasOpen(true)}
+            title="Checklists de áreas comuns"
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-600 hover:brightness-110 active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/20 transition-all"
+          >
+            <Sparkles size={16} />
+            Tarefas Extras
+          </button>
           <button
             onClick={() => setHistoricoOpen(true)}
             className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-700 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-sm"
@@ -1179,14 +1177,12 @@ function PainelCamareiras() {
         unidade={unidadeAtiva}
       />
 
-      {unidadeAtiva === "Botafogo" && (
-        <TarefasExtrasModal
-          open={tarefasExtrasOpen}
-          onClose={() => setTarefasExtrasOpen(false)}
-          unidade={unidadeAtiva}
-          camareiraName={nomeAutomatico ?? ""}
-        />
-      )}
+      <TarefasExtrasModal
+        open={tarefasExtrasOpen}
+        onClose={() => setTarefasExtrasOpen(false)}
+        unidade={unidadeAtiva}
+        camareiraName={nomeAutomatico ?? ""}
+      />
     </div>
   );
 }

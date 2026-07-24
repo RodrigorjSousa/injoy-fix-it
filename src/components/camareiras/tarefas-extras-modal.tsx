@@ -28,7 +28,10 @@ type CategoryKey =
   | "patio"
   | "salas_terreo"
   | "sala_401"
-  | "area_servico";
+  | "area_servico"
+  | "patio_ipanema"
+  | "banheiro_ipanema"
+  | "escadas_corredores_ipanema";
 
 interface Category {
   key: CategoryKey;
@@ -141,7 +144,72 @@ const CATEGORIES: Category[] = [
       "Limpar janelas e batentes",
     ],
   },
+  {
+    key: "patio_ipanema",
+    label: "Geral Pátio",
+    icon: Trees,
+    gradient: "from-emerald-500 to-green-600",
+    ring: "ring-emerald-300",
+    accent: "bg-emerald-500",
+    defaults: [
+      "Varrer todo o pátio",
+      "Recolher folhas e sujeira",
+      "Limpar mesas e cadeiras externas",
+      "Regar as plantas",
+      "Trocar lixo externo",
+      "Higienizar corrimãos e grades",
+      "Passar pano no piso do pátio",
+      "Verificar iluminação externa",
+      "Organizar itens de decoração",
+      "Limpar área de convivência",
+    ],
+  },
+  {
+    key: "banheiro_ipanema",
+    label: "Geral Banheiro",
+    icon: WashingMachine,
+    gradient: "from-cyan-500 to-teal-600",
+    ring: "ring-cyan-300",
+    accent: "bg-cyan-500",
+    defaults: [
+      "Higienizar vaso sanitário",
+      "Limpar pia e bancada",
+      "Limpar espelhos",
+      "Higienizar box e chuveiro",
+      "Repor papel higiênico",
+      "Repor sabonete e toalhas",
+      "Trocar o lixo",
+      "Varrer e passar pano no piso",
+      "Higienizar maçanetas e interruptores",
+      "Verificar ralos e escoamento",
+    ],
+  },
+  {
+    key: "escadas_corredores_ipanema",
+    label: "Geral Escadas e Corredores",
+    icon: Building2,
+    gradient: "from-sky-500 to-blue-600",
+    ring: "ring-sky-300",
+    accent: "bg-sky-500",
+    defaults: [
+      "Varrer todos os degraus",
+      "Passar pano nos degraus",
+      "Higienizar corrimãos",
+      "Limpar rodapés",
+      "Tirar pó de quadros e luminárias",
+      "Aspirar tapetes de corredor",
+      "Passar pano no piso dos corredores",
+      "Higienizar maçanetas de portas",
+      "Verificar iluminação",
+      "Recolher lixo dos corredores",
+    ],
+  },
 ];
+
+const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]> = {
+  Botafogo: ["cozinha", "patio", "salas_terreo", "sala_401", "area_servico"],
+  Ipanema: ["patio_ipanema", "banheiro_ipanema", "escadas_corredores_ipanema"],
+};
 
 const storageKey = (unidade: string, cat: CategoryKey) =>
   `injoy:tarefas-extras:${unidade}:${cat}`;
@@ -278,7 +346,7 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName }: Pr
         <div className="overflow-y-auto flex-1 p-4 bg-slate-50">
           {!activeCat ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CATEGORIES.map((c) => {
+              {CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)).map((c) => {
                 const Icon = c.icon;
                 return (
                   <button
