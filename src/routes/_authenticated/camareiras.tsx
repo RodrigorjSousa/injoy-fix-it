@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film, History } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -16,6 +16,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
+import { TarefasExtrasModal } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -143,6 +144,7 @@ function PainelCamareiras() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
+  const [tarefasExtrasOpen, setTarefasExtrasOpen] = useState(false);
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
@@ -564,6 +566,16 @@ function PainelCamareiras() {
             <ShoppingBag size={16} />
             Solicitar Compra
           </button>
+          {unidadeAtiva === "Botafogo" && (
+            <button
+              onClick={() => setTarefasExtrasOpen(true)}
+              title="Checklists de áreas comuns"
+              className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-fuchsia-500 via-purple-600 to-indigo-600 hover:brightness-110 active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/20 transition-all"
+            >
+              <Sparkles size={16} />
+              Tarefas Extras
+            </button>
+          )}
           <button
             onClick={() => setHistoricoOpen(true)}
             className="px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap bg-slate-700 hover:bg-slate-800 text-white flex items-center gap-1.5 shadow-sm"
@@ -1166,6 +1178,15 @@ function PainelCamareiras() {
         onClose={() => setEstoqueGeralOpen(false)}
         unidade={unidadeAtiva}
       />
+
+      {unidadeAtiva === "Botafogo" && (
+        <TarefasExtrasModal
+          open={tarefasExtrasOpen}
+          onClose={() => setTarefasExtrasOpen(false)}
+          unidade={unidadeAtiva}
+          camareiraName={nomeAutomatico ?? ""}
+        />
+      )}
     </div>
   );
 }
