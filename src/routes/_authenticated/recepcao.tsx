@@ -15,6 +15,7 @@ import {
   MessageSquarePlus,
   Ban,
   ShoppingBag,
+  Package,
 } from "lucide-react";
 import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
