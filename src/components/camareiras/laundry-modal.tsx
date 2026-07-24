@@ -176,7 +176,10 @@ function EnviarSujo({
   camareiraName: string;
   onDone: () => void;
 }) {
-  const [dados, setDados] = useState<Record<string, string>>({});
+  const [dados, setDados] = useState<
+    Record<string, { saida_hotel: string; ent_lav: string; saida_lav: string }>
+  >({});
+  const [talao, setTalao] = useState("");
   const [notas, setNotas] = useState("");
   const [salvando, setSalvando] = useState(false);
   const [criado, setCriado] = useState<string | null>(null);
@@ -184,31 +187,63 @@ function EnviarSujo({
   const linhas = useMemo(
     () =>
       itens.map((item) => {
-        const raw = dados[item] ?? "";
-        const num = parseInt(raw || "0", 10) || 0;
-        return { item, valor: raw, num };
+        const row = dados[item] ?? { saida_hotel: "", ent_lav: "", saida_lav: "" };
+        const saidaHotel = parseInt(row.saida_hotel || "0", 10) || 0;
+        const entLav = parseInt(row.ent_lav || "0", 10) || 0;
+        const saidaLav = parseInt(row.saida_lav || "0", 10) || 0;
+        const diferenca = saidaHotel - entLav;
+        return { item, row, saidaHotel, entLav, saidaLav, diferenca };
       }),
     [dados, itens],
   );
 
-  const total = linhas.filter((l) => l.num > 0).length;
-  const canSubmit = total > 0 && !salvando;
+  const totalSaidaHotel = linhas.reduce((s, l) => s + l.saidaHotel, 0);
+  const totalEntLav = linhas.reduce((s, l) => s + l.entLav, 0);
+  const totalDiferenca = linhas.reduce((s, l) => s + l.diferenca, 0);
+  const totalSaidaLav = linhas.reduce((s, l) => s + l.saidaLav, 0);
+  const totalPecas = totalSaidaHotel;
+
+  const totalItens = linhas.filter((l) => l.saidaHotel > 0).length;
+  const canSubmit = totalItens > 0 && talao.trim().length > 0 && !salvando;
+
+  const setCampo = (
+    item: string,
+    campo: "saida_hotel" | "ent_lav" | "saida_lav",
+    valor: string,
+  ) => {
+    const clean = valor.replace(/[^0-9]/g, "");
+    setDados((s) => ({
+      ...s,
+      [item]: { saida_hotel: "", ent_lav: "", saida_lav: "", ...s[item], [campo]: clean },
+    }));
+  };
 
   const enviar = async () => {
     if (!canSubmit) return;
     setSalvando(true);
     try {
       const items_sent: ItemSent[] = linhas
-        .filter((l) => l.num > 0)
-        .map((l) => ({ item: l.item, enviado: l.num }));
+        .filter((l) => l.saidaHotel > 0 || l.entLav > 0 || l.saidaLav > 0)
+        .map((l) => ({
+          item: l.item,
+          enviado: l.saidaHotel,
+          saida_hotel: l.saidaHotel,
+          ent_lav: l.entLav,
+          diferenca: l.diferenca,
+          saida_lav: l.saidaLav,
+        }));
       const batch_id = await generateBatchId(unidade);
+      const talaoPrefix = `Talão nº ${talao.trim()}`;
+      const notesFinal = notas.trim()
+        ? `${talaoPrefix} — ${notas.trim()}`
+        : talaoPrefix;
       const { error } = await supabase.from("laundry_batches" as any).insert({
         batch_id,
         property: unidade,
         sent_by: camareiraName || "—",
         status: "transit",
         items_sent,
-        notes: notas.trim() ? notas.trim() : null,
+        notes: notesFinal,
       });
       if (error) throw error;
       setCriado(batch_id);
@@ -228,7 +263,8 @@ function EnviarSujo({
         </div>
         <h4 className="text-2xl font-black text-white">Lote criado com sucesso!</h4>
         <p className="text-sm text-slate-300 max-w-md">
-          Anote na guia de remessa o número abaixo. Ao receber a roupa limpa, use a aba{" "}
+          Talão nº <span className="text-sky-300 font-black">{talao}</span>. Anote na guia de
+          remessa o número do lote abaixo. Ao receber a roupa limpa, use a aba{" "}
           <span className="text-emerald-400 font-bold">📥 Receber Limpo</span> para dar baixa.
         </p>
         <div className="bg-slate-800 border-2 border-sky-500 rounded-2xl px-6 py-4">
@@ -249,12 +285,28 @@ function EnviarSujo({
 
   return (
     <>
+      <div className="p-4 border-b border-slate-800 bg-slate-900/60">
+        <label className="block text-[10px] font-black uppercase tracking-wider text-sky-300 mb-1.5">
+          Número do Talão
+        </label>
+        <input
+          type="text"
+          inputMode="numeric"
+          value={talao}
+          onChange={(e) => setTalao(e.target.value.replace(/[^0-9]/g, "").slice(0, 10))}
+          placeholder="Nº 19389"
+          className="w-full sm:w-64 bg-slate-800 border-2 border-slate-700 focus:border-sky-500 rounded-lg px-4 py-3 text-2xl font-black text-sky-200 tracking-widest outline-none placeholder:text-slate-600 placeholder:font-black"
+        />
+      </div>
       <div className="overflow-auto flex-1">
-        <table className="w-full text-sm">
-          <thead className="sticky top-0 bg-slate-900 border-b border-slate-800 z-10">
-            <tr className="text-[10px] uppercase tracking-wider text-slate-400">
-              <th className="text-left p-3 font-bold">Item</th>
-              <th className="p-2 font-bold w-32">Quantidade</th>
+        <table className="w-full text-sm border-collapse">
+          <thead className="sticky top-0 bg-slate-900 border-b-2 border-slate-700 z-10">
+            <tr className="text-[10px] uppercase tracking-wider text-slate-300">
+              <th className="text-left p-3 font-black border-r border-slate-800">Material</th>
+              <th className="p-2 font-black w-24 border-r border-slate-800">Saída Hotel</th>
+              <th className="p-2 font-black w-24 border-r border-slate-800">Ent. Lav.</th>
+              <th className="p-2 font-black w-24 border-r border-slate-800">Diferença</th>
+              <th className="p-2 font-black w-24">Saída Lav</th>
             </tr>
           </thead>
           <tbody>
@@ -266,25 +318,83 @@ function EnviarSujo({
                   i % 2 === 0 ? "bg-slate-900" : "bg-slate-800/30",
                 )}
               >
-                <td className="p-3 text-slate-200 font-semibold text-xs">{l.item}</td>
+                <td className="p-3 text-slate-200 font-semibold text-xs border-r border-slate-800">
+                  {l.item}
+                </td>
+                <td className="p-1 border-r border-slate-800">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={l.row.saida_hotel}
+                    onChange={(e) => setCampo(l.item, "saida_hotel", e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
+                    placeholder="0"
+                  />
+                </td>
+                <td className="p-1 border-r border-slate-800">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={l.row.ent_lav}
+                    onChange={(e) => setCampo(l.item, "ent_lav", e.target.value)}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
+                    placeholder="0"
+                  />
+                </td>
+                <td className="p-1 text-center border-r border-slate-800">
+                  <span
+                    className={cn(
+                      "inline-block min-w-[2.5rem] px-2 py-1 rounded-md text-xs font-black",
+                      l.diferenca > 0
+                        ? "bg-red-500/20 text-red-300"
+                        : l.diferenca < 0
+                          ? "bg-amber-500/20 text-amber-300"
+                          : "text-slate-500",
+                    )}
+                  >
+                    {l.saidaHotel === 0 && l.entLav === 0 ? "—" : l.diferenca}
+                  </span>
+                </td>
                 <td className="p-1">
                   <input
                     type="number"
                     inputMode="numeric"
                     min={0}
-                    value={l.valor}
-                    onChange={(e) =>
-                      setDados((s) => ({
-                        ...s,
-                        [l.item]: e.target.value.replace(/[^0-9]/g, ""),
-                      }))
-                    }
+                    value={l.row.saida_lav}
+                    onChange={(e) => setCampo(l.item, "saida_lav", e.target.value)}
                     className="w-full bg-slate-800 border border-slate-700 rounded-md px-2 py-1.5 text-center text-white text-sm outline-none focus:border-sky-500"
                     placeholder="0"
                   />
                 </td>
               </tr>
             ))}
+            <tr className="bg-sky-500/10 border-t-2 border-sky-500/40 sticky bottom-0">
+              <td className="p-3 text-sky-200 font-black uppercase text-xs tracking-wider border-r border-sky-500/30">
+                Total de Peças
+              </td>
+              <td className="p-2 text-center text-white font-black text-sm border-r border-sky-500/30">
+                {totalSaidaHotel}
+              </td>
+              <td className="p-2 text-center text-white font-black text-sm border-r border-sky-500/30">
+                {totalEntLav}
+              </td>
+              <td className="p-2 text-center font-black text-sm border-r border-sky-500/30">
+                <span
+                  className={cn(
+                    totalDiferenca > 0
+                      ? "text-red-300"
+                      : totalDiferenca < 0
+                        ? "text-amber-300"
+                        : "text-slate-400",
+                  )}
+                >
+                  {totalDiferenca}
+                </span>
+              </td>
+              <td className="p-2 text-center text-white font-black text-sm">{totalSaidaLav}</td>
+            </tr>
           </tbody>
         </table>
       </div>
@@ -316,7 +426,7 @@ function EnviarSujo({
           )}
         >
           {salvando ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
-          Gerar Lote ({total} itens)
+          Gerar Lote · Talão {talao || "—"} · {totalPecas} peças
         </button>
       </div>
     </>
