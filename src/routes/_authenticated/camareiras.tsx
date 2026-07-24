@@ -686,6 +686,7 @@ function PainelCamareiras() {
             TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
           ).map((c) => {
             const Icon = c.icon;
+            const overdue = tarefasExtrasOverdue.has(c.key);
             return (
               <button
                 key={c.key}
@@ -694,10 +695,21 @@ function PainelCamareiras() {
                   setTarefasExtrasOpen(true);
                 }}
                 className={cn(
-                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 ring-white/30 bg-gradient-to-br",
+                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 bg-gradient-to-br",
                   c.gradient,
+                  overdue ? "ring-red-400" : "ring-white/30",
                 )}
               >
+                {overdue && (
+                  <span
+                    className="absolute top-1.5 right-1.5 flex h-3 w-3"
+                    title="Tarefa em atraso"
+                    aria-label="Tarefa em atraso"
+                  >
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 ring-2 ring-white" />
+                  </span>
+                )}
                 <div className="flex items-center gap-2">
                   <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm shrink-0">
                     <Icon size={18} />
