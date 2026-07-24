@@ -54,10 +54,22 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         const priceRaw = it.grossPrice ?? it.price ?? it.itemPrice ?? it.defaultPrice;
         const price = Number(priceRaw);
         if (!id || !name) continue;
-        // Cloudbeds mistura serviços (late check-out, chave, day use, troca de
-        // roupa) com produtos do frigobar. Só sincronizamos itens que têm
-        // preço unitário definido — os serviços vêm com preço nulo/0.
+        // Cloudbeds mistura serviços (late check-out, chave, diária pet, troca
+        // de roupa, cama extra, day use) com produtos do frigobar. Filtramos:
+        //  - sem preço unitário definido (serviços com preço variável)
+        //  - nomes que combinam com padrões de serviço conhecidos
         if (priceRaw === null || priceRaw === undefined || !Number.isFinite(price) || price <= 0) continue;
+        const lower = name.toLowerCase();
+        const isService =
+          /troca\s+(de\s+)?(cama|banho|roupa|toalha)/.test(lower) ||
+          /chave\s+do\s+quarto/.test(lower) ||
+          /di[aá]ria\s+pet/.test(lower) ||
+          /cama\s+extra/.test(lower) ||
+          /day\s+use/.test(lower) ||
+          /late\s+check/.test(lower) ||
+          /early\s+check/.test(lower) ||
+          /troco\s+h[oó]spede/.test(lower);
+        if (isService) continue;
         collected.push({ id, name, price });
       }
       if (rows.length < 100) break;
