@@ -311,8 +311,8 @@ function CatalogoTab({
     setSincronizando(true);
     try {
       const res = await sync({ data: { property: unidade as "Ipanema" | "Botafogo" } });
-      toast.success("Catálogo e preços atualizados com sucesso!", {
-        description: `${res.updated} atualizados · ${res.created} criados · ${res.totalCloudbeds} itens no Cloudbeds`,
+      toast.success("Catálogo e preços sincronizados com o Cloudbeds!", {
+        description: `${res.updated} atualizados · ${res.created} criados · ${res.removed ?? 0} removidos · ${res.totalCloudbeds} itens no Cloudbeds`,
       });
       onChange();
     } catch (err) {
