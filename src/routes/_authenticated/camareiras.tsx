@@ -557,6 +557,14 @@ function PainelCamareiras() {
             Almoxarifado
           </button>
           <button
+            onClick={() => setEstoqueGeralOpen(true)}
+            title="Consultar estoque geral do almoxarifado"
+            className="flex-1 min-w-[160px] px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider bg-gradient-to-br from-[#8A2BE2] to-[#6A0DAD] hover:from-[#7B22C9] hover:to-[#5A0C93] active:translate-y-px text-white flex items-center justify-center gap-2 shadow-lg shadow-purple-900/30 ring-1 ring-white/10 transition-all"
+          >
+            <Package size={16} />
+            Estoque Geral
+          </button>
+          <button
             onClick={() => setCompraOpen(true)}
             className="flex-1 min-w-[160px] px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-br from-orange-500 to-amber-600 hover:from-orange-600 hover:to-amber-700 text-white flex items-center justify-center gap-2 shadow-md shadow-amber-500/20 transition-all"
           >
