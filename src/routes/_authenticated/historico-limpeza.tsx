@@ -414,6 +414,69 @@ function HistoricoLimpezaPage() {
           </div>
         </div>
 
+        {/* Checklists de Turno das Camareiras */}
+        <div className="bg-white rounded-2xl border border-slate-200 shadow-sm">
+          <div className="flex items-center gap-2 p-4 border-b border-slate-100">
+            <div className="h-8 w-8 rounded-lg bg-amber-500 text-white grid place-items-center">
+              <ClipboardList size={16} />
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-black text-slate-800">Checklists de Turno</p>
+              <p className="text-[11px] text-slate-500">
+                Rotinas de manhã, tarde e noite registradas pelas camareiras
+              </p>
+            </div>
+            <span className="text-[11px] font-bold text-slate-400">
+              {checklists.length} registro{checklists.length === 1 ? "" : "s"}
+            </span>
+          </div>
+          {checklists.length === 0 ? (
+            <p className="p-4 text-xs text-slate-400 text-center">
+              Nenhum checklist de turno no período selecionado.
+            </p>
+          ) : (
+            <div className="divide-y divide-slate-100">
+              {checklists.map((cl) => {
+                const isOpen = openChecklist === cl.id;
+                return (
+                  <div key={cl.id} className="p-3">
+                    <button
+                      onClick={() => setOpenChecklist(isOpen ? null : cl.id)}
+                      className="w-full flex items-center gap-3 text-left"
+                    >
+                      <div className="h-8 w-8 rounded-lg bg-amber-500 text-white grid place-items-center shrink-0">
+                        <Sunrise size={14} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-slate-800 truncate">
+                          {cl.camareira_name || "—"}
+                          <span className="ml-2 text-[11px] font-semibold text-amber-600">
+                            {PERIOD_LABEL[cl.period]}
+                          </span>
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          {fmtDateTime(cl.created_at)} · INJOY {cl.property}
+                        </p>
+                      </div>
+                      <span className="text-[11px] font-bold text-slate-400">
+                        {isOpen ? "Fechar" : "Ver"}
+                      </span>
+                    </button>
+                    {isOpen && (
+                      <ul className="mt-3 ml-11 list-disc list-inside space-y-1 text-xs text-slate-700">
+                        {(cl.completed_items ?? []).map((t, i) => (
+                          <li key={i}>{t}</li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+
         {loading && rows.length === 0 ? (
           <LoadingState label="Carregando histórico..." />
         ) : erro && rows.length === 0 ? (
