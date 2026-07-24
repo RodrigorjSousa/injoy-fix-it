@@ -584,10 +584,13 @@ function PainelCamareiras() {
             <RefreshCw size={12} />
             Resetar Turno
           </button>
+        </div>
       </div>
 
       {/* Tarefas Extras — sempre visível para lembrar as camareiras das áreas comuns */}
+      <div className="px-4 pt-4">
       <section className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700 shadow-xl ring-1 ring-white/10">
+
         <div className="flex items-center justify-between mb-3">
           <div className="flex items-center gap-2 text-white">
             <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
