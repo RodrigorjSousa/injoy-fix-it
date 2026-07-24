@@ -230,11 +230,6 @@ function RelatorioOperacoes() {
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push({ tipo: "tarefa", log });
     });
-    checklistsFiltrado.forEach((log) => {
-      const k = monthKey(log.created_at);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push({ tipo: "checklist", log });
-    });
     const keys = Array.from(map.keys()).sort().reverse();
     return keys.map((k) => ({
       key: k,
