@@ -312,13 +312,15 @@ function CatalogoTab({
   const [novo, setNovo] = useState(false);
   const [novoForm, setNovoForm] = useState({ name: "", price: 0, current_stock: 0, min_stock: 5 });
   const [sincronizando, setSincronizando] = useState(false);
+  const [salvandoId, setSalvandoId] = useState<string | null>(null);
   const sync = useServerFn(syncCloudbedsItems);
+  const pushStock = useServerFn(setCloudbedsItemStock);
 
   const sincronizarCloudbeds = async () => {
     setSincronizando(true);
     try {
       const res = await sync({ data: { property: unidade as "Ipanema" | "Botafogo" } });
-      toast.success("Catálogo e preços sincronizados com o Cloudbeds!", {
+      toast.success("Catálogo, preços e estoque sincronizados com o Cloudbeds!", {
         description: `${res.updated} atualizados · ${res.created} criados · ${res.removed ?? 0} removidos · ${res.totalCloudbeds} itens no Cloudbeds`,
       });
       onChange();
@@ -335,17 +337,49 @@ function CatalogoTab({
   };
 
   const salvar = async (id: string) => {
-    const { error } = await supabase.from("beverage_catalog").update({
-      name: form.name,
-      price: Number(form.price),
-      current_stock: Number(form.current_stock),
-      min_stock: Number(form.min_stock),
-    }).eq("id", id);
-    if (error) return toast.error(error.message);
-    toast.success("Bebida atualizada");
-    setEditando(null);
-    onChange();
+    const original = bebidas.find((b) => b.id === id);
+    const novoEstoque = Number(form.current_stock);
+    const novoMin = Number(form.min_stock);
+    const estoqueMudou = original ? original.current_stock !== novoEstoque : true;
+    const minMudou = original ? original.min_stock !== novoMin : true;
+
+    setSalvandoId(id);
+    try {
+      // Se o item está vinculado ao Cloudbeds e o estoque/mínimo mudou,
+      // atualiza primeiro no Cloudbeds (fonte da verdade). O próprio server
+      // fn já espelha para o Supabase.
+      if (original?.cloudbeds_item_id && (estoqueMudou || minMudou)) {
+        await pushStock({
+          data: {
+            beverage_id: id,
+            property: unidade as "Ipanema" | "Botafogo",
+            itemQuantity: novoEstoque,
+            reorderThreshold: novoMin,
+          },
+        });
+      }
+      // Atualiza demais campos (nome, preço) e garante consistência.
+      const { error } = await supabase.from("beverage_catalog").update({
+        name: form.name,
+        price: Number(form.price),
+        current_stock: novoEstoque,
+        min_stock: novoMin,
+      }).eq("id", id);
+      if (error) throw error;
+      toast.success(
+        original?.cloudbeds_item_id && estoqueMudou
+          ? "Bebida atualizada e estoque enviado ao Cloudbeds"
+          : "Bebida atualizada",
+      );
+      setEditando(null);
+      onChange();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao salvar");
+    } finally {
+      setSalvandoId(null);
+    }
   };
+
 
   const excluir = async (id: string, nome: string) => {
     if (!confirm(`Remover "${nome}" do catálogo?`)) return;
