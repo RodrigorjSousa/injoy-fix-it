@@ -112,27 +112,34 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
     for (const item of collected) {
       const existing =
         byCloudbedsId.get(item.id) ?? byName.get(item.name.trim().toLowerCase());
+      const patch: Record<string, unknown> = {
+        name: item.name,
+        price: item.price,
+        cloudbeds_item_id: item.id,
+      };
+      // Cloudbeds é a fonte da verdade quando o item tem controle de estoque.
+      if (item.stockInventory && item.itemQuantity !== null) {
+        patch.current_stock = item.itemQuantity;
+      }
+      if (item.reorderThreshold !== null) {
+        patch.min_stock = item.reorderThreshold;
+      }
       if (existing) {
         seenCatalogIds.add(existing.id);
         const { error } = await supabase
           .from("beverage_catalog")
-          .update({
-            name: item.name,
-            price: item.price,
-            cloudbeds_item_id: item.id,
-          })
+          .update(patch)
           .eq("id", existing.id);
         if (!error) matched += 1;
       } else {
-        // Cria novo produto sem estoque; gestor ajusta manualmente depois
         const { data: inserted, error } = await supabase
           .from("beverage_catalog")
           .insert({
             property: data.property,
             name: item.name,
             price: item.price,
-            current_stock: 0,
-            min_stock: 0,
+            current_stock: item.stockInventory && item.itemQuantity !== null ? item.itemQuantity : 0,
+            min_stock: item.reorderThreshold ?? 0,
             cloudbeds_item_id: item.id,
           })
           .select("id")
@@ -143,6 +150,7 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
         }
       }
     }
+
 
     // Cloudbeds é a fonte da verdade: itens antigos que sobraram no catálogo
     // e não correspondem a nenhum item vindo do Cloudbeds são removidos.
