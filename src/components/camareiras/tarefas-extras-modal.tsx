@@ -46,7 +46,7 @@ interface Category {
   defaults: string[];
 }
 
-const CATEGORIES: Category[] = [
+export const CATEGORIES: Category[] = [
   {
     key: "cozinha",
     label: "Geral Cozinha",
