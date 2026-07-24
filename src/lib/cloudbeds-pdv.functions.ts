@@ -112,18 +112,18 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
     for (const item of collected) {
       const existing =
         byCloudbedsId.get(item.id) ?? byName.get(item.name.trim().toLowerCase());
-      const patch: Record<string, unknown> = {
+      const patch: {
+        name: string;
+        price: number;
+        cloudbeds_item_id: string;
+        current_stock?: number;
+        min_stock?: number;
+      } = {
         name: item.name,
         price: item.price,
         cloudbeds_item_id: item.id,
       };
-      // Cloudbeds é a fonte da verdade quando o item tem controle de estoque.
-      if (item.stockInventory && item.itemQuantity !== null) {
-        patch.current_stock = item.itemQuantity;
-      }
-      if (item.reorderThreshold !== null) {
-        patch.min_stock = item.reorderThreshold;
-      }
+
       if (existing) {
         seenCatalogIds.add(existing.id);
         const { error } = await supabase
