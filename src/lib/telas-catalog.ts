@@ -43,7 +43,7 @@ const LABELS: Record<string, string> = {
   frigobar: "Frigobar",
   bonificacao: "Bonificação",
   chat: "Chat",
-  dashboard: "Dashboard",
+  
   gestao: "Gestão",
   escala: "Escala",
   "controle-ponto": "Controle de Ponto",
@@ -68,7 +68,7 @@ const ICONS: Record<string, IconType> = {
   frigobar: GlassWater,
   bonificacao: Trophy,
   chat: MessageSquare,
-  dashboard: LayoutDashboard,
+  
   gestao: BarChart3,
   escala: ClipboardList,
   "controle-ponto": ClipboardList,
