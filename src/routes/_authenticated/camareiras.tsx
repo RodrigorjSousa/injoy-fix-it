@@ -1178,6 +1178,15 @@ function PainelCamareiras() {
         onClose={() => setEstoqueGeralOpen(false)}
         unidade={unidadeAtiva}
       />
+
+      {unidadeAtiva === "Botafogo" && (
+        <TarefasExtrasModal
+          open={tarefasExtrasOpen}
+          onClose={() => setTarefasExtrasOpen(false)}
+          unidade={unidadeAtiva}
+          camareiraName={nomeAutomatico ?? ""}
+        />
+      )}
     </div>
   );
 }
