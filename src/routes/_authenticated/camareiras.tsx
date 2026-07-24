@@ -16,6 +16,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
+import { TarefasExtrasModal } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
