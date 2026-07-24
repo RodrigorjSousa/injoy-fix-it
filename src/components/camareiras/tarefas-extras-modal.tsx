@@ -25,7 +25,7 @@ interface Props {
 }
 
 
-type CategoryKey =
+export type CategoryKey =
   | "cozinha"
   | "patio"
   | "salas_terreo"
@@ -34,6 +34,7 @@ type CategoryKey =
   | "patio_ipanema"
   | "banheiro_ipanema"
   | "escadas_corredores_ipanema";
+
 
 interface Category {
   key: CategoryKey;
