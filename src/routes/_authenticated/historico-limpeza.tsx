@@ -235,6 +235,69 @@ function HistoricoLimpezaPage() {
     return { total, dnd, limpezas };
   }, [filtrados]);
 
+  // ---- Checklists de Turno (period_checklist_logs) -----------------------
+  type ChecklistLog = {
+    id: string;
+    property: string;
+    camareira_name: string;
+    period: "manha" | "tarde" | "noite";
+    completed_items: string[];
+    created_at: string;
+  };
+  const [checklists, setChecklists] = useState<ChecklistLog[]>([]);
+  const [openChecklist, setOpenChecklist] = useState<string | null>(null);
+
+  const carregarChecklists = useCallback(async () => {
+    let q = supabase
+      .from("period_checklist_logs" as never)
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(200);
+    if (unidade !== "Todas") q = q.eq("property", unidade);
+    if (data) {
+      const r = rangeForDay(data);
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    } else if (mes) {
+      const r = rangeForMonth(mes, ano || String(new Date().getFullYear()));
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    } else if (ano) {
+      const r = rangeForYear(ano);
+      q = q.gte("created_at", r.start).lte("created_at", r.end);
+    }
+    const { data: d } = await q;
+    let list = (d as unknown as ChecklistLog[]) ?? [];
+    if (camareira) {
+      const cq = camareira.toLowerCase();
+      list = list.filter((l) => l.camareira_name?.toLowerCase().includes(cq));
+    }
+    setChecklists(list);
+  }, [unidade, data, mes, ano, camareira]);
+
+  useEffect(() => {
+    if (isFull) carregarChecklists();
+  }, [carregarChecklists, isFull]);
+
+  useEffect(() => {
+    const ch = supabase
+      .channel("period_checklist_logs_history")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "period_checklist_logs" },
+        () => carregarChecklists(),
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [carregarChecklists]);
+
+  const PERIOD_LABEL: Record<"manha" | "tarde" | "noite", string> = {
+    manha: "Manhã",
+    tarde: "Tarde",
+    noite: "Noite",
+  };
+  const dummy = () => {
+
   if (!isFull) {
     return (
       <div className="max-w-md mx-auto mt-20 text-center space-y-3">
