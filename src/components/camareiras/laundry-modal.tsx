@@ -212,10 +212,10 @@ function EnviarSujo({
     valor: string,
   ) => {
     const clean = valor.replace(/[^0-9]/g, "");
-    setDados((s) => ({
-      ...s,
-      [item]: { saida_hotel: "", ent_lav: "", saida_lav: "", ...(s[item] ?? {}), [campo]: clean },
-    }));
+    setDados((s) => {
+      const prev = s[item] ?? { saida_hotel: "", ent_lav: "", saida_lav: "" };
+      return { ...s, [item]: { ...prev, [campo]: clean } };
+    });
   };
 
   const enviar = async () => {
