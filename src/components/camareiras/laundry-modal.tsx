@@ -37,7 +37,14 @@ const ITENS_FALLBACK = [
   "Pano de Chão",
 ];
 
-type ItemSent = { item: string; enviado: number };
+type ItemSent = {
+  item: string;
+  enviado: number;
+  saida_hotel?: number;
+  ent_lav?: number;
+  diferenca?: number;
+  saida_lav?: number;
+};
 type ItemReceived = { item: string; enviado: number; retornado: number; em_falta: number };
 
 type Batch = {
