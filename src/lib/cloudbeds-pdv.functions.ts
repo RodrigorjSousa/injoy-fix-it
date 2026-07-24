@@ -367,3 +367,84 @@ export const setCloudbedsHouseAccount = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+// ============================================================
+// 4) Ajustar estoque de um item no Cloudbeds (fonte da verdade)
+// ============================================================
+const stockSchema = z.object({
+  beverage_id: z.string().uuid(),
+  property: propertySchema,
+  itemQuantity: z.number().int().min(0),
+  reorderThreshold: z.number().int().min(0).optional(),
+});
+
+export const setCloudbedsItemStock = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => stockSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roleSet = new Set((roles ?? []).map((r) => r.role));
+    if (!roleSet.has("gestor") && !roleSet.has("admin")) {
+      throw new Error("Somente gestores podem repor estoque");
+    }
+
+    // Recupera item para pegar cloudbeds_item_id + nome (necessário no PUT).
+    const { data: item, error: itemErr } = await supabase
+      .from("beverage_catalog")
+      .select("id, name, cloudbeds_item_id, property, min_stock")
+      .eq("id", data.beverage_id)
+      .single();
+    if (itemErr || !item) throw new Error("Item não encontrado no catálogo");
+    if (!item.cloudbeds_item_id) {
+      throw new Error(
+        `"${item.name}" ainda não está vinculado ao Cloudbeds. Sincronize o catálogo primeiro.`,
+      );
+    }
+
+    const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
+    const property = data.property.toLowerCase() as "ipanema" | "botafogo";
+
+    const body = new URLSearchParams({
+      itemID: item.cloudbeds_item_id,
+      itemName: item.name,
+      stockInventory: "true",
+      itemQuantity: String(data.itemQuantity),
+    });
+    const reorder = data.reorderThreshold ?? item.min_stock ?? null;
+    if (reorder !== null && reorder !== undefined) {
+      body.set("reorderThreshold", String(reorder));
+    }
+
+    const res = await cloudbedsFetch(property, `/putItemToInventory`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: body.toString(),
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      success?: boolean;
+      message?: string;
+    };
+    if (!res.ok || json.success === false) {
+      throw new Error(
+        json.message ?? `Cloudbeds recusou o ajuste de estoque (${res.status})`,
+      );
+    }
+
+    // Espelha no catálogo local (Cloudbeds é a fonte da verdade, mas
+    // atualizamos localmente para não depender do próximo sync).
+    const localPatch: { current_stock: number; min_stock?: number } = {
+      current_stock: data.itemQuantity,
+    };
+    if (data.reorderThreshold !== undefined) {
+      localPatch.min_stock = data.reorderThreshold;
+    }
+    await supabase.from("beverage_catalog").update(localPatch).eq("id", item.id);
+
+    return { ok: true, itemQuantity: data.itemQuantity };
+  });
+
