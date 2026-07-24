@@ -114,29 +114,30 @@ export function VendaBebidasModal({ open, onClose, unidade, recepcionistaName, r
     try {
       const items = bebidas.filter((b) => (carrinho[b.id] ?? 0) > 0);
 
-      // Lançamento na conta do quarto: PRIMEIRO chama o Cloudbeds.
-      // Só continua com estoque + log se o Cloudbeds aceitar.
-      if (isFiado) {
-        const semVinculo = items.filter((b) => !b.cloudbeds_item_id);
-        if (semVinculo.length > 0) {
-          throw new Error(
-            `Estes itens ainda não estão vinculados ao Cloudbeds: ${semVinculo.map((i) => i.name).join(", ")}. Sincronize o catálogo antes de lançar no quarto.`,
-          );
-        }
-        await postCharge({
-          data: {
-            property: unidade,
-            roomNumber: quarto.trim(),
-            items: items.map((b) => ({
-              beverage_id: b.id,
-              cloudbeds_item_id: b.cloudbeds_item_id as string,
-              name: b.name,
-              quantity: carrinho[b.id],
-              unit_price: Number(b.price),
-            })),
-          },
-        });
+      // Cloudbeds é a fonte da verdade do estoque: TODA venda (quarto ou
+      // balcão) precisa ser lançada lá antes de baixar o estoque local.
+      // - Fiado (quarto): posta na folio do quarto.
+      // - Balcão: posta na "House Account" configurada pela gestão.
+      const semVinculo = items.filter((b) => !b.cloudbeds_item_id);
+      if (semVinculo.length > 0) {
+        throw new Error(
+          `Estes itens ainda não estão vinculados ao Cloudbeds: ${semVinculo.map((i) => i.name).join(", ")}. Peça ao gestor para sincronizar o catálogo antes de vender.`,
+        );
       }
+
+      await postCharge({
+        data: {
+          property: unidade,
+          ...(isFiado ? { roomNumber: quarto.trim() } : {}),
+          items: items.map((b) => ({
+            beverage_id: b.id,
+            cloudbeds_item_id: b.cloudbeds_item_id as string,
+            name: b.name,
+            quantity: carrinho[b.id],
+            unit_price: Number(b.price),
+          })),
+        },
+      });
 
       const salesRows = items.map((b) => ({
         property: unidade,
@@ -153,7 +154,7 @@ export function VendaBebidasModal({ open, onClose, unidade, recepcionistaName, r
       const { error: salesErr } = await supabase.from("beverage_sales").insert(salesRows);
       if (salesErr) throw salesErr;
 
-      // Atualiza estoque
+      // Atualiza estoque local
       await Promise.all(items.map((b) =>
         supabase
           .from("beverage_catalog")
