@@ -214,7 +214,7 @@ function EnviarSujo({
     const clean = valor.replace(/[^0-9]/g, "");
     setDados((s) => ({
       ...s,
-      [item]: { saida_hotel: "", ent_lav: "", saida_lav: "", ...s[item], [campo]: clean },
+      [item]: { saida_hotel: "", ent_lav: "", saida_lav: "", ...(s[item] ?? {}), [campo]: clean },
     }));
   };
 
