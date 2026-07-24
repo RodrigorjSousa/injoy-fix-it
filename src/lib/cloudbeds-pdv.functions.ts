@@ -155,7 +155,10 @@ export const syncCloudbedsItems = createServerFn({ method: "POST" })
 // ============================================================
 const chargeSchema = z.object({
   property: propertySchema,
-  roomNumber: z.string().trim().min(1),
+  // Quando presente: lança na folio do quarto (fiado).
+  // Quando ausente: venda de balcão -> lança na "House Account" da unidade
+  // configurada em app_settings (cloudbeds_house_account_<property>).
+  roomNumber: z.string().trim().min(1).optional(),
   items: z
     .array(
       z.object({
@@ -190,42 +193,60 @@ export const postCloudbedsCharge = createServerFn({ method: "POST" })
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
 
-    // Localiza reserva ativa (checked_in) no quarto
-    const qs = new URLSearchParams({
-      status: "checked_in",
-      pageSize: "100",
-    });
-    const listRes = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
-    if (!listRes.ok) {
-      throw new Error(`Falha ao consultar reservas no Cloudbeds: ${listRes.status}`);
-    }
-    const listJson = (await listRes.json()) as {
-      success?: boolean;
-      data?: Array<{
-        reservationID?: string;
-        rooms?: Array<{ roomName?: string; roomNumber?: string }>;
-      }>;
-    };
-    if (listJson.success === false) throw new Error("Cloudbeds retornou erro ao listar reservas");
+    let reservationID: string | null = null;
+    let target: string | null = null;
 
-    const target = data.roomNumber.trim();
-    const match = (listJson.data ?? []).find((r) =>
-      (r.rooms ?? []).some((rm) => {
-        const n = String(rm.roomName ?? rm.roomNumber ?? "").trim();
-        return n === target;
-      }),
-    );
-
-    if (!match?.reservationID) {
-      throw new Error(
-        `Nenhuma reserva ativa encontrada no quarto ${target}. Verifique se o hóspede ainda está hospedado.`,
+    if (data.roomNumber) {
+      // Folio do quarto: localiza reserva ativa (checked_in) no quarto
+      target = data.roomNumber.trim();
+      const qs = new URLSearchParams({ status: "checked_in", pageSize: "100" });
+      const listRes = await cloudbedsFetch(property, `/getReservations?${qs.toString()}`);
+      if (!listRes.ok) {
+        throw new Error(`Falha ao consultar reservas no Cloudbeds: ${listRes.status}`);
+      }
+      const listJson = (await listRes.json()) as {
+        success?: boolean;
+        data?: Array<{
+          reservationID?: string;
+          rooms?: Array<{ roomName?: string; roomNumber?: string }>;
+        }>;
+      };
+      if (listJson.success === false) throw new Error("Cloudbeds retornou erro ao listar reservas");
+      const match = (listJson.data ?? []).find((r) =>
+        (r.rooms ?? []).some((rm) => {
+          const n = String(rm.roomName ?? rm.roomNumber ?? "").trim();
+          return n === target;
+        }),
       );
+      if (!match?.reservationID) {
+        throw new Error(
+          `Nenhuma reserva ativa encontrada no quarto ${target}. Verifique se o hóspede ainda está hospedado.`,
+        );
+      }
+      reservationID = match.reservationID;
+    } else {
+      // Venda de balcão: usa a "House Account" configurada pela gestão.
+      // app_settings tem RLS restrita a gestor/admin, então lemos com admin.
+      const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+      const settingKey = `cloudbeds_house_account_${property}`;
+      const { data: setting } = await supabaseAdmin
+        .from("app_settings")
+        .select("value")
+        .eq("key", settingKey)
+        .maybeSingle();
+      const houseAccountId = (setting?.value ?? "").trim();
+      if (!houseAccountId) {
+        throw new Error(
+          `Conta-balcão do Cloudbeds não configurada para ${data.property}. Peça ao gestor para configurar em Frigobar > Catálogo.`,
+        );
+      }
+      reservationID = houseAccountId;
     }
 
     const posted: Array<{ cloudbeds_item_id: string; name: string; quantity: number }> = [];
     for (const item of data.items) {
       const body = new URLSearchParams({
-        reservationID: match.reservationID,
+        reservationID: reservationID!,
         itemID: item.cloudbeds_item_id,
         quantity: String(item.quantity),
         subtotal: (item.unit_price * item.quantity).toFixed(2),
@@ -254,7 +275,63 @@ export const postCloudbedsCharge = createServerFn({ method: "POST" })
 
     return {
       ok: true,
-      reservationID: match.reservationID,
+      reservationID,
+      counter: !data.roomNumber,
       posted,
     };
+  });
+
+// ============================================================
+// 3) House Account (conta-balcão) do Cloudbeds — leitura/gravação
+// ============================================================
+const houseAccountSchema = z.object({
+  property: propertySchema,
+  reservationID: z.string().trim().max(64),
+});
+
+export const getCloudbedsHouseAccounts = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roleSet = new Set((roles ?? []).map((r) => r.role));
+    if (!roleSet.has("gestor") && !roleSet.has("admin")) {
+      throw new Error("Somente gestores podem consultar essas configurações");
+    }
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data } = await supabaseAdmin
+      .from("app_settings")
+      .select("key, value")
+      .in("key", ["cloudbeds_house_account_ipanema", "cloudbeds_house_account_botafogo"]);
+    const map: Record<string, string> = {};
+    for (const row of data ?? []) map[row.key] = row.value ?? "";
+    return {
+      ipanema: map["cloudbeds_house_account_ipanema"] ?? "",
+      botafogo: map["cloudbeds_house_account_botafogo"] ?? "",
+    };
+  });
+
+export const setCloudbedsHouseAccount = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => houseAccountSchema.parse(input))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: roles } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", userId);
+    const roleSet = new Set((roles ?? []).map((r) => r.role));
+    if (!roleSet.has("gestor") && !roleSet.has("admin")) {
+      throw new Error("Somente gestores podem alterar essa configuração");
+    }
+    const key = `cloudbeds_house_account_${data.property.toLowerCase()}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { error } = await supabaseAdmin
+      .from("app_settings")
+      .upsert({ key, value: data.reservationID.trim() }, { onConflict: "key" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
