@@ -394,7 +394,11 @@ function CatalogoTab({
           >
             <Plus size={16} /> Nova bebida
           </button>
-        </div>
+      </div>
+
+      <HouseAccountConfig unidade={unidade} />
+
+
       </div>
 
       {novo && (
