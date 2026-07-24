@@ -209,10 +209,11 @@ export const CATEGORIES: Category[] = [
   },
 ];
 
-const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]> = {
+export const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]> = {
   Botafogo: ["cozinha", "patio", "salas_terreo", "sala_401", "area_servico"],
   Ipanema: ["patio_ipanema", "banheiro_ipanema", "escadas_corredores_ipanema"],
 };
+
 
 const storageKey = (unidade: string, cat: CategoryKey) =>
   `injoy:tarefas-extras:${unidade}:${cat}`;
