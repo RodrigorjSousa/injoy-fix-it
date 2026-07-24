@@ -143,6 +143,7 @@ function PainelCamareiras() {
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [historicoOpen, setHistoricoOpen] = useState(false);
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
+  const [tarefasExtrasOpen, setTarefasExtrasOpen] = useState(false);
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
