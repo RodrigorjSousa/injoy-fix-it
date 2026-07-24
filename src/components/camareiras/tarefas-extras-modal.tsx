@@ -269,7 +269,7 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
     if (!activeCat) return;
     const loaded = loadItems(unidade, activeCat.key, activeCat.defaults);
     setItems(loaded);
-    setChecked(new Array(10).fill(false));
+    setChecked(new Array(loaded.length).fill(false));
     setEditingIdx(null);
   }, [activeCat, unidade]);
 
