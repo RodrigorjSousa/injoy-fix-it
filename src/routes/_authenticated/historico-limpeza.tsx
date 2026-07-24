@@ -296,7 +296,6 @@ function HistoricoLimpezaPage() {
     tarde: "Tarde",
     noite: "Noite",
   };
-  const dummy = () => {
 
   if (!isFull) {
     return (
