@@ -1181,10 +1181,15 @@ function PainelCamareiras() {
 
       <TarefasExtrasModal
         open={tarefasExtrasOpen}
-        onClose={() => setTarefasExtrasOpen(false)}
+        onClose={() => {
+          setTarefasExtrasOpen(false);
+          setTarefasExtrasInitial(null);
+        }}
         unidade={unidadeAtiva}
         camareiraName={nomeAutomatico ?? ""}
+        initialCategory={tarefasExtrasInitial}
       />
+
     </div>
   );
 }
