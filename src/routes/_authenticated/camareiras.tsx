@@ -1167,6 +1167,12 @@ function PainelCamareiras() {
         onClose={() => setHistoricoOpen(false)}
         unidade={unidadeAtiva}
       />
+
+      <EstoqueGeralModal
+        open={estoqueGeralOpen}
+        onClose={() => setEstoqueGeralOpen(false)}
+        unidade={unidadeAtiva}
+      />
     </div>
   );
 }
