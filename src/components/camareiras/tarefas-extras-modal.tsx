@@ -21,7 +21,9 @@ interface Props {
   onClose: () => void;
   unidade: "Botafogo" | "Ipanema";
   camareiraName: string;
+  initialCategory?: CategoryKey | null;
 }
+
 
 type CategoryKey =
   | "cozinha"
