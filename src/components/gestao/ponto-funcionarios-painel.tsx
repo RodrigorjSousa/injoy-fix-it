@@ -172,45 +172,37 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
 
   return (
     <section className="mt-8 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 text-slate-100">
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        className="w-full text-left px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950 hover:from-blue-900/60 transition-colors"
-      >
-        <div className="flex items-center justify-between gap-3">
+      <div className="px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className="w-full text-left flex items-center justify-between gap-3"
+        >
           <div className="min-w-0">
             <h2 className="text-xl font-black text-white flex items-center gap-2">
               <Clock className="h-5 w-5 text-blue-400" />
               Ponto dos Funcionários · INJOY {unidade}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              {open ? "Batidas registradas na Pontomais em " : `${stats.total} funcionário(s) · `}
-              {open ? (
-                <b className="text-slate-200">
-                  {new Date(data + "T12:00").toLocaleDateString("pt-BR", {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "long",
-                  })}
-                </b>
-              ) : (
-                <span className="text-slate-300">clique para expandir</span>
-              )}
+              Batidas registradas na Pontomais em{" "}
+              <b className="text-slate-200">
+                {new Date(data + "T12:00").toLocaleDateString("pt-BR", {
+                  weekday: "long",
+                  day: "2-digit",
+                  month: "long",
+                })}
+              </b>
             </p>
           </div>
           <ChevronDown
             className={cn(
-              "h-5 w-5 text-slate-300 shrink-0 transition-transform",
-              open && "rotate-180",
+              "h-5 w-5 text-slate-300 shrink-0 transition-transform duration-300",
+              !open && "rotate-180",
             )}
           />
-        </div>
-      </button>
-
-      {open && (
-      <>
-
+        </button>
+      </div>
 
       <div className="px-6 py-4 border-b border-slate-800 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -240,14 +232,24 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-          <StatChip label="Total" value={stats.total} color="slate" icon={Users} />
-          <StatChip label="Trabalhando" value={stats.presentes} color="emerald" icon={CheckCircle2} />
-          <StatChip label="No almoço" value={stats.almocando} color="amber" icon={Utensils} />
-          <StatChip label="Finalizados" value={stats.finalizados} color="blue" icon={LogOut} />
-          <StatChip label="Sem batida" value={stats.ausentes} color="red" icon={AlertCircle} />
+        <div
+          className={cn(
+            "grid transition-all duration-300 ease-out",
+            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+          )}
+        >
+          <div className="overflow-hidden">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              <StatChip label="Total" value={stats.total} color="slate" icon={Users} />
+              <StatChip label="Trabalhando" value={stats.presentes} color="emerald" icon={CheckCircle2} />
+              <StatChip label="No almoço" value={stats.almocando} color="amber" icon={Utensils} />
+              <StatChip label="Finalizados" value={stats.finalizados} color="blue" icon={LogOut} />
+              <StatChip label="Sem batida" value={stats.ausentes} color="red" icon={AlertCircle} />
+            </div>
+          </div>
         </div>
       </div>
+
 
       <div className="max-h-[70vh] overflow-y-auto p-4 space-y-2">
         {loading && (
