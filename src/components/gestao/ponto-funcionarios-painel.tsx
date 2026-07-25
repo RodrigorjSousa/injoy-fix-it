@@ -339,9 +339,8 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
             );
           })}
       </div>
-      </>
-      )}
     </section>
+
 
   );
 }
