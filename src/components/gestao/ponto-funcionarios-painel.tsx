@@ -75,6 +75,7 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [busca, setBusca] = useState("");
+  const [open, setOpen] = useState(false);
 
   const syncFn = useServerFn(syncPontomais);
 
