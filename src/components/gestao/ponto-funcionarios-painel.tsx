@@ -12,6 +12,7 @@ import {
   Search,
   Users,
   Clock,
+  ChevronDown,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncPontomais } from "@/lib/pontomais.functions";
@@ -74,6 +75,7 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [busca, setBusca] = useState("");
+  const [open, setOpen] = useState(false);
 
   const syncFn = useServerFn(syncPontomais);
 
@@ -170,22 +172,45 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
 
   return (
     <section className="mt-8 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 text-slate-100">
-      <header className="px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950">
-        <h2 className="text-xl font-black text-white flex items-center gap-2">
-          <Clock className="h-5 w-5 text-blue-400" />
-          Ponto dos Funcionários · INJOY {unidade}
-        </h2>
-        <p className="text-sm text-slate-400 mt-1">
-          Batidas registradas na Pontomais em{" "}
-          <b className="text-slate-200">
-            {new Date(data + "T12:00").toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "2-digit",
-              month: "long",
-            })}
-          </b>
-        </p>
-      </header>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className="w-full text-left px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950 hover:from-blue-900/60 transition-colors"
+      >
+        <div className="flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <h2 className="text-xl font-black text-white flex items-center gap-2">
+              <Clock className="h-5 w-5 text-blue-400" />
+              Ponto dos Funcionários · INJOY {unidade}
+            </h2>
+            <p className="text-sm text-slate-400 mt-1">
+              {open ? "Batidas registradas na Pontomais em " : `${stats.total} funcionário(s) · `}
+              {open ? (
+                <b className="text-slate-200">
+                  {new Date(data + "T12:00").toLocaleDateString("pt-BR", {
+                    weekday: "long",
+                    day: "2-digit",
+                    month: "long",
+                  })}
+                </b>
+              ) : (
+                <span className="text-slate-300">clique para expandir</span>
+              )}
+            </p>
+          </div>
+          <ChevronDown
+            className={cn(
+              "h-5 w-5 text-slate-300 shrink-0 transition-transform",
+              open && "rotate-180",
+            )}
+          />
+        </div>
+      </button>
+
+      {open && (
+      <>
+
 
       <div className="px-6 py-4 border-b border-slate-800 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -312,7 +337,10 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
             );
           })}
       </div>
+      </>
+      )}
     </section>
+
   );
 }
 
