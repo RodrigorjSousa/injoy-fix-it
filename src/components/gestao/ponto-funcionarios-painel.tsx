@@ -13,12 +13,14 @@ import {
   Users,
   Clock,
   ChevronDown,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { syncPontomais } from "@/lib/pontomais.functions";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { todaySP } from "@/lib/tz";
+import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
 
 type Funcionario = {
   id: string;
@@ -69,13 +71,14 @@ function initials(nome: string): string {
 }
 
 export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
+  const [modalOpen, setModalOpen] = useState(false);
   const [data, setData] = useState<string>(() => todaySP());
   const [funcionarios, setFuncionarios] = useState<Funcionario[]>([]);
   const [registros, setRegistros] = useState<RegistroPonto[]>([]);
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [busca, setBusca] = useState("");
-  const [open, setOpen] = useState(false);
+  const [listOpen, setListOpen] = useState(false);
 
   const syncFn = useServerFn(syncPontomais);
 
@@ -102,8 +105,8 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
   }, [data]);
 
   useEffect(() => {
-    carregar();
-  }, [carregar]);
+    if (modalOpen) carregar();
+  }, [carregar, modalOpen]);
 
   const funcionariosUnidade = useMemo(
     () =>
@@ -170,14 +173,18 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
     }
   }, [syncing, syncFn, funcionariosUnidade, data, carregar]);
 
+  const dataFmt = new Date(data + "T12:00").toLocaleDateString("pt-BR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+  });
+
   return (
-    <section className="mt-8 rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 text-slate-100">
-      <div className="px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950">
+    <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+      <DialogTrigger asChild>
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          className="w-full text-left flex items-center justify-between gap-3"
+          className="mt-8 w-full rounded-2xl border border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950 px-6 py-4 text-left hover:border-blue-500/50 transition-colors flex items-center justify-between gap-3"
         >
           <div className="min-w-0">
             <h2 className="text-xl font-black text-white flex items-center gap-2">
@@ -185,163 +192,193 @@ export function PontoFuncionariosPainel({ unidade }: { unidade: Unidade }) {
               Ponto dos Funcionários · INJOY {unidade}
             </h2>
             <p className="text-sm text-slate-400 mt-1">
-              Batidas registradas na Pontomais em{" "}
-              <b className="text-slate-200">
-                {new Date(data + "T12:00").toLocaleDateString("pt-BR", {
-                  weekday: "long",
-                  day: "2-digit",
-                  month: "long",
-                })}
-              </b>
+              Clique para visualizar as batidas registradas na Pontomais
             </p>
           </div>
-          <ChevronDown
-            className={cn(
-              "h-5 w-5 text-slate-300 shrink-0 transition-transform duration-300",
-              !open && "rotate-180",
-            )}
-          />
+          <ChevronDown className="h-5 w-5 text-slate-300 shrink-0 -rotate-90" />
         </button>
-      </div>
+      </DialogTrigger>
 
-      <div className="px-6 py-4 border-b border-slate-800 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            value={data}
-            onChange={(e) => setData(e.target.value)}
-            className="bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500"
-          />
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
-            <input
-              type="text"
-              placeholder="Buscar funcionário..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500 placeholder:text-slate-500"
-            />
+      <DialogContent
+        className="max-w-4xl w-[95vw] p-0 gap-0 bg-slate-950 border-slate-800 text-slate-100 max-h-[90vh] flex flex-col overflow-hidden"
+      >
+        {/* Header fixo */}
+        <div className="px-6 pt-6 pb-4 border-b border-slate-800 bg-gradient-to-br from-blue-950 to-slate-950 shrink-0">
+          <h2 className="text-xl font-black text-white flex items-center gap-2">
+            <Clock className="h-5 w-5 text-blue-400" />
+            Ponto dos Funcionários · INJOY {unidade}
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">
+            Batidas registradas na Pontomais em <b className="text-slate-200">{dataFmt}</b>
+          </p>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <div className="relative">
+              <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500 pointer-events-none" />
+              <input
+                type="date"
+                value={data}
+                onChange={(e) => setData(e.target.value)}
+                className="bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500"
+              />
+            </div>
+            <div className="relative flex-1 min-w-[200px]">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-500" />
+              <input
+                type="text"
+                placeholder="Buscar funcionário..."
+                value={busca}
+                onChange={(e) => {
+                  setBusca(e.target.value);
+                  if (e.target.value) setListOpen(true);
+                }}
+                className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-9 pr-3 py-2 text-sm text-slate-100 outline-none focus:border-blue-500 placeholder:text-slate-500"
+              />
+            </div>
+            <button
+              onClick={sincronizar}
+              disabled={syncing || funcionariosUnidade.length === 0}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-bold text-white"
+            >
+              <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
+              Sincronizar
+            </button>
           </div>
+        </div>
+
+        {/* Cards resumo fixos */}
+        <div className="px-6 py-4 border-b border-slate-800 shrink-0 bg-slate-950">
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+            <StatChip label="Total" value={stats.total} color="slate" icon={Users} />
+            <StatChip label="Trabalhando" value={stats.presentes} color="emerald" icon={CheckCircle2} />
+            <StatChip label="No almoço" value={stats.almocando} color="amber" icon={Utensils} />
+            <StatChip label="Finalizados" value={stats.finalizados} color="blue" icon={LogOut} />
+            <StatChip label="Sem batida" value={stats.ausentes} color="red" icon={AlertCircle} />
+          </div>
+        </div>
+
+        {/* Toggle da lista */}
+        <div className="px-6 py-3 border-b border-slate-800 shrink-0 bg-slate-900/50">
           <button
-            onClick={sincronizar}
-            disabled={syncing || funcionariosUnidade.length === 0}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 rounded-lg text-sm font-bold text-white"
+            type="button"
+            onClick={() => setListOpen((v) => !v)}
+            aria-expanded={listOpen}
+            className="w-full flex items-center justify-between gap-3 text-left"
           >
-            <RefreshCw size={16} className={syncing ? "animate-spin" : ""} />
-            Sincronizar
+            <span className="text-sm font-bold text-slate-200 flex items-center gap-2">
+              <Users className="h-4 w-4 text-blue-400" />
+              Lista de funcionários
+              <span className="text-xs text-slate-500 font-normal">
+                ({filtrados.length})
+              </span>
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 text-slate-400 shrink-0 transition-transform duration-300",
+                listOpen ? "rotate-0" : "-rotate-90",
+              )}
+            />
           </button>
         </div>
 
+        {/* Lista rolável */}
         <div
           className={cn(
-            "grid transition-all duration-300 ease-out",
-            open ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
+            "flex-1 overflow-y-auto transition-all duration-300",
+            listOpen ? "opacity-100" : "opacity-0 max-h-0",
           )}
         >
-          <div className="overflow-hidden">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              <StatChip label="Total" value={stats.total} color="slate" icon={Users} />
-              <StatChip label="Trabalhando" value={stats.presentes} color="emerald" icon={CheckCircle2} />
-              <StatChip label="No almoço" value={stats.almocando} color="amber" icon={Utensils} />
-              <StatChip label="Finalizados" value={stats.finalizados} color="blue" icon={LogOut} />
-              <StatChip label="Sem batida" value={stats.ausentes} color="red" icon={AlertCircle} />
-            </div>
+          <div className="p-4 space-y-2">
+            {loading && (
+              <div className="text-center py-10 text-slate-500 text-sm">Carregando batidas...</div>
+            )}
+            {!loading && filtrados.length === 0 && (
+              <div className="text-center py-10 text-slate-500 text-sm">
+                Nenhum funcionário encontrado
+              </div>
+            )}
+            {!loading &&
+              filtrados.map((f) => {
+                const r = registroPorFunc[f.id];
+                const temEntrada = !!r?.entrada;
+                const finalizou = !!r?.saida;
+                const almocando = !!r?.almoco_saida && !r?.almoco_retorno;
+
+                let statusLabel = "Sem batida";
+                let statusColor = "bg-red-500/20 text-red-300 border-red-500/40";
+                if (finalizou) {
+                  statusLabel = "Jornada finalizada";
+                  statusColor = "bg-blue-500/20 text-blue-300 border-blue-500/40";
+                } else if (almocando) {
+                  statusLabel = "No almoço";
+                  statusColor = "bg-amber-500/20 text-amber-300 border-amber-500/40";
+                } else if (temEntrada) {
+                  statusLabel = "Trabalhando";
+                  statusColor = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+                }
+
+                return (
+                  <div
+                    key={f.id}
+                    className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 grid place-items-center text-white font-black text-sm shrink-0">
+                        {initials(f.nome)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-bold text-white truncate">{f.nome}</p>
+                        <p className="text-[11px] text-slate-500 truncate">
+                          {f.categorias.join(" · ") || "Sem categoria"}
+                        </p>
+                      </div>
+                      <span
+                        className={cn(
+                          "text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border whitespace-nowrap",
+                          statusColor,
+                        )}
+                      >
+                        {statusLabel}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                      <PunchCell
+                        icon={LogIn}
+                        label="Entrada"
+                        time={fmt(r?.entrada ?? null)}
+                        active={!!r?.entrada}
+                        color="emerald"
+                      />
+                      <PunchCell
+                        icon={Coffee}
+                        label="Saiu almoço"
+                        time={fmt(r?.almoco_saida ?? null)}
+                        active={!!r?.almoco_saida}
+                        color="amber"
+                      />
+                      <PunchCell
+                        icon={Utensils}
+                        label="Voltou almoço"
+                        time={fmt(r?.almoco_retorno ?? null)}
+                        active={!!r?.almoco_retorno}
+                        color="amber"
+                      />
+                      <PunchCell
+                        icon={LogOut}
+                        label="Saída"
+                        time={fmt(r?.saida ?? null)}
+                        active={!!r?.saida}
+                        color="blue"
+                      />
+                    </div>
+                  </div>
+                );
+              })}
           </div>
         </div>
-      </div>
-
-
-      <div className="max-h-[70vh] overflow-y-auto p-4 space-y-2">
-        {loading && (
-          <div className="text-center py-10 text-slate-500 text-sm">Carregando batidas...</div>
-        )}
-        {!loading && filtrados.length === 0 && (
-          <div className="text-center py-10 text-slate-500 text-sm">
-            Nenhum funcionário encontrado
-          </div>
-        )}
-        {!loading &&
-          filtrados.map((f) => {
-            const r = registroPorFunc[f.id];
-            const temEntrada = !!r?.entrada;
-            const finalizou = !!r?.saida;
-            const almocando = !!r?.almoco_saida && !r?.almoco_retorno;
-
-            let statusLabel = "Sem batida";
-            let statusColor = "bg-red-500/20 text-red-300 border-red-500/40";
-            if (finalizou) {
-              statusLabel = "Jornada finalizada";
-              statusColor = "bg-blue-500/20 text-blue-300 border-blue-500/40";
-            } else if (almocando) {
-              statusLabel = "No almoço";
-              statusColor = "bg-amber-500/20 text-amber-300 border-amber-500/40";
-            } else if (temEntrada) {
-              statusLabel = "Trabalhando";
-              statusColor = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
-            }
-
-            return (
-              <div
-                key={f.id}
-                className="bg-slate-900 border border-slate-800 rounded-xl p-4 hover:border-slate-700 transition-colors"
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 grid place-items-center text-white font-black text-sm shrink-0">
-                    {initials(f.nome)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-white truncate">{f.nome}</p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      {f.categorias.join(" · ") || "Sem categoria"}
-                    </p>
-                  </div>
-                  <span
-                    className={cn(
-                      "text-[10px] font-bold uppercase tracking-wide px-2.5 py-1 rounded-full border whitespace-nowrap",
-                      statusColor,
-                    )}
-                  >
-                    {statusLabel}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                  <PunchCell
-                    icon={LogIn}
-                    label="Entrada"
-                    time={fmt(r?.entrada ?? null)}
-                    active={!!r?.entrada}
-                    color="emerald"
-                  />
-                  <PunchCell
-                    icon={Coffee}
-                    label="Saiu almoço"
-                    time={fmt(r?.almoco_saida ?? null)}
-                    active={!!r?.almoco_saida}
-                    color="amber"
-                  />
-                  <PunchCell
-                    icon={Utensils}
-                    label="Voltou almoço"
-                    time={fmt(r?.almoco_retorno ?? null)}
-                    active={!!r?.almoco_retorno}
-                    color="amber"
-                  />
-                  <PunchCell
-                    icon={LogOut}
-                    label="Saída"
-                    time={fmt(r?.saida ?? null)}
-                    active={!!r?.saida}
-                    color="blue"
-                  />
-                </div>
-              </div>
-            );
-          })}
-      </div>
-    </section>
-
-
+      </DialogContent>
+    </Dialog>
   );
 }
 
