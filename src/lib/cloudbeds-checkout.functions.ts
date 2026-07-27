@@ -35,7 +35,7 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
     if (!allowed) throw new Error("Sem permissão para realizar check-out");
 
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
-    const { getReservationsFromPayload, reservationMatchesRoom } = await import(
+    const { getReservationsFromPayload, reservationMatchesRoom, findMatchingRoomIdentifiers } = await import(
       "@/lib/cloudbeds/checkout-match.server"
     );
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
@@ -99,12 +99,21 @@ export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
         .trim() ||
       null;
 
-    // Aciona check-out
+    // Identifica o quarto específico dentro da reserva (para reservas
+    // multi-quarto — ex.: 107 + 109 no mesmo booking — para evitar
+    // check-out em massa dos outros quartos).
+    const roomIds = findMatchingRoomIdentifiers(match, target);
+
+    // Aciona o check-out do quarto via endpoint correto do Cloudbeds
+    // (postRoomCheckOut). O endpoint antigo /postReservationStatus não
+    // existe (retornava 404).
     const body = new URLSearchParams({
       reservationID: String(match.reservationID),
-      status: "checked_out",
     });
-    const chgRes = await cloudbedsFetch(property, `/postReservationStatus`, {
+    if (roomIds.subReservationID) body.set("subReservationID", roomIds.subReservationID);
+    else if (roomIds.roomID) body.set("roomID", roomIds.roomID);
+
+    const chgRes = await cloudbedsFetch(property, `/postRoomCheckOut`, {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: body.toString(),

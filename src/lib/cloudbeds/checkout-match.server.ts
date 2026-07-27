@@ -107,3 +107,74 @@ export function reservationMatchesRoom(reservation: CloudbedsReservation, target
     return false;
   });
 }
+
+/**
+ * Dentro de uma reserva (que pode ter múltiplos quartos), encontra o roomID
+ * e subReservationID correspondentes ao quarto solicitado. Necessário para
+ * checkout parcial via /postRoomCheckOut quando a reserva agrupa vários
+ * quartos (ex.: mesmo hóspede em 107 + 109).
+ */
+export function findMatchingRoomIdentifiers(
+  reservation: CloudbedsReservation,
+  targetRoom: string,
+): { roomID?: string; subReservationID?: string } {
+  const target = normalizeRoom(targetRoom);
+  const matchesTarget = (value: unknown) => {
+    const normalized = normalizeRoom(value);
+    if (!normalized.full && !normalized.digits) return false;
+    if (target.full && normalized.full === target.full) return true;
+    if (target.digits && normalized.digits && normalized.digits === target.digits) return true;
+    return false;
+  };
+
+  const result: { roomID?: string; subReservationID?: string } = {};
+
+  const walk = (value: unknown, depth = 0): boolean => {
+    if (value == null || depth > 5) return false;
+    if (Array.isArray(value)) {
+      for (const item of value) if (walk(item, depth + 1)) return true;
+      return false;
+    }
+    if (typeof value !== "object") return false;
+    const obj = value as Record<string, unknown>;
+
+    // Verifica se este objeto descreve um quarto que bate com o alvo.
+    let hit = false;
+    for (const [k, v] of Object.entries(obj)) {
+      const key = k.toLowerCase();
+      if (
+        (key.includes("room") || key.includes("unit") || key.includes("accommodation")) &&
+        (key.includes("name") || key.includes("number") || key.includes("no") || key.includes("code") || key === "room") &&
+        !key.includes("type") &&
+        !key.includes("rate") &&
+        (typeof v === "string" || typeof v === "number")
+      ) {
+        if (matchesTarget(v)) {
+          hit = true;
+          break;
+        }
+      }
+    }
+
+    if (hit) {
+      for (const [k, v] of Object.entries(obj)) {
+        const key = k.toLowerCase();
+        if (!result.roomID && key === "roomid" && (typeof v === "string" || typeof v === "number")) {
+          result.roomID = String(v);
+        }
+        if (!result.subReservationID && (key === "subreservationid" || key === "subreservationsid") && (typeof v === "string" || typeof v === "number")) {
+          result.subReservationID = String(v);
+        }
+      }
+      if (result.roomID || result.subReservationID) return true;
+    }
+
+    for (const v of Object.values(obj)) {
+      if (walk(v, depth + 1)) return true;
+    }
+    return false;
+  };
+
+  walk(reservation);
+  return result;
+}
