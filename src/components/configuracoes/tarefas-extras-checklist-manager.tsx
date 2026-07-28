@@ -136,30 +136,15 @@ export function TarefasExtrasChecklistManager() {
 
           {/* Grid de categorias */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {cats.map((c) => {
-              const Icon = c.icon;
-              const isActive = active === c.key;
-              const count = useTarefasExtrasItems(unidade, c.key, c.defaults).length;
-              return (
-                <button
-                  key={c.key}
-                  onClick={() => setActive(isActive ? null : c.key)}
-                  className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl text-left text-white shadow transition-all bg-gradient-to-br",
-                    c.gradient,
-                    isActive ? "ring-4 ring-offset-2 ring-fuchsia-400" : "opacity-90 hover:opacity-100",
-                  )}
-                >
-                  <div className="p-2 rounded-lg bg-white/20">
-                    <Icon size={18} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-black leading-tight truncate">{c.label}</p>
-                    <p className="text-[11px] opacity-90">{count} {count === 1 ? "item" : "itens"}</p>
-                  </div>
-                </button>
-              );
-            })}
+            {cats.map((c) => (
+              <CategoryButton
+                key={c.key}
+                cat={c}
+                unidade={unidade}
+                isActive={active === c.key}
+                onClick={() => setActive(active === c.key ? null : c.key)}
+              />
+            ))}
           </div>
 
           {/* Editor de itens */}
