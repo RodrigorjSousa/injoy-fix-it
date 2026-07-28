@@ -436,39 +436,10 @@ serve(async (req) => {
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
 
-        // ECI (Early Check-In) e LCO (Late Check-Out) — bloqueios temporários
-        // marcados no Cloudbeds como tags/observações. Varre campos textuais
-        // e tenta extrair o horário informado (ex: "LCO 16h", "ECI 10:30").
-        const eciLco = (() => {
-          const parts: string[] = []
-          const push = (v: unknown) => { if (v) parts.push(String(v)) }
-          push(res.specialRequests); push(res.notes); push(res.reservationNotes)
-          push(res.guestComments); push(res.comments); push(res.sourceName)
-          push(res.thirdPartyIdentifier); push(res.customFieldsText)
-          if (Array.isArray(res.customFields)) {
-            for (const cf of res.customFields) { push(cf?.value); push(cf?.name) }
-          }
-          if (Array.isArray(res.notesList)) {
-            for (const n of res.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
-          }
-          const blob = parts.join(' | ')
-          const extractTime = (sigla: 'ECI' | 'LCO'): string | null => {
-            const re = new RegExp(`\\b${sigla}\\b[^0-9]{0,10}(\\d{1,2})(?:[:h.]\\s*(\\d{2}))?`, 'i')
-            const m = blob.match(re)
-            if (!m) return null
-            const hh = Math.min(23, parseInt(m[1], 10))
-            const mm = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0
-            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-          }
-          const eci = /\bECI\b/i.test(blob)
-          const lco = /\bLCO\b/i.test(blob)
-          return {
-            eci,
-            lco,
-            eciTime: eci ? extractTime('ECI') : null,
-            lcoTime: lco ? extractTime('LCO') : null,
-          }
-        })()
+        // ECI/LCO podem vir em observações, custom fields, detalhes do quarto
+        // dentro da reserva ou no hóspede. Escaneia tudo para não depender de
+        // um único campo do Cloudbeds.
+        const eciLco = scanEciLco(res, roomInfo, g)
 
         const registro = {
           id: res.reservationID ?? res.reservationId,
