@@ -169,8 +169,8 @@ serve(async (req) => {
         // Fallback: reserva sem quartos vinculados → uma entrada única sem quarto
         if (roomsMap.size === 0) roomsMap.set('', {})
 
-        const checkInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
-        const checkOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        const resCheckInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
+        const resCheckOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
         const reservationStatus = String(r.status ?? '').toLowerCase()
         const isMultiRoom = roomsMap.size > 1
 
@@ -209,6 +209,20 @@ serve(async (req) => {
           } else {
             roomStatus = reservationStatus
           }
+
+          // Datas POR QUARTO — reservas multi-quarto (ex.: Walter Kohan
+          // reservou 19 apts, cada um com data de entrada distinta no
+          // calendário do Cloudbeds) precisam usar roomCheckIn/roomCheckOut
+          // do próprio quarto. Só caímos para as datas da reserva se o
+          // Cloudbeds não expuser datas por quarto.
+          const roomCheckInDate = String(
+            roomInfo?.roomCheckIn ?? roomInfo?.checkInDate ?? '',
+          ).slice(0, 10)
+          const roomCheckOutDate = String(
+            roomInfo?.roomCheckOut ?? roomInfo?.checkOutDate ?? '',
+          ).slice(0, 10)
+          const checkInDate = roomCheckInDate || resCheckInDate
+          const checkOutDate = roomCheckOutDate || resCheckOutDate
 
           return {
             ...r,
