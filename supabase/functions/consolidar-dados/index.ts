@@ -356,6 +356,30 @@ serve(async (req) => {
             ) || null
           : null
 
+        // ECI (Early Check-In) e LCO (Late Check-Out): Cloudbeds registra esses
+        // "bloqueios temporários" como tags/observações na reserva. Varremos os
+        // campos textuais buscando as siglas com word-boundary (case-insensitive).
+        const eciLcoScan = (() => {
+          if (!resAtiva) return { eci: false, lco: false }
+          const parts: string[] = []
+          const push = (v: unknown) => { if (v) parts.push(String(v)) }
+          const r: any = resAtiva
+          push(r.specialRequests); push(r.notes); push(r.reservationNotes)
+          push(r.guestComments); push(r.comments); push(r.sourceName)
+          push(r.thirdPartyIdentifier); push(r.customFieldsText)
+          if (Array.isArray(r.customFields)) {
+            for (const cf of r.customFields) { push(cf?.value); push(cf?.name) }
+          }
+          if (Array.isArray(r.notesList)) {
+            for (const n of r.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
+          }
+          const blob = parts.join(' | ')
+          return {
+            eci: /\bECI\b/i.test(blob),
+            lco: /\bLCO\b/i.test(blob),
+          }
+        })()
+
         return {
           property: nomeUnidade,
           room_number: numQuarto,
@@ -371,7 +395,10 @@ serve(async (req) => {
           has_pending_docs: hasPendingDocs,
           blink_troca: blinkTroca,
           arrival_time: arrivalTime,
+          has_eci: eciLcoScan.eci,
+          has_lco: eciLcoScan.lco,
         }
+
 
       })
 

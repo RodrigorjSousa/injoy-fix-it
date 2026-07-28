@@ -3,6 +3,7 @@ import { CheckCircle2, Flame, AlertTriangle, Wrench, User, Clock } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import {
   Dialog,
   DialogContent,
@@ -23,6 +24,8 @@ type Room = {
   assigned_camareira: string | null;
   guest_name: string | null;
   updated_at: string;
+  has_eci: boolean | null;
+  has_lco: boolean | null;
 };
 
 function classify(r: Pick<Room, "status" | "service_status" | "condition">): StatusKey | null {
@@ -106,7 +109,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
       const { data, error } = await supabase
         .from("room_housekeeping")
         .select(
-          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at",
+          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at, has_eci, has_lco",
         )
         .eq("property", unidade)
         .order("room_number", { ascending: true });
@@ -256,7 +259,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
                       {r.room_number}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-slate-900 truncate">
                           Quarto {r.room_number}
                         </p>
@@ -265,6 +268,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
                             {r.room_type}
                           </span>
                         )}
+                        <EciLcoBadges eci={r.has_eci} lco={r.has_lco} compact />
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
                         {r.assigned_camareira && (

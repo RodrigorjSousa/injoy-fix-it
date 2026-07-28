@@ -41,6 +41,7 @@ import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
+import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import {
   EmptyState,
@@ -96,6 +97,8 @@ interface QuartoRecepcao {
   proximoDocPendente?: boolean;
   temProximoHospede?: boolean;
   isDnd?: boolean;
+  hasEci?: boolean;
+  hasLco?: boolean;
 }
 
 const OCUPACAO_STYLE: Record<
@@ -447,6 +450,8 @@ function RecepcaoPage() {
                         Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
                       </h2>
                       <NaoPerturbeBadge active={!!q.isDnd} />
+                      <EciLcoBadges eci={q.hasEci} lco={q.hasLco} compact />
+
                     </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
                       INJOY {q.unidade}

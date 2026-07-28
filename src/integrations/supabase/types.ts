@@ -1418,6 +1418,8 @@ export type Database = {
           condition: string | null
           dnd_photo_url: string | null
           guest_name: string | null
+          has_eci: boolean
+          has_lco: boolean
           has_pending_docs: boolean | null
           has_pending_payment: boolean | null
           id: string
@@ -1445,6 +1447,8 @@ export type Database = {
           condition?: string | null
           dnd_photo_url?: string | null
           guest_name?: string | null
+          has_eci?: boolean
+          has_lco?: boolean
           has_pending_docs?: boolean | null
           has_pending_payment?: boolean | null
           id?: string
@@ -1472,6 +1476,8 @@ export type Database = {
           condition?: string | null
           dnd_photo_url?: string | null
           guest_name?: string | null
+          has_eci?: boolean
+          has_lco?: boolean
           has_pending_docs?: boolean | null
           has_pending_payment?: boolean | null
           id?: string

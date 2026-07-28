@@ -18,6 +18,7 @@ import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { TarefasExtrasModal, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
+import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
@@ -62,6 +63,8 @@ type RoomRow = {
   pending_payment_amount: number | null;
   has_pending_docs: boolean | null;
   arrival_time: string | null;
+  has_eci: boolean | null;
+  has_lco: boolean | null;
 
   blink_troca: boolean | null;
   service_status: string | null;
@@ -858,6 +861,7 @@ function PainelCamareiras() {
                       {q.pax} pax
                     </span>
                   ) : null}
+                  <EciLcoBadges eci={q.has_eci} lco={q.has_lco} compact />
                 </div>
                 {q.arrival_time &&
                 q.guest_name &&
