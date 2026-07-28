@@ -242,25 +242,28 @@ serve(async (req) => {
           (r: any) =>
             r._roomNumber === numQuarto &&
             r._checkInDate === hojeStr &&
-            String(r.status).toLowerCase() !== 'checked_out',
+            String(r._roomStatus).toLowerCase() !== 'checked_out',
         )
+        // In-house POR QUARTO: usa _roomStatus (derivado do roomStatus/roomCheckIn
+        // do Cloudbeds), não o status da reserva. Isso garante que numa reserva
+        // multi-quarto (ex.: 19 apts pro mesmo hóspede) só o quarto com check-in
+        // físico efetivo apareça ocupado — os demais ficam livres/aguardando.
         const hospedeAtualInHouse = reservas.find(
           (r: any) =>
             r._roomNumber === numQuarto &&
-            String(r.status).toLowerCase() === 'checked_in' &&
+            String(r._roomStatus).toLowerCase() === 'checked_in' &&
             (!r._checkOutDate || r._checkOutDate > hojeStr),
         )
-        // Fallback: reserva confirmada/pending com estadia sobreposta a hoje
-        // (cobre atrasos de check-in em que o Cloudbeds ainda não marcou como checked_in).
         const reservaAtivaSobreposta = !hospedeAtualInHouse && !reservaEntrandoHoje && !reservaSaindoHoje
           ? reservas.find((r: any) => {
               if (r._roomNumber !== numQuarto) return false
-              const st = String(r.status ?? '').toLowerCase()
-              if (st === 'checked_out' || st === 'canceled' || st === 'cancelled' || st === 'no_show') return false
+              const st = String(r._roomStatus ?? '').toLowerCase()
+              if (st === 'checked_in' || st === 'checked_out' || st === 'canceled' || st === 'cancelled' || st === 'no_show') return false
               return r._checkInDate && r._checkOutDate &&
                 r._checkInDate <= hojeStr && r._checkOutDate > hojeStr
             })
           : null
+
 
         let tarefaSugerida = 'VERIFICAÇÃO'
         let corLegenda = 'CINZA'
