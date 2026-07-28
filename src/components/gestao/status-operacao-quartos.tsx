@@ -3,6 +3,7 @@ import { CheckCircle2, Flame, AlertTriangle, Wrench, User, Clock } from "lucide-
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import {
   Dialog,
   DialogContent,
