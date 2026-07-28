@@ -254,12 +254,45 @@ export function TarefasExtrasChecklistManager() {
               </div>
 
               <p className="text-[11px] text-slate-400">
-                Alterações são salvas neste dispositivo (localStorage).
+                Alterações são sincronizadas em tempo real para todas as telas.
               </p>
             </div>
           )}
         </div>
       )}
     </div>
+  );
+}
+
+function CategoryButton({
+  cat,
+  unidade,
+  isActive,
+  onClick,
+}: {
+  cat: (typeof CATEGORIES)[number];
+  unidade: "Botafogo" | "Ipanema";
+  isActive: boolean;
+  onClick: () => void;
+}) {
+  const Icon = cat.icon;
+  const count = useTarefasExtrasItems(unidade, cat.key, cat.defaults).length;
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "flex items-center gap-3 p-3 rounded-xl text-left text-white shadow transition-all bg-gradient-to-br",
+        cat.gradient,
+        isActive ? "ring-4 ring-offset-2 ring-fuchsia-400" : "opacity-90 hover:opacity-100",
+      )}
+    >
+      <div className="p-2 rounded-lg bg-white/20">
+        <Icon size={18} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-black leading-tight truncate">{cat.label}</p>
+        <p className="text-[11px] opacity-90">{count} {count === 1 ? "item" : "itens"}</p>
+      </div>
+    </button>
   );
 }
