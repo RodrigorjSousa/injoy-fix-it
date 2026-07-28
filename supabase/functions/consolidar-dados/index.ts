@@ -210,6 +210,20 @@ serve(async (req) => {
             roomStatus = reservationStatus
           }
 
+          // Datas POR QUARTO — reservas multi-quarto (ex.: Walter Kohan
+          // reservou 19 apts, cada um com data de entrada distinta no
+          // calendário do Cloudbeds) precisam usar roomCheckIn/roomCheckOut
+          // do próprio quarto. Só caímos para as datas da reserva se o
+          // Cloudbeds não expuser datas por quarto.
+          const roomCheckInDate = String(
+            roomInfo?.roomCheckIn ?? roomInfo?.checkInDate ?? '',
+          ).slice(0, 10)
+          const roomCheckOutDate = String(
+            roomInfo?.roomCheckOut ?? roomInfo?.checkOutDate ?? '',
+          ).slice(0, 10)
+          const checkInDate = roomCheckInDate || resCheckInDate
+          const checkOutDate = roomCheckOutDate || resCheckOutDate
+
           return {
             ...r,
             _roomNumber: roomNumber,
