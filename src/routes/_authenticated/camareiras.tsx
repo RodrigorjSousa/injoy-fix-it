@@ -62,6 +62,8 @@ type RoomRow = {
   pending_payment_amount: number | null;
   has_pending_docs: boolean | null;
   arrival_time: string | null;
+  has_eci: boolean | null;
+  has_lco: boolean | null;
 
   blink_troca: boolean | null;
   service_status: string | null;
