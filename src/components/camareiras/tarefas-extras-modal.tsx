@@ -215,30 +215,126 @@ export const CATEGORIES_BY_UNIDADE: Record<"Botafogo" | "Ipanema", CategoryKey[]
 };
 
 
-const storageKey = (unidade: string, cat: CategoryKey) =>
-  `injoy:tarefas-extras:${unidade}:${cat}`;
+// ---------------------------------------------------------------------------
+// Persistência compartilhada dos itens via `app_settings` + Realtime.
+// Toda vez que um gestor edita o checklist, TODAS as telas (camareiras,
+// recepção, outros gestores) recebem a atualização imediatamente.
+// ---------------------------------------------------------------------------
+
+const settingsKey = (unidade: string, cat: CategoryKey) =>
+  `tarefas_extras_items:${unidade}:${cat}`;
+const cacheKey = (unidade: string, cat: CategoryKey) => `${unidade}::${cat}`;
+
+const itemsCache = new Map<string, string[]>();
+const cacheListeners = new Set<() => void>();
+let cacheBootstrapped = false;
+
+function notifyCache() {
+  cacheListeners.forEach((fn) => {
+    try { fn(); } catch { /* ignore */ }
+  });
+}
+
+function tryLocalMirror(unidade: string, cat: CategoryKey): string[] | null {
+  try {
+    const raw = localStorage.getItem(`injoy:tarefas-extras:${unidade}:${cat}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed) && parsed.every((v) => typeof v === "string")) return parsed;
+  } catch { /* ignore */ }
+  return null;
+}
+
+async function bootstrapCache() {
+  if (cacheBootstrapped) return;
+  cacheBootstrapped = true;
+  try {
+    const { data } = await supabase
+      .from("app_settings" as never)
+      .select("key,value")
+      .like("key", "tarefas_extras_items:%");
+    (data as { key: string; value: string }[] | null)?.forEach((row) => {
+      const m = row.key.match(/^tarefas_extras_items:([^:]+):(.+)$/);
+      if (!m) return;
+      try {
+        const arr = JSON.parse(row.value);
+        if (Array.isArray(arr) && arr.every((v) => typeof v === "string")) {
+          itemsCache.set(cacheKey(m[1], m[2] as CategoryKey), arr);
+        }
+      } catch { /* ignore */ }
+    });
+    notifyCache();
+  } catch { /* ignore */ }
+
+  supabase
+    .channel("tarefas-extras-items-sync")
+    .on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "app_settings" },
+      (payload) => {
+        const row = (payload.new || payload.old) as { key?: string; value?: string } | null;
+        if (!row?.key || !row.key.startsWith("tarefas_extras_items:")) return;
+        const m = row.key.match(/^tarefas_extras_items:([^:]+):(.+)$/);
+        if (!m) return;
+        const k = cacheKey(m[1], m[2] as CategoryKey);
+        if (payload.eventType === "DELETE") {
+          itemsCache.delete(k);
+        } else {
+          try {
+            const arr = JSON.parse(row.value ?? "");
+            if (Array.isArray(arr) && arr.every((v) => typeof v === "string")) {
+              itemsCache.set(k, arr);
+            }
+          } catch { /* ignore */ }
+        }
+        notifyCache();
+      },
+    )
+    .subscribe();
+}
 
 export function loadItems(unidade: string, cat: CategoryKey, defaults: string[]): string[] {
-  try {
-    const raw = localStorage.getItem(storageKey(unidade, cat));
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      if (Array.isArray(parsed) && parsed.length > 0 && parsed.every((v) => typeof v === "string")) {
-        return parsed;
-      }
-    }
-  } catch {
-    // ignore
-  }
+  bootstrapCache();
+  const cached = itemsCache.get(cacheKey(unidade, cat));
+  if (cached && cached.length > 0) return cached;
+  const mirrored = tryLocalMirror(unidade, cat);
+  if (mirrored && mirrored.length > 0) return mirrored;
   return defaults;
 }
 
-export function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
+export async function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
+  itemsCache.set(cacheKey(unidade, cat), items);
+  notifyCache();
   try {
-    localStorage.setItem(storageKey(unidade, cat), JSON.stringify(items));
-  } catch {
-    // ignore
+    localStorage.setItem(
+      `injoy:tarefas-extras:${unidade}:${cat}`,
+      JSON.stringify(items),
+    );
+  } catch { /* ignore */ }
+  const { error } = await supabase
+    .from("app_settings" as never)
+    .upsert({ key: settingsKey(unidade, cat), value: JSON.stringify(items) } as never);
+  if (error) {
+    console.error("[tarefas-extras] falha ao salvar em app_settings:", error);
+    throw error;
   }
+}
+
+export function useTarefasExtrasItems(
+  unidade: string,
+  cat: CategoryKey,
+  defaults: string[],
+): string[] {
+  const [, force] = useState(0);
+  useEffect(() => {
+    bootstrapCache();
+    const l = () => force((v) => v + 1);
+    cacheListeners.add(l);
+    return () => {
+      cacheListeners.delete(l);
+    };
+  }, []);
+  return loadItems(unidade, cat, defaults);
 }
 
 export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, initialCategory = null }: Props) {
@@ -273,17 +369,37 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
     setEditingIdx(null);
   }, [activeCat, unidade]);
 
+  // re-sincroniza quando o cache global receber updates via realtime
+  useEffect(() => {
+    if (!activeCat) return;
+    const l = () => {
+      const loaded = loadItems(unidade, activeCat.key, activeCat.defaults);
+      setItems(loaded);
+      setChecked((prev) =>
+        prev.length === loaded.length ? prev : new Array(loaded.length).fill(false),
+      );
+    };
+    cacheListeners.add(l);
+    return () => {
+      cacheListeners.delete(l);
+    };
+  }, [activeCat, unidade]);
+
   if (!open) return null;
 
   const toggle = (i: number) =>
     setChecked((s) => s.map((v, idx) => (idx === i ? !v : v)));
 
-  const commitEdit = () => {
+  const commitEdit = async () => {
     if (editingIdx === null || !activeCat) return;
     const next = items.map((v, i) => (i === editingIdx ? editValue.trim() || v : v));
     setItems(next);
-    saveItems(unidade, activeCat.key, next);
     setEditingIdx(null);
+    try {
+      await saveItems(unidade, activeCat.key, next);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar item");
+    }
   };
 
   const salvar = async () => {
