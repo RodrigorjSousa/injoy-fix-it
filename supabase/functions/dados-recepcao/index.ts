@@ -318,7 +318,8 @@ serve(async (req) => {
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
         // ECI (Early Check-In) e LCO (Late Check-Out) — bloqueios temporários
-        // marcados no Cloudbeds como tags/observações. Varre campos textuais.
+        // marcados no Cloudbeds como tags/observações. Varre campos textuais
+        // e tenta extrair o horário informado (ex: "LCO 16h", "ECI 10:30").
         const eciLco = (() => {
           const parts: string[] = []
           const push = (v: unknown) => { if (v) parts.push(String(v)) }
@@ -332,7 +333,22 @@ serve(async (req) => {
             for (const n of res.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
           }
           const blob = parts.join(' | ')
-          return { eci: /\bECI\b/i.test(blob), lco: /\bLCO\b/i.test(blob) }
+          const extractTime = (sigla: 'ECI' | 'LCO'): string | null => {
+            const re = new RegExp(`\\b${sigla}\\b[^0-9]{0,10}(\\d{1,2})(?:[:h.]\\s*(\\d{2}))?`, 'i')
+            const m = blob.match(re)
+            if (!m) return null
+            const hh = Math.min(23, parseInt(m[1], 10))
+            const mm = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+          }
+          const eci = /\bECI\b/i.test(blob)
+          const lco = /\bLCO\b/i.test(blob)
+          return {
+            eci,
+            lco,
+            eciTime: eci ? extractTime('ECI') : null,
+            lcoTime: lco ? extractTime('LCO') : null,
+          }
         })()
 
         const registro = {
@@ -354,6 +370,8 @@ serve(async (req) => {
           chegadaHoje: startISO === hoje,
           hasEci: eciLco.eci,
           hasLco: eciLco.lco,
+          eciTime: eciLco.eciTime,
+          lcoTime: eciLco.lcoTime,
         }
 
 
@@ -422,6 +440,8 @@ serve(async (req) => {
         temProximoHospede: Boolean(prox),
         hasEci: (bucket.atual?.hasEci ?? prox?.hasEci) ?? false,
         hasLco: (bucket.atual?.hasLco ?? prox?.hasLco) ?? false,
+        eciTime: bucket.atual?.eciTime ?? prox?.eciTime ?? null,
+        lcoTime: bucket.atual?.lcoTime ?? prox?.lcoTime ?? null,
       }
     })
 

@@ -99,6 +99,8 @@ interface QuartoRecepcao {
   isDnd?: boolean;
   hasEci?: boolean;
   hasLco?: boolean;
+  eciTime?: string | null;
+  lcoTime?: string | null;
 }
 
 const OCUPACAO_STYLE: Record<
@@ -450,7 +452,7 @@ function RecepcaoPage() {
                         Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
                       </h2>
                       <NaoPerturbeBadge active={!!q.isDnd} />
-                      <EciLcoBadges eci={q.hasEci} lco={q.hasLco} compact />
+                      <EciLcoBadges eci={q.hasEci} lco={q.hasLco} eciTime={q.eciTime} lcoTime={q.lcoTime} compact />
 
                     </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
