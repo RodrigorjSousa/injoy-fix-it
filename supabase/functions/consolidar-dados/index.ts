@@ -224,12 +224,28 @@ serve(async (req) => {
           const checkInDate = roomCheckInDate || resCheckInDate
           const checkOutDate = roomCheckOutDate || resCheckOutDate
 
+          // TRAVA multi-quarto: quando o Cloudbeds NÃO expõe sinal próprio do
+          // quarto (sem roomStatus, sem roomCheckIn, sem roomCheckOut) e a
+          // reserva cobre vários apts, NÃO herdamos as datas da reserva —
+          // senão o mesmo hóspede vaza para todos os quartos da reserva.
+          const hasOwnRoomSignal =
+            !!rawRoomStatus || !!roomCheckInAt || !!roomCheckInDate || !!roomCheckOutDate
+          const skipRoom = isMultiRoom && !hasOwnRoomSignal
+          // Se a janela do quarto termina antes/hoje sem check-in, o hóspede
+          // não pertence a este quarto hoje.
+          const roomWindowExpired =
+            !!roomCheckOutDate && roomCheckOutDate <= hojeStr && roomStatus !== 'checked_in'
+          // Janela do quarto começa depois de hoje: só entra em outra data.
+          const roomWindowFuture = !!roomCheckInDate && roomCheckInDate > hojeStr && isMultiRoom
+
           return {
             ...r,
             _roomNumber: roomNumber,
             _roomStatus: roomStatus,
             _checkInDate: checkInDate,
             _checkOutDate: checkOutDate,
+            _skip: skipRoom || roomWindowExpired,
+            _isFutureRoom: roomWindowFuture,
             guestFirstName: guestForRoom?.guestFirstName ?? '',
             guestLastName: guestForRoom?.guestLastName ?? '',
             guestDocumentNumber: guestForRoom?.guestDocumentNumber ?? r.guestDocumentNumber ?? '',
@@ -241,7 +257,11 @@ serve(async (req) => {
         })
       }).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
-        return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
+        if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
+        if (r._skip) return false
+        // Quartos com janela própria futura só devem aparecer como "próximo
+        // hóspede" quando a data bate com hoje (tratado nos matchers abaixo).
+        return true
       })
 
 
