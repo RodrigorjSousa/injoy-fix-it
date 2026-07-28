@@ -26,6 +26,8 @@ type Room = {
   updated_at: string;
   has_eci: boolean | null;
   has_lco: boolean | null;
+  eci_time: string | null;
+  lco_time: string | null;
 };
 
 function classify(r: Pick<Room, "status" | "service_status" | "condition">): StatusKey | null {
@@ -109,7 +111,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
       const { data, error } = await supabase
         .from("room_housekeeping")
         .select(
-          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at, has_eci, has_lco",
+          "id, room_number, room_type, status, service_status, condition, assigned_camareira, guest_name, updated_at, has_eci, has_lco, eci_time, lco_time",
         )
         .eq("property", unidade)
         .order("room_number", { ascending: true });
@@ -268,7 +270,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
                             {r.room_type}
                           </span>
                         )}
-                        <EciLcoBadges eci={r.has_eci} lco={r.has_lco} compact />
+                        <EciLcoBadges eci={r.has_eci} lco={r.has_lco} eciTime={r.eci_time} lcoTime={r.lco_time} compact />
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
                         {r.assigned_camareira && (
