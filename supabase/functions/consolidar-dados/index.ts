@@ -169,8 +169,8 @@ serve(async (req) => {
         // Fallback: reserva sem quartos vinculados → uma entrada única sem quarto
         if (roomsMap.size === 0) roomsMap.set('', {})
 
-        const checkInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
-        const checkOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        const resCheckInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
+        const resCheckOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
         const reservationStatus = String(r.status ?? '').toLowerCase()
         const isMultiRoom = roomsMap.size > 1
 
