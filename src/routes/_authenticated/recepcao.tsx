@@ -41,6 +41,7 @@ import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
+import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import {
   EmptyState,
