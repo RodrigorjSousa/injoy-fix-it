@@ -259,7 +259,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
                       {r.room_number}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <p className="text-sm font-bold text-slate-900 truncate">
                           Quarto {r.room_number}
                         </p>
@@ -268,6 +268,7 @@ export function StatusOperacaoQuartos({ unidade }: { unidade: Unidade }) {
                             {r.room_type}
                           </span>
                         )}
+                        <EciLcoBadges eci={r.has_eci} lco={r.has_lco} compact />
                       </div>
                       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
                         {r.assigned_camareira && (
