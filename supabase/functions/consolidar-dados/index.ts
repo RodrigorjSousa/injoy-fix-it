@@ -6,6 +6,78 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apiKey, content-type, x-cron-secret',
 }
 
+type EciLcoInfo = {
+  eci: boolean
+  lco: boolean
+  eciTime: string | null
+  lcoTime: string | null
+}
+
+const emptyEciLco = (): EciLcoInfo => ({ eci: false, lco: false, eciTime: null, lcoTime: null })
+
+const collectTextDeep = (value: unknown, parts: string[], seen = new WeakSet<object>(), depth = 0) => {
+  if (value === null || value === undefined || depth > 6) return
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    const text = String(value).trim()
+    if (text) parts.push(text)
+    return
+  }
+  if (typeof value !== 'object') return
+  if (seen.has(value)) return
+  seen.add(value)
+  if (Array.isArray(value)) {
+    for (const item of value) collectTextDeep(item, parts, seen, depth + 1)
+    return
+  }
+  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
+    parts.push(key)
+    collectTextDeep(val, parts, seen, depth + 1)
+  }
+}
+
+const normalizeEciLcoTime = (hour: string, minute?: string) => {
+  const hhParsed = parseInt(hour, 10)
+  if (!Number.isFinite(hhParsed)) return null
+  const hh = Math.min(23, Math.max(0, hhParsed))
+  const mmParsed = minute ? parseInt(minute, 10) : 0
+  const mm = Number.isFinite(mmParsed) ? Math.min(59, Math.max(0, mmParsed)) : 0
+  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+}
+
+const scanEciLco = (...sources: unknown[]): EciLcoInfo => {
+  const parts: string[] = []
+  for (const source of sources) collectTextDeep(source, parts)
+  const blob = parts.join(' | ')
+  if (!blob) return emptyEciLco()
+
+  const siglaPattern = (sigla: 'ECI' | 'LCO') => new RegExp(`(?:^|[^A-Z0-9])${sigla}(?:[^A-Z0-9]|$)`, 'i')
+  const eci = siglaPattern('ECI').test(blob) || /early\s*check[-\s]*in/i.test(blob)
+  const lco = siglaPattern('LCO').test(blob) || /late\s*check[-\s]*out/i.test(blob)
+
+  const extractTime = (kind: 'ECI' | 'LCO'): string | null => {
+    const labels = kind === 'ECI'
+      ? ['ECI', 'early\\s*check[-\\s]*in']
+      : ['LCO', 'late\\s*check[-\\s]*out']
+    for (const label of labels) {
+      const after = new RegExp(`(?:^|[^A-Z0-9])(?:${label})[^0-9]{0,30}(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?`, 'i')
+      const afterMatch = blob.match(after)
+      if (afterMatch) return normalizeEciLcoTime(afterMatch[1], afterMatch[2])
+
+      const before = new RegExp(`(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?[^A-Z0-9]{0,30}(?:${label})(?:[^A-Z0-9]|$)`, 'i')
+      const beforeMatch = blob.match(before)
+      if (beforeMatch) return normalizeEciLcoTime(beforeMatch[1], beforeMatch[2])
+    }
+    return null
+  }
+
+  return {
+    eci,
+    lco,
+    eciTime: eci ? extractTime('ECI') : null,
+    lcoTime: lco ? extractTime('LCO') : null,
+  }
+}
+
 async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
   const cronSecret = Deno.env.get('CRON_SHARED_SECRET')
   const provided = req.headers.get('x-cron-secret')
@@ -241,6 +313,7 @@ serve(async (req) => {
           return {
             ...r,
             _roomNumber: roomNumber,
+            _roomInfo: roomInfo,
             _roomStatus: roomStatus,
             _checkInDate: checkInDate,
             _checkOutDate: checkOutDate,
@@ -414,42 +487,10 @@ serve(async (req) => {
             ) || null
           : null
 
-        // ECI (Early Check-In) e LCO (Late Check-Out): Cloudbeds registra esses
-        // "bloqueios temporários" como tags/observações na reserva. Varremos os
-        // campos textuais buscando as siglas com word-boundary (case-insensitive).
-        const eciLcoScan = (() => {
-          if (!resAtiva) return { eci: false, lco: false, eciTime: null as string | null, lcoTime: null as string | null }
-          const parts: string[] = []
-          const push = (v: unknown) => { if (v) parts.push(String(v)) }
-          const r: any = resAtiva
-          push(r.specialRequests); push(r.notes); push(r.reservationNotes)
-          push(r.guestComments); push(r.comments); push(r.sourceName)
-          push(r.thirdPartyIdentifier); push(r.customFieldsText)
-          if (Array.isArray(r.customFields)) {
-            for (const cf of r.customFields) { push(cf?.value); push(cf?.name) }
-          }
-          if (Array.isArray(r.notesList)) {
-            for (const n of r.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
-          }
-          const blob = parts.join(' | ')
-          // Extrai horário próximo à sigla: "LCO 16h", "LCO 16:00", "LCO às 16", "ECI 10hs"
-          const extractTime = (sigla: 'ECI' | 'LCO'): string | null => {
-            const re = new RegExp(`\\b${sigla}\\b[^0-9]{0,10}(\\d{1,2})(?:[:h.]\\s*(\\d{2}))?`, 'i')
-            const m = blob.match(re)
-            if (!m) return null
-            const hh = Math.min(23, parseInt(m[1], 10))
-            const mm = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0
-            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-          }
-          const eci = /\bECI\b/i.test(blob)
-          const lco = /\bLCO\b/i.test(blob)
-          return {
-            eci,
-            lco,
-            eciTime: eci ? extractTime('ECI') : null,
-            lcoTime: lco ? extractTime('LCO') : null,
-          }
-        })()
+        // ECI/LCO podem vir em observações, custom fields, detalhes do quarto
+        // dentro da reserva ou no próprio housekeeping. Escaneia tudo para não
+        // depender de um único campo do Cloudbeds.
+        const eciLcoScan = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
 
         return {
           property: nomeUnidade,
