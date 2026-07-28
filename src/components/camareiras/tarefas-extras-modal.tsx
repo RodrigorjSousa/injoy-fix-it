@@ -369,6 +369,22 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
     setEditingIdx(null);
   }, [activeCat, unidade]);
 
+  // re-sincroniza quando o cache global receber updates via realtime
+  useEffect(() => {
+    if (!activeCat) return;
+    const l = () => {
+      const loaded = loadItems(unidade, activeCat.key, activeCat.defaults);
+      setItems(loaded);
+      setChecked((prev) =>
+        prev.length === loaded.length ? prev : new Array(loaded.length).fill(false),
+      );
+    };
+    cacheListeners.add(l);
+    return () => {
+      cacheListeners.delete(l);
+    };
+  }, [activeCat, unidade]);
+
   if (!open) return null;
 
   const toggle = (i: number) =>
