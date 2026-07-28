@@ -334,9 +334,27 @@ serve(async (req) => {
             ) || formatHora(res.estimatedArrivalTime) || '--:--'
           : formatHora(res.estimatedArrivalTime) || 'A definir'
 
-        const startISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
-        const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
-        const emCasa = isCheckedIn || (!isMultiRoom && !!startISO && startISO < hoje && (!endISO || endISO > hoje))
+        // Datas POR QUARTO — reservas multi-quarto (ex.: Walter Kohan reservou
+        // 19 apts, só usa 1 hoje) trazem roomCheckIn/roomCheckOut específicos
+        // por quarto no Cloudbeds. Priorizamos esses valores; só caímos no
+        // startDate/endDate da reserva quando não há sinal por quarto.
+        const roomStartISO = String(
+          roomInfo?.roomCheckIn ?? roomInfo?.checkInDate ?? '',
+        ).slice(0, 10)
+        const roomEndISO = String(
+          roomInfo?.roomCheckOut ?? roomInfo?.checkOutDate ?? '',
+        ).slice(0, 10)
+        const resStartISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
+        const resEndISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
+        const startISO = roomStartISO || resStartISO
+        const endISO = roomEndISO || resEndISO
+
+        // Se o quarto tem janela própria e ela não inclui hoje, pula — o hóspede
+        // não está nem chegará neste quarto hoje (só entra em outra data).
+        if (isMultiRoom && roomStartISO && roomStartISO > hoje) continue
+        if (isMultiRoom && roomEndISO && roomEndISO <= hoje && !isCheckedIn) continue
+
+        const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
 
         // ECI (Early Check-In) e LCO (Late Check-Out) — bloqueios temporários
