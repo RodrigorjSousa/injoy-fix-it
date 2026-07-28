@@ -139,7 +139,7 @@ export function TarefasExtrasChecklistManager() {
             {cats.map((c) => {
               const Icon = c.icon;
               const isActive = active === c.key;
-              const count = loadItems(unidade, c.key, c.defaults).length;
+              const count = useTarefasExtrasItems(unidade, c.key, c.defaults).length;
               return (
                 <button
                   key={c.key}
