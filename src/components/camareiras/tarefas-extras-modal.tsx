@@ -390,12 +390,16 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
   const toggle = (i: number) =>
     setChecked((s) => s.map((v, idx) => (idx === i ? !v : v)));
 
-  const commitEdit = () => {
+  const commitEdit = async () => {
     if (editingIdx === null || !activeCat) return;
     const next = items.map((v, i) => (i === editingIdx ? editValue.trim() || v : v));
     setItems(next);
-    saveItems(unidade, activeCat.key, next);
     setEditingIdx(null);
+    try {
+      await saveItems(unidade, activeCat.key, next);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar item");
+    }
   };
 
   const salvar = async () => {
