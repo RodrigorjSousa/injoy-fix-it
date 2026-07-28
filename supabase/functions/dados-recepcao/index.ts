@@ -370,6 +370,8 @@ serve(async (req) => {
           chegadaHoje: startISO === hoje,
           hasEci: eciLco.eci,
           hasLco: eciLco.lco,
+          eciTime: eciLco.eciTime,
+          lcoTime: eciLco.lcoTime,
         }
 
 
