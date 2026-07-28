@@ -440,6 +440,8 @@ serve(async (req) => {
         temProximoHospede: Boolean(prox),
         hasEci: (bucket.atual?.hasEci ?? prox?.hasEci) ?? false,
         hasLco: (bucket.atual?.hasLco ?? prox?.hasLco) ?? false,
+        eciTime: bucket.atual?.eciTime ?? prox?.eciTime ?? null,
+        lcoTime: bucket.atual?.lcoTime ?? prox?.lcoTime ?? null,
       }
     })
 
