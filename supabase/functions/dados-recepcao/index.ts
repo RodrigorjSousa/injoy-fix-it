@@ -420,6 +420,8 @@ serve(async (req) => {
         proximoPagamentoValor: prox?.pagamentoValor ?? 0,
         proximoDocPendente: prox?.docPendente ?? false,
         temProximoHospede: Boolean(prox),
+        hasEci: (bucket.atual?.hasEci ?? prox?.hasEci) ?? false,
+        hasLco: (bucket.atual?.hasLco ?? prox?.hasLco) ?? false,
       }
     })
 
