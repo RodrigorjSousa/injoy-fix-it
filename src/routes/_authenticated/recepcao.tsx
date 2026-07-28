@@ -450,6 +450,8 @@ function RecepcaoPage() {
                         Quarto {padQuarto(q.quarto)} - {q.tipoQuarto}
                       </h2>
                       <NaoPerturbeBadge active={!!q.isDnd} />
+                      <EciLcoBadges eci={q.hasEci} lco={q.hasLco} compact />
+
                     </div>
                     <p className="text-xs text-slate-400 font-medium mt-0.5">
                       INJOY {q.unidade}
