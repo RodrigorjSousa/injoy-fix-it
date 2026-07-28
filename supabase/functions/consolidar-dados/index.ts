@@ -410,6 +410,8 @@ serve(async (req) => {
           arrival_time: arrivalTime,
           has_eci: eciLcoScan.eci,
           has_lco: eciLcoScan.lco,
+          eci_time: eciLcoScan.eciTime,
+          lco_time: eciLcoScan.lcoTime,
         }
 
 
