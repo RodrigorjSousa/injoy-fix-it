@@ -861,6 +861,7 @@ function PainelCamareiras() {
                       {q.pax} pax
                     </span>
                   ) : null}
+                  <EciLcoBadges eci={q.has_eci} lco={q.has_lco} compact />
                 </div>
                 {q.arrival_time &&
                 q.guest_name &&
