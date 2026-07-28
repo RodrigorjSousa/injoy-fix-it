@@ -23,6 +23,8 @@ type Room = {
   assigned_camareira: string | null;
   guest_name: string | null;
   updated_at: string;
+  has_eci: boolean | null;
+  has_lco: boolean | null;
 };
 
 function classify(r: Pick<Room, "status" | "service_status" | "condition">): StatusKey | null {
