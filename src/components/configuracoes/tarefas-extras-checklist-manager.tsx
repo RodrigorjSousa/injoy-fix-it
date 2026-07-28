@@ -7,6 +7,7 @@ import {
   CATEGORIES_BY_UNIDADE,
   loadItems,
   saveItems,
+  useTarefasExtrasItems,
   type CategoryKey,
 } from "@/components/camareiras/tarefas-extras-modal";
 
