@@ -210,12 +210,11 @@ serve(async (req) => {
         let statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza' = 'Em Limpeza'
         if (cond === 'clean' || cond === 'inspected') statusLimpeza = 'Limpo'
         else if (cond === 'dirty') statusLimpeza = 'Sujo'
+        // Cloudbeds retorna roomBlocked=true também para quartos com reserva
+        // atribuída (in-house / chegando). Só tratamos como bloqueio de fato
+        // quando o roomCondition indica manutenção/fora de serviço.
         const bloqueado =
-          room.roomBlocked === true ||
-          room.roomBlocked === 'true' ||
-          room.roomBlocked === 1 ||
-          String(room.roomBlocked ?? '').toLowerCase() === 'yes' ||
-          String(room.roomOutOfService ?? '').toLowerCase() === 'yes'
+          cond === 'out_of_service' || cond === 'maintenance'
         quartosFisicos[num] = {
           quarto: num,
           tipoQuarto: room.roomTypeName || room.roomType || 'Standard',
