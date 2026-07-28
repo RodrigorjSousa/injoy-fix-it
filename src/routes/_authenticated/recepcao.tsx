@@ -96,6 +96,8 @@ interface QuartoRecepcao {
   proximoDocPendente?: boolean;
   temProximoHospede?: boolean;
   isDnd?: boolean;
+  hasEci?: boolean;
+  hasLco?: boolean;
 }
 
 const OCUPACAO_STYLE: Record<
