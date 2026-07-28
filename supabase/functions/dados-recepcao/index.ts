@@ -349,6 +349,13 @@ serve(async (req) => {
         const startISO = roomStartISO || resStartISO
         const endISO = roomEndISO || resEndISO
 
+        // TRAVA multi-quarto: se o Cloudbeds não expõe NENHUM sinal próprio
+        // deste quarto (sem roomStatus, sem roomCheckIn, sem roomCheckOut),
+        // e a reserva tem vários apts, este quarto não pertence ao hóspede
+        // hoje — o mesmo nome estava vazando para todos os quartos.
+        const hasOwnRoomSignal =
+          !!rawRoomStatus || !!roomCheckInAt || !!roomStartISO || !!roomEndISO
+        if (isMultiRoom && !hasOwnRoomSignal) continue
         // Se o quarto tem janela própria e ela não inclui hoje, pula — o hóspede
         // não está nem chegará neste quarto hoje (só entra em outra data).
         if (isMultiRoom && roomStartISO && roomStartISO > hoje) continue
