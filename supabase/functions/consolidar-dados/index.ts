@@ -6,6 +6,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apiKey, content-type, x-cron-secret',
 }
 
+const API_BASE = 'https://hotels.cloudbeds.com/api/v1.2'
+
 type EciLcoInfo = {
   eci: boolean
   lco: boolean
@@ -76,6 +78,34 @@ const scanEciLco = (...sources: unknown[]): EciLcoInfo => {
     eciTime: eci ? extractTime('ECI') : null,
     lcoTime: lco ? extractTime('LCO') : null,
   }
+}
+
+const mergeEciLco = (...items: EciLcoInfo[]): EciLcoInfo => ({
+  eci: items.some((item) => item.eci),
+  lco: items.some((item) => item.lco),
+  eciTime: items.find((item) => item.eciTime)?.eciTime ?? null,
+  lcoTime: items.find((item) => item.lcoTime)?.lcoTime ?? null,
+})
+
+const buildRoomBlockEciLcoMap = (roomBlocksJson: any) => {
+  const map = new Map<string, EciLcoInfo>()
+  const blocks = Array.isArray(roomBlocksJson?.data?.roomBlocks)
+    ? roomBlocksJson.data.roomBlocks
+    : []
+
+  for (const block of blocks) {
+    if (String(block?.roomBlockType ?? '').toLowerCase() !== 'blocked_dates') continue
+    const info = scanEciLco(block?.roomBlockReason, block)
+    if (!info.eci && !info.lco) continue
+
+    for (const room of Array.isArray(block?.rooms) ? block.rooms : []) {
+      const roomId = String(room?.roomID ?? '').trim()
+      if (!roomId) continue
+      map.set(roomId, mergeEciLco(map.get(roomId) ?? emptyEciLco(), info))
+    }
+  }
+
+  return map
 }
 
 async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
@@ -184,9 +214,10 @@ serve(async (req) => {
         return acc
       }
 
-      const [roomsRes, dashRes, reservasWindow, reservasCheckedIn] = await Promise.all([
-        fetch('https://hotels.cloudbeds.com/api/v1.2/getHousekeepingStatus', { headers: authHeaders }),
-        fetch('https://hotels.cloudbeds.com/api/v1.2/getDashboard', { headers: authHeaders }),
+      const [roomsRes, dashRes, roomBlocksRes, reservasWindow, reservasCheckedIn] = await Promise.all([
+        fetch(`${API_BASE}/getHousekeepingStatus`, { headers: authHeaders }),
+        fetch(`${API_BASE}/getDashboard`, { headers: authHeaders }),
+        fetch(`${API_BASE}/getRoomBlocks?startDate=${hojeStr}&endDate=${hojeStr}`, { headers: authHeaders }),
         // Janela padrão: reservas do dia (arrivals/departures/short-stay)
         fetchTodasReservas(janelaInicio, janelaFim),
         // Hóspedes atualmente hospedados — checkin nos últimos 365 dias, filtro status
@@ -199,6 +230,8 @@ serve(async (req) => {
 
       const roomsJson = await roomsRes.json().catch(() => ({}))
       const dashJson = await dashRes.json().catch(() => ({}))
+      const roomBlocksJson = await roomBlocksRes.json().catch(() => ({}))
+      const eciLcoPorRoomId = buildRoomBlockEciLcoMap(roomBlocksJson)
 
       const houseData = roomsJson?.data
       const todosQuartos: any[] = Array.isArray(houseData)
@@ -487,10 +520,12 @@ serve(async (req) => {
             ) || null
           : null
 
-        // ECI/LCO podem vir em observações, custom fields, detalhes do quarto
-        // dentro da reserva ou no próprio housekeeping. Escaneia tudo para não
-        // depender de um único campo do Cloudbeds.
-        const eciLcoScan = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
+        // ECI/LCO no Cloudbeds são BLOQUEIOS TEMPORÁRIOS (`blocked_dates`).
+        // A fonte principal é getRoomBlocks por roomID; mantemos o scan da
+        // reserva/housekeeping só como fallback para campos textuais extras.
+        const roomBlockEciLco = eciLcoPorRoomId.get(String(room.roomID ?? '').trim()) ?? emptyEciLco()
+        const fallbackEciLco = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
+        const eciLcoScan = mergeEciLco(roomBlockEciLco, fallbackEciLco)
 
         return {
           property: nomeUnidade,
