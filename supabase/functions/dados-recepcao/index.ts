@@ -80,6 +80,34 @@ const scanEciLco = (...sources: unknown[]): EciLcoInfo => {
   }
 }
 
+const mergeEciLco = (...items: EciLcoInfo[]): EciLcoInfo => ({
+  eci: items.some((item) => item.eci),
+  lco: items.some((item) => item.lco),
+  eciTime: items.find((item) => item.eciTime)?.eciTime ?? null,
+  lcoTime: items.find((item) => item.lcoTime)?.lcoTime ?? null,
+})
+
+const buildRoomBlockEciLcoMap = (roomBlocksJson: any) => {
+  const map = new Map<string, EciLcoInfo>()
+  const blocks = Array.isArray(roomBlocksJson?.data?.roomBlocks)
+    ? roomBlocksJson.data.roomBlocks
+    : []
+
+  for (const block of blocks) {
+    if (String(block?.roomBlockType ?? '').toLowerCase() !== 'blocked_dates') continue
+    const info = scanEciLco(block?.roomBlockReason, block)
+    if (!info.eci && !info.lco) continue
+
+    for (const room of Array.isArray(block?.rooms) ? block.rooms : []) {
+      const roomId = String(room?.roomID ?? '').trim()
+      if (!roomId) continue
+      map.set(roomId, mergeEciLco(map.get(roomId) ?? emptyEciLco(), info))
+    }
+  }
+
+  return map
+}
+
 async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
   const authHeader = req.headers.get('authorization') ?? ''
   if (!authHeader.toLowerCase().startsWith('bearer ')) {
@@ -211,12 +239,14 @@ serve(async (req) => {
       }
     }
 
-    const [reservasWindow, reservasCheckedIn, hkJson, camareiraRows] = await Promise.all([
+    const [reservasWindow, reservasCheckedIn, hkJson, roomBlocksJson, camareiraRows] = await Promise.all([
       fetchTodasReservas(janelaInicio, janelaFim),
       fetchTodasReservas(janelaLonga, janelaFim, '&status=checked_in'),
       cb(`/getHousekeepingStatus`, apiKey),
+      cb(`/getRoomBlocks?startDate=${hoje}&endDate=${hoje}`, apiKey),
       fetchRoomHousekeeping(),
     ])
+    const eciLcoPorRoomId = buildRoomBlockEciLcoMap(roomBlocksJson)
 
     // Deduplica reservas
     const mapaReservas = new Map<string, any>()
@@ -268,6 +298,7 @@ serve(async (req) => {
     // Mapa de todos os quartos físicos a partir do housekeeping
     type HKRoom = {
       quarto: string
+      roomId: string
       tipoQuarto: string
       statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza'
       bloqueado: boolean
@@ -289,6 +320,7 @@ serve(async (req) => {
           cond === 'out_of_service' || cond === 'maintenance'
         quartosFisicos[num] = {
           quarto: num,
+          roomId: String(room.roomID ?? '').trim(),
           tipoQuarto: room.roomTypeName || room.roomType || 'Standard',
           statusLimpeza,
           bloqueado,
@@ -436,10 +468,11 @@ serve(async (req) => {
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
 
-        // ECI/LCO podem vir em observações, custom fields, detalhes do quarto
-        // dentro da reserva ou no hóspede. Escaneia tudo para não depender de
-        // um único campo do Cloudbeds.
-        const eciLco = scanEciLco(res, roomInfo, g)
+        // ECI/LCO no Cloudbeds são BLOQUEIOS TEMPORÁRIOS (`blocked_dates`).
+        // A fonte principal é getRoomBlocks por roomID; o scan da reserva fica
+        // como fallback para textos extras que o Cloudbeds possa retornar.
+        const roomBlockEciLco = eciLcoPorRoomId.get(String(roomInfo?.roomID ?? '').trim()) ?? emptyEciLco()
+        const eciLco = mergeEciLco(roomBlockEciLco, scanEciLco(res, roomInfo, g))
 
         const registro = {
           id: res.reservationID ?? res.reservationId,
@@ -491,6 +524,7 @@ serve(async (req) => {
       const prox = bucket.atual ? bucket.proximo : undefined
       const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
       const statusLimpeza = cam?.status ?? hk.statusLimpeza
+      const roomBlockEciLco = eciLcoPorRoomId.get(hk.roomId) ?? emptyEciLco()
 
       // Fonte da verdade do bloqueio: Cloudbeds (getHousekeepingStatus).
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
@@ -528,10 +562,10 @@ serve(async (req) => {
         proximoPagamentoValor: prox?.pagamentoValor ?? 0,
         proximoDocPendente: prox?.docPendente ?? false,
         temProximoHospede: Boolean(prox),
-        hasEci: (bucket.atual?.hasEci ?? prox?.hasEci) ?? false,
-        hasLco: (bucket.atual?.hasLco ?? prox?.hasLco) ?? false,
-        eciTime: bucket.atual?.eciTime ?? prox?.eciTime ?? null,
-        lcoTime: bucket.atual?.lcoTime ?? prox?.lcoTime ?? null,
+        hasEci: roomBlockEciLco.eci || ((bucket.atual?.hasEci ?? prox?.hasEci) ?? false),
+        hasLco: roomBlockEciLco.lco || ((bucket.atual?.hasLco ?? prox?.hasLco) ?? false),
+        eciTime: roomBlockEciLco.eciTime ?? bucket.atual?.eciTime ?? prox?.eciTime ?? null,
+        lcoTime: roomBlockEciLco.lcoTime ?? bucket.atual?.lcoTime ?? prox?.lcoTime ?? null,
       }
     })
 
