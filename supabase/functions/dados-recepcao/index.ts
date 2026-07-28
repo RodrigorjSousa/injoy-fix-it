@@ -317,6 +317,24 @@ serve(async (req) => {
         const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
+        // ECI (Early Check-In) e LCO (Late Check-Out) — bloqueios temporários
+        // marcados no Cloudbeds como tags/observações. Varre campos textuais.
+        const eciLco = (() => {
+          const parts: string[] = []
+          const push = (v: unknown) => { if (v) parts.push(String(v)) }
+          push(res.specialRequests); push(res.notes); push(res.reservationNotes)
+          push(res.guestComments); push(res.comments); push(res.sourceName)
+          push(res.thirdPartyIdentifier); push(res.customFieldsText)
+          if (Array.isArray(res.customFields)) {
+            for (const cf of res.customFields) { push(cf?.value); push(cf?.name) }
+          }
+          if (Array.isArray(res.notesList)) {
+            for (const n of res.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
+          }
+          const blob = parts.join(' | ')
+          return { eci: /\bECI\b/i.test(blob), lco: /\bLCO\b/i.test(blob) }
+        })()
+
         const registro = {
           id: res.reservationID ?? res.reservationId,
           tipoQuartoReserva: roomInfo.roomTypeName || '',
@@ -334,7 +352,10 @@ serve(async (req) => {
           checkedIn: emCasa,
           startISO,
           chegadaHoje: startISO === hoje,
+          hasEci: eciLco.eci,
+          hasLco: eciLco.lco,
         }
+
 
         const bucket = reservasPorQuarto[quarto] ?? {}
         if (emCasa) {
