@@ -171,10 +171,10 @@ serve(async (req) => {
 
         const checkInDate = String(r.startDate ?? r.checkInDate ?? '').slice(0, 10)
         const checkOutDate = String(r.endDate ?? r.checkOutDate ?? '').slice(0, 10)
+        const reservationStatus = String(r.status ?? '').toLowerCase()
+        const isMultiRoom = roomsMap.size > 1
 
-        return Array.from(roomsMap.keys()).map((roomNumber) => {
-          // Hóspede exibido no quarto: o primeiro guest cujas rooms contêm esse quarto,
-          // senão o principal (fallback para reservas sem split explícito).
+        return Array.from(roomsMap.entries()).map(([roomNumber, roomInfo]) => {
           const guestForRoom = guestsAll.find((g: any) => {
             const rs: any[] = [
               ...(Array.isArray(g?.rooms) ? g.rooms : []),
@@ -186,14 +186,34 @@ serve(async (req) => {
             )
           }) ?? mainGuest
 
-          // Pax: SEMPRE usa o valor da reserva no Cloudbeds (adults + children)
-          // como fonte da verdade, independente de split por hóspede/quarto.
           const numberOfGuests =
             (parseInt(r.adults ?? 0, 10) || 0) + (parseInt(r.children ?? 0, 10) || 0)
+
+          // Status POR QUARTO — reserva multi-quarto (mesmo hóspede aluga vários apts)
+          // pode ter só um quarto de fato ocupado (check-in físico), os demais ainda
+          // aguardando. Usa roomStatus/roomCheckIn quando disponível; se não houver,
+          // e for multi-quarto, considera NÃO check-in (mais seguro do que assumir todos).
+          const rawRoomStatus = String(roomInfo?.roomStatus ?? '').toLowerCase()
+          const roomCheckInAt = String(
+            roomInfo?.roomCheckIn ?? roomInfo?.dateCheckedIn ?? roomInfo?.checkedInDate ?? '',
+          ).trim()
+          let roomStatus: string
+          if (rawRoomStatus) {
+            roomStatus = rawRoomStatus
+          } else if (roomCheckInAt) {
+            roomStatus = 'checked_in'
+          } else if (isMultiRoom) {
+            // Sem sinal por quarto e reserva multi-quarto: não replica o checked_in
+            // da reserva para todos os quartos — só o que tiver sinal explícito.
+            roomStatus = reservationStatus === 'checked_in' ? 'confirmed' : reservationStatus
+          } else {
+            roomStatus = reservationStatus
+          }
 
           return {
             ...r,
             _roomNumber: roomNumber,
+            _roomStatus: roomStatus,
             _checkInDate: checkInDate,
             _checkOutDate: checkOutDate,
             guestFirstName: guestForRoom?.guestFirstName ?? '',
@@ -209,6 +229,7 @@ serve(async (req) => {
         const s = String(r.status ?? '').toLowerCase()
         return s !== 'canceled' && s !== 'cancelled' && s !== 'no_show'
       })
+
 
 
       const quartos = todosQuartos.map((room: any) => {
