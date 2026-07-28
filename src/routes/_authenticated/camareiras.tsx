@@ -65,6 +65,8 @@ type RoomRow = {
   arrival_time: string | null;
   has_eci: boolean | null;
   has_lco: boolean | null;
+  eci_time: string | null;
+  lco_time: string | null;
 
   blink_troca: boolean | null;
   service_status: string | null;
