@@ -259,6 +259,7 @@ serve(async (req) => {
         }
         if (roomsMap.size === 0) continue
 
+        const isMultiRoom = roomsMap.size > 1
         for (const [quarto, roomInfo] of roomsMap.entries()) {
         // Hóspede exibido no quarto: primeiro guest cujas rooms contêm esse quarto,
         // fallback para o principal (reservas sem split explícito).
@@ -302,10 +303,30 @@ serve(async (req) => {
           return ''
         }
 
-        const isCheckedIn = status === 'checked_in'
+        // Check-in POR QUARTO — reservas multi-quarto (mesmo hóspede pega 19
+        // apts, só um usado) exigem verificar o status do quarto específico.
+        // Cloudbeds expõe roomStatus/roomCheckIn dentro de guestList[x].rooms.
+        const rawRoomStatus = String(roomInfo?.roomStatus ?? '').toLowerCase()
+        const roomCheckInAt = String(
+          roomInfo?.roomCheckIn ?? roomInfo?.dateCheckedIn ?? roomInfo?.checkedInDate ?? '',
+        ).trim()
+        let roomIsCheckedIn: boolean
+        if (rawRoomStatus) {
+          roomIsCheckedIn = rawRoomStatus === 'checked_in'
+        } else if (roomCheckInAt) {
+          roomIsCheckedIn = true
+        } else if (isMultiRoom) {
+          // Sem sinal por quarto: não propaga o checked_in da reserva para todos
+          roomIsCheckedIn = false
+        } else {
+          roomIsCheckedIn = status === 'checked_in'
+        }
+
+        const isCheckedIn = roomIsCheckedIn
         const horaChegada = isCheckedIn
           ? formatHora(
-              res.checkInTime ??
+              roomInfo?.roomCheckIn ??
+                res.checkInTime ??
                 res.checkinTime ??
                 res.checkedInDate ??
                 res.dateCheckedIn ??
@@ -315,7 +336,8 @@ serve(async (req) => {
 
         const startISO = String(res.startDate ?? res.checkInDate ?? '').slice(0, 10)
         const endISO = String(res.endDate ?? res.checkOutDate ?? '').slice(0, 10)
-        const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
+        const emCasa = isCheckedIn || (!isMultiRoom && !!startISO && startISO < hoje && (!endISO || endISO > hoje))
+
 
         // ECI (Early Check-In) e LCO (Late Check-Out) — bloqueios temporários
         // marcados no Cloudbeds como tags/observações. Varre campos textuais
