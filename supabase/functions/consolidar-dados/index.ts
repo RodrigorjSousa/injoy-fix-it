@@ -288,8 +288,10 @@ serve(async (req) => {
 
 
         const cond = String(room.roomCondition ?? '').toLowerCase()
-        const blocked =
-          room.roomBlocked === true || cond === 'out_of_service' || cond === 'maintenance'
+        // Cloudbeds marca `roomBlocked=true` para qualquer quarto com reserva
+        // atribuída (ocupado, chegada hoje, etc.), não apenas manutenção.
+        // Só consideramos bloqueio real quando o roomCondition indica isso.
+        const blocked = cond === 'out_of_service' || cond === 'maintenance'
 
         let status = 'dirty'
         if (blocked) status = 'maintenance'
