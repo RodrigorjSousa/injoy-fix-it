@@ -313,6 +313,7 @@ serve(async (req) => {
           return {
             ...r,
             _roomNumber: roomNumber,
+            _roomInfo: roomInfo,
             _roomStatus: roomStatus,
             _checkInDate: checkInDate,
             _checkOutDate: checkOutDate,
@@ -486,42 +487,10 @@ serve(async (req) => {
             ) || null
           : null
 
-        // ECI (Early Check-In) e LCO (Late Check-Out): Cloudbeds registra esses
-        // "bloqueios temporários" como tags/observações na reserva. Varremos os
-        // campos textuais buscando as siglas com word-boundary (case-insensitive).
-        const eciLcoScan = (() => {
-          if (!resAtiva) return { eci: false, lco: false, eciTime: null as string | null, lcoTime: null as string | null }
-          const parts: string[] = []
-          const push = (v: unknown) => { if (v) parts.push(String(v)) }
-          const r: any = resAtiva
-          push(r.specialRequests); push(r.notes); push(r.reservationNotes)
-          push(r.guestComments); push(r.comments); push(r.sourceName)
-          push(r.thirdPartyIdentifier); push(r.customFieldsText)
-          if (Array.isArray(r.customFields)) {
-            for (const cf of r.customFields) { push(cf?.value); push(cf?.name) }
-          }
-          if (Array.isArray(r.notesList)) {
-            for (const n of r.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
-          }
-          const blob = parts.join(' | ')
-          // Extrai horário próximo à sigla: "LCO 16h", "LCO 16:00", "LCO às 16", "ECI 10hs"
-          const extractTime = (sigla: 'ECI' | 'LCO'): string | null => {
-            const re = new RegExp(`\\b${sigla}\\b[^0-9]{0,10}(\\d{1,2})(?:[:h.]\\s*(\\d{2}))?`, 'i')
-            const m = blob.match(re)
-            if (!m) return null
-            const hh = Math.min(23, parseInt(m[1], 10))
-            const mm = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0
-            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-          }
-          const eci = /\bECI\b/i.test(blob)
-          const lco = /\bLCO\b/i.test(blob)
-          return {
-            eci,
-            lco,
-            eciTime: eci ? extractTime('ECI') : null,
-            lcoTime: lco ? extractTime('LCO') : null,
-          }
-        })()
+        // ECI/LCO podem vir em observações, custom fields, detalhes do quarto
+        // dentro da reserva ou no próprio housekeeping. Escaneia tudo para não
+        // depender de um único campo do Cloudbeds.
+        const eciLcoScan = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
 
         return {
           property: nomeUnidade,
