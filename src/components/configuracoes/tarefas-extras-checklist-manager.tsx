@@ -42,10 +42,14 @@ export function TarefasExtrasChecklistManager() {
     setNovo("");
   }, [activeCat, unidade]);
 
-  const persist = (next: string[]) => {
+  const persist = async (next: string[]) => {
     if (!activeCat) return;
     setItems(next);
-    saveItems(unidade, activeCat.key, next);
+    try {
+      await saveItems(unidade, activeCat.key, next);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+    }
   };
 
   const adicionar = () => {
