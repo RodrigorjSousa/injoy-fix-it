@@ -1417,6 +1417,7 @@ export type Database = {
           comment_media_url: string | null
           condition: string | null
           dnd_photo_url: string | null
+          eci_time: string | null
           guest_name: string | null
           has_eci: boolean
           has_lco: boolean
@@ -1424,6 +1425,7 @@ export type Database = {
           has_pending_payment: boolean | null
           id: string
           is_dnd: boolean
+          lco_time: string | null
           pax: number | null
           pending_payment_amount: number | null
           property: string
@@ -1446,6 +1448,7 @@ export type Database = {
           comment_media_url?: string | null
           condition?: string | null
           dnd_photo_url?: string | null
+          eci_time?: string | null
           guest_name?: string | null
           has_eci?: boolean
           has_lco?: boolean
@@ -1453,6 +1456,7 @@ export type Database = {
           has_pending_payment?: boolean | null
           id?: string
           is_dnd?: boolean
+          lco_time?: string | null
           pax?: number | null
           pending_payment_amount?: number | null
           property: string
@@ -1475,6 +1479,7 @@ export type Database = {
           comment_media_url?: string | null
           condition?: string | null
           dnd_photo_url?: string | null
+          eci_time?: string | null
           guest_name?: string | null
           has_eci?: boolean
           has_lco?: boolean
@@ -1482,6 +1487,7 @@ export type Database = {
           has_pending_payment?: boolean | null
           id?: string
           is_dnd?: boolean
+          lco_time?: string | null
           pax?: number | null
           pending_payment_amount?: number | null
           property?: string
