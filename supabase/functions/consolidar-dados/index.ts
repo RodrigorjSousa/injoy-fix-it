@@ -360,7 +360,7 @@ serve(async (req) => {
         // "bloqueios temporários" como tags/observações na reserva. Varremos os
         // campos textuais buscando as siglas com word-boundary (case-insensitive).
         const eciLcoScan = (() => {
-          if (!resAtiva) return { eci: false, lco: false }
+          if (!resAtiva) return { eci: false, lco: false, eciTime: null as string | null, lcoTime: null as string | null }
           const parts: string[] = []
           const push = (v: unknown) => { if (v) parts.push(String(v)) }
           const r: any = resAtiva
@@ -374,9 +374,22 @@ serve(async (req) => {
             for (const n of r.notesList) push(typeof n === 'string' ? n : n?.note ?? n?.text)
           }
           const blob = parts.join(' | ')
+          // Extrai horário próximo à sigla: "LCO 16h", "LCO 16:00", "LCO às 16", "ECI 10hs"
+          const extractTime = (sigla: 'ECI' | 'LCO'): string | null => {
+            const re = new RegExp(`\\b${sigla}\\b[^0-9]{0,10}(\\d{1,2})(?:[:h.]\\s*(\\d{2}))?`, 'i')
+            const m = blob.match(re)
+            if (!m) return null
+            const hh = Math.min(23, parseInt(m[1], 10))
+            const mm = m[2] ? Math.min(59, parseInt(m[2], 10)) : 0
+            return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
+          }
+          const eci = /\bECI\b/i.test(blob)
+          const lco = /\bLCO\b/i.test(blob)
           return {
-            eci: /\bECI\b/i.test(blob),
-            lco: /\bLCO\b/i.test(blob),
+            eci,
+            lco,
+            eciTime: eci ? extractTime('ECI') : null,
+            lcoTime: lco ? extractTime('LCO') : null,
           }
         })()
 
