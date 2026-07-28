@@ -99,6 +99,8 @@ interface QuartoRecepcao {
   isDnd?: boolean;
   hasEci?: boolean;
   hasLco?: boolean;
+  eciTime?: string | null;
+  lcoTime?: string | null;
 }
 
 const OCUPACAO_STYLE: Record<
