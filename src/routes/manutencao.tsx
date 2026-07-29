@@ -46,6 +46,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MediaCapture } from "@/components/media-capture";
 import type { Midia } from "@/lib/store";
+import { AreasComunsManager, useAreasComuns } from "@/components/manutencao/areas-comuns-manager";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -256,14 +257,17 @@ function PainelPreventiva({
 }) {
   const [selected, setSelected] = useState<{ category: TaskCategory; name: string } | null>(null);
   const [filter, setFilter] = useState<"todos" | "atrasado" | "vence-breve" | "em-dia">("todos");
+  const [manageOpen, setManageOpen] = useState(false);
+  const areasComuns = useAreasComuns();
+  const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
   const quartos = unidade === "Ipanema" ? QUARTOS_IPANEMA : QUARTOS_BOTAFOGO;
 
   const locations = useMemo(() => {
     const roomLocs = quartos.map((n) => ({ category: "Quarto" as TaskCategory, name: `Quarto ${n}` }));
-    const areaLocs = AREAS_COMUNS.map((n) => ({ category: "Área Comum" as TaskCategory, name: n }));
+    const areaLocs = areasComuns.map((n) => ({ category: "Área Comum" as TaskCategory, name: n }));
     return [...roomLocs, ...areaLocs];
-  }, [quartos]);
+  }, [quartos, areasComuns]);
 
   const locationsWithStatus = useMemo(() => {
     return locations.map((loc) => {
@@ -337,11 +341,24 @@ function PainelPreventiva({
           {filter === "vence-breve" && `Vence em breve (${filtered.length})`}
           {filter === "atrasado" && `A fazer / Atrasado (${filtered.length})`}
         </h2>
-        {filter !== "todos" && (
-          <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
-            Limpar filtro
-          </Button>
-        )}
+        <div className="flex items-center gap-2">
+          {isAdmin && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setManageOpen(true)}
+              className="h-7 text-xs"
+            >
+              <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+              Gerenciar áreas comuns
+            </Button>
+          )}
+          {filter !== "todos" && (
+            <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
+              Limpar filtro
+            </Button>
+          )}
+        </div>
       </div>
 
       {filtered.length === 0 && (
