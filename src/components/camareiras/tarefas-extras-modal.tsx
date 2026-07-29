@@ -228,6 +228,7 @@ const cacheKey = (unidade: string, cat: CategoryKey) => `${unidade}::${cat}`;
 const itemsCache = new Map<string, string[]>();
 const cacheListeners = new Set<() => void>();
 let cacheBootstrapped = false;
+let cacheBootstrapping: Promise<void> | null = null;
 
 function notifyCache() {
   cacheListeners.forEach((fn) => {
@@ -247,25 +248,38 @@ function tryLocalMirror(unidade: string, cat: CategoryKey): string[] | null {
 
 async function bootstrapCache() {
   if (cacheBootstrapped) return;
-  cacheBootstrapped = true;
-  try {
-    const { data } = await supabase
-      .from("app_settings" as never)
-      .select("key,value")
-      .like("key", "tarefas_extras_items:%");
-    (data as { key: string; value: string }[] | null)?.forEach((row) => {
-      const m = row.key.match(/^tarefas_extras_items:([^:]+):(.+)$/);
-      if (!m) return;
-      try {
-        const arr = JSON.parse(row.value);
-        if (Array.isArray(arr) && arr.every((v) => typeof v === "string")) {
-          itemsCache.set(cacheKey(m[1], m[2] as CategoryKey), arr);
-        }
-      } catch { /* ignore */ }
-    });
-    notifyCache();
-  } catch { /* ignore */ }
+  if (cacheBootstrapping) return cacheBootstrapping;
+  cacheBootstrapping = (async () => {
+    try {
+      const { data, error } = await supabase
+        .from("app_settings" as never)
+        .select("key,value")
+        .like("key", "tarefas_extras_items:%");
+      if (error) throw error;
+      (data as { key: string; value: string }[] | null)?.forEach((row) => {
+        const m = row.key.match(/^tarefas_extras_items:([^:]+):(.+)$/);
+        if (!m) return;
+        try {
+          const arr = JSON.parse(row.value);
+          if (Array.isArray(arr) && arr.every((v) => typeof v === "string")) {
+            itemsCache.set(cacheKey(m[1], m[2] as CategoryKey), arr);
+          }
+        } catch { /* ignore */ }
+      });
+      cacheBootstrapped = true;
+      notifyCache();
+    } catch (error) {
+      console.error("[tarefas-extras] falha ao carregar app_settings:", error);
+    } finally {
+      cacheBootstrapping = null;
+    }
+  })();
+  await cacheBootstrapping;
+}
 
+function subscribeCache() {
+  if (cacheBootstrapped) return;
+  cacheBootstrapped = true;
   supabase
     .channel("tarefas-extras-items-sync")
     .on(
