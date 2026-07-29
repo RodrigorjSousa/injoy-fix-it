@@ -263,7 +263,12 @@ function PainelPreventiva({
 
   const locationsWithStatus = useMemo(() => {
     return locations.map((loc) => {
-      const catTasks = tasks.filter((t) => t.category === loc.category && t.active);
+      const catTasks = tasks.filter((t) => {
+        if (!t.active || t.category !== loc.category) return false;
+        if (loc.category !== "Área Comum") return true;
+        const scope = (t as { discipline?: string | null }).discipline;
+        return !scope || scope === loc.name;
+      });
       const locLogs = logs.filter((l) => l.location_name === loc.name);
       const status = computeStatus(catTasks, locLogs);
       return { ...loc, status, health: locationHealth(status) };
