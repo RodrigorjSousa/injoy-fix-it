@@ -21,6 +21,8 @@ export function TarefasExtrasChecklistManager() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [novo, setNovo] = useState("");
+  const [salvandoTudo, setSalvandoTudo] = useState(false);
+
 
   const cats = useMemo(
     () => CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)),
