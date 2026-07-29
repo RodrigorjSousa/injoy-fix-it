@@ -43,6 +43,7 @@ interface TaskRow {
   category: string;
   frequency_days: number;
   active: boolean;
+  discipline?: string | null;
 }
 
 function defaultsFor(unidade: string): string[] {
