@@ -96,6 +96,7 @@ export function ChamadosManutencaoAtivos({ unidade }: { unidade: Unidade }) {
           </span>
           <Link
             to="/painel"
+            search={{ categoria: undefined, tipo: undefined }}
             className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
           >
             Painel <ArrowUpRight size={12} />
