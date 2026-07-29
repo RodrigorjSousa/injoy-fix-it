@@ -342,7 +342,7 @@ function PainelPreventiva({
               className="h-7 text-xs"
             >
               <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              Gerenciar áreas comuns
+              Gerenciar todos os locais
             </Button>
           )}
           {filter !== "todos" && (
