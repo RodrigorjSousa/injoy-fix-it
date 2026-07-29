@@ -621,7 +621,14 @@ function ChecklistModal({
   } | null>(null);
   const [executionDate, setExecutionDate] = useState("");
 
-  const catTasks = location ? tasks.filter((t) => t.category === location.category && t.active) : [];
+  const catTasks = location
+    ? tasks.filter((t) => {
+        if (!t.active || t.category !== location.category) return false;
+        if (location.category !== "Área Comum") return true;
+        const scope = (t as { discipline?: string | null }).discipline;
+        return !scope || scope === location.name;
+      })
+    : [];
   const locLogs = location ? logs.filter((l) => l.location_name === location.name) : [];
   const status = computeStatus(catTasks, locLogs);
 
