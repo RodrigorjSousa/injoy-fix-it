@@ -210,6 +210,8 @@ function HistoricoManutencaoPage() {
             completed_at,
             next_due_date,
             task_id,
+            notes,
+            midias,
             task:preventive_tasks (
               task_name,
               category,
