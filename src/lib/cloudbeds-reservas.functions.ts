@@ -201,17 +201,28 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const rows: ReservaHoje[] = [];
     const todayRec = rawList.find((r) => {
       const rec = r as Record<string, unknown>;
-      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
-      return ci === hoje;
+      const rooms = Array.isArray((rec as { rooms?: unknown }).rooms)
+        ? ((rec as { rooms: Array<Record<string, unknown>> }).rooms)
+        : [];
+      const ciTop = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
+      if (ciTop === hoje) return true;
+      return rooms.some(
+        (rm) =>
+          dateOnly(
+            rm.roomCheckIn ?? rm.startDate ?? rm.checkInDate ?? rm.checkinDate ?? rm.checkin_date ?? rm.checkIn ?? rm.checkin,
+          ) === hoje,
+      );
     });
     if (todayRec) {
       try {
-        console.log("[chegadas-hoje] hoje=", hoje, "todaySample=", JSON.stringify(todayRec).slice(0, 3500));
+        console.log(
+          `[chegadas-hoje] ${property} hoje=${hoje} raw=${rawList.length} sample=`,
+          JSON.stringify(todayRec).slice(0, 2500),
+        );
       } catch {}
     } else {
-      console.log("[chegadas-hoje] hoje=", hoje, "total=", rawList.length, "sem reservas checkIn=hoje");
+      console.log(`[chegadas-hoje] ${property} hoje=${hoje} raw=${rawList.length} sem reservas com roomCheckIn=hoje`);
     }
-    for (const r of rawList) {
 
       const rec = r as {
         reservationID?: string | number;
