@@ -16,7 +16,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
-import { TarefasExtrasModal, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
+import { TarefasExtrasModal, useTarefasExtrasItems, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { supabase } from "@/integrations/supabase/client";
@@ -689,49 +689,19 @@ function PainelCamareiras() {
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
           {TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
             TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
-          ).map((c) => {
-            const Icon = c.icon;
-            const overdue = tarefasExtrasOverdue.has(c.key);
-            return (
-              <button
-                key={c.key}
-                onClick={() => {
-                  setTarefasExtrasInitial(c.key);
-                  setTarefasExtrasOpen(true);
-                }}
-                className={cn(
-                  "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 bg-gradient-to-br",
-                  c.gradient,
-                  overdue ? "ring-red-400" : "ring-white/30",
-                )}
-              >
-                {overdue && (
-                  <span
-                    className="absolute top-1.5 right-1.5 flex h-3 w-3"
-                    title="Tarefa em atraso"
-                    aria-label="Tarefa em atraso"
-                  >
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
-                    <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 ring-2 ring-white" />
-                  </span>
-                )}
-                <div className="flex items-center gap-2">
-                  <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm shrink-0">
-                    <Icon size={18} />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="text-[9px] font-bold uppercase tracking-widest opacity-90">
-                      Checklist
-                    </p>
-                    <p className="text-[12px] sm:text-sm font-black leading-tight break-words">
-                      {c.label}
-                    </p>
-                    <p className="text-[10px] opacity-90">10 itens</p>
-                  </div>
-                </div>
-              </button>
-            );
-          })}
+          ).map((c) => (
+            <TarefaExtraCard
+              key={c.key}
+              cat={c}
+              unidade={unidadeAtiva}
+              overdue={tarefasExtrasOverdue.has(c.key)}
+              onClick={() => {
+                setTarefasExtrasInitial(c.key);
+                setTarefasExtrasOpen(true);
+              }}
+            />
+          ))}
+
         </div>
       </section>
       </div>
@@ -1334,5 +1304,51 @@ function PainelCamareiras() {
       />
 
     </div>
+  );
+}
+
+function TarefaExtraCard({
+  cat,
+  unidade,
+  overdue,
+  onClick,
+}: {
+  cat: (typeof TAREFAS_EXTRAS_CATEGORIES)[number];
+  unidade: string;
+  overdue: boolean;
+  onClick: () => void;
+}) {
+  const Icon = cat.icon;
+  const items = useTarefasExtrasItems(unidade, cat.key, cat.defaults);
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "group relative overflow-hidden rounded-xl p-3 text-left text-white shadow-lg transition-all hover:scale-[1.03] active:scale-[0.98] ring-2 bg-gradient-to-br",
+        cat.gradient,
+        overdue ? "ring-red-400" : "ring-white/30",
+      )}
+    >
+      {overdue && (
+        <span
+          className="absolute top-1.5 right-1.5 flex h-3 w-3"
+          title="Tarefa em atraso"
+          aria-label="Tarefa em atraso"
+        >
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+          <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 ring-2 ring-white" />
+        </span>
+      )}
+      <div className="flex items-center gap-2">
+        <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm shrink-0">
+          <Icon size={18} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-[9px] font-bold uppercase tracking-widest opacity-90">Checklist</p>
+          <p className="text-[12px] sm:text-sm font-black leading-tight break-words">{cat.label}</p>
+          <p className="text-[10px] opacity-90">{items.length} {items.length === 1 ? "item" : "itens"}</p>
+        </div>
+      </div>
+    </button>
   );
 }
