@@ -53,53 +53,59 @@ export function TarefasExtrasChecklistManager() {
     setItems(syncedItems);
   }, [activeCat, syncedItems]);
 
-  const persist = async (next: string[]) => {
-    if (!activeCat) return;
+  const persist = async (next: string[]): Promise<boolean> => {
+    if (!activeCat) return false;
     try {
       await saveItems(unidade, activeCat.key, next);
+      return true;
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Falha ao salvar");
+      return false;
     }
   };
 
-  const adicionar = () => {
+  const adicionar = async () => {
     const v = novo.trim();
     if (!v) return;
     if (items.includes(v)) {
       toast.error("Item já existe");
       return;
     }
-    persist([...items, v]);
-    setNovo("");
-    toast.success("Item adicionado");
+    const ok = await persist([...items, v]);
+    if (ok) {
+      setNovo("");
+      toast.success("Item adicionado");
+    }
   };
 
-  const excluir = (i: number) => {
+  const excluir = async (i: number) => {
     if (items.length <= 1) {
       toast.error("Mantenha ao menos 1 item");
       return;
     }
-    persist(items.filter((_, idx) => idx !== i));
-    toast.success("Item removido");
+    const ok = await persist(items.filter((_, idx) => idx !== i));
+    if (ok) toast.success("Item removido");
   };
 
-  const salvarEdicao = () => {
+  const salvarEdicao = async () => {
     if (editingIdx === null) return;
     const v = editValue.trim();
     if (!v) {
       toast.error("Nome vazio");
       return;
     }
-    persist(items.map((t, i) => (i === editingIdx ? v : t)));
-    setEditingIdx(null);
-    toast.success("Item atualizado");
+    const ok = await persist(items.map((t, i) => (i === editingIdx ? v : t)));
+    if (ok) {
+      setEditingIdx(null);
+      toast.success("Item atualizado");
+    }
   };
 
-  const restaurarPadrao = () => {
+  const restaurarPadrao = async () => {
     if (!activeCat) return;
     if (!confirm("Restaurar itens padrão desta categoria?")) return;
-    persist(activeCat.defaults);
-    toast.success("Padrão restaurado");
+    const ok = await persist(activeCat.defaults);
+    if (ok) toast.success("Padrão restaurado");
   };
 
   return (
