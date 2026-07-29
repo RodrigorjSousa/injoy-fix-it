@@ -766,6 +766,42 @@ function ChecklistModal({
                         Ajustar data executada
                       </Button>
                     )}
+                    {checked[s.task.id] && (
+                      <div className="mt-3 space-y-2 rounded-md border bg-muted/30 p-2">
+                        <Label htmlFor={`prev-notes-${s.task.id}`} className="text-xs">
+                          Comentário (opcional)
+                        </Label>
+                        <Textarea
+                          id={`prev-notes-${s.task.id}`}
+                          value={taskNotes[s.task.id] ?? ""}
+                          onChange={(e) =>
+                            setTaskNotes((n) => ({ ...n, [s.task.id]: e.target.value }))
+                          }
+                          placeholder="Observação da execução"
+                          rows={2}
+                        />
+                        <div className="space-y-1">
+                          <Label className="text-xs">Fotos e vídeo (até 15s)</Label>
+                          <MediaCapture
+                            midias={taskMidias[s.task.id] ?? []}
+                            onAdd={(m) =>
+                              setTaskMidias((mm) => ({
+                                ...mm,
+                                [s.task.id]: [...(mm[s.task.id] ?? []), m],
+                              }))
+                            }
+                            onRemove={(url) =>
+                              setTaskMidias((mm) => ({
+                                ...mm,
+                                [s.task.id]: (mm[s.task.id] ?? []).filter((x) => x.url !== url),
+                              }))
+                            }
+                            uploading={uploadingTaskId === s.task.id}
+                            setUploading={(v) => setUploadingTaskId(v ? s.task.id : null)}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -791,17 +827,6 @@ function ChecklistModal({
                 {new Date().toLocaleDateString("pt-BR")}
               </div>
             </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="prev-notes">Observações</Label>
-            <Textarea
-              id="prev-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anotações da execução (opcional)"
-              rows={2}
-            />
           </div>
         </div>
 
