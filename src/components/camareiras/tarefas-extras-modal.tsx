@@ -304,15 +304,18 @@ export function loadItems(unidade: string, cat: CategoryKey, defaults: string[])
 
 export async function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
   const nextItems = items.map((item) => item.trim()).filter(Boolean);
+  const { error } = await supabase
+    .from("app_settings" as never)
+    .upsert({ key: settingsKey(unidade, cat), value: JSON.stringify(nextItems) } as never);
+  if (error) {
+    console.error("[tarefas-extras] falha ao salvar em app_settings:", error);
+    throw error;
+  }
+
+  itemsCache.set(cacheKey(unidade, cat), nextItems);
+  notifyCache();
+
   try {
-    const { error } = await supabase
-      .from("app_settings" as never)
-      .upsert({ key: settingsKey(unidade, cat), value: JSON.stringify(nextItems) } as never);
-    if (error) throw error;
-
-    itemsCache.set(cacheKey(unidade, cat), nextItems);
-    notifyCache();
-
     localStorage.setItem(
       `injoy:tarefas-extras:${unidade}:${cat}`,
       JSON.stringify(nextItems),
