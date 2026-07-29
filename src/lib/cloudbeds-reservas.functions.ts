@@ -106,9 +106,23 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
     const hoje = data.date ?? todayISO();
 
+    // Janela ampla: o filtro checkInFrom/checkInTo do Cloudbeds considera
+    // apenas o check-in "principal" da reserva. Em reservas multi-quarto
+    // (mesmo hóspede alugando 2+ apartamentos com datas de entrada diferentes)
+    // o reservationCheckIn é a data mais antiga entre os quartos, então quartos
+    // que chegam HOJE, mas cuja reserva já começou em dias anteriores, ficam
+    // de fora se pedirmos só "hoje". Ampliamos para os últimos 30 dias e
+    // filtramos por roomCheckIn === hoje na etapa seguinte. Assim toda chegada
+    // real do dia aparece — mesmo em reservas escalonadas.
+    const fromDate = (() => {
+      const d = new Date(`${hoje}T12:00:00Z`);
+      d.setUTCDate(d.getUTCDate() - 30);
+      return d.toISOString().slice(0, 10);
+    })();
+
     const fetchPage = async (pageNumber: number) => {
       const qs = new URLSearchParams({
-        checkInFrom: hoje,
+        checkInFrom: fromDate,
         checkInTo: hoje,
         pageSize: "100",
         pageNumber: String(pageNumber),
@@ -187,18 +201,30 @@ export const getReservasHoje = createServerFn({ method: "POST" })
     const rows: ReservaHoje[] = [];
     const todayRec = rawList.find((r) => {
       const rec = r as Record<string, unknown>;
-      const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
-      return ci === hoje;
+      const rooms = Array.isArray((rec as { rooms?: unknown }).rooms)
+        ? ((rec as { rooms: Array<Record<string, unknown>> }).rooms)
+        : [];
+      const ciTop = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
+      if (ciTop === hoje) return true;
+      return rooms.some(
+        (rm) =>
+          dateOnly(
+            rm.roomCheckIn ?? rm.startDate ?? rm.checkInDate ?? rm.checkinDate ?? rm.checkin_date ?? rm.checkIn ?? rm.checkin,
+          ) === hoje,
+      );
     });
     if (todayRec) {
       try {
-        console.log("[chegadas-hoje] hoje=", hoje, "todaySample=", JSON.stringify(todayRec).slice(0, 3500));
+        console.log(
+          `[chegadas-hoje] ${property} hoje=${hoje} raw=${rawList.length} sample=`,
+          JSON.stringify(todayRec).slice(0, 2500),
+        );
       } catch {}
     } else {
-      console.log("[chegadas-hoje] hoje=", hoje, "total=", rawList.length, "sem reservas checkIn=hoje");
+      console.log(`[chegadas-hoje] ${property} hoje=${hoje} raw=${rawList.length} sem reservas com roomCheckIn=hoje`);
     }
-    for (const r of rawList) {
 
+    for (const r of rawList) {
       const rec = r as {
         reservationID?: string | number;
         guestName?: string;
