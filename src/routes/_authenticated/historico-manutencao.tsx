@@ -66,6 +66,11 @@ interface PreventiveTask {
   active: boolean;
 }
 
+interface Midia {
+  type: "image" | "video" | "audio";
+  url: string;
+}
+
 interface PreventiveLog {
   id: string;
   property: string;
@@ -75,6 +80,8 @@ interface PreventiveLog {
   technician_name: string;
   completed_at: string;
   next_due_date: string;
+  notes: string | null;
+  midias: Midia[] | null;
   task?: {
     task_name: string;
     category: string;
@@ -203,6 +210,8 @@ function HistoricoManutencaoPage() {
             completed_at,
             next_due_date,
             task_id,
+            notes,
+            midias,
             task:preventive_tasks (
               task_name,
               category,
@@ -490,6 +499,43 @@ function HistoricoManutencaoPage() {
                     <p className="text-[11px] text-slate-400 mt-0.5">
                       Próxima: {fmtDateOnly(log.next_due_date)}
                     </p>
+                  )}
+                  {log.notes && (
+                    <p className="text-xs text-slate-700 mt-2 bg-slate-50 border border-slate-200 rounded-lg p-2 whitespace-pre-wrap">
+                      {log.notes}
+                    </p>
+                  )}
+                  {Array.isArray(log.midias) && log.midias.length > 0 && (
+                    <div className="mt-2 grid grid-cols-3 gap-2">
+                      {log.midias.map((m, i) => (
+                        <a
+                          key={`${log.id}-${i}`}
+                          href={m.url}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="block rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
+                        >
+                          {m.type === "image" ? (
+                            <img
+                              src={m.url}
+                              alt="Foto da manutenção"
+                              className="w-full aspect-square object-cover"
+                              loading="lazy"
+                            />
+                          ) : m.type === "video" ? (
+                            <video
+                              src={m.url}
+                              className="w-full aspect-square object-cover"
+                              controls
+                              playsInline
+                              preload="metadata"
+                            />
+                          ) : (
+                            <audio src={m.url} controls className="w-full" />
+                          )}
+                        </a>
+                      ))}
+                    </div>
                   )}
                 </div>
                 <Button
