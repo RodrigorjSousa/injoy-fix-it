@@ -524,6 +524,7 @@ function PainelPreventiva({
         defaultTechnician="Cristiano"
         canAdjustDates={!!me && (me.isAdmin || me.isGestor)}
       />
+      <AreasComunsManager open={manageOpen} onOpenChange={setManageOpen} />
     </>
   );
 }
