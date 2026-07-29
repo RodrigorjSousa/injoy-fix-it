@@ -66,6 +66,11 @@ interface PreventiveTask {
   active: boolean;
 }
 
+interface Midia {
+  type: "image" | "video" | "audio";
+  url: string;
+}
+
 interface PreventiveLog {
   id: string;
   property: string;
@@ -75,6 +80,8 @@ interface PreventiveLog {
   technician_name: string;
   completed_at: string;
   next_due_date: string;
+  notes: string | null;
+  midias: Midia[] | null;
   task?: {
     task_name: string;
     category: string;
