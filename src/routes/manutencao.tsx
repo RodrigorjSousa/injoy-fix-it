@@ -253,7 +253,7 @@ function PainelPreventiva({
   const areasComuns = useAreasComuns();
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
-  const quartos = unidade === "Ipanema" ? QUARTOS_IPANEMA : QUARTOS_BOTAFOGO;
+  const quartos = useQuartos(unidade);
 
   const locations = useMemo(() => {
     const roomLocs = quartos.map((n) => ({ category: "Quarto" as TaskCategory, name: `Quarto ${n}` }));
