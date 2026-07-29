@@ -834,7 +834,7 @@ function ChecklistModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={() => submit.mutate()}
-            disabled={submit.isPending || marcados === 0 || !tecnico.trim()}
+            disabled={submit.isPending || marcados === 0 || !tecnico.trim() || uploadingTaskId !== null}
             className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
