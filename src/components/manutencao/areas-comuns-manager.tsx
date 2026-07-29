@@ -15,6 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const AREAS_KEY = "manutencao_areas_comuns";
 const QUARTOS_KEY_PREFIX = "manutencao_quartos_";
@@ -43,6 +49,7 @@ interface TaskRow {
   category: string;
   frequency_days: number;
   active: boolean;
+  discipline?: string | null;
 }
 
 function defaultsFor(unidade: string): string[] {
@@ -255,6 +262,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
               category="Área Comum"
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Área Comum")}
               loading={tasksQ.isLoading}
+              areas={areas}
             />
           </TabsContent>
         </Tabs>
@@ -411,14 +419,14 @@ function ItensChecklist({
   category,
   tasks,
   loading,
+  areas,
 }: {
   category: TaskCategory;
   tasks: TaskRow[];
   loading: boolean;
+  areas?: string[];
 }) {
   const qc = useQueryClient();
-  const [newTaskName, setNewTaskName] = useState("");
-  const [newTaskFreq, setNewTaskFreq] = useState("30");
 
   const invalidateAll = () => {
     qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
@@ -427,23 +435,20 @@ function ItensChecklist({
   };
 
   const addTask = useMutation({
-    mutationFn: async () => {
-      const name = newTaskName.trim();
-      const days = Number(newTaskFreq);
-      if (!name) throw new Error("Informe o nome da tarefa");
-      if (!Number.isFinite(days) || days < 1) throw new Error("Frequência inválida");
+    mutationFn: async (p: { name: string; days: number; discipline: string | null }) => {
+      if (!p.name.trim()) throw new Error("Informe o nome da tarefa");
+      if (!Number.isFinite(p.days) || p.days < 1) throw new Error("Frequência inválida");
       const { error } = await supabase.from("preventive_tasks" as never).insert({
-        task_name: name,
-        frequency_days: days,
+        task_name: p.name.trim(),
+        frequency_days: p.days,
         category,
         active: true,
+        discipline: p.discipline,
       } as never);
       if (error) throw error;
     },
     onSuccess: () => {
       toast.success("Item adicionado");
-      setNewTaskName("");
-      setNewTaskFreq("30");
       invalidateAll();
     },
     onError: (e: Error) => toast.error(e.message),
@@ -480,72 +485,142 @@ function ItensChecklist({
     onError: (e: Error) => toast.error(e.message),
   });
 
-  const list = useMemo(() => tasks, [tasks]);
+  const sharedTasks = useMemo(
+    () => tasks.filter((t) => !t.discipline),
+    [tasks],
+  );
+
+  const renderList = (list: TaskRow[]) => (
+    <div className="space-y-2">
+      {list.length === 0 && (
+        <div className="text-center text-sm text-slate-500 py-6 rounded-xl border border-dashed border-slate-200">
+          Nenhum item cadastrado.
+        </div>
+      )}
+      {list.map((t) => (
+        <TaskEditRow
+          key={t.id}
+          task={t}
+          onSave={(payload) => updateTask.mutate({ ...t, ...payload })}
+          onDelete={() => {
+            if (confirm(`Excluir "${t.task_name}"?`)) delTask.mutate(t.id);
+          }}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-3">
       <p className="text-xs text-slate-500">
         {category === "Quarto"
           ? "Estes itens aparecem no checklist de todos os quartos."
-          : "Estes itens aparecem no checklist de todas as áreas comuns."}
+          : "O bloco abaixo aplica itens a TODAS as áreas comuns. Use os cards por área para itens específicos."}
       </p>
 
-      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-          <div className="sm:col-span-2">
-            <Label className="text-xs text-slate-600">Nome do item</Label>
-            <Input
-              value={newTaskName}
-              onChange={(e) => setNewTaskName(e.target.value)}
-              placeholder="Ex.: Verificar ar-condicionado"
-              className="bg-white"
-            />
-          </div>
-          <div>
-            <Label className="text-xs text-slate-600">Frequência (dias)</Label>
-            <Input
-              type="number"
-              min={1}
-              value={newTaskFreq}
-              onChange={(e) => setNewTaskFreq(e.target.value)}
-              className="bg-white"
-            />
-          </div>
-        </div>
-        <Button
-          onClick={() => addTask.mutate()}
-          disabled={addTask.isPending || !newTaskName.trim()}
-          className="w-full bg-teal-600 hover:bg-teal-700 text-white"
-        >
-          {addTask.isPending ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-2" />
-          )}
-          Adicionar item
-        </Button>
-      </div>
+      <AddItemForm
+        pending={addTask.isPending}
+        onAdd={(name, days) => addTask.mutate({ name, days, discipline: null })}
+      />
 
-      <div className="space-y-2">
-        {loading && (
-          <div className="text-center text-sm text-slate-500 py-6">Carregando…</div>
-        )}
-        {!loading && list.length === 0 && (
-          <div className="text-center text-sm text-slate-500 py-6 rounded-xl border border-dashed border-slate-200">
-            Nenhum item cadastrado.
-          </div>
-        )}
-        {list.map((t) => (
-          <TaskEditRow
-            key={t.id}
-            task={t}
-            onSave={(payload) => updateTask.mutate({ ...t, ...payload })}
-            onDelete={() => {
-              if (confirm(`Excluir "${t.task_name}"?`)) delTask.mutate(t.id);
-            }}
+      {loading && (
+        <div className="text-center text-sm text-slate-500 py-6">Carregando…</div>
+      )}
+
+      {!loading && renderList(sharedTasks)}
+
+      {category === "Área Comum" && areas && areas.length > 0 && (
+        <div className="pt-2">
+          <p className="text-xs font-medium text-slate-600 mb-2">
+            Itens específicos por área
+          </p>
+          <Accordion type="multiple" className="space-y-2">
+            {areas.map((area) => {
+              const areaTasks = tasks.filter((t) => t.discipline === area);
+              return (
+                <AccordionItem
+                  key={area}
+                  value={area}
+                  className="rounded-xl border border-slate-200 bg-white px-3"
+                >
+                  <AccordionTrigger className="text-sm font-semibold text-slate-800 hover:no-underline">
+                    <span className="flex items-center gap-2">
+                      <Building2 className="h-4 w-4 text-teal-600" />
+                      {area}
+                      <span className="text-xs font-normal text-slate-500">
+                        ({areaTasks.length})
+                      </span>
+                    </span>
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-3 space-y-3">
+                    <AddItemForm
+                      pending={addTask.isPending}
+                      onAdd={(name, days) =>
+                        addTask.mutate({ name, days, discipline: area })
+                      }
+                    />
+                    {renderList(areaTasks)}
+                  </AccordionContent>
+                </AccordionItem>
+              );
+            })}
+          </Accordion>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AddItemForm({
+  pending,
+  onAdd,
+}: {
+  pending: boolean;
+  onAdd: (name: string, days: number) => void;
+}) {
+  const [name, setName] = useState("");
+  const [freq, setFreq] = useState("30");
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 space-y-2">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <div className="sm:col-span-2">
+          <Label className="text-xs text-slate-600">Nome do item</Label>
+          <Input
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ex.: Verificar ar-condicionado"
+            className="bg-white"
           />
-        ))}
+        </div>
+        <div>
+          <Label className="text-xs text-slate-600">Frequência (dias)</Label>
+          <Input
+            type="number"
+            min={1}
+            value={freq}
+            onChange={(e) => setFreq(e.target.value)}
+            className="bg-white"
+          />
+        </div>
       </div>
+      <Button
+        onClick={() => {
+          const days = Number(freq);
+          if (!name.trim() || !Number.isFinite(days) || days < 1) return;
+          onAdd(name, days);
+          setName("");
+          setFreq("30");
+        }}
+        disabled={pending || !name.trim()}
+        className="w-full bg-teal-600 hover:bg-teal-700 text-white"
+      >
+        {pending ? (
+          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+        ) : (
+          <Plus className="h-4 w-4 mr-2" />
+        )}
+        Adicionar item
+      </Button>
     </div>
   );
 }
