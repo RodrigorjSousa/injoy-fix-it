@@ -42,9 +42,19 @@ export function TarefasExtrasChecklistManager() {
     setNovo("");
   }, [activeCat, unidade]);
 
+  const syncedItems = useTarefasExtrasItems(
+    unidade,
+    activeCat?.key ?? "cozinha",
+    activeCat?.defaults ?? [],
+  );
+
+  useEffect(() => {
+    if (!activeCat) return;
+    setItems(syncedItems);
+  }, [activeCat, syncedItems]);
+
   const persist = async (next: string[]) => {
     if (!activeCat) return;
-    setItems(next);
     try {
       await saveItems(unidade, activeCat.key, next);
     } catch (e) {
