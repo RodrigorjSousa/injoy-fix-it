@@ -1,0 +1,1 @@
+ALTER TABLE public.preventive_logs ADD COLUMN IF NOT EXISTS midias jsonb NOT NULL DEFAULT '[]'::jsonb;
