@@ -595,7 +595,9 @@ function ChecklistModal({
   const qc = useQueryClient();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
-  const [notes, setNotes] = useState("");
+  const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
+  const [taskMidias, setTaskMidias] = useState<Record<string, Midia[]>>({});
+  const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState<{
     logId: string;
     task: PreventiveTask;
@@ -624,7 +626,8 @@ function ChecklistModal({
             task_id: t.id,
             technician_name: tecnico.trim(),
             frequency_days: t.frequency_days,
-            notes: notes.trim() || null,
+            notes: (taskNotes[t.id] || "").trim() || null,
+            midias: taskMidias[t.id] ?? [],
             completed_at: nowIso,
           };
         });
