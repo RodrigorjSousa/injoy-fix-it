@@ -44,6 +44,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MediaCapture } from "@/components/media-capture";
+import type { Midia } from "@/lib/store";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
