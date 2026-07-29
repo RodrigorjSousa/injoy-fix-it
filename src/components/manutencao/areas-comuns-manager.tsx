@@ -256,6 +256,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
               category="Área Comum"
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Área Comum")}
               loading={tasksQ.isLoading}
+              areas={areas}
             />
           </TabsContent>
         </Tabs>
