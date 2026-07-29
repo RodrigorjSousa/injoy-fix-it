@@ -46,7 +46,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MediaCapture } from "@/components/media-capture";
 import type { Midia } from "@/lib/store";
-import { AreasComunsManager, useAreasComuns } from "@/components/manutencao/areas-comuns-manager";
+import { AreasComunsManager, useAreasComuns, useQuartos } from "@/components/manutencao/areas-comuns-manager";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
