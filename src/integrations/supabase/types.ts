@@ -1005,6 +1005,7 @@ export type Database = {
           frequency_days: number
           id: string
           location_name: string
+          midias: Json
           next_due_date: string | null
           notes: string | null
           property: string
@@ -1019,6 +1020,7 @@ export type Database = {
           frequency_days: number
           id?: string
           location_name: string
+          midias?: Json
           next_due_date?: string | null
           notes?: string | null
           property: string
@@ -1033,6 +1035,7 @@ export type Database = {
           frequency_days?: number
           id?: string
           location_name?: string
+          midias?: Json
           next_due_date?: string | null
           notes?: string | null
           property?: string

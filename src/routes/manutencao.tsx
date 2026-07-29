@@ -44,6 +44,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { MediaCapture } from "@/components/media-capture";
+import type { Midia } from "@/lib/store";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -593,7 +595,9 @@ function ChecklistModal({
   const qc = useQueryClient();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
   const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
-  const [notes, setNotes] = useState("");
+  const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
+  const [taskMidias, setTaskMidias] = useState<Record<string, Midia[]>>({});
+  const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState<{
     logId: string;
     task: PreventiveTask;
@@ -622,7 +626,8 @@ function ChecklistModal({
             task_id: t.id,
             technician_name: tecnico.trim(),
             frequency_days: t.frequency_days,
-            notes: notes.trim() || null,
+            notes: (taskNotes[t.id] || "").trim() || null,
+            midias: taskMidias[t.id] ?? [],
             completed_at: nowIso,
           };
         });
@@ -637,7 +642,8 @@ function ChecklistModal({
       qc.invalidateQueries({ queryKey: ["preventive_logs"] });
       qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
       setChecked({});
-      setNotes("");
+      setTaskNotes({});
+      setTaskMidias({});
       onOpenChange(false);
     },
     onError: (e: Error) => {
@@ -760,6 +766,42 @@ function ChecklistModal({
                         Ajustar data executada
                       </Button>
                     )}
+                    {checked[s.task.id] && (
+                      <div className="mt-3 space-y-2 rounded-md border bg-muted/30 p-2">
+                        <Label htmlFor={`prev-notes-${s.task.id}`} className="text-xs">
+                          Comentário (opcional)
+                        </Label>
+                        <Textarea
+                          id={`prev-notes-${s.task.id}`}
+                          value={taskNotes[s.task.id] ?? ""}
+                          onChange={(e) =>
+                            setTaskNotes((n) => ({ ...n, [s.task.id]: e.target.value }))
+                          }
+                          placeholder="Observação da execução"
+                          rows={2}
+                        />
+                        <div className="space-y-1">
+                          <Label className="text-xs">Fotos e vídeo (até 15s)</Label>
+                          <MediaCapture
+                            midias={taskMidias[s.task.id] ?? []}
+                            onAdd={(m) =>
+                              setTaskMidias((mm) => ({
+                                ...mm,
+                                [s.task.id]: [...(mm[s.task.id] ?? []), m],
+                              }))
+                            }
+                            onRemove={(url) =>
+                              setTaskMidias((mm) => ({
+                                ...mm,
+                                [s.task.id]: (mm[s.task.id] ?? []).filter((x) => x.url !== url),
+                              }))
+                            }
+                            uploading={uploadingTaskId === s.task.id}
+                            setUploading={(v) => setUploadingTaskId(v ? s.task.id : null)}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               );
@@ -786,24 +828,13 @@ function ChecklistModal({
               </div>
             </div>
           </div>
-
-          <div className="space-y-1.5">
-            <Label htmlFor="prev-notes">Observações</Label>
-            <Textarea
-              id="prev-notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Anotações da execução (opcional)"
-              rows={2}
-            />
-          </div>
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button
             onClick={() => submit.mutate()}
-            disabled={submit.isPending || marcados === 0 || !tecnico.trim()}
+            disabled={submit.isPending || marcados === 0 || !tecnico.trim() || uploadingTaskId !== null}
             className="bg-teal-600 hover:bg-teal-700 text-white"
           >
             <CheckCircle2 className="h-4 w-4 mr-2" />
