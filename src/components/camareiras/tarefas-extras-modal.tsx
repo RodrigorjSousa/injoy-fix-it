@@ -229,6 +229,7 @@ const itemsCache = new Map<string, string[]>();
 const cacheListeners = new Set<() => void>();
 let cacheBootstrapped = false;
 let cacheBootstrapping: Promise<void> | null = null;
+let cacheSubscribed = false;
 
 function notifyCache() {
   cacheListeners.forEach((fn) => {
@@ -247,6 +248,7 @@ function tryLocalMirror(unidade: string, cat: CategoryKey): string[] | null {
 }
 
 async function bootstrapCache() {
+  subscribeCache();
   if (cacheBootstrapped) return;
   if (cacheBootstrapping) return cacheBootstrapping;
   cacheBootstrapping = (async () => {
@@ -278,8 +280,8 @@ async function bootstrapCache() {
 }
 
 function subscribeCache() {
-  if (cacheBootstrapped) return;
-  cacheBootstrapped = true;
+  if (cacheSubscribed) return;
+  cacheSubscribed = true;
   supabase
     .channel("tarefas-extras-items-sync")
     .on(
