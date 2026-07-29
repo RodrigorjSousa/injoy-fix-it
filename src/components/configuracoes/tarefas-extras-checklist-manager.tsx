@@ -21,6 +21,8 @@ export function TarefasExtrasChecklistManager() {
   const [editingIdx, setEditingIdx] = useState<number | null>(null);
   const [editValue, setEditValue] = useState("");
   const [novo, setNovo] = useState("");
+  const [salvandoTudo, setSalvandoTudo] = useState(false);
+
 
   const cats = useMemo(
     () => CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)),
@@ -108,27 +110,66 @@ export function TarefasExtrasChecklistManager() {
     if (ok) toast.success("Padrão restaurado");
   };
 
+  const salvarTudo = async () => {
+    if (salvandoTudo) return;
+    setSalvandoTudo(true);
+    try {
+      for (const c of cats) {
+        const atuais =
+          activeCat && c.key === activeCat.key
+            ? items
+            : loadItems(unidade, c.key, c.defaults);
+        await saveItems(unidade, c.key, atuais);
+      }
+      toast.success("Check list salvo e atualizado em todas as telas");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Falha ao salvar check list");
+    } finally {
+      setSalvandoTudo(false);
+    }
+  };
+
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="w-full flex items-center gap-3 p-4 text-left hover:bg-slate-50"
-        aria-expanded={open}
-      >
-        <div className="h-9 w-9 rounded-lg bg-fuchsia-600 text-white grid place-items-center shrink-0 shadow-sm">
-          <ClipboardList size={16} />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-black text-slate-800">Check List das Tarefas Extras</p>
-          <p className="text-[11px] text-slate-500">
-            Adicione, edite ou remova itens dos checklists por área
-          </p>
-        </div>
-        <ChevronDown
-          size={18}
-          className={cn("text-slate-400 transition-transform", open && "rotate-180")}
-        />
-      </button>
+      <div className="w-full flex items-center gap-3 p-4">
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="flex flex-1 min-w-0 items-center gap-3 text-left"
+          aria-expanded={open}
+        >
+          <div className="h-9 w-9 rounded-lg bg-fuchsia-600 text-white grid place-items-center shrink-0 shadow-sm">
+            <ClipboardList size={16} />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-black text-slate-800">Check List das Tarefas Extras</p>
+            <p className="text-[11px] text-slate-500">
+              Adicione, edite ou remova itens dos checklists por área
+            </p>
+          </div>
+        </button>
+        <button
+          onClick={salvarTudo}
+          disabled={salvandoTudo}
+          className={cn(
+            "shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-white transition-colors",
+            salvandoTudo ? "bg-slate-300 cursor-not-allowed" : "bg-emerald-600 hover:bg-emerald-700",
+          )}
+        >
+          <Save size={14} />
+          {salvandoTudo ? "Salvando..." : "Salvar Check List / Tarefas Extras"}
+        </button>
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="shrink-0 p-1"
+          aria-label={open ? "Recolher" : "Expandir"}
+        >
+          <ChevronDown
+            size={18}
+            className={cn("text-slate-400 transition-transform", open && "rotate-180")}
+          />
+        </button>
+      </div>
+
 
       {open && (
         <div className="p-4 border-t border-slate-100 space-y-4">
