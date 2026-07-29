@@ -224,6 +224,7 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       console.log(`[chegadas-hoje] ${property} hoje=${hoje} raw=${rawList.length} sem reservas com roomCheckIn=hoje`);
     }
 
+    for (const r of rawList) {
       const rec = r as {
         reservationID?: string | number;
         guestName?: string;
