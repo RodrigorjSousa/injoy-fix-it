@@ -303,21 +303,21 @@ export function loadItems(unidade: string, cat: CategoryKey, defaults: string[])
 }
 
 export async function saveItems(unidade: string, cat: CategoryKey, items: string[]) {
-  itemsCache.set(cacheKey(unidade, cat), items);
-  notifyCache();
+  const nextItems = items.map((item) => item.trim()).filter(Boolean);
   try {
+    const { error } = await supabase
+      .from("app_settings" as never)
+      .upsert({ key: settingsKey(unidade, cat), value: JSON.stringify(nextItems) } as never);
+    if (error) throw error;
+
+    itemsCache.set(cacheKey(unidade, cat), nextItems);
+    notifyCache();
+
     localStorage.setItem(
       `injoy:tarefas-extras:${unidade}:${cat}`,
-      JSON.stringify(items),
+      JSON.stringify(nextItems),
     );
   } catch { /* ignore */ }
-  const { error } = await supabase
-    .from("app_settings" as never)
-    .upsert({ key: settingsKey(unidade, cat), value: JSON.stringify(items) } as never);
-  if (error) {
-    console.error("[tarefas-extras] falha ao salvar em app_settings:", error);
-    throw error;
-  }
 }
 
 export function useTarefasExtrasItems(
