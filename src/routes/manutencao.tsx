@@ -46,7 +46,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { MediaCapture } from "@/components/media-capture";
 import type { Midia } from "@/lib/store";
-import { AreasComunsManager, useAreasComuns } from "@/components/manutencao/areas-comuns-manager";
+import { AreasComunsManager, useAreasComuns, useQuartos } from "@/components/manutencao/areas-comuns-manager";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -253,7 +253,7 @@ function PainelPreventiva({
   const areasComuns = useAreasComuns();
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
-  const quartos = unidade === "Ipanema" ? QUARTOS_IPANEMA : QUARTOS_BOTAFOGO;
+  const quartos = useQuartos(unidade);
 
   const locations = useMemo(() => {
     const roomLocs = quartos.map((n) => ({ category: "Quarto" as TaskCategory, name: `Quarto ${n}` }));
@@ -342,7 +342,7 @@ function PainelPreventiva({
               className="h-7 text-xs"
             >
               <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              Gerenciar áreas comuns
+              Gerenciar todos os locais
             </Button>
           )}
           {filter !== "todos" && (
@@ -516,7 +516,7 @@ function PainelPreventiva({
         defaultTechnician="Cristiano"
         canAdjustDates={!!me && (me.isAdmin || me.isGestor)}
       />
-      <AreasComunsManager open={manageOpen} onOpenChange={setManageOpen} />
+      <AreasComunsManager open={manageOpen} onOpenChange={setManageOpen} unidade={unidade} />
     </>
   );
 }
