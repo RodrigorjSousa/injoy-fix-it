@@ -642,7 +642,8 @@ function ChecklistModal({
       qc.invalidateQueries({ queryKey: ["preventive_logs"] });
       qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
       setChecked({});
-      setNotes("");
+      setTaskNotes({});
+      setTaskMidias({});
       onOpenChange(false);
     },
     onError: (e: Error) => {
