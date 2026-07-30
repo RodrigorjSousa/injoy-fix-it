@@ -151,6 +151,7 @@ function HistoricoManutencaoPage() {
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<PreventiveLog | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [executionDate, setExecutionDate] = useState("");
 
   const adjustDateMutation = useMutation({
