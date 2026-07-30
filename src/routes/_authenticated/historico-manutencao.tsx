@@ -67,7 +67,7 @@ interface PreventiveTask {
 }
 
 interface Midia {
-  type: "image" | "video" | "audio";
+  type: "image" | "photo" | "video" | "audio";
   url: string;
 }
 
@@ -151,6 +151,7 @@ function HistoricoManutencaoPage() {
   const [tab, setTab] = useState<"executados" | "pendentes">("executados");
   const [gerenciarOpen, setGerenciarOpen] = useState(false);
   const [editingLog, setEditingLog] = useState<PreventiveLog | null>(null);
+  const [lightbox, setLightbox] = useState<string | null>(null);
   const [executionDate, setExecutionDate] = useState("");
 
   const adjustDateMutation = useMutation({
@@ -508,20 +509,23 @@ function HistoricoManutencaoPage() {
                   {Array.isArray(log.midias) && log.midias.length > 0 && (
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {log.midias.map((m, i) => (
-                        <a
+                        <div
                           key={`${log.id}-${i}`}
-                          href={m.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
+                          className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
                         >
-                          {m.type === "image" ? (
-                            <img
-                              src={m.url}
-                              alt="Foto da manutenção"
-                              className="w-full aspect-square object-cover"
-                              loading="lazy"
-                            />
+                          {m.type === "image" || m.type === "photo" ? (
+                            <button
+                              type="button"
+                              onClick={() => setLightbox(m.url)}
+                              className="block w-full"
+                            >
+                              <img
+                                src={m.url}
+                                alt="Foto da manutenção"
+                                className="w-full aspect-square object-cover cursor-zoom-in"
+                                loading="lazy"
+                              />
+                            </button>
                           ) : m.type === "video" ? (
                             <video
                               src={m.url}
@@ -533,7 +537,7 @@ function HistoricoManutencaoPage() {
                           ) : (
                             <audio src={m.url} controls className="w-full" />
                           )}
-                        </a>
+                        </div>
                       ))}
                     </div>
                   )}
@@ -625,6 +629,21 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Foto da manutenção</DialogTitle>
+          </DialogHeader>
+          {lightbox && (
+            <img
+              src={lightbox}
+              alt="Foto da manutenção ampliada"
+              className="w-full max-h-[80vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
