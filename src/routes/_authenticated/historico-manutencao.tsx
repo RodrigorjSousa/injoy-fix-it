@@ -67,7 +67,7 @@ interface PreventiveTask {
 }
 
 interface Midia {
-  type: "image" | "video" | "audio";
+  type: "image" | "photo" | "video" | "audio";
   url: string;
 }
 
