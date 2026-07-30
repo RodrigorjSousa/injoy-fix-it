@@ -2,6 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { LogOut, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type LogRow = {
   id: string;
@@ -44,53 +50,69 @@ export function CheckoutsCloudbedsCard({ unidade }: { unidade: Unidade }) {
   }, [unidade, carregar]);
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-rose-500 to-red-700 grid place-items-center text-white">
-            <LogOut className="h-4 w-4" />
-          </div>
-          <div>
-            <p className="text-sm font-black text-slate-900">Check-outs no Cloudbeds (Camareiras)</p>
-            <p className="text-xs text-slate-500">Últimos check-outs realizados diretamente pelas camareiras · INJOY {unidade}</p>
-          </div>
-        </div>
-        <button
-          onClick={carregar}
-          disabled={loading}
-          className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
-          aria-label="Recarregar"
-        >
-          <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="text-xs text-slate-400 py-6 text-center">Nenhum check-out registrado ainda.</p>
-      ) : (
-        <div className="divide-y divide-slate-100">
-          {rows.map((r) => {
-            const d = new Date(r.created_at);
-            const dataFmt = d.toLocaleString("pt-BR", {
-              day: "2-digit", month: "2-digit", year: "2-digit",
-              hour: "2-digit", minute: "2-digit",
-            });
-            return (
-              <div key={r.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-slate-800 truncate">
-                    Quarto {r.room_number} · {r.guest_name ?? "—"}
-                  </p>
-                  <p className="text-xs text-slate-500 truncate">
-                    Solicitado por <span className="font-medium text-slate-700">{r.camareira_name}</span>
-                  </p>
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <Accordion type="single" collapsible defaultValue="checkouts-cloudbeds">
+        <AccordionItem value="checkouts-cloudbeds" className="border-0">
+          <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-50/50 [&[data-state=open]>svg]:rotate-180">
+            <div className="flex items-center justify-between w-full pr-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-rose-500 to-red-700 grid place-items-center text-white shrink-0">
+                  <LogOut className="h-4 w-4" />
                 </div>
-                <span className="text-xs text-slate-500 whitespace-nowrap">{dataFmt}</span>
+                <div className="text-left">
+                  <p className="text-sm font-black text-slate-900">Check-outs no Cloudbeds (Camareiras)</p>
+                  <p className="text-[11px] text-slate-500">Últimos check-outs realizados diretamente pelas camareiras · INJOY {unidade}</p>
+                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div className="flex items-center gap-2 shrink-0">
+                <p className="text-xl font-black text-rose-600">{rows.length}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    carregar();
+                  }}
+                  disabled={loading}
+                  className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-50"
+                  aria-label="Recarregar"
+                >
+                  <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
+                </button>
+              </div>
+            </div>
+          </AccordionTrigger>
+
+          <AccordionContent>
+            <div className="px-5 pb-5">
+              {rows.length === 0 ? (
+                <p className="text-xs text-slate-400 py-6 text-center">Nenhum check-out registrado ainda.</p>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {rows.map((r) => {
+                    const d = new Date(r.created_at);
+                    const dataFmt = d.toLocaleString("pt-BR", {
+                      day: "2-digit", month: "2-digit", year: "2-digit",
+                      hour: "2-digit", minute: "2-digit",
+                    });
+                    return (
+                      <div key={r.id} className="py-2.5 flex items-center justify-between gap-3 text-sm">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-slate-800 truncate">
+                            Quarto {r.room_number} · {r.guest_name ?? "—"}
+                          </p>
+                          <p className="text-xs text-slate-500 truncate">
+                            Solicitado por <span className="font-medium text-slate-700">{r.camareira_name}</span>
+                          </p>
+                        </div>
+                        <span className="text-xs text-slate-500 whitespace-nowrap">{dataFmt}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
