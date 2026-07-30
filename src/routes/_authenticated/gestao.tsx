@@ -263,10 +263,6 @@ function DashboardGestao() {
 
         <StatusOperacaoQuartos unidade={unidadeAtiva} />
 
-        <ChamadosManutencaoAtivos unidade={unidadeAtiva} />
-
-
-
       </div>
     </div>
   );
