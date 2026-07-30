@@ -62,119 +62,139 @@ export function BookingReviewsCard({ unidade }: { unidade: Unidade }) {
   }, [rows]);
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-      <div className="flex justify-between items-start mb-4">
-        <div>
-          <p className="text-sm font-semibold text-slate-500">Notas Booking.com</p>
-          <h3 className="text-lg font-black text-slate-900">INJOY {unidade}</h3>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="p-2.5 bg-amber-50 text-amber-600 rounded-xl">
-            <Star size={20} />
-          </div>
-          {canEdit && (
-            <Button
-              size="sm"
-              onClick={() => setOpen(true)}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-1" /> Nova
-            </Button>
-          )}
-        </div>
-      </div>
-
-      {loading && rows.length === 0 && (
-        <p className="text-sm text-slate-400">Carregando…</p>
-      )}
-
-      {!loading && rows.length === 0 && (
-        <div className="text-center py-6 text-sm text-slate-500 border border-dashed border-slate-200 rounded-xl">
-          Nenhuma nota registrada ainda.
-          {canEdit && <div className="mt-1 text-xs">Toque em "Nova" para adicionar as notas da Booking.</div>}
-        </div>
-      )}
-
-      {latest && (
-        <>
-          <div className="grid grid-cols-3 gap-2 mb-4">
-            <ScoreBox
-              label="Geral"
-              value={latest.overall_score}
-              icon={<Star size={16} />}
-              color="text-amber-600 bg-amber-50"
-              trend={trend}
-            />
-            <ScoreBox
-              label="Limpeza"
-              value={latest.cleanliness_score}
-              icon={<Sparkles size={16} />}
-              color="text-emerald-600 bg-emerald-50"
-            />
-            <ScoreBox
-              label="Equipe"
-              value={latest.staff_score}
-              icon={<Users size={16} />}
-              color="text-indigo-600 bg-indigo-50"
-            />
-          </div>
-
-          <div className="text-[11px] text-slate-500 flex justify-between border-t pt-2">
-            <span>
-              Última atualização: {new Date(latest.reference_date + "T00:00:00").toLocaleDateString("pt-BR")}
-            </span>
-            {latest.sample_size ? <span>{latest.sample_size} avaliações</span> : null}
-          </div>
-
-          {rows.length > 1 && (
-            <details className="mt-3">
-              <summary className="text-xs text-blue-700 cursor-pointer font-semibold">
-                Ver histórico ({rows.length - 1})
-              </summary>
-              <ul className="mt-2 space-y-1 max-h-52 overflow-y-auto">
-                {rows.slice(1).map((r) => (
-                  <li
-                    key={r.id}
-                    className="flex items-center justify-between text-xs bg-slate-50 rounded-lg px-3 py-2"
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+      <Accordion type="single" collapsible defaultValue="booking-reviews">
+        <AccordionItem value="booking-reviews" className="border-0">
+          <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-50/50 [&[data-state=open]>svg]:rotate-180">
+            <div className="flex items-center justify-between w-full pr-3">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 grid place-items-center text-white shrink-0">
+                  <Star size={18} />
+                </div>
+                <div className="text-left">
+                  <p className="text-sm font-black text-slate-900">Notas Booking.com · INJOY {unidade}</p>
+                  <p className="text-[11px] text-slate-500">Avaliações e histórico de notas da unidade</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                {latest && (
+                  <p className="text-xl font-black text-amber-600">
+                    {Number(latest.overall_score).toFixed(1)}
+                  </p>
+                )}
+                {canEdit && (
+                  <Button
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpen(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700"
                   >
-                    <span className="font-semibold text-slate-700">
-                      {new Date(r.reference_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                    <Plus className="h-4 w-4 mr-1" /> Nova
+                  </Button>
+                )}
+              </div>
+            </div>
+          </AccordionTrigger>
+
+          <AccordionContent>
+            <div className="px-5 pb-5">
+              {loading && rows.length === 0 && (
+                <p className="text-sm text-slate-400">Carregando…</p>
+              )}
+
+              {!loading && rows.length === 0 && (
+                <div className="text-center py-6 text-sm text-slate-500 border border-dashed border-slate-200 rounded-xl">
+                  Nenhuma nota registrada ainda.
+                  {canEdit && <div className="mt-1 text-xs">Toque em "Nova" para adicionar as notas da Booking.</div>}
+                </div>
+              )}
+
+              {latest && (
+                <>
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    <ScoreBox
+                      label="Geral"
+                      value={latest.overall_score}
+                      icon={<Star size={16} />}
+                      color="text-amber-600 bg-amber-50"
+                      trend={trend}
+                    />
+                    <ScoreBox
+                      label="Limpeza"
+                      value={latest.cleanliness_score}
+                      icon={<Sparkles size={16} />}
+                      color="text-emerald-600 bg-emerald-50"
+                    />
+                    <ScoreBox
+                      label="Equipe"
+                      value={latest.staff_score}
+                      icon={<Users size={16} />}
+                      color="text-indigo-600 bg-indigo-50"
+                    />
+                  </div>
+
+                  <div className="text-[11px] text-slate-500 flex justify-between border-t pt-2">
+                    <span>
+                      Última atualização: {new Date(latest.reference_date + "T00:00:00").toLocaleDateString("pt-BR")}
                     </span>
-                    <span className="flex gap-2 text-slate-600">
-                      <span className="text-amber-600 font-bold">{Number(r.overall_score).toFixed(1)}</span>
-                      {r.cleanliness_score != null && (
-                        <span>L {Number(r.cleanliness_score).toFixed(1)}</span>
-                      )}
-                      {r.staff_score != null && (
-                        <span>E {Number(r.staff_score).toFixed(1)}</span>
-                      )}
-                    </span>
-                    {canEdit && (
-                      <button
-                        onClick={async () => {
-                          if (!confirm("Excluir esta nota?")) return;
-                          const { error } = await supabase
-                            .from("booking_reviews")
-                            .delete()
-                            .eq("id", r.id);
-                          if (error) toast.error(error.message);
-                          else {
-                            toast.success("Removido");
-                            load();
-                          }
-                        }}
-                        className="text-red-500 hover:text-red-700"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            </details>
-          )}
-        </>
-      )}
+                    {latest.sample_size ? <span>{latest.sample_size} avaliações</span> : null}
+                  </div>
+
+                  {rows.length > 1 && (
+                    <details className="mt-3">
+                      <summary className="text-xs text-blue-700 cursor-pointer font-semibold">
+                        Ver histórico ({rows.length - 1})
+                      </summary>
+                      <ul className="mt-2 space-y-1 max-h-52 overflow-y-auto">
+                        {rows.slice(1).map((r) => (
+                          <li
+                            key={r.id}
+                            className="flex items-center justify-between text-xs bg-slate-50 rounded-lg px-3 py-2"
+                          >
+                            <span className="font-semibold text-slate-700">
+                              {new Date(r.reference_date + "T00:00:00").toLocaleDateString("pt-BR")}
+                            </span>
+                            <span className="flex gap-2 text-slate-600">
+                              <span className="text-amber-600 font-bold">{Number(r.overall_score).toFixed(1)}</span>
+                              {r.cleanliness_score != null && (
+                                <span>L {Number(r.cleanliness_score).toFixed(1)}</span>
+                              )}
+                              {r.staff_score != null && (
+                                <span>E {Number(r.staff_score).toFixed(1)}</span>
+                              )}
+                            </span>
+                            {canEdit && (
+                              <button
+                                onClick={async () => {
+                                  if (!confirm("Excluir esta nota?")) return;
+                                  const { error } = await supabase
+                                    .from("booking_reviews")
+                                    .delete()
+                                    .eq("id", r.id);
+                                  if (error) toast.error(error.message);
+                                  else {
+                                    toast.success("Removido");
+                                    load();
+                                  }
+                                }}
+                                className="text-red-500 hover:text-red-700"
+                              >
+                                <Trash2 size={12} />
+                              </button>
+                            )}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
+                  )}
+                </>
+              )}
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <NovaNotaDialog
         open={open}
