@@ -2,6 +2,12 @@ import { useEffect, useState, useCallback } from "react";
 import { LogOut, RefreshCw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type LogRow = {
   id: string;
