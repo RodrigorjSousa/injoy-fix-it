@@ -508,20 +508,23 @@ function HistoricoManutencaoPage() {
                   {Array.isArray(log.midias) && log.midias.length > 0 && (
                     <div className="mt-2 grid grid-cols-3 gap-2">
                       {log.midias.map((m, i) => (
-                        <a
+                        <div
                           key={`${log.id}-${i}`}
-                          href={m.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="block rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
+                          className="rounded-lg overflow-hidden border border-slate-200 bg-slate-100"
                         >
-                          {m.type === "image" ? (
-                            <img
-                              src={m.url}
-                              alt="Foto da manutenção"
-                              className="w-full aspect-square object-cover"
-                              loading="lazy"
-                            />
+                          {m.type === "image" || m.type === "photo" ? (
+                            <button
+                              type="button"
+                              onClick={() => setLightbox(m.url)}
+                              className="block w-full"
+                            >
+                              <img
+                                src={m.url}
+                                alt="Foto da manutenção"
+                                className="w-full aspect-square object-cover cursor-zoom-in"
+                                loading="lazy"
+                              />
+                            </button>
                           ) : m.type === "video" ? (
                             <video
                               src={m.url}
@@ -533,7 +536,7 @@ function HistoricoManutencaoPage() {
                           ) : (
                             <audio src={m.url} controls className="w-full" />
                           )}
-                        </a>
+                        </div>
                       ))}
                     </div>
                   )}
