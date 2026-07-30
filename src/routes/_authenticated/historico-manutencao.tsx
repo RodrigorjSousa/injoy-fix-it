@@ -629,6 +629,21 @@ function HistoricoManutencaoPage() {
           </div>
         )}
       </div>
+
+      <Dialog open={!!lightbox} onOpenChange={(o) => !o && setLightbox(null)}>
+        <DialogContent className="max-w-3xl p-2">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Foto da manutenção</DialogTitle>
+          </DialogHeader>
+          {lightbox && (
+            <img
+              src={lightbox}
+              alt="Foto da manutenção ampliada"
+              className="w-full max-h-[80vh] object-contain rounded-lg"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
