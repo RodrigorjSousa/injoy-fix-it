@@ -51,7 +51,7 @@ export function CheckoutsCloudbedsCard({ unidade }: { unidade: Unidade }) {
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-      <Accordion type="single" collapsible defaultValue="checkouts-cloudbeds">
+      <Accordion type="single" collapsible>
         <AccordionItem value="checkouts-cloudbeds" className="border-0">
           <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-50/50 [&[data-state=open]>svg]:rotate-180">
             <div className="flex items-center justify-between w-full pr-3">
