@@ -10,6 +10,8 @@ import { InspectionImage } from "@/components/InspectionImage";
 import { PeriodItemsManager } from "@/components/configuracoes/period-items-manager";
 import { TarefasExtrasPeriodicityManager } from "@/components/configuracoes/tarefas-extras-periodicity-manager";
 import { TarefasExtrasChecklistManager } from "@/components/configuracoes/tarefas-extras-checklist-manager";
+import { TarefasExtrasHistoricoCard } from "@/components/configuracoes/tarefas-extras-historico-card";
+
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
