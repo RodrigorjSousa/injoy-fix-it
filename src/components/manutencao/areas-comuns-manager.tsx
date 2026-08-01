@@ -161,25 +161,26 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
   const qc = useQueryClient();
 
   const areasQ = useQuery({
-    queryKey: ["manutencao_areas_comuns"],
-    queryFn: fetchAreas,
+    queryKey: ["manutencao_areas_comuns", unidade],
+    queryFn: () => fetchAreas(unidade),
     enabled: open,
   });
-  const areas = areasQ.data ?? DEFAULT_AREAS_COMUNS;
+  const areas: string[] = areasQ.data ?? DEFAULT_AREAS_COMUNS;
 
   const quartosQ = useQuery({
     queryKey: ["manutencao_quartos", unidade],
     queryFn: () => fetchListSetting(quartosKey(unidade), defaultsFor(unidade)),
     enabled: open,
   });
-  const quartos = quartosQ.data ?? defaultsFor(unidade);
+  const quartos: string[] = quartosQ.data ?? defaultsFor(unidade);
 
   const tasksQ = useQuery({
-    queryKey: ["preventive_tasks_all"],
+    queryKey: ["preventive_tasks_all", unidade],
     queryFn: async (): Promise<TaskRow[]> => {
       const { data, error } = await supabase
         .from("preventive_tasks" as never)
         .select("*")
+        .eq("property", unidade)
         .order("category")
         .order("task_name");
       if (error) throw error;
@@ -198,7 +199,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
       return { key, clean };
     },
     onSuccess: ({ key }) => {
-      if (key === AREAS_KEY) {
+      if (key.startsWith(AREAS_KEY_PREFIX)) {
         qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns"] });
       } else {
         qc.invalidateQueries({ queryKey: ["manutencao_quartos"] });
