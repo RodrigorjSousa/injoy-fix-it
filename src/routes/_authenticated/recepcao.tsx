@@ -89,6 +89,7 @@ interface QuartoRecepcao {
   docPendente: boolean;
   statusCheckin: StatusCheckin;
   temReserva: boolean;
+  hospedeSaindoHoje?: string;
   proximoHospede?: string;
   proximoChegadaHora?: string;
   proximoPax?: number;
