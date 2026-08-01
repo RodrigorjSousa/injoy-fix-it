@@ -86,13 +86,14 @@ interface PreventiveLog {
 const QUARTOS_IPANEMA = ["01","02","103","104","205","206","307","308","309","410","411","412"];
 const QUARTOS_BOTAFOGO = ["01","02","03","05","06","107","108","109","110","111","112","113","114","115","117","118","301","401","501"];
 
-function usePreventiveTasks() {
+function usePreventiveTasks(property: string) {
   return useQuery({
-    queryKey: ["preventive_tasks"],
+    queryKey: ["preventive_tasks", property],
     queryFn: async (): Promise<PreventiveTask[]> => {
       const { data, error } = await supabase
         .from("preventive_tasks" as never)
         .select("*")
+        .eq("property", property)
         .order("category")
         .order("task_name");
       if (error) throw error;
