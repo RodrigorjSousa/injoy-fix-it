@@ -248,7 +248,6 @@ function HistoricoLimpezaPage() {
     created_at: string;
   };
   const [checklists, setChecklists] = useState<ChecklistLog[]>([]);
-  const [openChecklist, setOpenChecklist] = useState<string | null>(null);
 
   const carregarChecklists = useCallback(async () => {
     let q = supabase
