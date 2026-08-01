@@ -929,7 +929,7 @@ function ChecklistModal({
   );
 }
 
-function AdminTarefas({ tasks }: { tasks: PreventiveTask[] }) {
+function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: string }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<PreventiveTask | null>(null);
   const [creating, setCreating] = useState(false);
