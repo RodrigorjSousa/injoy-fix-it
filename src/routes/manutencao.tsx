@@ -86,13 +86,14 @@ interface PreventiveLog {
 const QUARTOS_IPANEMA = ["01","02","103","104","205","206","307","308","309","410","411","412"];
 const QUARTOS_BOTAFOGO = ["01","02","03","05","06","107","108","109","110","111","112","113","114","115","117","118","301","401","501"];
 
-function usePreventiveTasks() {
+function usePreventiveTasks(property: string) {
   return useQuery({
-    queryKey: ["preventive_tasks"],
+    queryKey: ["preventive_tasks", property],
     queryFn: async (): Promise<PreventiveTask[]> => {
       const { data, error } = await supabase
         .from("preventive_tasks" as never)
         .select("*")
+        .eq("property", property)
         .order("category")
         .order("task_name");
       if (error) throw error;
@@ -183,7 +184,7 @@ function locationHealth(status: LocationTaskStatus[]): LocationHealth {
 function ManutencaoPage() {
   const { unidade } = useUnidade();
   const { data: me } = useMe();
-  const tasksQ = usePreventiveTasks();
+  const tasksQ = usePreventiveTasks(unidade);
   const logsQ = usePreventiveLogs(unidade);
 
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
@@ -223,7 +224,7 @@ function ManutencaoPage() {
             </TabsList>
             <TabsContent value="painel" className="mt-6" />
             <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} />
+              <AdminTarefas tasks={tasksQ.data ?? []} unidade={unidade} />
             </TabsContent>
           </Tabs>
         )}
@@ -250,7 +251,7 @@ function PainelPreventiva({
   const [selected, setSelected] = useState<{ category: TaskCategory; name: string } | null>(null);
   const [filter, setFilter] = useState<"todos" | "atrasado" | "vence-breve" | "em-dia">("todos");
   const [manageOpen, setManageOpen] = useState(false);
-  const areasComuns = useAreasComuns();
+  const areasComuns = useAreasComuns(unidade);
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
   const quartos = useQuartos(unidade);
@@ -928,7 +929,7 @@ function ChecklistModal({
   );
 }
 
-function AdminTarefas({ tasks }: { tasks: PreventiveTask[] }) {
+function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: string }) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<PreventiveTask | null>(null);
   const [creating, setCreating] = useState(false);
@@ -996,6 +997,7 @@ function AdminTarefas({ tasks }: { tasks: PreventiveTask[] }) {
 
       <TaskEditor
         open={!!editing || creating}
+        unidade={unidade}
         task={editing}
         onOpenChange={(o) => {
           if (!o) {
@@ -1011,10 +1013,12 @@ function AdminTarefas({ tasks }: { tasks: PreventiveTask[] }) {
 function TaskEditor({
   open,
   task,
+  unidade,
   onOpenChange,
 }: {
   open: boolean;
   task: PreventiveTask | null;
+  unidade: string;
   onOpenChange: (o: boolean) => void;
 }) {
   const qc = useQueryClient();
@@ -1045,7 +1049,9 @@ function TaskEditor({
         const { error } = await supabase.from("preventive_tasks" as never).update(payload as never).eq("id", task.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("preventive_tasks" as never).insert(payload as never);
+        const { error } = await supabase
+          .from("preventive_tasks" as never)
+          .insert({ ...payload, property: unidade } as never);
         if (error) throw error;
       }
     },

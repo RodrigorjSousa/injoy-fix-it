@@ -87,7 +87,7 @@ export function GerenciarChecklistsModal({ open, onOpenChange }: Props) {
 
   const filtered = useMemo(() => {
     const rows = tasksQ.data ?? [];
-    return rows.filter((t) => !t.property || t.property === unidade);
+    return rows.filter((t) => t.property === unidade);
   }, [tasksQ.data, unidade]);
 
   const addMut = useMutation({

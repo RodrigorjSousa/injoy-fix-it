@@ -22,7 +22,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const AREAS_KEY = "manutencao_areas_comuns";
+const AREAS_LEGACY_KEY = "manutencao_areas_comuns";
+const AREAS_KEY_PREFIX = "manutencao_areas_comuns_";
 const QUARTOS_KEY_PREFIX = "manutencao_quartos_";
 
 export const DEFAULT_AREAS_COMUNS = [
@@ -60,7 +61,11 @@ function quartosKey(unidade: string) {
   return `${QUARTOS_KEY_PREFIX}${unidade.toLowerCase()}`;
 }
 
-async function fetchListSetting(key: string, fallback: string[]): Promise<string[]> {
+function areasKey(unidade: string) {
+  return `${AREAS_KEY_PREFIX}${unidade.toLowerCase()}`;
+}
+
+async function readSetting(key: string): Promise<string[] | null> {
   const { data, error } = await supabase
     .from("app_settings" as never)
     .select("value")
@@ -68,7 +73,7 @@ async function fetchListSetting(key: string, fallback: string[]): Promise<string
     .maybeSingle();
   if (error) throw error;
   const row = data as { value: string } | null;
-  if (!row?.value) return fallback;
+  if (!row?.value) return null;
   try {
     const arr = JSON.parse(row.value);
     if (Array.isArray(arr) && arr.every((v) => typeof v === "string") && arr.length > 0) {
@@ -77,33 +82,44 @@ async function fetchListSetting(key: string, fallback: string[]): Promise<string
   } catch {
     /* ignore */
   }
-  return fallback;
+  return null;
 }
 
-const fetchAreas = () => fetchListSetting(AREAS_KEY, DEFAULT_AREAS_COMUNS);
+async function fetchListSetting(key: string, fallback: string[]): Promise<string[]> {
+  return (await readSetting(key)) ?? fallback;
+}
 
-export function useAreasComuns() {
+// Per-unit areas, falling back to the legacy shared list (one-time migration path)
+async function fetchAreas(unidade: string): Promise<string[]> {
+  const own = await readSetting(areasKey(unidade));
+  if (own) return own;
+  const legacy = await readSetting(AREAS_LEGACY_KEY);
+  return legacy ?? DEFAULT_AREAS_COMUNS;
+}
+
+export function useAreasComuns(unidade: string) {
   const qc = useQueryClient();
+  const key = areasKey(unidade);
   const q = useQuery({
-    queryKey: ["manutencao_areas_comuns"],
-    queryFn: fetchAreas,
+    queryKey: ["manutencao_areas_comuns", unidade],
+    queryFn: () => fetchAreas(unidade),
   });
 
   useEffect(() => {
     const ch = supabase
-      .channel("manutencao-areas-sync")
+      .channel(`manutencao-areas-sync-${unidade}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "app_settings", filter: `key=eq.${AREAS_KEY}` },
+        { event: "*", schema: "public", table: "app_settings", filter: `key=eq.${key}` },
         () => {
-          qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns"] });
+          qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns", unidade] });
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [qc]);
+  }, [qc, unidade, key]);
 
   return q.data ?? DEFAULT_AREAS_COMUNS;
 }
@@ -145,25 +161,26 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
   const qc = useQueryClient();
 
   const areasQ = useQuery({
-    queryKey: ["manutencao_areas_comuns"],
-    queryFn: fetchAreas,
+    queryKey: ["manutencao_areas_comuns", unidade],
+    queryFn: () => fetchAreas(unidade),
     enabled: open,
   });
-  const areas = areasQ.data ?? DEFAULT_AREAS_COMUNS;
+  const areas: string[] = areasQ.data ?? DEFAULT_AREAS_COMUNS;
 
   const quartosQ = useQuery({
     queryKey: ["manutencao_quartos", unidade],
     queryFn: () => fetchListSetting(quartosKey(unidade), defaultsFor(unidade)),
     enabled: open,
   });
-  const quartos = quartosQ.data ?? defaultsFor(unidade);
+  const quartos: string[] = quartosQ.data ?? defaultsFor(unidade);
 
   const tasksQ = useQuery({
-    queryKey: ["preventive_tasks_all"],
+    queryKey: ["preventive_tasks_all", unidade],
     queryFn: async (): Promise<TaskRow[]> => {
       const { data, error } = await supabase
         .from("preventive_tasks" as never)
         .select("*")
+        .eq("property", unidade)
         .order("category")
         .order("task_name");
       if (error) throw error;
@@ -182,7 +199,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
       return { key, clean };
     },
     onSuccess: ({ key }) => {
-      if (key === AREAS_KEY) {
+      if (key.startsWith(AREAS_KEY_PREFIX)) {
         qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns"] });
       } else {
         qc.invalidateQueries({ queryKey: ["manutencao_quartos"] });
@@ -237,13 +254,13 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           {/* ÁREAS */}
           <TabsContent value="areas" className="space-y-3 mt-4">
             <p className="text-xs text-slate-500">
-              Áreas comuns compartilhadas entre todas as unidades.
+              Áreas comuns exclusivas da unidade {unidade}.
             </p>
             <LocaisEditor
               items={areas}
               placeholder="Ex.: Terraço"
               pending={saveList.isPending}
-              onSave={(next) => saveList.mutate({ key: AREAS_KEY, next })}
+              onSave={(next) => saveList.mutate({ key: areasKey(unidade), next })}
             />
           </TabsContent>
 
@@ -251,6 +268,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           <TabsContent value="itens-quarto" className="mt-4">
             <ItensChecklist
               category="Quarto"
+              unidade={unidade}
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Quarto")}
               loading={tasksQ.isLoading}
             />
@@ -260,6 +278,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           <TabsContent value="itens-area" className="mt-4">
             <ItensChecklist
               category="Área Comum"
+              unidade={unidade}
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Área Comum")}
               loading={tasksQ.isLoading}
               areas={areas}
@@ -417,11 +436,13 @@ function LocaisEditor({
 
 function ItensChecklist({
   category,
+  unidade,
   tasks,
   loading,
   areas,
 }: {
   category: TaskCategory;
+  unidade: string;
   tasks: TaskRow[];
   loading: boolean;
   areas?: string[];
@@ -444,6 +465,7 @@ function ItensChecklist({
         category,
         active: true,
         discipline: p.discipline,
+        property: unidade,
       } as never);
       if (error) throw error;
     },
