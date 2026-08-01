@@ -87,78 +87,89 @@ export function TarefasExtrasPeriodicityManager() {
   };
 
   return (
-    <Card className="p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <Timer className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold text-lg">Periodicidade das Tarefas Extras</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Defina de quantos em quantos dias cada área comum deve ser executada.
-        Quando o intervalo for ultrapassado, o botão da área ganha um alerta
-        vermelho no painel das camareiras.
-      </p>
+    <Card className="overflow-hidden">
+      <Accordion type="single" collapsible>
+        <AccordionItem value="periodicity" className="border-0">
+          <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-50/50 [&[data-state=open]>svg]:rotate-180">
+            <div className="flex items-center gap-2">
+              <Timer className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-lg">Periodicidade das Tarefas Extras</h2>
+            </div>
+          </AccordionTrigger>
 
-      <div className="grid grid-cols-2 gap-2 max-w-sm">
-        {(["Botafogo", "Ipanema"] as const).map((u) => (
-          <button
-            key={u}
-            type="button"
-            onClick={() => setUnidade(u)}
-            className={`rounded-lg border p-2.5 text-sm transition-colors ${
-              unidade === u
-                ? "border-primary bg-primary/10 text-primary font-medium"
-                : "bg-background hover:border-primary/40"
-            }`}
-          >
-            INJOY {u}
-          </button>
-        ))}
-      </div>
+          <AccordionContent>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Defina de quantos em quantos dias cada área comum deve ser executada.
+                Quando o intervalo for ultrapassado, o botão da área ganha um alerta
+                vermelho no painel das camareiras.
+              </p>
 
-      {loading ? (
-        <p className="text-sm text-muted-foreground">Carregando...</p>
-      ) : (
-        <div className="space-y-2">
-          {cats.map((c) => (
-            <div
-              key={c.key}
-              className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2"
-            >
-              <div className="flex items-center gap-2 min-w-0">
-                <span
-                  className={`inline-block h-3 w-3 rounded-full bg-gradient-to-br ${c.gradient}`}
-                />
-                <span className="text-sm font-medium truncate">{c.label}</span>
+              <div className="grid grid-cols-2 gap-2 max-w-sm">
+                {(["Botafogo", "Ipanema"] as const).map((u) => (
+                  <button
+                    key={u}
+                    type="button"
+                    onClick={() => setUnidade(u)}
+                    className={`rounded-lg border p-2.5 text-sm transition-colors ${
+                      unidade === u
+                        ? "border-primary bg-primary/10 text-primary font-medium"
+                        : "bg-background hover:border-primary/40"
+                    }`}
+                  >
+                    INJOY {u}
+                  </button>
+                ))}
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <Input
-                  type="number"
-                  min={1}
-                  max={365}
-                  value={values[c.key] ?? DEFAULT_DAYS}
-                  onChange={(e) => {
-                    const n = Math.max(1, Math.min(365, Number(e.target.value) || DEFAULT_DAYS));
-                    setValues((s) => ({ ...s, [c.key]: n }));
-                  }}
-                  className="w-20 text-center"
-                />
-                <span className="text-xs text-muted-foreground">dias</span>
+
+              {loading ? (
+                <p className="text-sm text-muted-foreground">Carregando...</p>
+              ) : (
+                <div className="space-y-2">
+                  {cats.map((c) => (
+                    <div
+                      key={c.key}
+                      className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span
+                          className={`inline-block h-3 w-3 rounded-full bg-gradient-to-br ${c.gradient}`}
+                        />
+                        <span className="text-sm font-medium truncate">{c.label}</span>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <Input
+                          type="number"
+                          min={1}
+                          max={365}
+                          value={values[c.key] ?? DEFAULT_DAYS}
+                          onChange={(e) => {
+                            const n = Math.max(1, Math.min(365, Number(e.target.value) || DEFAULT_DAYS));
+                            setValues((s) => ({ ...s, [c.key]: n }));
+                          }}
+                          className="w-20 text-center"
+                        />
+                        <span className="text-xs text-muted-foreground">dias</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex justify-end">
+                <Button onClick={salvar} disabled={saving || loading}>
+                  {saving ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Save className="h-4 w-4 mr-1" />
+                  )}
+                  Salvar periodicidade
+                </Button>
               </div>
             </div>
-          ))}
-        </div>
-      )}
-
-      <div className="flex justify-end">
-        <Button onClick={salvar} disabled={saving || loading}>
-          {saving ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Save className="h-4 w-4 mr-1" />
-          )}
-          Salvar periodicidade
-        </Button>
-      </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }
