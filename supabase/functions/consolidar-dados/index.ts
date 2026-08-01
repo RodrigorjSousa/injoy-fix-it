@@ -567,6 +567,32 @@ serve(async (req) => {
         const fallbackEciLco = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
         const eciLcoScan = mergeEciLco(roomBlockEciLco, fallbackEciLco)
 
+        // Nomes explícitos de QUEM SAI e QUEM CHEGA hoje. Sem isso a camareira
+        // e a recepção só veem um nome e trocam o hóspede no mesmo quarto.
+        const nomeDe = (r: any) =>
+          r
+            ? `${r.guestFirstName ?? ''} ${r.guestLastName ?? ''}`.trim() || 'Hóspede'
+            : null
+        const departingGuestName =
+          reservaSaindoHoje && reservaSaindoHoje !== reservaEntrandoHoje
+            ? nomeDe(reservaSaindoHoje)
+            : hospedeAtualInHouse && hospedeAtualInHouse._checkOutDate === hojeStr
+              ? nomeDe(hospedeAtualInHouse)
+              : null
+        const proximaReserva =
+          reservaEntrandoHoje && reservaEntrandoHoje !== hospedeAtualInHouse
+            ? reservaEntrandoHoje
+            : null
+        const nextGuestName = nomeDe(proximaReserva)
+        const nextArrivalTime = proximaReserva
+          ? formatHora(
+              (proximaReserva as any).estimatedArrivalTime ??
+                (proximaReserva as any).estimatedTimeArrival ??
+                (proximaReserva as any).arrivalTime ??
+                (proximaReserva as any).checkInTime,
+            ) || null
+          : null
+
         return {
           property: nomeUnidade,
           room_number: numQuarto,
@@ -576,6 +602,10 @@ serve(async (req) => {
           assigned_task: tarefaSugerida,
           color_code: corLegenda,
           guest_name: guestName,
+          departing_guest_name: departingGuestName,
+          next_guest_name: nextGuestName,
+          next_arrival_time: nextArrivalTime,
+          next_pax: proximaReserva ? proximaReserva.numberOfGuests || 0 : null,
           pax,
           has_pending_payment: hasPendingPayment,
           pending_payment_amount: pendingAmount,
