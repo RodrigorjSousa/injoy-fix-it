@@ -539,6 +539,11 @@ function RecepcaoPage() {
                         <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
                           {q.pax} pax
                         </span>
+                        {q.hospedeSaindoHoje ? (
+                          <span className="text-[10px] font-black text-orange-700 bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
+                            Sai hoje
+                          </span>
+                        ) : null}
                       </div>
 
                       <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
