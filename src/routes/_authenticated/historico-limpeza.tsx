@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2, MessageSquare, ExternalLink, ClipboardList, Sunrise, ChevronDown, CheckCircle2 } from "lucide-react";
+import { RefreshCw, Search, X, ImageIcon, Clock, Building2, Loader2, MessageSquare, ExternalLink, ClipboardList, Sunrise, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
@@ -10,6 +10,7 @@ import { InspectionImage } from "@/components/InspectionImage";
 import { PeriodItemsManager } from "@/components/configuracoes/period-items-manager";
 import { TarefasExtrasPeriodicityManager } from "@/components/configuracoes/tarefas-extras-periodicity-manager";
 import { TarefasExtrasChecklistManager } from "@/components/configuracoes/tarefas-extras-checklist-manager";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
   component: HistoricoLimpezaPage,
@@ -247,7 +248,6 @@ function HistoricoLimpezaPage() {
     created_at: string;
   };
   const [checklists, setChecklists] = useState<ChecklistLog[]>([]);
-  const [openChecklist, setOpenChecklist] = useState<string | null>(null);
 
   const carregarChecklists = useCallback(async () => {
     let q = supabase
@@ -439,74 +439,52 @@ function HistoricoLimpezaPage() {
               Nenhum checklist de turno no período selecionado.
             </p>
           ) : (
-            <div className="divide-y divide-slate-100">
+            <Accordion type="single" collapsible className="w-full">
               {checklists.map((cl) => {
-                const isOpen = openChecklist === cl.id;
                 const items = cl.completed_items ?? [];
                 return (
-                  <div key={cl.id}>
-                    <button
-                      onClick={() => setOpenChecklist(isOpen ? null : cl.id)}
-                      className={cn(
-                        "w-full flex items-center gap-3 text-left p-3 transition-colors",
-                        isOpen ? "bg-amber-50" : "hover:bg-slate-50",
-                      )}
-                      aria-expanded={isOpen}
-                    >
-                      <div className="h-9 w-9 rounded-lg bg-amber-500 text-white grid place-items-center shrink-0 shadow-sm">
-                        <Sunrise size={16} />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-bold text-slate-800 truncate">
-                          {cl.camareira_name || "—"}
-                          <span className="ml-2 text-[11px] font-semibold text-amber-600">
-                            {PERIOD_LABEL[cl.period]}
-                          </span>
-                        </p>
-                        <p className="text-[11px] text-slate-500 truncate">
-                          {fmtDateTime(cl.created_at)} · INJOY {cl.property}
-                        </p>
-                      </div>
-                      <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
-                        {items.length} {items.length === 1 ? "item" : "itens"}
-                      </span>
-                      <ChevronDown
-                        size={16}
-                        className={cn(
-                          "text-slate-400 shrink-0 transition-transform duration-300",
-                          isOpen && "rotate-180 text-amber-600",
-                        )}
-                      />
-                    </button>
-                    <div
-                      className={cn(
-                        "grid transition-all duration-300 ease-out",
-                        isOpen ? "grid-rows-[1fr] opacity-100" : "grid-rows-[0fr] opacity-0",
-                      )}
-                    >
-                      <div className="overflow-hidden">
-                        <div className="px-4 pb-4 pt-1 bg-amber-50/40 border-t border-amber-100">
-                          {items.length === 0 ? (
-                            <p className="text-xs text-slate-400 italic ml-11">
-                              Nenhum item concluído registrado.
-                            </p>
-                          ) : (
-                            <ul className="ml-11 space-y-1.5">
-                              {items.map((t, i) => (
-                                <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
-                                  <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
-                                  <span>{t}</span>
-                                </li>
-                              ))}
-                            </ul>
-                          )}
+                  <AccordionItem key={cl.id} value={cl.id} className="border-b border-slate-100 last:border-0">
+                    <AccordionTrigger className="px-3 py-3 hover:no-underline hover:bg-slate-50 data-[state=open]:bg-amber-50">
+                      <div className="flex items-center gap-3 text-left w-full pr-2">
+                        <div className="h-9 w-9 rounded-lg bg-amber-500 text-white grid place-items-center shrink-0 shadow-sm">
+                          <Sunrise size={16} />
                         </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-bold text-slate-800 truncate">
+                            {cl.camareira_name || "—"}
+                            <span className="ml-2 text-[11px] font-semibold text-amber-600">
+                              {PERIOD_LABEL[cl.period]}
+                            </span>
+                          </p>
+                          <p className="text-[11px] text-slate-500 truncate">
+                            {fmtDateTime(cl.created_at)} · INJOY {cl.property}
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-amber-700 bg-amber-100 px-2 py-0.5 rounded-full shrink-0">
+                          {items.length} {items.length === 1 ? "item" : "itens"}
+                        </span>
                       </div>
-                    </div>
-                  </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4 pt-1 bg-amber-50/40 border-t border-amber-100">
+                      {items.length === 0 ? (
+                        <p className="text-xs text-slate-400 italic ml-11">
+                          Nenhum item concluído registrado.
+                        </p>
+                      ) : (
+                        <ul className="ml-11 space-y-1.5">
+                          {items.map((t, i) => (
+                            <li key={i} className="flex items-start gap-2 text-xs text-slate-700">
+                              <CheckCircle2 size={13} className="text-emerald-600 shrink-0 mt-0.5" />
+                              <span>{t}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
                 );
               })}
-            </div>
+            </Accordion>
           )}
         </div>
 
