@@ -436,11 +436,13 @@ function LocaisEditor({
 
 function ItensChecklist({
   category,
+  unidade,
   tasks,
   loading,
   areas,
 }: {
   category: TaskCategory;
+  unidade: string;
   tasks: TaskRow[];
   loading: boolean;
   areas?: string[];
@@ -463,6 +465,7 @@ function ItensChecklist({
         category,
         active: true,
         discipline: p.discipline,
+        property: unidade,
       } as never);
       if (error) throw error;
     },
