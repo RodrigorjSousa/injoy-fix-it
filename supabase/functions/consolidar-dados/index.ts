@@ -336,10 +336,12 @@ serve(async (req) => {
           const hasOwnRoomSignal =
             !!rawRoomStatus || !!roomCheckInAt || !!roomCheckInDate || !!roomCheckOutDate
           const skipRoom = isMultiRoom && !hasOwnRoomSignal
-          // Se a janela do quarto termina antes/hoje sem check-in, o hóspede
-          // não pertence a este quarto hoje.
+          // Se a janela do quarto terminou ANTES de hoje, o hóspede não pertence
+          // mais a este quarto. Saídas de HOJE (inclusive já com check-out feito
+          // no Cloudbeds) precisam permanecer, senão o quarto perde o GERAL /
+          // GERAL - CHECK-IN e cai para VERIFICAÇÃO indevidamente.
           const roomWindowExpired =
-            !!roomCheckOutDate && roomCheckOutDate <= hojeStr && roomStatus !== 'checked_in'
+            !!roomCheckOutDate && roomCheckOutDate < hojeStr && roomStatus !== 'checked_in'
           // Janela do quarto começa depois de hoje: só entra em outra data.
           const roomWindowFuture = !!roomCheckInDate && roomCheckInDate > hojeStr && isMultiRoom
 
