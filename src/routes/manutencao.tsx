@@ -1013,10 +1013,12 @@ function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: st
 function TaskEditor({
   open,
   task,
+  unidade,
   onOpenChange,
 }: {
   open: boolean;
   task: PreventiveTask | null;
+  unidade: string;
   onOpenChange: (o: boolean) => void;
 }) {
   const qc = useQueryClient();
@@ -1047,7 +1049,9 @@ function TaskEditor({
         const { error } = await supabase.from("preventive_tasks" as never).update(payload as never).eq("id", task.id);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("preventive_tasks" as never).insert(payload as never);
+        const { error } = await supabase
+          .from("preventive_tasks" as never)
+          .insert({ ...payload, property: unidade } as never);
         if (error) throw error;
       }
     },
