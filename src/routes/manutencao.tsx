@@ -997,6 +997,7 @@ function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: st
 
       <TaskEditor
         open={!!editing || creating}
+        unidade={unidade}
         task={editing}
         onOpenChange={(o) => {
           if (!o) {
