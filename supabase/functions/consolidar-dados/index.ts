@@ -179,24 +179,26 @@ serve(async (req) => {
       // ficam de fora e o quarto aparece como "Quarto Vazio".
       const fetchReservasPagina = async (
         pageNumber: number,
-        checkInFrom: string,
-        checkInTo: string,
-        statusFilter = '',
+        dateParams: Record<string, string>,
+        status = '',
       ) => {
-        const url =
-          `https://hotels.cloudbeds.com/api/v1.2/getReservations?checkInFrom=${checkInFrom}` +
-          `&checkInTo=${checkInTo}&includeGuestsDetails=true&pageSize=100&pageNumber=${pageNumber}` +
-          statusFilter
+        const params = new URLSearchParams({
+          ...dateParams,
+          includeGuestsDetails: 'true',
+          pageSize: '100',
+          pageNumber: String(pageNumber),
+        })
+        if (status) params.set('status', status)
+        const url = `https://hotels.cloudbeds.com/api/v1.2/getReservations?${params.toString()}`
         const r = await fetch(url, { headers: authHeaders })
         return r.json().catch(() => ({}))
       }
 
       const fetchTodasReservas = async (
-        checkInFrom: string,
-        checkInTo: string,
-        statusFilter = '',
+        dateParams: Record<string, string>,
+        status = '',
       ) => {
-        const primeira = await fetchReservasPagina(1, checkInFrom, checkInTo, statusFilter)
+        const primeira = await fetchReservasPagina(1, dateParams, status)
         if (!primeira?.success) return [] as any[]
         const total = Number(primeira.total ?? primeira.count ?? 0)
         const acc: any[] = Array.isArray(primeira.data) ? [...primeira.data] : []
@@ -204,7 +206,7 @@ serve(async (req) => {
         if (totalPaginas > 1) {
           const pags = await Promise.all(
             Array.from({ length: totalPaginas - 1 }, (_, i) =>
-              fetchReservasPagina(i + 2, checkInFrom, checkInTo, statusFilter),
+              fetchReservasPagina(i + 2, dateParams, status),
             ),
           )
           for (const p of pags) {
@@ -214,17 +216,23 @@ serve(async (req) => {
         return acc
       }
 
-      const [roomsRes, dashRes, roomBlocksRes, reservasWindow, reservasCheckedIn] = await Promise.all([
+      const [roomsRes, dashRes, roomBlocksRes, reservasWindow, reservasSaindoHoje, reservasCheckedIn] = await Promise.all([
         fetch(`${API_BASE}/getHousekeepingStatus`, { headers: authHeaders }),
         fetch(`${API_BASE}/getDashboard`, { headers: authHeaders }),
         fetch(`${API_BASE}/getRoomBlocks?startDate=${hojeStr}&endDate=${hojeStr}`, { headers: authHeaders }),
         // Janela padrão: reservas do dia (arrivals/departures/short-stay)
-        fetchTodasReservas(janelaInicio, janelaFim),
+        fetchTodasReservas({ checkInFrom: janelaInicio, checkInTo: janelaFim }),
+        // Consulta independente por CHECK-OUT. Sem ela, uma estadia antiga que
+        // termina hoje some assim que muda de status e o quarto vira REVISÃO,
+        // mesmo havendo saída + nova entrada no calendário do Cloudbeds.
+        fetchTodasReservas({ checkOutFrom: hojeStr, checkOutTo: hojeStr }),
         // Hóspedes atualmente hospedados — checkin nos últimos 365 dias, filtro status
         fetchTodasReservas(
-          new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-          janelaFim,
-          '&status=checked_in',
+          {
+            checkInFrom: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            checkInTo: janelaFim,
+          },
+          'checked_in',
         ),
       ])
 
@@ -242,10 +250,15 @@ serve(async (req) => {
 
       // Deduplica por reservationID unindo as duas consultas
       const mapReservas = new Map<string, any>()
-      for (const r of [...reservasWindow, ...reservasCheckedIn]) {
+      for (const r of [...reservasWindow, ...reservasSaindoHoje, ...reservasCheckedIn]) {
         const id = String(r?.reservationID ?? r?.reservationId ?? r?.id ?? '')
         if (!id) continue
-        if (!mapReservas.has(id)) mapReservas.set(id, r)
+        const anterior = mapReservas.get(id)
+        // As consultas por entrada, saída e status podem devolver níveis de
+        // detalhe diferentes. Mantém a versão com mais dados de hóspedes/quartos.
+        if (!anterior || JSON.stringify(r?.guestList ?? {}).length > JSON.stringify(anterior?.guestList ?? {}).length) {
+          mapReservas.set(id, r)
+        }
       }
       const reservasRaw: any[] = Array.from(mapReservas.values())
 
@@ -335,7 +348,14 @@ serve(async (req) => {
           // senão o mesmo hóspede vaza para todos os quartos da reserva.
           const hasOwnRoomSignal =
             !!rawRoomStatus || !!roomCheckInAt || !!roomCheckInDate || !!roomCheckOutDate
-          const skipRoom = isMultiRoom && !hasOwnRoomSignal
+          // Uma saída de hoje não pode ser descartada só porque a reserva de
+          // grupo não repetiu roomCheckOut em cada item de quarto. O quarto está
+          // explicitamente listado na reserva e a data-mãe de saída é a única
+          // evidência que o Cloudbeds entrega nesse formato. Mantemos a trava
+          // para outros dias, mas preservamos a saída de hoje para distinguir
+          // GERAL de REVISÃO e GERAL - CHECK-IN.
+          const isDepartureToday = (roomCheckOutDate || resCheckOutDate) === hojeStr
+          const skipRoom = isMultiRoom && !hasOwnRoomSignal && !isDepartureToday
           // Se a janela do quarto terminou ANTES de hoje, o hóspede não pertence
           // mais a este quarto. Saídas de HOJE (inclusive já com check-out feito
           // no Cloudbeds) precisam permanecer, senão o quarto perde o GERAL /
