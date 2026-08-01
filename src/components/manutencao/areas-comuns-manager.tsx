@@ -254,13 +254,13 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           {/* ÁREAS */}
           <TabsContent value="areas" className="space-y-3 mt-4">
             <p className="text-xs text-slate-500">
-              Áreas comuns compartilhadas entre todas as unidades.
+              Áreas comuns exclusivas da unidade {unidade}.
             </p>
             <LocaisEditor
               items={areas}
               placeholder="Ex.: Terraço"
               pending={saveList.isPending}
-              onSave={(next) => saveList.mutate({ key: AREAS_KEY, next })}
+              onSave={(next) => saveList.mutate({ key: areasKey(unidade), next })}
             />
           </TabsContent>
 
@@ -268,6 +268,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           <TabsContent value="itens-quarto" className="mt-4">
             <ItensChecklist
               category="Quarto"
+              unidade={unidade}
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Quarto")}
               loading={tasksQ.isLoading}
             />
@@ -277,6 +278,7 @@ export function AreasComunsManager({ open, onOpenChange, unidade }: Props) {
           <TabsContent value="itens-area" className="mt-4">
             <ItensChecklist
               category="Área Comum"
+              unidade={unidade}
               tasks={(tasksQ.data ?? []).filter((t) => t.category === "Área Comum")}
               loading={tasksQ.isLoading}
               areas={areas}
