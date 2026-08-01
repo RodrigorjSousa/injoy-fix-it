@@ -425,6 +425,13 @@ serve(async (req) => {
           }
         }
 
+        // REGRAS (Cloudbeds é a VERDADE):
+        // GERAL           → hóspede sai hoje e ninguém entra hoje
+        // GERAL - CHECK-IN→ hóspede sai hoje e outro entra hoje
+        // REVISÃO         → quarto vazio com chegada hoje (antes do hóspede)
+        // ARRUMAÇÃO       → hóspede hospedado (a partir do dia seguinte à entrada)
+        // TROCA           → a cada 3 dias de hospedagem
+        // VERIFICAÇÃO     → quarto limpo e vazio, sem movimento hoje
         if (reservaSaindoHoje && reservaEntrandoHoje) {
           tarefaSugerida = 'GERAL - CHECK-IN'
           corLegenda = 'CINZA'
@@ -433,9 +440,14 @@ serve(async (req) => {
           corLegenda = 'CINZA'
         } else if (hospedeAtualInHouse) {
           corLegenda = 'VERDE'
-          const t = calcularTroca(hospedeAtualInHouse._checkInDate, hospedeAtualInHouse._checkOutDate)
-          tarefaSugerida = t.tarefa
-          blinkTroca = t.blink
+          if (hospedeAtualInHouse._checkInDate === hojeStr) {
+            // Entrou hoje: arrumação só começa quando virar o dia.
+            tarefaSugerida = 'REVISÃO'
+          } else {
+            const t = calcularTroca(hospedeAtualInHouse._checkInDate, hospedeAtualInHouse._checkOutDate)
+            tarefaSugerida = t.tarefa
+            blinkTroca = t.blink
+          }
         } else if (!hospedeAtualInHouse && reservaEntrandoHoje) {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
@@ -448,8 +460,14 @@ serve(async (req) => {
           const t = calcularTroca(reservaAtivaSobreposta._checkInDate, reservaAtivaSobreposta._checkOutDate)
           tarefaSugerida = t.tarefa
           blinkTroca = t.blink
-        } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
-          tarefaSugerida = 'ARRUMAÇÃO'
+        } else if (
+          String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty' ||
+          String(room.roomCondition ?? '').toLowerCase() === 'dirty'
+        ) {
+          // Quarto vazio e sujo no Cloudbeds → limpeza completa (GERAL),
+          // nunca VERIFICAÇÃO (que é reservada a quarto limpo e vazio).
+          tarefaSugerida = 'GERAL'
+          corLegenda = 'CINZA'
         }
 
 
