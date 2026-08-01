@@ -263,7 +263,11 @@ function HistoricoManutencaoPage() {
         ...AREAS_COMUNS.map((n) => ({ name: n, category: "Área Comum" as TaskCategory })),
       ];
       for (const loc of locations) {
-        const catTasks = tasks.filter((t) => t.category === loc.category);
+        const catTasks = tasks.filter(
+          (t) =>
+            t.category === loc.category &&
+            (t as { property?: string | null }).property === prop,
+        );
         for (const t of catTasks) {
           const rel = logs
             .filter(
