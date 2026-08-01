@@ -6,6 +6,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   CATEGORIES as TAREFAS_EXTRAS_CATEGORIES,
   CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE,
   type CategoryKey as TarefaExtraKey,
