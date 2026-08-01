@@ -491,6 +491,7 @@ serve(async (req) => {
           checkedIn: emCasa,
           startISO,
           chegadaHoje: startISO === hoje,
+          saindoHoje: endISO === hoje,
           hasEci: eciLco.eci,
           hasLco: eciLco.lco,
           eciTime: eciLco.eciTime,
@@ -499,12 +500,13 @@ serve(async (req) => {
 
 
         const bucket = reservasPorQuarto[quarto] ?? {}
-        if (emCasa) {
-          // hóspede atual (in-house). Se houver conflito, mantém o já registrado.
-          if (!bucket.atual) bucket.atual = registro
-        } else if (registro.chegadaHoje) {
+        if (registro.chegadaHoje && !emCasa) {
           // próximo hóspede (chega hoje mas ainda não fez check-in)
           if (!bucket.proximo) bucket.proximo = registro
+        } else if (emCasa || registro.saindoHoje) {
+          // hóspede atual: in-house OU saída de hoje (mesmo após check-out feito),
+          // para a recepção nunca perder o nome de quem está deixando o quarto.
+          if (!bucket.atual) bucket.atual = registro
         } else {
           // fallback (raro): reserva ativa que não é in-house nem chegada hoje
           if (!bucket.atual && !bucket.proximo) bucket.proximo = registro
