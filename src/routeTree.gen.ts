@@ -9,43 +9,42 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ManutencaoRouteImport } from './routes/manutencao'
-import { Route as AuthRouteImport } from './routes/auth'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
-import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as ManutencaoRouteImport } from './routes/manutencao'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
-import { Route as AuthAdminRouteImport } from './routes/auth.admin'
-import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
-import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
-import { Route as AuthenticatedRelatoriosTurnoRouteImport } from './routes/_authenticated/relatorios-turno'
-import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
-import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
-import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
-import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
-import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
-import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_authenticated/historico-manutencao'
-import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
-import { Route as AuthenticatedGestaoBoasVindasRouteImport } from './routes/_authenticated/gestao-boas-vindas'
-import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
-import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
-import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
-import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
-import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
-import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedCheckInDigitalRouteImport } from './routes/_authenticated/check-in-digital'
-import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
-import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
-import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
-import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
-import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
-import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
-import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
+import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
+import { Route as AuthenticatedBonificacaoRouteImport } from './routes/_authenticated/bonificacao'
+import { Route as AuthenticatedCamareirasRouteImport } from './routes/_authenticated/camareiras'
+import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/chat'
+import { Route as AuthenticatedCheckInDigitalRouteImport } from './routes/_authenticated/check-in-digital'
+import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
+import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
+import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
+import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
+import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
+import { Route as AuthenticatedGestaoBoasVindasRouteImport } from './routes/_authenticated/gestao-boas-vindas'
+import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
+import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_authenticated/historico-manutencao'
+import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
+import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
+import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
+import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
+import { Route as AuthenticatedRelatoriosTurnoRouteImport } from './routes/_authenticated/relatorios-turno'
+import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
+import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
+import { Route as AuthIndexRouteImport } from './routes/auth.index'
+import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
+import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
+import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
+import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 
-const ManutencaoRoute = ManutencaoRouteImport.update({
-  id: '/manutencao',
-  path: '/manutencao',
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthRoute = AuthRouteImport.update({
@@ -53,144 +52,14 @@ const AuthRoute = AuthRouteImport.update({
   path: '/auth',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
-  id: '/_authenticated',
+const ManutencaoRoute = ManutencaoRouteImport.update({
+  id: '/manutencao',
+  path: '/manutencao',
   getParentRoute: () => rootRouteImport,
-} as any)
-const AuthIndexRoute = AuthIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AuthRoute,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
   id: '/',
   path: '/',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthAdminRoute = AuthAdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthenticatedVistoriaRoute = AuthenticatedVistoriaRouteImport.update({
-  id: '/vistoria',
-  path: '/vistoria',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
-  id: '/servicos',
-  path: '/servicos',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedRelatoriosTurnoRoute =
-  AuthenticatedRelatoriosTurnoRouteImport.update({
-    id: '/relatorios-turno',
-    path: '/relatorios-turno',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedRelatorioOperacoesRoute =
-  AuthenticatedRelatorioOperacoesRouteImport.update({
-    id: '/relatorio-operacoes',
-    path: '/relatorio-operacoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
-  id: '/recepcao',
-  path: '/recepcao',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
-  id: '/preventiva',
-  path: '/preventiva',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
-  id: '/painel',
-  path: '/painel',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedHistoricoVistoriasRoute =
-  AuthenticatedHistoricoVistoriasRouteImport.update({
-    id: '/historico-vistorias',
-    path: '/historico-vistorias',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedHistoricoManutencaoRoute =
-  AuthenticatedHistoricoManutencaoRouteImport.update({
-    id: '/historico-manutencao',
-    path: '/historico-manutencao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedHistoricoLimpezaRoute =
-  AuthenticatedHistoricoLimpezaRouteImport.update({
-    id: '/historico-limpeza',
-    path: '/historico-limpeza',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGestaoBoasVindasRoute =
-  AuthenticatedGestaoBoasVindasRouteImport.update({
-    id: '/gestao-boas-vindas',
-    path: '/gestao-boas-vindas',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
-  id: '/gestao',
-  path: '/gestao',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedFrigobarRoute = AuthenticatedFrigobarRouteImport.update({
-  id: '/frigobar',
-  path: '/frigobar',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedEstoqueGeralRoute =
-  AuthenticatedEstoqueGeralRouteImport.update({
-    id: '/estoque-geral',
-    path: '/estoque-geral',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
-  id: '/escala',
-  path: '/escala',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedControlePontoRoute =
-  AuthenticatedControlePontoRouteImport.update({
-    id: '/controle-ponto',
-    path: '/controle-ponto',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedConfiguracoesRoute =
-  AuthenticatedConfiguracoesRouteImport.update({
-    id: '/configuracoes',
-    path: '/configuracoes',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedCheckInDigitalRoute =
-  AuthenticatedCheckInDigitalRouteImport.update({
-    id: '/check-in-digital',
-    path: '/check-in-digital',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
-  id: '/chat',
-  path: '/chat',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedCamareirasRoute = AuthenticatedCamareirasRouteImport.update({
-  id: '/camareiras',
-  path: '/camareiras',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
-const AuthenticatedBonificacaoRoute =
-  AuthenticatedBonificacaoRouteImport.update({
-    id: '/bonificacao',
-    path: '/bonificacao',
-    getParentRoute: () => AuthenticatedRouteRoute,
-  } as any)
-const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
-  id: '/boas-vindas',
-  path: '/boas-vindas',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const AuthenticatedAlmoxarifadoRoute =
@@ -199,15 +68,141 @@ const AuthenticatedAlmoxarifadoRoute =
     path: '/almoxarifado',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
-  id: '/api/public/tuya-cleanup',
-  path: '/api/public/tuya-cleanup',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedBoasVindasRoute = AuthenticatedBoasVindasRouteImport.update({
+  id: '/boas-vindas',
+  path: '/boas-vindas',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
-const ApiPublicPushDispatcherRoute = ApiPublicPushDispatcherRouteImport.update({
-  id: '/api/public/push-dispatcher',
-  path: '/api/public/push-dispatcher',
-  getParentRoute: () => rootRouteImport,
+const AuthenticatedBonificacaoRoute =
+  AuthenticatedBonificacaoRouteImport.update({
+    id: '/bonificacao',
+    path: '/bonificacao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedCamareirasRoute = AuthenticatedCamareirasRouteImport.update({
+  id: '/camareiras',
+  path: '/camareiras',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedChatRoute = AuthenticatedChatRouteImport.update({
+  id: '/chat',
+  path: '/chat',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedCheckInDigitalRoute =
+  AuthenticatedCheckInDigitalRouteImport.update({
+    id: '/check-in-digital',
+    path: '/check-in-digital',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedConfiguracoesRoute =
+  AuthenticatedConfiguracoesRouteImport.update({
+    id: '/configuracoes',
+    path: '/configuracoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedControlePontoRoute =
+  AuthenticatedControlePontoRouteImport.update({
+    id: '/controle-ponto',
+    path: '/controle-ponto',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
+  id: '/escala',
+  path: '/escala',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedEstoqueGeralRoute =
+  AuthenticatedEstoqueGeralRouteImport.update({
+    id: '/estoque-geral',
+    path: '/estoque-geral',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedFrigobarRoute = AuthenticatedFrigobarRouteImport.update({
+  id: '/frigobar',
+  path: '/frigobar',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGestaoRoute = AuthenticatedGestaoRouteImport.update({
+  id: '/gestao',
+  path: '/gestao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedGestaoBoasVindasRoute =
+  AuthenticatedGestaoBoasVindasRouteImport.update({
+    id: '/gestao-boas-vindas',
+    path: '/gestao-boas-vindas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHistoricoLimpezaRoute =
+  AuthenticatedHistoricoLimpezaRouteImport.update({
+    id: '/historico-limpeza',
+    path: '/historico-limpeza',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHistoricoManutencaoRoute =
+  AuthenticatedHistoricoManutencaoRouteImport.update({
+    id: '/historico-manutencao',
+    path: '/historico-manutencao',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedHistoricoVistoriasRoute =
+  AuthenticatedHistoricoVistoriasRouteImport.update({
+    id: '/historico-vistorias',
+    path: '/historico-vistorias',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
+  id: '/painel',
+  path: '/painel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
+  id: '/preventiva',
+  path: '/preventiva',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
+  id: '/recepcao',
+  path: '/recepcao',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedRelatorioOperacoesRoute =
+  AuthenticatedRelatorioOperacoesRouteImport.update({
+    id: '/relatorio-operacoes',
+    path: '/relatorio-operacoes',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedRelatoriosTurnoRoute =
+  AuthenticatedRelatoriosTurnoRouteImport.update({
+    id: '/relatorios-turno',
+    path: '/relatorios-turno',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
+  id: '/servicos',
+  path: '/servicos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedVistoriaRoute = AuthenticatedVistoriaRouteImport.update({
+  id: '/vistoria',
+  path: '/vistoria',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthIndexRoute = AuthIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthAdminRoute = AuthAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
+  id: '/chamados/$id',
+  path: '/chamados/$id',
+  getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
@@ -215,10 +210,15 @@ const ApiPublicCloudbedsWebhookRoute =
     path: '/api/public/cloudbeds-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
-const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
-  id: '/chamados/$id',
-  path: '/chamados/$id',
-  getParentRoute: () => AuthenticatedRouteRoute,
+const ApiPublicPushDispatcherRoute = ApiPublicPushDispatcherRouteImport.update({
+  id: '/api/public/push-dispatcher',
+  path: '/api/public/push-dispatcher',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
+  id: '/api/public/tuya-cleanup',
+  path: '/api/public/tuya-cleanup',
+  getParentRoute: () => rootRouteImport,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -440,11 +440,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/manutencao': {
-      id: '/manutencao'
-      path: '/manutencao'
-      fullPath: '/manutencao'
-      preLoaderRoute: typeof ManutencaoRouteImport
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/auth': {
@@ -454,186 +454,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authenticated': {
-      id: '/_authenticated'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+    '/manutencao': {
+      id: '/manutencao'
+      path: '/manutencao'
+      fullPath: '/manutencao'
+      preLoaderRoute: typeof ManutencaoRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/auth/': {
-      id: '/auth/'
-      path: '/'
-      fullPath: '/auth/'
-      preLoaderRoute: typeof AuthIndexRouteImport
-      parentRoute: typeof AuthRoute
     }
     '/_authenticated/': {
       id: '/_authenticated/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AuthenticatedIndexRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/auth/admin': {
-      id: '/auth/admin'
-      path: '/admin'
-      fullPath: '/auth/admin'
-      preLoaderRoute: typeof AuthAdminRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_authenticated/vistoria': {
-      id: '/_authenticated/vistoria'
-      path: '/vistoria'
-      fullPath: '/vistoria'
-      preLoaderRoute: typeof AuthenticatedVistoriaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/servicos': {
-      id: '/_authenticated/servicos'
-      path: '/servicos'
-      fullPath: '/servicos'
-      preLoaderRoute: typeof AuthenticatedServicosRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/relatorios-turno': {
-      id: '/_authenticated/relatorios-turno'
-      path: '/relatorios-turno'
-      fullPath: '/relatorios-turno'
-      preLoaderRoute: typeof AuthenticatedRelatoriosTurnoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/relatorio-operacoes': {
-      id: '/_authenticated/relatorio-operacoes'
-      path: '/relatorio-operacoes'
-      fullPath: '/relatorio-operacoes'
-      preLoaderRoute: typeof AuthenticatedRelatorioOperacoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/recepcao': {
-      id: '/_authenticated/recepcao'
-      path: '/recepcao'
-      fullPath: '/recepcao'
-      preLoaderRoute: typeof AuthenticatedRecepcaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/preventiva': {
-      id: '/_authenticated/preventiva'
-      path: '/preventiva'
-      fullPath: '/preventiva'
-      preLoaderRoute: typeof AuthenticatedPreventivaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/painel': {
-      id: '/_authenticated/painel'
-      path: '/painel'
-      fullPath: '/painel'
-      preLoaderRoute: typeof AuthenticatedPainelRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/historico-vistorias': {
-      id: '/_authenticated/historico-vistorias'
-      path: '/historico-vistorias'
-      fullPath: '/historico-vistorias'
-      preLoaderRoute: typeof AuthenticatedHistoricoVistoriasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/historico-manutencao': {
-      id: '/_authenticated/historico-manutencao'
-      path: '/historico-manutencao'
-      fullPath: '/historico-manutencao'
-      preLoaderRoute: typeof AuthenticatedHistoricoManutencaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/historico-limpeza': {
-      id: '/_authenticated/historico-limpeza'
-      path: '/historico-limpeza'
-      fullPath: '/historico-limpeza'
-      preLoaderRoute: typeof AuthenticatedHistoricoLimpezaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/gestao-boas-vindas': {
-      id: '/_authenticated/gestao-boas-vindas'
-      path: '/gestao-boas-vindas'
-      fullPath: '/gestao-boas-vindas'
-      preLoaderRoute: typeof AuthenticatedGestaoBoasVindasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/gestao': {
-      id: '/_authenticated/gestao'
-      path: '/gestao'
-      fullPath: '/gestao'
-      preLoaderRoute: typeof AuthenticatedGestaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/frigobar': {
-      id: '/_authenticated/frigobar'
-      path: '/frigobar'
-      fullPath: '/frigobar'
-      preLoaderRoute: typeof AuthenticatedFrigobarRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/estoque-geral': {
-      id: '/_authenticated/estoque-geral'
-      path: '/estoque-geral'
-      fullPath: '/estoque-geral'
-      preLoaderRoute: typeof AuthenticatedEstoqueGeralRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/escala': {
-      id: '/_authenticated/escala'
-      path: '/escala'
-      fullPath: '/escala'
-      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/controle-ponto': {
-      id: '/_authenticated/controle-ponto'
-      path: '/controle-ponto'
-      fullPath: '/controle-ponto'
-      preLoaderRoute: typeof AuthenticatedControlePontoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/configuracoes': {
-      id: '/_authenticated/configuracoes'
-      path: '/configuracoes'
-      fullPath: '/configuracoes'
-      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/check-in-digital': {
-      id: '/_authenticated/check-in-digital'
-      path: '/check-in-digital'
-      fullPath: '/check-in-digital'
-      preLoaderRoute: typeof AuthenticatedCheckInDigitalRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/chat': {
-      id: '/_authenticated/chat'
-      path: '/chat'
-      fullPath: '/chat'
-      preLoaderRoute: typeof AuthenticatedChatRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/camareiras': {
-      id: '/_authenticated/camareiras'
-      path: '/camareiras'
-      fullPath: '/camareiras'
-      preLoaderRoute: typeof AuthenticatedCamareirasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/bonificacao': {
-      id: '/_authenticated/bonificacao'
-      path: '/bonificacao'
-      fullPath: '/bonificacao'
-      preLoaderRoute: typeof AuthenticatedBonificacaoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/boas-vindas': {
-      id: '/_authenticated/boas-vindas'
-      path: '/boas-vindas'
-      fullPath: '/boas-vindas'
-      preLoaderRoute: typeof AuthenticatedBoasVindasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/almoxarifado': {
@@ -643,11 +475,186 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAlmoxarifadoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/api/public/tuya-cleanup': {
-      id: '/api/public/tuya-cleanup'
-      path: '/api/public/tuya-cleanup'
-      fullPath: '/api/public/tuya-cleanup'
-      preLoaderRoute: typeof ApiPublicTuyaCleanupRouteImport
+    '/_authenticated/boas-vindas': {
+      id: '/_authenticated/boas-vindas'
+      path: '/boas-vindas'
+      fullPath: '/boas-vindas'
+      preLoaderRoute: typeof AuthenticatedBoasVindasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/bonificacao': {
+      id: '/_authenticated/bonificacao'
+      path: '/bonificacao'
+      fullPath: '/bonificacao'
+      preLoaderRoute: typeof AuthenticatedBonificacaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/camareiras': {
+      id: '/_authenticated/camareiras'
+      path: '/camareiras'
+      fullPath: '/camareiras'
+      preLoaderRoute: typeof AuthenticatedCamareirasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/chat': {
+      id: '/_authenticated/chat'
+      path: '/chat'
+      fullPath: '/chat'
+      preLoaderRoute: typeof AuthenticatedChatRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/check-in-digital': {
+      id: '/_authenticated/check-in-digital'
+      path: '/check-in-digital'
+      fullPath: '/check-in-digital'
+      preLoaderRoute: typeof AuthenticatedCheckInDigitalRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/configuracoes': {
+      id: '/_authenticated/configuracoes'
+      path: '/configuracoes'
+      fullPath: '/configuracoes'
+      preLoaderRoute: typeof AuthenticatedConfiguracoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/controle-ponto': {
+      id: '/_authenticated/controle-ponto'
+      path: '/controle-ponto'
+      fullPath: '/controle-ponto'
+      preLoaderRoute: typeof AuthenticatedControlePontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escala': {
+      id: '/_authenticated/escala'
+      path: '/escala'
+      fullPath: '/escala'
+      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/estoque-geral': {
+      id: '/_authenticated/estoque-geral'
+      path: '/estoque-geral'
+      fullPath: '/estoque-geral'
+      preLoaderRoute: typeof AuthenticatedEstoqueGeralRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/frigobar': {
+      id: '/_authenticated/frigobar'
+      path: '/frigobar'
+      fullPath: '/frigobar'
+      preLoaderRoute: typeof AuthenticatedFrigobarRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gestao': {
+      id: '/_authenticated/gestao'
+      path: '/gestao'
+      fullPath: '/gestao'
+      preLoaderRoute: typeof AuthenticatedGestaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/gestao-boas-vindas': {
+      id: '/_authenticated/gestao-boas-vindas'
+      path: '/gestao-boas-vindas'
+      fullPath: '/gestao-boas-vindas'
+      preLoaderRoute: typeof AuthenticatedGestaoBoasVindasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/historico-limpeza': {
+      id: '/_authenticated/historico-limpeza'
+      path: '/historico-limpeza'
+      fullPath: '/historico-limpeza'
+      preLoaderRoute: typeof AuthenticatedHistoricoLimpezaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/historico-manutencao': {
+      id: '/_authenticated/historico-manutencao'
+      path: '/historico-manutencao'
+      fullPath: '/historico-manutencao'
+      preLoaderRoute: typeof AuthenticatedHistoricoManutencaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/historico-vistorias': {
+      id: '/_authenticated/historico-vistorias'
+      path: '/historico-vistorias'
+      fullPath: '/historico-vistorias'
+      preLoaderRoute: typeof AuthenticatedHistoricoVistoriasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/painel': {
+      id: '/_authenticated/painel'
+      path: '/painel'
+      fullPath: '/painel'
+      preLoaderRoute: typeof AuthenticatedPainelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/preventiva': {
+      id: '/_authenticated/preventiva'
+      path: '/preventiva'
+      fullPath: '/preventiva'
+      preLoaderRoute: typeof AuthenticatedPreventivaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/recepcao': {
+      id: '/_authenticated/recepcao'
+      path: '/recepcao'
+      fullPath: '/recepcao'
+      preLoaderRoute: typeof AuthenticatedRecepcaoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorio-operacoes': {
+      id: '/_authenticated/relatorio-operacoes'
+      path: '/relatorio-operacoes'
+      fullPath: '/relatorio-operacoes'
+      preLoaderRoute: typeof AuthenticatedRelatorioOperacoesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/relatorios-turno': {
+      id: '/_authenticated/relatorios-turno'
+      path: '/relatorios-turno'
+      fullPath: '/relatorios-turno'
+      preLoaderRoute: typeof AuthenticatedRelatoriosTurnoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/servicos': {
+      id: '/_authenticated/servicos'
+      path: '/servicos'
+      fullPath: '/servicos'
+      preLoaderRoute: typeof AuthenticatedServicosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/vistoria': {
+      id: '/_authenticated/vistoria'
+      path: '/vistoria'
+      fullPath: '/vistoria'
+      preLoaderRoute: typeof AuthenticatedVistoriaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth/': {
+      id: '/auth/'
+      path: '/'
+      fullPath: '/auth/'
+      preLoaderRoute: typeof AuthIndexRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/auth/admin': {
+      id: '/auth/admin'
+      path: '/admin'
+      fullPath: '/auth/admin'
+      preLoaderRoute: typeof AuthAdminRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_authenticated/chamados/$id': {
+      id: '/_authenticated/chamados/$id'
+      path: '/chamados/$id'
+      fullPath: '/chamados/$id'
+      preLoaderRoute: typeof AuthenticatedChamadosIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/api/public/cloudbeds-webhook': {
+      id: '/api/public/cloudbeds-webhook'
+      path: '/api/public/cloudbeds-webhook'
+      fullPath: '/api/public/cloudbeds-webhook'
+      preLoaderRoute: typeof ApiPublicCloudbedsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/push-dispatcher': {
@@ -657,19 +664,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPushDispatcherRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/cloudbeds-webhook': {
-      id: '/api/public/cloudbeds-webhook'
-      path: '/api/public/cloudbeds-webhook'
-      fullPath: '/api/public/cloudbeds-webhook'
-      preLoaderRoute: typeof ApiPublicCloudbedsWebhookRouteImport
+    '/api/public/tuya-cleanup': {
+      id: '/api/public/tuya-cleanup'
+      path: '/api/public/tuya-cleanup'
+      fullPath: '/api/public/tuya-cleanup'
+      preLoaderRoute: typeof ApiPublicTuyaCleanupRouteImport
       parentRoute: typeof rootRouteImport
-    }
-    '/_authenticated/chamados/$id': {
-      id: '/_authenticated/chamados/$id'
-      path: '/chamados/$id'
-      fullPath: '/chamados/$id'
-      preLoaderRoute: typeof AuthenticatedChamadosIdRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
     }
   }
 }
