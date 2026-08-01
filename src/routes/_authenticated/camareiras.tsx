@@ -58,6 +58,10 @@ type RoomRow = {
   assigned_task: string | null;
   color_code: string | null;
   guest_name: string | null;
+  departing_guest_name: string | null;
+  next_guest_name: string | null;
+  next_arrival_time: string | null;
+  next_pax: number | null;
   pax: number | null;
   has_pending_payment: boolean | null;
   pending_payment_amount: number | null;
