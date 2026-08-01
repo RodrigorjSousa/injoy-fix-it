@@ -22,7 +22,8 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
-const AREAS_KEY = "manutencao_areas_comuns";
+const AREAS_LEGACY_KEY = "manutencao_areas_comuns";
+const AREAS_KEY_PREFIX = "manutencao_areas_comuns_";
 const QUARTOS_KEY_PREFIX = "manutencao_quartos_";
 
 export const DEFAULT_AREAS_COMUNS = [
