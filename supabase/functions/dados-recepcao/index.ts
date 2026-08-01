@@ -556,6 +556,7 @@ serve(async (req) => {
         docPendente: r?.docPendente ?? false,
         statusCheckin: r?.statusCheckin ?? 'Aguardando',
         temReserva: Boolean(r),
+        hospedeSaindoHoje: r?.saindoHoje ? (r?.hospede ?? '') : '',
         // Próximo hóspede (quando há hóspede atual in-house e outra reserva chegando hoje)
         proximoHospede: prox?.hospede ?? '',
         proximoChegadaHora: prox?.chegadaHora ?? '',
