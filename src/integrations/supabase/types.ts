@@ -1419,6 +1419,7 @@ export type Database = {
           comment_media_type: string | null
           comment_media_url: string | null
           condition: string | null
+          departing_guest_name: string | null
           dnd_photo_url: string | null
           eci_time: string | null
           guest_name: string | null
@@ -1429,6 +1430,9 @@ export type Database = {
           id: string
           is_dnd: boolean
           lco_time: string | null
+          next_arrival_time: string | null
+          next_guest_name: string | null
+          next_pax: number | null
           pax: number | null
           pending_payment_amount: number | null
           property: string
@@ -1450,6 +1454,7 @@ export type Database = {
           comment_media_type?: string | null
           comment_media_url?: string | null
           condition?: string | null
+          departing_guest_name?: string | null
           dnd_photo_url?: string | null
           eci_time?: string | null
           guest_name?: string | null
@@ -1460,6 +1465,9 @@ export type Database = {
           id?: string
           is_dnd?: boolean
           lco_time?: string | null
+          next_arrival_time?: string | null
+          next_guest_name?: string | null
+          next_pax?: number | null
           pax?: number | null
           pending_payment_amount?: number | null
           property: string
@@ -1481,6 +1489,7 @@ export type Database = {
           comment_media_type?: string | null
           comment_media_url?: string | null
           condition?: string | null
+          departing_guest_name?: string | null
           dnd_photo_url?: string | null
           eci_time?: string | null
           guest_name?: string | null
@@ -1491,6 +1500,9 @@ export type Database = {
           id?: string
           is_dnd?: boolean
           lco_time?: string | null
+          next_arrival_time?: string | null
+          next_guest_name?: string | null
+          next_pax?: number | null
           pax?: number | null
           pending_payment_amount?: number | null
           property?: string

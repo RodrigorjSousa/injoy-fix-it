@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -58,6 +58,10 @@ type RoomRow = {
   assigned_task: string | null;
   color_code: string | null;
   guest_name: string | null;
+  departing_guest_name: string | null;
+  next_guest_name: string | null;
+  next_arrival_time: string | null;
+  next_pax: number | null;
   pax: number | null;
   has_pending_payment: boolean | null;
   pending_payment_amount: number | null;
@@ -835,6 +839,30 @@ function PainelCamareiras() {
                   ) : null}
                   <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
                 </div>
+
+                {q.departing_guest_name ? (
+                  <div className="flex items-center gap-1.5 text-xs rounded-lg bg-orange-50 border border-orange-200 px-2 py-1.5 text-orange-800">
+                    <LogOut size={13} className="shrink-0" />
+                    <span className="font-semibold">Saindo hoje:</span>
+                    <span className="font-bold truncate">{q.departing_guest_name}</span>
+                  </div>
+                ) : null}
+
+                {q.next_guest_name ? (
+                  <div className="flex items-center gap-1.5 text-xs rounded-lg bg-blue-50 border border-blue-200 px-2 py-1.5 text-blue-800">
+                    <LogIn size={13} className="shrink-0" />
+                    <span className="font-semibold">Chegando hoje:</span>
+                    <span className="font-bold truncate">{q.next_guest_name}</span>
+                    {q.next_pax && q.next_pax > 0 ? (
+                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded">
+                        {q.next_pax} pax
+                      </span>
+                    ) : null}
+                    {q.next_arrival_time ? (
+                      <span className="ml-auto font-bold">{q.next_arrival_time}</span>
+                    ) : null}
+                  </div>
+                ) : null}
                 {q.arrival_time &&
                 q.guest_name &&
                 q.guest_name !== "Quarto Vazio" ? (
