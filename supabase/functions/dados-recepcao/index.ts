@@ -463,7 +463,7 @@ serve(async (req) => {
         // Se o quarto tem janela própria e ela não inclui hoje, pula — o hóspede
         // não está nem chegará neste quarto hoje (só entra em outra data).
         if (isMultiRoom && roomStartISO && roomStartISO > hoje) continue
-        if (isMultiRoom && roomEndISO && roomEndISO <= hoje && !isCheckedIn) continue
+        if (isMultiRoom && roomEndISO && roomEndISO < hoje && !isCheckedIn) continue
 
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
