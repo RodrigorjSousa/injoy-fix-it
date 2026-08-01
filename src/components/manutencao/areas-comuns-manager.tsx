@@ -61,7 +61,11 @@ function quartosKey(unidade: string) {
   return `${QUARTOS_KEY_PREFIX}${unidade.toLowerCase()}`;
 }
 
-async function fetchListSetting(key: string, fallback: string[]): Promise<string[]> {
+function areasKey(unidade: string) {
+  return `${AREAS_KEY_PREFIX}${unidade.toLowerCase()}`;
+}
+
+async function readSetting(key: string): Promise<string[] | null> {
   const { data, error } = await supabase
     .from("app_settings" as never)
     .select("value")
@@ -69,7 +73,7 @@ async function fetchListSetting(key: string, fallback: string[]): Promise<string
     .maybeSingle();
   if (error) throw error;
   const row = data as { value: string } | null;
-  if (!row?.value) return fallback;
+  if (!row?.value) return null;
   try {
     const arr = JSON.parse(row.value);
     if (Array.isArray(arr) && arr.every((v) => typeof v === "string") && arr.length > 0) {
@@ -78,33 +82,44 @@ async function fetchListSetting(key: string, fallback: string[]): Promise<string
   } catch {
     /* ignore */
   }
-  return fallback;
+  return null;
 }
 
-const fetchAreas = () => fetchListSetting(AREAS_KEY, DEFAULT_AREAS_COMUNS);
+async function fetchListSetting(key: string, fallback: string[]): Promise<string[]> {
+  return (await readSetting(key)) ?? fallback;
+}
 
-export function useAreasComuns() {
+// Per-unit areas, falling back to the legacy shared list (one-time migration path)
+async function fetchAreas(unidade: string): Promise<string[]> {
+  const own = await readSetting(areasKey(unidade));
+  if (own) return own;
+  const legacy = await readSetting(AREAS_LEGACY_KEY);
+  return legacy ?? DEFAULT_AREAS_COMUNS;
+}
+
+export function useAreasComuns(unidade: string) {
   const qc = useQueryClient();
+  const key = areasKey(unidade);
   const q = useQuery({
-    queryKey: ["manutencao_areas_comuns"],
-    queryFn: fetchAreas,
+    queryKey: ["manutencao_areas_comuns", unidade],
+    queryFn: () => fetchAreas(unidade),
   });
 
   useEffect(() => {
     const ch = supabase
-      .channel("manutencao-areas-sync")
+      .channel(`manutencao-areas-sync-${unidade}`)
       .on(
         "postgres_changes",
-        { event: "*", schema: "public", table: "app_settings", filter: `key=eq.${AREAS_KEY}` },
+        { event: "*", schema: "public", table: "app_settings", filter: `key=eq.${key}` },
         () => {
-          qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns"] });
+          qc.invalidateQueries({ queryKey: ["manutencao_areas_comuns", unidade] });
         },
       )
       .subscribe();
     return () => {
       supabase.removeChannel(ch);
     };
-  }, [qc]);
+  }, [qc, unidade, key]);
 
   return q.data ?? DEFAULT_AREAS_COMUNS;
 }
