@@ -184,7 +184,7 @@ function locationHealth(status: LocationTaskStatus[]): LocationHealth {
 function ManutencaoPage() {
   const { unidade } = useUnidade();
   const { data: me } = useMe();
-  const tasksQ = usePreventiveTasks();
+  const tasksQ = usePreventiveTasks(unidade);
   const logsQ = usePreventiveLogs(unidade);
 
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
@@ -224,7 +224,7 @@ function ManutencaoPage() {
             </TabsList>
             <TabsContent value="painel" className="mt-6" />
             <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} />
+              <AdminTarefas tasks={tasksQ.data ?? []} unidade={unidade} />
             </TabsContent>
           </Tabs>
         )}
@@ -251,7 +251,7 @@ function PainelPreventiva({
   const [selected, setSelected] = useState<{ category: TaskCategory; name: string } | null>(null);
   const [filter, setFilter] = useState<"todos" | "atrasado" | "vence-breve" | "em-dia">("todos");
   const [manageOpen, setManageOpen] = useState(false);
-  const areasComuns = useAreasComuns();
+  const areasComuns = useAreasComuns(unidade);
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
   const quartos = useQuartos(unidade);
