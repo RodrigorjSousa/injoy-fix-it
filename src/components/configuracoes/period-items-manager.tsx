@@ -5,6 +5,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 type Unidade = "Botafogo" | "Ipanema";
 type PeriodKey = "manha" | "tarde" | "noite";
@@ -104,113 +110,124 @@ export function PeriodItemsManager() {
   };
 
   return (
-    <Card className="p-5 space-y-4">
-      <div className="flex items-center gap-2">
-        <ListChecks className="h-5 w-5 text-primary" />
-        <h2 className="font-semibold text-lg">Checklists de Turno</h2>
-      </div>
-      <p className="text-sm text-muted-foreground">
-        Gerencie as tarefas exibidas para as camareiras nos cards de Manhã, Tarde e Noite.
-        Alterações refletem no aplicativo em tempo real.
-      </p>
+    <Card className="overflow-hidden">
+      <Accordion type="single" collapsible>
+        <AccordionItem value="checklists-turno" className="border-0">
+          <AccordionTrigger className="px-5 py-4 hover:no-underline hover:bg-slate-50/50 [&[data-state=open]>svg]:rotate-180">
+            <div className="flex items-center gap-2">
+              <ListChecks className="h-5 w-5 text-primary" />
+              <h2 className="font-semibold text-lg">Checklists de Turno</h2>
+            </div>
+          </AccordionTrigger>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Unidade
-          </label>
-          <div className="grid grid-cols-2 gap-2">
-            {UNIDADES.map((u) => (
-              <button
-                key={u}
-                type="button"
-                onClick={() => setUnidade(u)}
-                className={`rounded-lg border p-2.5 text-sm transition-colors ${
-                  unidade === u
-                    ? "border-primary bg-primary/10 text-primary font-medium"
-                    : "bg-background hover:border-primary/40"
-                }`}
-              >
-                {u}
-              </button>
-            ))}
-          </div>
-        </div>
+          <AccordionContent>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Gerencie as tarefas exibidas para as camareiras nos cards de Manhã, Tarde e Noite.
+                Alterações refletem no aplicativo em tempo real.
+              </p>
 
-        <div className="space-y-2">
-          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Período
-          </label>
-          <div className="grid grid-cols-3 gap-2">
-            {PERIODOS.map((p) => (
-              <button
-                key={p.key}
-                type="button"
-                onClick={() => setPeriod(p.key)}
-                className={`rounded-lg border p-2.5 text-sm transition-colors ${
-                  period === p.key
-                    ? "border-primary bg-primary/10 text-primary font-medium"
-                    : "bg-background hover:border-primary/40"
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Unidade
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {UNIDADES.map((u) => (
+                      <button
+                        key={u}
+                        type="button"
+                        onClick={() => setUnidade(u)}
+                        className={`rounded-lg border p-2.5 text-sm transition-colors ${
+                          unidade === u
+                            ? "border-primary bg-primary/10 text-primary font-medium"
+                            : "bg-background hover:border-primary/40"
+                        }`}
+                      >
+                        {u}
+                      </button>
+                    ))}
+                  </div>
+                </div>
 
-      <div className="flex flex-col sm:flex-row gap-2">
-        <Input
-          value={novo}
-          onChange={(e) => setNovo(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") adicionar();
-          }}
-          placeholder="Nova tarefa (ex.: Regar plantas)"
-          className="flex-1"
-        />
-        <Button onClick={adicionar} disabled={addingBusy || !novo.trim()}>
-          {addingBusy ? (
-            <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-          ) : (
-            <Plus className="h-4 w-4 mr-1" />
-          )}
-          Adicionar
-        </Button>
-      </div>
+                <div className="space-y-2">
+                  <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    Período
+                  </label>
+                  <div className="grid grid-cols-3 gap-2">
+                    {PERIODOS.map((p) => (
+                      <button
+                        key={p.key}
+                        type="button"
+                        onClick={() => setPeriod(p.key)}
+                        className={`rounded-lg border p-2.5 text-sm transition-colors ${
+                          period === p.key
+                            ? "border-primary bg-primary/10 text-primary font-medium"
+                            : "bg-background hover:border-primary/40"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
 
-      <div className="space-y-2">
-        {loading && (
-          <p className="text-sm text-muted-foreground">Carregando...</p>
-        )}
-        {!loading && filtered.length === 0 && (
-          <p className="text-sm text-muted-foreground text-center py-6">
-            Nenhuma tarefa cadastrada para este período.
-          </p>
-        )}
-        {filtered.map((row) => (
-          <div
-            key={row.id}
-            className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2"
-          >
-            <span className="text-sm">{row.item_name}</span>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => excluir(row)}
-              disabled={deletingId === row.id}
-              aria-label={`Excluir ${row.item_name}`}
-            >
-              {deletingId === row.id ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 text-destructive" />
-              )}
-            </Button>
-          </div>
-        ))}
-      </div>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Input
+                  value={novo}
+                  onChange={(e) => setNovo(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") adicionar();
+                  }}
+                  placeholder="Nova tarefa (ex.: Regar plantas)"
+                  className="flex-1"
+                />
+                <Button onClick={adicionar} disabled={addingBusy || !novo.trim()}>
+                  {addingBusy ? (
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                  ) : (
+                    <Plus className="h-4 w-4 mr-1" />
+                  )}
+                  Adicionar
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {loading && (
+                  <p className="text-sm text-muted-foreground">Carregando...</p>
+                )}
+                {!loading && filtered.length === 0 && (
+                  <p className="text-sm text-muted-foreground text-center py-6">
+                    Nenhuma tarefa cadastrada para este período.
+                  </p>
+                )}
+                {filtered.map((row) => (
+                  <div
+                    key={row.id}
+                    className="flex items-center justify-between gap-3 rounded-lg border bg-background px-3 py-2"
+                  >
+                    <span className="text-sm">{row.item_name}</span>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => excluir(row)}
+                      disabled={deletingId === row.id}
+                      aria-label={`Excluir ${row.item_name}`}
+                    >
+                      {deletingId === row.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      )}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </Card>
   );
 }
