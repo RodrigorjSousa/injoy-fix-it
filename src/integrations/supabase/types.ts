@@ -1862,6 +1862,17 @@ export type Database = {
           nome: string
         }[]
       }
+      list_staff_basic: {
+        Args: never
+        Returns: {
+          categorias: string[]
+          email: string
+          id: string
+          nome: string
+          telas_permitidas: string[]
+          user_id: string
+        }[]
+      }
       list_tecnicos: {
         Args: never
         Returns: {

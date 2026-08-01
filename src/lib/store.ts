@@ -152,15 +152,15 @@ export function useFuncionarios() {
   return useQuery({
     queryKey: ["funcionarios"],
     queryFn: async (): Promise<Funcionario[]> => {
-      const { data, error } = await supabase
-        .from("funcionarios")
-        .select("id, nome, email, categorias, user_id, telas_permitidas")
-        .order("nome");
+      // Diretório seguro da equipe: não expõe CPF e só devolve e-mail
+      // para gestores/administradores (validado no banco).
+      const { data, error } = await supabase.rpc("list_staff_basic" as never);
       if (error) throw error;
-      return (data ?? []).map((r) => mapFuncionario(r as FuncionarioRow));
+      return ((data ?? []) as FuncionarioRow[]).map((r) => mapFuncionario(r));
     },
   });
 }
+
 
 export function useChamados() {
   const qc = useQueryClient();
