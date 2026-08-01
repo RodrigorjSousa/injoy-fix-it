@@ -336,10 +336,12 @@ serve(async (req) => {
           const hasOwnRoomSignal =
             !!rawRoomStatus || !!roomCheckInAt || !!roomCheckInDate || !!roomCheckOutDate
           const skipRoom = isMultiRoom && !hasOwnRoomSignal
-          // Se a janela do quarto termina antes/hoje sem check-in, o hóspede
-          // não pertence a este quarto hoje.
+          // Se a janela do quarto terminou ANTES de hoje, o hóspede não pertence
+          // mais a este quarto. Saídas de HOJE (inclusive já com check-out feito
+          // no Cloudbeds) precisam permanecer, senão o quarto perde o GERAL /
+          // GERAL - CHECK-IN e cai para VERIFICAÇÃO indevidamente.
           const roomWindowExpired =
-            !!roomCheckOutDate && roomCheckOutDate <= hojeStr && roomStatus !== 'checked_in'
+            !!roomCheckOutDate && roomCheckOutDate < hojeStr && roomStatus !== 'checked_in'
           // Janela do quarto começa depois de hoje: só entra em outra data.
           const roomWindowFuture = !!roomCheckInDate && roomCheckInDate > hojeStr && isMultiRoom
 
@@ -423,6 +425,13 @@ serve(async (req) => {
           }
         }
 
+        // REGRAS (Cloudbeds é a VERDADE):
+        // GERAL           → hóspede sai hoje e ninguém entra hoje
+        // GERAL - CHECK-IN→ hóspede sai hoje e outro entra hoje
+        // REVISÃO         → quarto vazio com chegada hoje (antes do hóspede)
+        // ARRUMAÇÃO       → hóspede hospedado (a partir do dia seguinte à entrada)
+        // TROCA           → a cada 3 dias de hospedagem
+        // VERIFICAÇÃO     → quarto limpo e vazio, sem movimento hoje
         if (reservaSaindoHoje && reservaEntrandoHoje) {
           tarefaSugerida = 'GERAL - CHECK-IN'
           corLegenda = 'CINZA'
@@ -431,9 +440,14 @@ serve(async (req) => {
           corLegenda = 'CINZA'
         } else if (hospedeAtualInHouse) {
           corLegenda = 'VERDE'
-          const t = calcularTroca(hospedeAtualInHouse._checkInDate, hospedeAtualInHouse._checkOutDate)
-          tarefaSugerida = t.tarefa
-          blinkTroca = t.blink
+          if (hospedeAtualInHouse._checkInDate === hojeStr) {
+            // Entrou hoje: arrumação só começa quando virar o dia.
+            tarefaSugerida = 'REVISÃO'
+          } else {
+            const t = calcularTroca(hospedeAtualInHouse._checkInDate, hospedeAtualInHouse._checkOutDate)
+            tarefaSugerida = t.tarefa
+            blinkTroca = t.blink
+          }
         } else if (!hospedeAtualInHouse && reservaEntrandoHoje) {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
@@ -446,8 +460,14 @@ serve(async (req) => {
           const t = calcularTroca(reservaAtivaSobreposta._checkInDate, reservaAtivaSobreposta._checkOutDate)
           tarefaSugerida = t.tarefa
           blinkTroca = t.blink
-        } else if (String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty') {
-          tarefaSugerida = 'ARRUMAÇÃO'
+        } else if (
+          String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty' ||
+          String(room.roomCondition ?? '').toLowerCase() === 'dirty'
+        ) {
+          // Quarto vazio e sujo no Cloudbeds → limpeza completa (GERAL),
+          // nunca VERIFICAÇÃO (que é reservada a quarto limpo e vazio).
+          tarefaSugerida = 'GERAL'
+          corLegenda = 'CINZA'
         }
 
 
