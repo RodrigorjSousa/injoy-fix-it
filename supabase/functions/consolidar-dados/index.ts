@@ -480,15 +480,12 @@ serve(async (req) => {
           const t = calcularTroca(reservaAtivaSobreposta._checkInDate, reservaAtivaSobreposta._checkOutDate)
           tarefaSugerida = t.tarefa
           blinkTroca = t.blink
-        } else if (
-          String(room.housekeepingStatus ?? '').toLowerCase() === 'dirty' ||
-          String(room.roomCondition ?? '').toLowerCase() === 'dirty'
-        ) {
-          // Quarto vazio e sujo no Cloudbeds → limpeza completa (GERAL),
-          // nunca VERIFICAÇÃO (que é reservada a quarto limpo e vazio).
-          tarefaSugerida = 'GERAL'
-          corLegenda = 'CINZA'
         }
+
+        // REGRA INVIOLÁVEL: o estado de limpeza do quarto não cria uma saída.
+        // Sem reserva com check-out HOJE, um quarto vazio permanece VERIFICAÇÃO,
+        // mesmo que o housekeeping do Cloudbeds esteja como dirty. GERAL e
+        // GERAL - CHECK-IN dependem exclusivamente de reservaSaindoHoje.
 
 
         const cond = String(room.roomCondition ?? '').toLowerCase()
