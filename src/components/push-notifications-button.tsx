@@ -14,17 +14,21 @@ import { cn } from "@/lib/utils";
 type Props = { className?: string; compact?: boolean };
 
 export function PushNotificationsButton({ className, compact }: Props) {
-  const [supported] = useState(() => isPushSupported());
-  const [preview] = useState(() => isPreviewContext());
+  const [supported, setSupported] = useState(false);
+  const [preview, setPreview] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
   const [subscribed, setSubscribed] = useState<boolean | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!supported) return;
-    isCurrentlySubscribed().then(setSubscribed);
-  }, [supported]);
+    const nextSupported = isPushSupported();
+    setSupported(nextSupported);
+    setPreview(isPreviewContext());
+    setHydrated(true);
+    if (nextSupported) isCurrentlySubscribed().then(setSubscribed);
+  }, []);
 
-  if (!supported) return null;
+  if (!hydrated || !supported) return null;
 
   const handle = async () => {
     setLoading(true);
