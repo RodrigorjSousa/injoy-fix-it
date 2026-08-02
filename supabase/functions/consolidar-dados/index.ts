@@ -348,13 +348,13 @@ serve(async (req) => {
           // senão o mesmo hóspede vaza para todos os quartos da reserva.
           const hasOwnRoomSignal =
             !!rawRoomStatus || !!roomCheckInAt || !!roomCheckInDate || !!roomCheckOutDate
-          // Uma saída de hoje não pode ser descartada só porque a reserva de
-          // grupo não repetiu roomCheckOut em cada item de quarto. O quarto está
-          // explicitamente listado na reserva e a data-mãe de saída é a única
-          // evidência que o Cloudbeds entrega nesse formato. Mantemos a trava
-          // para outros dias, mas preservamos a saída de hoje para distinguir
-          // GERAL de REVISÃO e GERAL - CHECK-IN.
-          const isDepartureToday = (roomCheckOutDate || resCheckOutDate) === hojeStr
+          // Em reserva multi-quarto, NUNCA propaga a data de saída da reserva-mãe
+          // para todos os apartamentos. Uma saída só pertence ao quarto quando o
+          // Cloudbeds traz roomCheckOut próprio. Para reserva de um único quarto,
+          // a data da reserva continua sendo um fallback seguro.
+          const isDepartureToday = roomCheckOutDate
+            ? roomCheckOutDate === hojeStr
+            : !isMultiRoom && resCheckOutDate === hojeStr
           const skipRoom = isMultiRoom && !hasOwnRoomSignal && !isDepartureToday
           // Se a janela do quarto terminou ANTES de hoje, o hóspede não pertence
           // mais a este quarto. Saídas de HOJE (inclusive já com check-out feito
