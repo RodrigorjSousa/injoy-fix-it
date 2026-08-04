@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   RefreshCw,
@@ -12,6 +12,8 @@ import {
   ChevronRight,
   Camera,
   Loader2,
+  Banknote,
+  ArrowUpRight,
 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -261,7 +263,26 @@ function HistoricoVistoriasPage() {
       </div>
 
       <div className="p-4 space-y-4">
-        {isFull && <VistoriaChecklistManager />}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="flex-1">
+            <VistoriaChecklistManager />
+          </div>
+          <Link
+            to="/historico-caixa"
+            className="sm:w-64 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl p-4 shadow-sm border border-emerald-500 flex items-center justify-between transition-all active:scale-[0.98]"
+          >
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-xl bg-white/20 grid place-items-center">
+                <Banknote size={20} />
+              </div>
+              <div className="text-left">
+                <p className="text-[10px] font-bold text-emerald-100 uppercase tracking-wider">Financeiro</p>
+                <p className="text-sm font-black">Histórico de Dinheiro do Caixa</p>
+              </div>
+            </div>
+            <ArrowUpRight size={18} className="text-emerald-200" />
+          </Link>
+        </div>
 
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
