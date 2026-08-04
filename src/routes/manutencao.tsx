@@ -16,6 +16,7 @@ import {
   History,
   ImageIcon,
   LayoutDashboard,
+  User2,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1315,4 +1316,4 @@ function ChamadosHistoricoView({ chamados, loading }: { chamados: any[]; loading
   );
 }
 
-import { User2 } from "lucide-react";
+
