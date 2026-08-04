@@ -510,33 +510,73 @@ function HistoricoLimpezaPage() {
                 <div
                   key={r.id}
                   className={cn(
-                    "bg-white rounded-2xl border shadow-sm p-4 flex gap-3",
+                    "bg-white rounded-2xl border shadow-sm p-4 flex gap-3 relative",
                     isDnd ? "border-red-200" : "border-slate-200",
                   )}
                 >
-                  {isDnd && r.photo_url ? (
-                    <button
-                      onClick={() => setFotoAberta(r.photo_url)}
-                      className="shrink-0"
-                      aria-label="Ampliar foto"
-                    >
-                      <InspectionImage
-                        stored={r.photo_url}
-                        alt="Placa Não Perturbe"
-                        className="w-16 h-16 rounded-lg object-cover border border-red-300"
-                        loading="lazy"
-                        fallback={
-                          <div className="w-16 h-16 rounded-lg bg-red-50 border border-red-200 grid place-items-center text-red-500">
-                            <ImageIcon size={18} />
-                          </div>
-                        }
-                      />
-                    </button>
-                  ) : isDnd ? (
-                    <div className="w-16 h-16 rounded-lg bg-red-50 border border-red-200 grid place-items-center text-red-500">
-                      <ImageIcon size={18} />
+                  {(r.media_url || (isDnd && r.photo_url)) && (
+                    <div className="shrink-0 relative group">
+                      {isDnd && r.photo_url ? (
+                        <button
+                          onClick={() => setFotoAberta(r.photo_url)}
+                          className="block"
+                          aria-label="Ampliar foto"
+                        >
+                          <InspectionImage
+                            stored={r.photo_url}
+                            alt="Placa Não Perturbe"
+                            className="w-16 h-16 rounded-lg object-cover border border-red-300"
+                            loading="lazy"
+                            fallback={
+                              <div className="w-16 h-16 rounded-lg bg-red-50 border border-red-200 grid place-items-center text-red-500">
+                                <ImageIcon size={18} />
+                              </div>
+                            }
+                          />
+                        </button>
+                      ) : r.media_url ? (
+                        <div className="w-16 h-16 rounded-lg bg-slate-100 border border-slate-200 overflow-hidden">
+                          {r.media_type === "video" ? (
+                            <div className="w-full h-full flex items-center justify-center text-slate-500">
+                              <Film size={18} />
+                            </div>
+                          ) : (
+                            <img
+                              src={midiaSignedUrls[r.media_url] || ""}
+                              alt="Mídia"
+                              className="w-full h-full object-cover"
+                            />
+                          )}
+                        </div>
+                      ) : isDnd ? (
+                        <div className="w-16 h-16 rounded-lg bg-red-50 border border-red-200 grid place-items-center text-red-500">
+                          <ImageIcon size={18} />
+                        </div>
+                      ) : null}
+                      
+                      <button
+                        onClick={async () => {
+                          if (!window.confirm("Deseja apagar esta mídia do histórico?")) return;
+                          try {
+                            const column = isDnd ? "photo_url" : "media_url";
+                            const { error } = await supabase
+                              .from("room_housekeeping_history")
+                              .update({ [column]: null } as any)
+                              .eq("id", r.id);
+                            if (error) throw error;
+                            toast.success("Mídia removida do histórico");
+                            carregar();
+                          } catch (err) {
+                            toast.error("Falha ao remover mídia");
+                          }
+                        }}
+                        className="absolute -top-1 -right-1 bg-red-600 text-white p-1 rounded-full shadow-md hover:bg-red-700 transition-colors"
+                        title="Apagar imagem do histórico"
+                      >
+                        <Trash2 size={12} />
+                      </button>
                     </div>
-                  ) : null}
+                  )}
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
