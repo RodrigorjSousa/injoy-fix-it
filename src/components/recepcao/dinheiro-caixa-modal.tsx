@@ -75,7 +75,7 @@ export function DinheiroCaixaModal({ open, onClose, unidade }: Props) {
           throw error;
         }
       } else {
-        setMovements(data || []);
+        setMovements((data as unknown as CashMovement[]) || []);
         const total = (data || []).reduce((acc: number, m: any) => 
           m.type === "in" ? acc + m.amount : acc - m.amount, 0
         );
