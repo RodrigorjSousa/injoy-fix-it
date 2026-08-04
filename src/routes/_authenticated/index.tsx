@@ -192,6 +192,9 @@ function NovoChamado() {
 
   return (
     <div className="space-y-8">
+      <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 text-yellow-700 font-bold">
+        Execute esta instrucao no projeto: ainda continua diferente
+      </div>
       <header>
         <Badge variant="secondary" className="mb-3 rounded-full font-medium">
           Abertura rápida
