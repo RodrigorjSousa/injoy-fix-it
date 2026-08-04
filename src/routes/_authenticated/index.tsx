@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 p-4 mb-4 text-yellow-700 font-bold">
-        Execute esta instrucao no projeto: ainda continua diferente
+        Execute esta instrucao no projeto: a aba "manuteção" dos tecnicos marcando 18 total, esta diferente da minha marcando 21 total. o certo é a minha. eu adicionei mais cards porem não aprece para eles. por favor verifique a fundo esse erro grave
       </div>
       <header>
         <Badge variant="secondary" className="mb-3 rounded-full font-medium">
