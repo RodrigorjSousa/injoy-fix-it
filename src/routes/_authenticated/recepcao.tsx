@@ -21,6 +21,7 @@ import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
+import { DinheiroCaixaModal } from "@/components/recepcao/dinheiro-caixa-modal";
 import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
 import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
 import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-enviados-camareira";
