@@ -961,7 +961,15 @@ function ChecklistModal({
   );
 }
 
-function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: string }) {
+function AdminTarefas({
+  tasks,
+  unidade,
+  readOnly = false,
+}: {
+  tasks: PreventiveTask[];
+  unidade: string;
+  readOnly?: boolean;
+}) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<PreventiveTask | null>(null);
   const [creating, setCreating] = useState(false);
