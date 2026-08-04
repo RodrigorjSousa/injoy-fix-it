@@ -1021,12 +1021,13 @@ function AdminTarefas({
                   <div className="font-medium truncate">{t.task_name}</div>
                   <div className="text-xs text-muted-foreground">A cada {t.frequency_days} dia(s) · {t.active ? "ativa" : "inativa"}</div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setEditing(t)}>
+                <Button variant="ghost" size="icon" onClick={() => setEditing(t)} disabled={readOnly}>
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
+                  disabled={readOnly}
                   onClick={() => {
                     if (confirm("Remover esta tarefa? O histórico associado também será removido."))
                       del.mutate(t.id);
