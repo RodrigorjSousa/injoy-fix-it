@@ -1190,7 +1190,16 @@ function HistoricoPreventiva({ logs, loading }: { logs: PreventiveLog[]; loading
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold">Histórico de Manutenções</h2>
-        <Badge variant="secondary">{logs.length} registros</Badge>
+        <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            className="bg-orange-500 hover:bg-orange-600 text-white h-7 text-xs px-4"
+            onClick={() => setTab("painel-chamados")}
+          >
+            Painel
+          </Button>
+          <Badge variant="secondary">{logs.length} registros</Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-3">
