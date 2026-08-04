@@ -32,6 +32,7 @@ import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
 import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
+import { DinheiroCaixaModal } from "@/components/recepcao/dinheiro-caixa-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -337,6 +338,14 @@ function RecepcaoPage() {
           <MessageSquarePlus size={18} />
           <span className="hidden sm:inline">Recado camareira</span>
           <span className="sm:hidden">📝</span>
+        </button>
+        <button
+          onClick={() => setCaixaOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-emerald-500 to-green-600 shadow-md shadow-emerald-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <Banknote size={18} />
+          <span className="hidden sm:inline">Dinheiro do caixa</span>
+          <span className="sm:hidden">💵</span>
         </button>
         <button
           onClick={() => setVendaBebidasOpen(true)}
