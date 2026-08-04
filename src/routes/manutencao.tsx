@@ -181,6 +181,34 @@ function locationHealth(status: LocationTaskStatus[]): LocationHealth {
   return "em-dia";
 }
 
+function usePreventiveRealtime(unidade: string) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase
+      .channel(`manutencao-preventiva-sync-${unidade}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "preventive_tasks" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
+          qc.invalidateQueries({ queryKey: ["preventive_tasks_all"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "preventive_logs" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["preventive_logs"] });
+          qc.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [qc, unidade]);
+}
+
 function ManutencaoPage() {
   const { unidade } = useUnidade();
   const { data: me } = useMe();
@@ -188,6 +216,8 @@ function ManutencaoPage() {
   const logsQ = usePreventiveLogs(unidade);
 
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
+
+  usePreventiveRealtime(unidade);
 
   const [tab, setTab] = useState<string>("painel");
 
@@ -212,22 +242,24 @@ function ManutencaoPage() {
           me={me}
         />
 
-        {isAdmin && (
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="painel">
-                <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
-              </TabsTrigger>
-              <TabsTrigger value="admin">
-                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="painel" className="mt-6" />
-            <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} unidade={unidade} />
-            </TabsContent>
-          </Tabs>
-        )}
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="painel">
+              <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
+            </TabsTrigger>
+            <TabsTrigger value="admin">
+              <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="painel" className="mt-6" />
+          <TabsContent value="admin" className="mt-6">
+            <AdminTarefas
+              tasks={tasksQ.data ?? []}
+              unidade={unidade}
+              readOnly={!isAdmin}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
@@ -340,17 +372,17 @@ function PainelPreventiva({
           {filter === "atrasado" && `A fazer / Atrasado (${filtered.length})`}
         </h2>
         <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setManageOpen(true)}
-              className="h-7 text-xs"
-            >
-              <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              Gerenciar todos os locais
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setManageOpen(true)}
+            className="h-7 text-xs"
+            disabled={!isAdmin}
+            title={!isAdmin ? "Somente a gestão pode alterar" : undefined}
+          >
+            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+            Gerenciar todos os locais
+          </Button>
           {filter !== "todos" && (
             <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
               Limpar filtro
@@ -929,7 +961,15 @@ function ChecklistModal({
   );
 }
 
-function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: string }) {
+function AdminTarefas({
+  tasks,
+  unidade,
+  readOnly = false,
+}: {
+  tasks: PreventiveTask[];
+  unidade: string;
+  readOnly?: boolean;
+}) {
   const qc = useQueryClient();
   const [editing, setEditing] = useState<PreventiveTask | null>(null);
   const [creating, setCreating] = useState(false);
@@ -956,9 +996,17 @@ function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: st
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Catálogo de tarefas</h2>
-          <p className="text-sm text-muted-foreground">Ajuste frequências e adicione novas rotinas.</p>
+          <p className="text-sm text-muted-foreground">
+            {readOnly
+              ? "Definido pela gestão — atualiza automaticamente."
+              : "Ajuste frequências e adicione novas rotinas."}
+          </p>
         </div>
-        <Button onClick={() => setCreating(true)}>
+        <Button
+          onClick={() => setCreating(true)}
+          disabled={readOnly}
+          title={readOnly ? "Somente a gestão pode alterar" : undefined}
+        >
           <Plus className="h-4 w-4 mr-1.5" /> Nova tarefa
         </Button>
       </div>
@@ -973,12 +1021,13 @@ function AdminTarefas({ tasks, unidade }: { tasks: PreventiveTask[]; unidade: st
                   <div className="font-medium truncate">{t.task_name}</div>
                   <div className="text-xs text-muted-foreground">A cada {t.frequency_days} dia(s) · {t.active ? "ativa" : "inativa"}</div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setEditing(t)}>
+                <Button variant="ghost" size="icon" onClick={() => setEditing(t)} disabled={readOnly}>
                   <Pencil className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
+                  disabled={readOnly}
                   onClick={() => {
                     if (confirm("Remover esta tarefa? O histórico associado também será removido."))
                       del.mutate(t.id);
