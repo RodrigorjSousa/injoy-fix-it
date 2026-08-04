@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles } from "lucide-react";
+import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 
@@ -561,6 +561,32 @@ function PainelCamareiras() {
     await carregar();
   }, [carregar, unidadeAtiva]);
 
+  const removerDnd = useCallback(
+    async (q: RoomRow) => {
+      if (!window.confirm(`Remover o "Não Perturbe" e a foto do quarto ${q.room_number}?`)) return;
+      const t = toast.loading("Removendo Não Perturbe...");
+      const { error } = await supabase
+        .from("room_housekeeping")
+        // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+        .update({
+          is_dnd: false,
+          dnd_photo_url: null,
+          service_status: "idle",
+          service_ended_at: null,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("property", q.property)
+        .eq("room_number", q.room_number);
+      if (error) {
+        toast.error("Falha ao remover Não Perturbe", { id: t });
+        return;
+      }
+      toast.success(`Não Perturbe removido do quarto ${q.room_number}`, { id: t });
+      await carregar();
+    },
+    [carregar],
+  );
+
 
   const filtrados = useMemo(() => {
     return quartos.filter((q) => {
@@ -956,11 +982,23 @@ function PainelCamareiras() {
                         Faxina bloqueada para este quarto hoje.
                       </p>
                     </div>
+                    <button
+                      onClick={() => removerDnd(q)}
+                      className="p-2 rounded-lg bg-white border border-red-300 text-red-600 hover:bg-red-100 transition-colors"
+                      aria-label="Remover Não Perturbe e apagar foto"
+                      title="Remover Não Perturbe e apagar foto"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-200 text-slate-500 font-black text-sm uppercase tracking-wider cursor-not-allowed">
-                    <Ban size={16} />
-                    Serviço Indisponível
-                  </div>
+                  <button
+                    onClick={() => removerDnd(q)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-sm uppercase tracking-wider transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Remover Não Perturbe
+                  </button>
+
                 </div>
               ) : (
                 <>
