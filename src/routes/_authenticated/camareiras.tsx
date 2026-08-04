@@ -562,7 +562,7 @@ function PainelCamareiras() {
   }, [carregar, unidadeAtiva]);
 
   const removerDnd = useCallback(
-    async (q: Quarto) => {
+    async (q: RoomRow) => {
       if (!window.confirm(`Remover o "Não Perturbe" e a foto do quarto ${q.room_number}?`)) return;
       const t = toast.loading("Removendo Não Perturbe...");
       const { error } = await supabase
