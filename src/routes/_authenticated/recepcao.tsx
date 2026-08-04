@@ -32,7 +32,6 @@ import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
 import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
-import { DinheiroCaixaModal } from "@/components/recepcao/dinheiro-caixa-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
