@@ -996,9 +996,17 @@ function AdminTarefas({
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-lg font-semibold">Catálogo de tarefas</h2>
-          <p className="text-sm text-muted-foreground">Ajuste frequências e adicione novas rotinas.</p>
+          <p className="text-sm text-muted-foreground">
+            {readOnly
+              ? "Definido pela gestão — atualiza automaticamente."
+              : "Ajuste frequências e adicione novas rotinas."}
+          </p>
         </div>
-        <Button onClick={() => setCreating(true)}>
+        <Button
+          onClick={() => setCreating(true)}
+          disabled={readOnly}
+          title={readOnly ? "Somente a gestão pode alterar" : undefined}
+        >
           <Plus className="h-4 w-4 mr-1.5" /> Nova tarefa
         </Button>
       </div>
