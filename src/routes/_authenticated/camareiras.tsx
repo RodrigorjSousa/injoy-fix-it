@@ -1114,6 +1114,31 @@ function PainelCamareiras() {
                             ...
                           </div>
                         )}
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (!window.confirm("Deseja realmente apagar esta imagem/vídeo?")) return;
+                            try {
+                              const { error } = await supabase
+                                .from("room_housekeeping")
+                                .update({
+                                  comment_media_url: null,
+                                  comment_media_type: null,
+                                  updated_at: new Date().toISOString(),
+                                } as any)
+                                .eq("property", q.property)
+                                .eq("room_number", q.room_number);
+                              if (error) throw error;
+                              toast.success("Mídia removida com sucesso");
+                            } catch (err) {
+                              toast.error("Falha ao remover mídia");
+                            }
+                          }}
+                          className="absolute top-0 right-0 bg-red-600 text-white p-1 shadow-sm hover:bg-red-700 transition-colors"
+                          title="Apagar imagem/vídeo"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     )}
 
