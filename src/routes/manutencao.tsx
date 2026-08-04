@@ -49,6 +49,7 @@ import { cn } from "@/lib/utils";
 import { MediaCapture } from "@/components/media-capture";
 import type { Midia } from "@/lib/store";
 import { AreasComunsManager, useAreasComuns, useQuartos } from "@/components/manutencao/areas-comuns-manager";
+import { InspectionImage } from "@/components/InspectionImage";
 
 export const Route = createFileRoute("/manutencao")({
   head: () => ({
@@ -1216,7 +1217,7 @@ function HistoricoPreventiva({ logs, loading }: { logs: PreventiveLog[]; loading
               <div className="flex gap-2 overflow-x-auto py-1">
                 {(log as any).midias.map((m: Midia, idx: number) => (
                   <div key={idx} className="relative h-12 w-12 rounded-md border overflow-hidden shrink-0">
-                    <InspectionImage path={m.url} className="h-full w-full object-cover" />
+                    <InspectionImage stored={m.url} className="h-full w-full object-cover" />
                   </div>
                 ))}
               </div>
