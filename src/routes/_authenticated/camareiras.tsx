@@ -561,6 +561,32 @@ function PainelCamareiras() {
     await carregar();
   }, [carregar, unidadeAtiva]);
 
+  const removerDnd = useCallback(
+    async (q: Quarto) => {
+      if (!window.confirm(`Remover o "Não Perturbe" e a foto do quarto ${q.room_number}?`)) return;
+      const t = toast.loading("Removendo Não Perturbe...");
+      const { error } = await supabase
+        .from("room_housekeeping")
+        // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+        .update({
+          is_dnd: false,
+          dnd_photo_url: null,
+          service_status: "idle",
+          service_ended_at: null,
+          updated_at: new Date().toISOString(),
+        } as any)
+        .eq("property", q.property)
+        .eq("room_number", q.room_number);
+      if (error) {
+        toast.error("Falha ao remover Não Perturbe", { id: t });
+        return;
+      }
+      toast.success(`Não Perturbe removido do quarto ${q.room_number}`, { id: t });
+      await carregar();
+    },
+    [carregar],
+  );
+
 
   const filtrados = useMemo(() => {
     return quartos.filter((q) => {
