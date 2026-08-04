@@ -15,6 +15,7 @@ import {
   Loader2,
   History,
   ImageIcon,
+  LayoutDashboard,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -40,7 +41,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useUnidade } from "@/lib/unidade-context";
-import { useMe } from "@/lib/store";
+import { useMe, useChamados } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
@@ -217,6 +218,7 @@ function ManutencaoPage() {
   const { data: me } = useMe();
   const tasksQ = usePreventiveTasks(unidade);
   const logsQ = usePreventiveLogs(unidade);
+  const { data: chamados = [], isLoading: loadingChamados } = useChamados();
 
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
 
@@ -253,13 +255,19 @@ function ManutencaoPage() {
             <TabsTrigger value="historico">
               <History className="h-4 w-4 mr-1.5" /> Histórico
             </TabsTrigger>
+            <TabsTrigger value="painel-chamados">
+              <LayoutDashboard className="h-4 w-4 mr-1.5" /> Painel
+            </TabsTrigger>
             <TabsTrigger value="admin">
               <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
             </TabsTrigger>
           </TabsList>
           <TabsContent value="painel" className="mt-6" />
           <TabsContent value="historico" className="mt-6">
-            <HistoricoPreventiva logs={logsQ.data ?? []} loading={logsQ.isLoading} />
+            <HistoricoPreventiva logs={logsQ.data ?? []} loading={logsQ.isLoading} setTab={setTab} />
+          </TabsContent>
+          <TabsContent value="painel-chamados" className="mt-6">
+            <ChamadosHistoricoView chamados={chamados} loading={loadingChamados} />
           </TabsContent>
           <TabsContent value="admin" className="mt-6">
             <AdminTarefas
@@ -1183,7 +1191,7 @@ function useMemoResetTask(task: PreventiveTask | null, fn: () => void) {
   }, [task?.id]);
 }
 
-function HistoricoPreventiva({ logs, loading }: { logs: PreventiveLog[]; loading: boolean }) {
+function HistoricoPreventiva({ logs, loading, setTab }: { logs: PreventiveLog[]; loading: boolean; setTab: (t: string) => void }) {
   if (loading) return <Card className="p-8 text-center">Carregando histórico...</Card>;
 
   return (
@@ -1242,3 +1250,69 @@ function HistoricoPreventiva({ logs, loading }: { logs: PreventiveLog[]; loading
     </div>
   );
 }
+
+function ChamadosHistoricoView({ chamados, loading }: { chamados: any[]; loading: boolean }) {
+  const concluidos = useMemo(() => {
+    return chamados
+      .filter((c) => c.status === "Concluído")
+      .sort((a, b) => new Date(b.concluidoEm || b.criadoEm).getTime() - new Date(a.concluidoEm || a.criadoEm).getTime());
+  }, [chamados]);
+
+  if (loading) return <Card className="p-8 text-center">Carregando painel...</Card>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Chamados Finalizados (Painel)</h2>
+        <Badge variant="outline" className="bg-orange-50 text-orange-700 border-orange-200">
+          {concluidos.length} concluídos
+        </Badge>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {concluidos.map((c) => (
+          <Card key={c.id} className="p-4 border-l-4 border-l-orange-500">
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-bold text-slate-900">{c.descricao}</span>
+                <Badge variant="secondary" className="text-[10px]">{c.categoria}</Badge>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase font-bold text-[9px]">Técnico</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <User2 className="h-3 w-3" /> {c.responsavelNome || "—"}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase font-bold text-[9px]">Finalizado em</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <Clock className="h-3 w-3" /> 
+                    {c.concluidoEm ? new Date(c.concluidoEm).toLocaleString("pt-BR") : "—"}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase font-bold text-[9px]">Unidade</span>
+                  <span className="font-medium flex items-center gap-1">
+                    <MapPin className="h-3 w-3" /> {c.unidade}
+                  </span>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted-foreground uppercase font-bold text-[9px]">Aberto por</span>
+                  <span className="font-medium">{c.criadoPorNome || "—"}</span>
+                </div>
+              </div>
+            </div>
+          </Card>
+        ))}
+        {concluidos.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border border-dashed">
+            Nenhum chamado concluído no painel.
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+import { User2 } from "lucide-react";
