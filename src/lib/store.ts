@@ -64,6 +64,8 @@ export interface Chamado {
   criadoEm: string;
   criadoPor: string | null;
   criadoPorNome: string | null;
+  responsavelNome?: string | null;
+  concluidoEm?: string | null;
 }
 
 
@@ -100,6 +102,8 @@ type ChamadoRow = {
   midias: unknown;
   criado_por: string | null;
   created_at: string;
+  responsavel_nome?: string | null;
+  concluido_em?: string | null;
 };
 
 type AtivoRow = {
@@ -134,6 +138,8 @@ const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado =
   criadoEm: r.created_at,
   criadoPor: r.criado_por,
   criadoPorNome: nomeCriador,
+  responsavelNome: r.responsavel_nome,
+  concluidoEm: r.concluido_em,
 });
 
 const mapAtivo = (r: AtivoRow): AtivoAr => ({
@@ -185,7 +191,7 @@ export function useChamados() {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at, responsavel_nome, concluido_em",
         )
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -226,7 +232,7 @@ export function useChamado(id: string) {
       const { data, error } = await supabase
         .from("chamados")
         .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at",
+          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at, responsavel_nome, concluido_em",
         )
         .eq("id", id)
         .maybeSingle();
