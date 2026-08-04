@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm text-sm font-medium">
-        Execute esta instrucao no projeto: em "manutenção" na execução das tarefas, preciso que seja obrigatorio uma fotografia ou video (15s). portanto vamos adotar isso por favor em todas as telas na ABA MANUTENÇÃO.
+        Execute esta instrucao no projeto: porem preciso que no historico da manutenção as imagens aparecam la com data, nome e unidade da onde foi tirada.
       </div>
 
       <header>
