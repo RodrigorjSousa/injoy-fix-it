@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm text-sm font-medium">
-        Execute esta instrucao no projeto: porem preciso que no historico da manutenção as imagens aparecam la com data, nome e unidade da onde foi tirada.
+        Execute esta instrucao no projeto: em HISTORICO DE PRUDUÇÃO DE MANUTENÇÃO, preciso que adicione um botão na cor laranja entre execultado e a fazer com o nome "Painel" e dentro dele quero o nome, a hora, unidade que foi finalizado o chamado da aba painel.
       </div>
 
       <header>

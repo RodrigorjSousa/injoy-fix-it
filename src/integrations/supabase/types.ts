@@ -293,6 +293,7 @@ export type Database = {
       chamados: {
         Row: {
           categoria: string
+          concluido_em: string | null
           created_at: string
           criado_por: string | null
           descricao: string
@@ -301,12 +302,14 @@ export type Database = {
           id: string
           midias: Json
           responsavel_id: string | null
+          responsavel_nome: string | null
           status: Database["public"]["Enums"]["chamado_status"]
           unidade: Database["public"]["Enums"]["unidade"]
           updated_at: string
         }
         Insert: {
           categoria: string
+          concluido_em?: string | null
           created_at?: string
           criado_por?: string | null
           descricao: string
@@ -315,12 +318,14 @@ export type Database = {
           id?: string
           midias?: Json
           responsavel_id?: string | null
+          responsavel_nome?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           unidade: Database["public"]["Enums"]["unidade"]
           updated_at?: string
         }
         Update: {
           categoria?: string
+          concluido_em?: string | null
           created_at?: string
           criado_por?: string | null
           descricao?: string
@@ -329,6 +334,7 @@ export type Database = {
           id?: string
           midias?: Json
           responsavel_id?: string | null
+          responsavel_nome?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
           unidade?: Database["public"]["Enums"]["unidade"]
           updated_at?: string
