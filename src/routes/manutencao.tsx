@@ -181,6 +181,34 @@ function locationHealth(status: LocationTaskStatus[]): LocationHealth {
   return "em-dia";
 }
 
+function usePreventiveRealtime(unidade: string) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase
+      .channel(`manutencao-preventiva-sync-${unidade}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "preventive_tasks" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["preventive_tasks"] });
+          qc.invalidateQueries({ queryKey: ["preventive_tasks_all"] });
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "preventive_logs" },
+        () => {
+          qc.invalidateQueries({ queryKey: ["preventive_logs"] });
+          qc.invalidateQueries({ queryKey: ["preventive_logs_all"] });
+        },
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(ch);
+    };
+  }, [qc, unidade]);
+}
+
 function ManutencaoPage() {
   const { unidade } = useUnidade();
   const { data: me } = useMe();
@@ -188,6 +216,8 @@ function ManutencaoPage() {
   const logsQ = usePreventiveLogs(unidade);
 
   const isAdmin = !!me && (me.isAdmin || me.isGestor);
+
+  usePreventiveRealtime(unidade);
 
   const [tab, setTab] = useState<string>("painel");
 
@@ -212,22 +242,24 @@ function ManutencaoPage() {
           me={me}
         />
 
-        {isAdmin && (
-          <Tabs value={tab} onValueChange={setTab} className="w-full">
-            <TabsList>
-              <TabsTrigger value="painel">
-                <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
-              </TabsTrigger>
-              <TabsTrigger value="admin">
-                <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="painel" className="mt-6" />
-            <TabsContent value="admin" className="mt-6">
-              <AdminTarefas tasks={tasksQ.data ?? []} unidade={unidade} />
-            </TabsContent>
-          </Tabs>
-        )}
+        <Tabs value={tab} onValueChange={setTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="painel">
+              <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
+            </TabsTrigger>
+            <TabsTrigger value="admin">
+              <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="painel" className="mt-6" />
+          <TabsContent value="admin" className="mt-6">
+            <AdminTarefas
+              tasks={tasksQ.data ?? []}
+              unidade={unidade}
+              readOnly={!isAdmin}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
