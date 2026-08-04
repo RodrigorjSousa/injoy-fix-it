@@ -982,11 +982,23 @@ function PainelCamareiras() {
                         Faxina bloqueada para este quarto hoje.
                       </p>
                     </div>
+                    <button
+                      onClick={() => removerDnd(q)}
+                      className="p-2 rounded-lg bg-white border border-red-300 text-red-600 hover:bg-red-100 transition-colors"
+                      aria-label="Remover Não Perturbe e apagar foto"
+                      title="Remover Não Perturbe e apagar foto"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
-                  <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-200 text-slate-500 font-black text-sm uppercase tracking-wider cursor-not-allowed">
-                    <Ban size={16} />
-                    Serviço Indisponível
-                  </div>
+                  <button
+                    onClick={() => removerDnd(q)}
+                    className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-sm uppercase tracking-wider transition-colors"
+                  >
+                    <Trash2 size={16} />
+                    Remover Não Perturbe
+                  </button>
+
                 </div>
               ) : (
                 <>
