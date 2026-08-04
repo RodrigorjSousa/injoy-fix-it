@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm text-sm font-medium">
-        Execute esta instrucao no projeto: preciso que fique registrado em GESTÃO, em historico de vistoria da recepção. dentro de um botão que vai ser criado com o nome de historico de dinheiro do caixa e nele quero que conste um relatorio de qual o dia e quem gastou o dinheiro do caixa
+        Execute esta instrucao no projeto: em "manutenção" na execução das tarefas, preciso que seja obrigatorio uma fotografia ou video (15s). portanto vamos adotar isso por favor em todas as telas na ABA MANUTENÇÃO.
       </div>
 
       <header>
