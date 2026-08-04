@@ -13,6 +13,8 @@ import {
   Trash2,
   Settings2,
   Loader2,
+  History,
+  ImageIcon,
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -247,11 +249,17 @@ function ManutencaoPage() {
             <TabsTrigger value="painel">
               <Cog className="h-4 w-4 mr-1.5" /> Painel administrativo
             </TabsTrigger>
+            <TabsTrigger value="historico">
+              <History className="h-4 w-4 mr-1.5" /> Histórico
+            </TabsTrigger>
             <TabsTrigger value="admin">
               <Settings2 className="h-4 w-4 mr-1.5" /> Tarefas & Prazos
             </TabsTrigger>
           </TabsList>
           <TabsContent value="painel" className="mt-6" />
+          <TabsContent value="historico" className="mt-6">
+            <HistoricoPreventiva logs={logsQ.data ?? []} loading={logsQ.isLoading} />
+          </TabsContent>
           <TabsContent value="admin" className="mt-6">
             <AdminTarefas
               tasks={tasksQ.data ?? []}
@@ -1172,4 +1180,55 @@ function useMemoResetTask(task: PreventiveTask | null, fn: () => void) {
     fn();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [task?.id]);
+}
+
+function HistoricoPreventiva({ logs, loading }: { logs: PreventiveLog[]; loading: boolean }) {
+  if (loading) return <Card className="p-8 text-center">Carregando histórico...</Card>;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold">Histórico de Manutenções</h2>
+        <Badge variant="secondary">{logs.length} registros</Badge>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
+        {logs.map((log) => (
+          <Card key={log.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded uppercase">
+                  {log.category}
+                </span>
+                <span className="text-sm font-semibold text-slate-900">{log.location_name}</span>
+              </div>
+              <div className="text-sm font-medium">{log.task_id}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-2">
+                <Calendar className="h-3 w-3" /> {new Date(log.completed_at).toLocaleDateString("pt-BR")}
+                <span className="opacity-30">|</span>
+                🛠️ {log.technician_name}
+                <span className="opacity-30">|</span>
+                📍 {log.property}
+              </div>
+            </div>
+
+            {((log as any).midias?.length > 0) && (
+              <div className="flex gap-2 overflow-x-auto py-1">
+                {(log as any).midias.map((m: Midia, idx: number) => (
+                  <div key={idx} className="relative h-12 w-12 rounded-md border overflow-hidden shrink-0">
+                    <InspectionImage path={m.url} className="h-full w-full object-cover" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        ))}
+        {logs.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground bg-white rounded-xl border border-dashed">
+            Nenhum registro de manutenção encontrado.
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
