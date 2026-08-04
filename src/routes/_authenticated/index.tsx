@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm text-sm font-medium">
-        Execute esta instrucao no projeto: em HISTORICO DE PRUDUÇÃO DE MANUTENÇÃO, preciso que adicione um botão na cor laranja entre execultado e a fazer com o nome "Painel" e dentro dele quero o nome, a hora, unidade que foi finalizado o chamado da aba painel.
+        Execute esta instrucao no projeto: NÃO ESTOU VENDO o novo botão Painel na cor laranja, que permite visualizar rapidamente os chamados finalizados com detalhes de técnico, hora e unidade no HISTORICO DE PRODUÇÃO DE MANUTENÇÃO
       </div>
 
       <header>
