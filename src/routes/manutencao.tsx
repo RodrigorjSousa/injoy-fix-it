@@ -671,23 +671,33 @@ function ChecklistModal({
     mutationFn: async () => {
       if (!location) throw new Error("Local não selecionado");
       const nowIso = new Date().toISOString();
-      const rows = catTasks
-        .filter((t) => checked[t.id])
-        .map((t) => {
-          return {
-            property,
-            category: location.category,
-            location_name: location.name,
-            task_id: t.id,
-            technician_name: tecnico.trim(),
-            frequency_days: t.frequency_days,
-            notes: (taskNotes[t.id] || "").trim() || null,
-            midias: taskMidias[t.id] ?? [],
-            completed_at: nowIso,
-          };
-        });
-      if (rows.length === 0) throw new Error("Marque ao menos uma tarefa");
+      
+      const selectedTasks = catTasks.filter((t) => checked[t.id]);
+      if (selectedTasks.length === 0) throw new Error("Marque ao menos uma tarefa");
       if (!tecnico.trim()) throw new Error("Informe o técnico");
+
+      // Validar que cada tarefa marcada possui pelo menos uma mídia
+      for (const t of selectedTasks) {
+        const midias = taskMidias[t.id] ?? [];
+        if (midias.length === 0) {
+          throw new Error(`A tarefa "${t.task_name}" exige pelo menos uma foto ou vídeo.`);
+        }
+      }
+
+      const rows = selectedTasks.map((t) => {
+        return {
+          property,
+          category: location.category,
+          location_name: location.name,
+          task_id: t.id,
+          technician_name: tecnico.trim(),
+          frequency_days: t.frequency_days,
+          notes: (taskNotes[t.id] || "").trim() || null,
+          midias: taskMidias[t.id] ?? [],
+          completed_at: nowIso,
+        };
+      });
+
       const { error } = await supabase.from("preventive_logs" as never).insert(rows as never);
       if (error) throw error;
       return rows.length;
@@ -836,7 +846,7 @@ function ChecklistModal({
                           rows={2}
                         />
                         <div className="space-y-1">
-                          <Label className="text-xs">Fotos e vídeo (até 15s)</Label>
+                          <Label className="text-xs">Fotos e vídeo (até 15s) *</Label>
                           <MediaCapture
                             midias={taskMidias[s.task.id] ?? []}
                             onAdd={(m) =>
