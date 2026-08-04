@@ -193,7 +193,7 @@ function NovoChamado() {
   return (
     <div className="space-y-8">
       <div className="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-6 rounded shadow-sm text-sm font-medium">
-        Execute esta instrucao no projeto: deleta a imagem no card do quarto 118 de botafogo por favor e em GESTÃO em historico de produção de limpeza, adicione a lixeira ao lado das imagens para eu apagar quando quiser
+        Execute esta instrucao no projeto: preciso que fique registrado em GESTÃO, em historico de vistoria da recepção. dentro de um botão que vai ser criado com o nome de historico de dinheiro do caixa e nele quero que conste um relatorio de qual o dia e quem gastou o dinheiro do caixa
       </div>
 
       <header>
