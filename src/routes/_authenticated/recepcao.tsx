@@ -16,10 +16,12 @@ import {
   Ban,
   ShoppingBag,
   Package,
+  Banknote,
 } from "lucide-react";
 import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { DinheiroCaixaModal } from "@/components/recepcao/dinheiro-caixa-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
 import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
 import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
@@ -146,6 +148,7 @@ function RecepcaoPage() {
     roomNumber: string;
   } | null>(null);
   const [vendaBebidasOpen, setVendaBebidasOpen] = useState(false);
+  const [caixaOpen, setCaixaOpen] = useState(false);
   const [compraOpen, setCompraOpen] = useState(false);
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const [trocaTurnoOpen, setTrocaTurnoOpen] = useState(false);
@@ -336,6 +339,14 @@ function RecepcaoPage() {
           <MessageSquarePlus size={18} />
           <span className="hidden sm:inline">Recado camareira</span>
           <span className="sm:hidden">📝</span>
+        </button>
+        <button
+          onClick={() => setCaixaOpen(true)}
+          className="shrink-0 inline-flex items-center gap-2 px-4 py-3 rounded-xl font-black text-sm text-white bg-gradient-to-br from-emerald-500 to-green-600 shadow-md shadow-emerald-500/30 hover:brightness-110 active:scale-95 transition-all"
+        >
+          <Banknote size={18} />
+          <span className="hidden sm:inline">Dinheiro do caixa</span>
+          <span className="sm:hidden">💵</span>
         </button>
         <button
           onClick={() => setVendaBebidasOpen(true)}
@@ -837,6 +848,11 @@ function RecepcaoPage() {
           />
         </>
       )}
+      <DinheiroCaixaModal
+        open={caixaOpen}
+        onClose={() => setCaixaOpen(false)}
+        unidade={unidadeAtiva}
+      />
     </div>
   );
 }
