@@ -848,6 +848,11 @@ function RecepcaoPage() {
           />
         </>
       )}
+      <DinheiroCaixaModal
+        open={caixaOpen}
+        onClose={() => setCaixaOpen(false)}
+        unidade={unidadeAtiva}
+      />
     </div>
   );
 }
