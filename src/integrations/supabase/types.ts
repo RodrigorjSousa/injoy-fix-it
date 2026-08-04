@@ -1278,6 +1278,36 @@ export type Database = {
         }
         Relationships: []
       }
+      recepcao_caixa_movimentos: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          performed_by: string
+          property: Database["public"]["Enums"]["unidade"]
+          reason: string
+          type: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          performed_by: string
+          property: Database["public"]["Enums"]["unidade"]
+          reason: string
+          type: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          performed_by?: string
+          property?: Database["public"]["Enums"]["unidade"]
+          reason?: string
+          type?: string
+        }
+        Relationships: []
+      }
       registro_ponto_pontomais: {
         Row: {
           almoco_retorno: string | null
