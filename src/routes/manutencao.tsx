@@ -372,17 +372,17 @@ function PainelPreventiva({
           {filter === "atrasado" && `A fazer / Atrasado (${filtered.length})`}
         </h2>
         <div className="flex items-center gap-2">
-          {isAdmin && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setManageOpen(true)}
-              className="h-7 text-xs"
-            >
-              <Settings2 className="h-3.5 w-3.5 mr-1.5" />
-              Gerenciar todos os locais
-            </Button>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setManageOpen(true)}
+            className="h-7 text-xs"
+            disabled={!isAdmin}
+            title={!isAdmin ? "Somente a gestão pode alterar" : undefined}
+          >
+            <Settings2 className="h-3.5 w-3.5 mr-1.5" />
+            Gerenciar todos os locais
+          </Button>
           {filter !== "todos" && (
             <Button variant="ghost" size="sm" onClick={() => setFilter("todos")} className="h-7 text-xs">
               Limpar filtro
