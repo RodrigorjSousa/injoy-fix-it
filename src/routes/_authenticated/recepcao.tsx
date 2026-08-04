@@ -16,6 +16,7 @@ import {
   Ban,
   ShoppingBag,
   Package,
+  Banknote,
 } from "lucide-react";
 import { TrocaTurnoIcon } from "@/components/recepcao/troca-turno-icon";
 import { toast } from "sonner";
