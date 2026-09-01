@@ -369,11 +369,21 @@ function Configuracoes() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`Substituir ${f.nome}`}
+                  title="Substituir funcionário"
+                  onClick={() => setSubstituindo(f)}
+                >
+                  <UserRoundCog className="h-4 w-4 text-primary" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label={`Alterar senha de ${f.nome}`}
                   onClick={() => setAlterandoSenha(f)}
                 >
                   <KeyRound className="h-4 w-4 text-muted-foreground" />
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="icon"
