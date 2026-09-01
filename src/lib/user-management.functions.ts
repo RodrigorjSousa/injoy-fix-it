@@ -211,7 +211,10 @@ export const adminSubstituirFuncionario = createServerFn({ method: "POST" })
       for (const role of desejadas) {
         await supabaseAdmin
           .from("user_roles")
-          .upsert({ user_id: novoUserId, role }, { onConflict: "user_id,role" });
+          .upsert(
+            { user_id: novoUserId, role: role as "admin" | "gestor" | "recepcao" | "camareira" | "funcionario" },
+            { onConflict: "user_id,role" },
+          );
       }
     }
 
