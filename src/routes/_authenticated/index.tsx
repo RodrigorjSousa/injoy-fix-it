@@ -38,12 +38,13 @@ const normalize = (s: string) => s.trim().toLowerCase();
 
 
 export const Route = createFileRoute("/_authenticated/")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    categoria: (typeof s.categoria === "string" ? (s.categoria as Categoria) : undefined) as
-      | Categoria
-      | undefined,
-    abrir: s.abrir === "1" || s.abrir === 1 ? 1 : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>) =>
+    ({
+      categoria: (typeof s.categoria === "string" ? (s.categoria as Categoria) : undefined) as
+        | Categoria
+        | undefined,
+      abrir: s.abrir === "1" || s.abrir === 1 ? 1 : undefined,
+    }) as { categoria?: Categoria; abrir?: number },
   beforeLoad: ({ search }) => {
     // Raiz autenticada abre a tela de Boas-Vindas por padrão.
     // Mantém a tela de abertura de chamado quando há `categoria` (deep-link)
