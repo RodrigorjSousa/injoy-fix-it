@@ -424,7 +424,7 @@ function PainelPreventiva({
             .filter((d): d is Date => !!d)
             .sort((a, b) => b.getTime() - a.getTime())[0];
           const lastTech =
-            loc.status.find((s) => s.lastCompletedAt && s.lastCompletedAt.getTime() === lastLog?.getTime())?.lastTechnician ?? "Cristiano";
+            loc.status.find((s) => s.lastCompletedAt && s.lastCompletedAt.getTime() === lastLog?.getTime())?.lastTechnician ?? "Flavio";
           const pendentes = loc.status.filter((s) => (s.daysToDue ?? 0) < 0).length;
           const proxima = loc.status
             .map((s) => s.nextDue)
@@ -569,7 +569,7 @@ function PainelPreventiva({
         property={unidade}
         tasks={tasks}
         logs={logs}
-        defaultTechnician="Cristiano"
+        defaultTechnician="Flavio"
         canAdjustDates={!!me && (me.isAdmin || me.isGestor)}
       />
       <AreasComunsManager open={manageOpen} onOpenChange={setManageOpen} unidade={unidade} />
@@ -660,7 +660,7 @@ function ChecklistModal({
 }) {
   const qc = useQueryClient();
   const [checked, setChecked] = useState<Record<string, boolean>>({});
-  const [tecnico, setTecnico] = useState(defaultTechnician || "Cristiano");
+  const [tecnico, setTecnico] = useState(defaultTechnician || "Flavio");
   const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
   const [taskMidias, setTaskMidias] = useState<Record<string, Midia[]>>({});
   const [uploadingTaskId, setUploadingTaskId] = useState<string | null>(null);

@@ -81,7 +81,7 @@ const STORAGE_KEY = "injoy.escala.equipe.v1";
 
 const SEED: Funcionario[] = [
   // Manutenção
-  { id: "m-cristiano", nome: "CRISTIANO", setor: "manutencao", unidade: "todas", tipo: "Fixo" },
+  { id: "m-flavio", nome: "FLAVIO", setor: "manutencao", unidade: "todas", tipo: "Fixo" },
   // Recepção — Manhã
   { id: "r-mayara", nome: "Mayara Fagundes", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "manha" },
   { id: "r-julia", nome: "Júlia Cristine", setor: "recepcao", unidade: "todas", tipo: "Fixo", turno: "manha" },
