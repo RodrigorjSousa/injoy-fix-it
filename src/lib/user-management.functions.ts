@@ -151,13 +151,6 @@ export const adminSubstituirFuncionario = createServerFn({ method: "POST" })
 
     // Localizar ou criar a conta do novo funcionário
     let novoUserId: string | null = null;
-    const { data: existing } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
-    void existing;
-
     const { data: listed, error: lErr } = await supabaseAdmin.auth.admin.listUsers({
       page: 1,
       perPage: 1000,
