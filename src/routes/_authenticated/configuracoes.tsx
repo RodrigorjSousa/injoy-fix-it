@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2 } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2, UserRoundCog } from "lucide-react";
 
 function gerarSenha(len = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -27,7 +27,7 @@ async function copiarSenha(valor: string) {
 }
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
-import { adminSetFuncionarioCredentials } from "@/lib/user-management.functions";
+import { adminSetFuncionarioCredentials, adminSubstituirFuncionario } from "@/lib/user-management.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,6 +106,7 @@ function Configuracoes() {
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
   const [editando, setEditando] = useState<Funcionario | null>(null);
   const [alterandoSenha, setAlterandoSenha] = useState<Funcionario | null>(null);
+  const [substituindo, setSubstituindo] = useState<Funcionario | null>(null);
   const setCredentials = useServerFn(adminSetFuncionarioCredentials);
 
   // Apenas gestores e administradores
@@ -433,6 +434,11 @@ function Configuracoes() {
       <AlterarSenhaDialog
         funcionario={alterandoSenha}
         onClose={() => setAlterandoSenha(null)}
+      />
+
+      <SubstituirFuncionarioDialog
+        funcionario={substituindo}
+        onClose={() => setSubstituindo(null)}
       />
     </div>
   );
