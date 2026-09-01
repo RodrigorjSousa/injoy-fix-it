@@ -26,6 +26,7 @@ async function copiarSenha(valor: string) {
   }
 }
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { adminSetFuncionarioCredentials, adminSubstituirFuncionario } from "@/lib/user-management.functions";
 import { Card } from "@/components/ui/card";
@@ -1149,7 +1150,7 @@ function SubstituirFuncionarioDialog({
   onClose: () => void;
 }) {
   const substituir = useServerFn(adminSubstituirFuncionario);
-  const invalidar = useInvalidarEquipe();
+  const qc = useQueryClient();
   const [nome, setNome] = useState("");
   const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
@@ -1181,7 +1182,9 @@ function SubstituirFuncionarioDialog({
           desativarAntigo,
         },
       });
-      invalidar();
+      ["funcionarios", "usuarios_roles", "me", "tecnicos", "chamados"].forEach((k) =>
+        qc.invalidateQueries({ queryKey: [k] }),
+      );
       toast.success(`${nome.trim()} assumiu a função de ${funcionario.nome}`, {
         description: "Tarefas, chamados e categorias foram transferidos automaticamente.",
       });
