@@ -103,3 +103,131 @@ export const adminSetFuncionarioCredentials = createServerFn({ method: "POST" })
     }
     return { ok: true as const, created: true };
   });
+
+/**
+ * Substitui o funcionário que ocupa uma vaga (ex.: Cristiano -> Flavio),
+ * mantendo o MESMO registro em `funcionarios`. Assim todas as tarefas,
+ * chamados, categorias e telas vinculadas ao antigo passam automaticamente
+ * para o novo, sem mexer na programação.
+ */
+export const adminSubstituirFuncionario = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        funcionarioId: z.string().uuid(),
+        nome: z.string().trim().min(2).max(120),
+        email: emailSchema,
+        password: passwordSchema.optional(),
+        desativarAntigo: z.boolean().default(true),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerIsManager(context.supabase, context.userId);
+
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+
+    const { data: func, error: fErr } = await supabaseAdmin
+      .from("funcionarios")
+      .select("id, nome, email, user_id, categorias, telas_permitidas")
+      .eq("id", data.funcionarioId)
+      .maybeSingle();
+    if (fErr) throw new Error(fErr.message);
+    if (!func) throw new Error("Funcionário não encontrado");
+
+    const antigoUserId: string | null = func.user_id;
+    const novoEmail = data.email;
+
+    // Papéis atuais (recepcao/camareira/funcionario/...) para replicar
+    let rolesAntigas: string[] = [];
+    if (antigoUserId) {
+      const { data: rr } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", antigoUserId);
+      rolesAntigas = (rr ?? []).map((r: { role: string }) => r.role);
+    }
+
+    // Localizar ou criar a conta do novo funcionário
+    let novoUserId: string | null = null;
+    const { data: listed, error: lErr } = await supabaseAdmin.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    if (lErr) throw new Error(lErr.message);
+    const match = (listed?.users ?? []).find(
+      (u: { id: string; email?: string | null }) =>
+        (u.email ?? "").toLowerCase() === novoEmail,
+    );
+
+    if (match) {
+      novoUserId = match.id;
+      if (data.password) {
+        const { error } = await supabaseAdmin.auth.admin.updateUserById(novoUserId, {
+          password: data.password,
+          email_confirm: true,
+        });
+        if (error) throw new Error(error.message);
+      }
+    } else {
+      if (!data.password) {
+        throw new Error("Defina uma senha inicial para o novo funcionário");
+      }
+      const { data: created, error: cErr } = await supabaseAdmin.auth.admin.createUser({
+        email: novoEmail,
+        password: data.password,
+        email_confirm: true,
+        user_metadata: { nome: data.nome },
+      });
+      if (cErr) throw new Error(cErr.message);
+      novoUserId = created?.user?.id ?? null;
+    }
+
+    // Desvincular o antigo antes de assumir o e-mail/vaga
+    await supabaseAdmin
+      .from("funcionarios")
+      .update({ user_id: null })
+      .eq("id", func.id);
+
+    if (data.desativarAntigo && antigoUserId && antigoUserId !== novoUserId) {
+      await supabaseAdmin.from("user_roles").delete().eq("user_id", antigoUserId);
+      await supabaseAdmin.auth.admin.deleteUser(antigoUserId).catch(() => undefined);
+    }
+
+    // O novo assume a mesma vaga (mesmo id => mantém tarefas e vínculos)
+    const { error: upErr } = await supabaseAdmin
+      .from("funcionarios")
+      .update({ nome: data.nome, email: novoEmail, user_id: novoUserId })
+      .eq("id", func.id);
+    if (upErr) throw new Error(upErr.message);
+
+    if (novoUserId) {
+      await supabaseAdmin
+        .from("profiles")
+        .upsert({ id: novoUserId, nome: data.nome }, { onConflict: "id" });
+
+      const desejadas = new Set(rolesAntigas.length ? rolesAntigas : ["funcionario"]);
+      for (const role of desejadas) {
+        await supabaseAdmin
+          .from("user_roles")
+          .upsert(
+            { user_id: novoUserId, role: role as "admin" | "gestor" | "recepcao" | "camareira" | "funcionario" },
+            { onConflict: "user_id,role" },
+          );
+      }
+    }
+
+    // Atualiza atribuições atuais que guardam o nome em texto
+    await supabaseAdmin
+      .from("ativos_ar")
+      .update({ tecnico: data.nome })
+      .eq("tecnico_id", func.id);
+    await supabaseAdmin
+      .from("chamados")
+      .update({ responsavel_nome: data.nome })
+      .eq("responsavel_id", func.id)
+      .neq("status", "Concluído");
+
+    return { ok: true as const, anteriores: { nome: func.nome, email: func.email } };
+  });

@@ -40,10 +40,11 @@ import { cn } from "@/lib/utils";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
 export const Route = createFileRoute("/_authenticated/painel")({
-  validateSearch: (s: Record<string, unknown>) => ({
-    categoria: typeof s.categoria === "string" ? (s.categoria as string) : undefined,
-    tipo: typeof s.tipo === "string" ? (s.tipo as string) : undefined,
-  }),
+  validateSearch: (s: Record<string, unknown>) =>
+    ({
+      categoria: typeof s.categoria === "string" ? (s.categoria as string) : undefined,
+      tipo: typeof s.tipo === "string" ? (s.tipo as string) : undefined,
+    }) as { categoria?: string; tipo?: string },
   component: Painel,
 });
 

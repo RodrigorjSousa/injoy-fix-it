@@ -1,7 +1,7 @@
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2 } from "lucide-react";
+import { Trash2, UserPlus, Mail, CheckCircle2, AlertCircle, ShieldCheck, ShieldOff, Pencil, KeyRound, Eye, EyeOff, Copy, Wand2, UserRoundCog } from "lucide-react";
 
 function gerarSenha(len = 10) {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
@@ -26,8 +26,9 @@ async function copiarSenha(valor: string) {
   }
 }
 import { useServerFn } from "@tanstack/react-start";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { adminSetFuncionarioCredentials } from "@/lib/user-management.functions";
+import { adminSetFuncionarioCredentials, adminSubstituirFuncionario } from "@/lib/user-management.functions";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -106,6 +107,7 @@ function Configuracoes() {
   const [selecionadas, setSelecionadas] = useState<Categoria[]>([]);
   const [editando, setEditando] = useState<Funcionario | null>(null);
   const [alterandoSenha, setAlterandoSenha] = useState<Funcionario | null>(null);
+  const [substituindo, setSubstituindo] = useState<Funcionario | null>(null);
   const setCredentials = useServerFn(adminSetFuncionarioCredentials);
 
   // Apenas gestores e administradores
@@ -369,11 +371,21 @@ function Configuracoes() {
                 <Button
                   variant="ghost"
                   size="icon"
+                  aria-label={`Substituir ${f.nome}`}
+                  title="Substituir funcionário"
+                  onClick={() => setSubstituindo(f)}
+                >
+                  <UserRoundCog className="h-4 w-4 text-primary" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
                   aria-label={`Alterar senha de ${f.nome}`}
                   onClick={() => setAlterandoSenha(f)}
                 >
                   <KeyRound className="h-4 w-4 text-muted-foreground" />
                 </Button>
+
                 <Button
                   variant="ghost"
                   size="icon"
@@ -423,6 +435,11 @@ function Configuracoes() {
       <AlterarSenhaDialog
         funcionario={alterandoSenha}
         onClose={() => setAlterandoSenha(null)}
+      />
+
+      <SubstituirFuncionarioDialog
+        funcionario={substituindo}
+        onClose={() => setSubstituindo(null)}
       />
     </div>
   );
@@ -1122,5 +1139,172 @@ function GestoresAdmin() {
         </AccordionItem>
       </Accordion>
     </section>
+  );
+}
+
+function SubstituirFuncionarioDialog({
+  funcionario,
+  onClose,
+}: {
+  funcionario: Funcionario | null;
+  onClose: () => void;
+}) {
+  const substituir = useServerFn(adminSubstituirFuncionario);
+  const qc = useQueryClient();
+  const [nome, setNome] = useState("");
+  const [email, setEmail] = useState("");
+  const [senha, setSenha] = useState("");
+  const [desativarAntigo, setDesativarAntigo] = useState(true);
+  const [salvando, setSalvando] = useState(false);
+
+  useEffect(() => {
+    if (funcionario) {
+      setNome("");
+      setEmail("");
+      setSenha("");
+      setDesativarAntigo(true);
+    }
+  }, [funcionario]);
+
+  const salvar = async () => {
+    if (!funcionario) return;
+    if (nome.trim().length < 2) return toast.error("Informe o nome do novo funcionário");
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) return toast.error("Email inválido");
+    if (senha && senha.length < 6) return toast.error("A senha deve ter ao menos 6 caracteres");
+    setSalvando(true);
+    try {
+      await substituir({
+        data: {
+          funcionarioId: funcionario.id,
+          nome: nome.trim(),
+          email: email.trim(),
+          password: senha || undefined,
+          desativarAntigo,
+        },
+      });
+      ["funcionarios", "usuarios_roles", "me", "tecnicos", "chamados"].forEach((k) =>
+        qc.invalidateQueries({ queryKey: [k] }),
+      );
+      toast.success(`${nome.trim()} assumiu a função de ${funcionario.nome}`, {
+        description: "Tarefas, chamados e categorias foram transferidos automaticamente.",
+      });
+      onClose();
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setSalvando(false);
+    }
+  };
+
+  return (
+    <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <UserRoundCog className="h-5 w-5 text-primary" />
+            Substituir funcionário
+          </DialogTitle>
+        </DialogHeader>
+        {funcionario && (
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">Sai da função</p>
+              <p className="font-semibold">{funcionario.nome}</p>
+              <p className="text-xs text-muted-foreground">{funcionario.email}</p>
+              {funcionario.categorias.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {funcionario.categorias.map((c) => (
+                    <Badge key={c} variant="secondary" className="rounded-full text-[11px]">
+                      {c}
+                    </Badge>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sub-nome">Nome do novo funcionário</Label>
+              <Input
+                id="sub-nome"
+                value={nome}
+                onChange={(e) => setNome(e.target.value)}
+                placeholder="Ex.: Flavio"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sub-email">Email de acesso</Label>
+              <Input
+                id="sub-email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="flavio@injoy.com.br"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="sub-senha">Senha inicial</Label>
+              <div className="flex gap-2">
+                <Input
+                  id="sub-senha"
+                  type="text"
+                  value={senha}
+                  onChange={(e) => setSenha(e.target.value)}
+                  placeholder="Obrigatória se ainda não tem conta"
+                  autoComplete="off"
+                  className="font-mono"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="Gerar senha"
+                  onClick={() => setSenha(gerarSenha())}
+                >
+                  <Wand2 className="h-4 w-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  title="Copiar senha"
+                  disabled={!senha}
+                  onClick={() => senha && copiarSenha(senha)}
+                >
+                  <Copy className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <label className="flex items-start gap-2 rounded-lg border p-3 cursor-pointer">
+              <Checkbox
+                checked={desativarAntigo}
+                onCheckedChange={(v) => setDesativarAntigo(v === true)}
+              />
+              <span className="text-sm">
+                Encerrar o acesso de {funcionario.nome}
+                <span className="block text-xs text-muted-foreground">
+                  O histórico é preservado; apenas o login antigo deixa de funcionar.
+                </span>
+              </span>
+            </label>
+
+            <p className="text-xs text-muted-foreground">
+              O novo funcionário assume a mesma função: categorias, telas liberadas, tarefas
+              preventivas e chamados em aberto passam para ele automaticamente.
+            </p>
+          </div>
+        )}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={salvando}>
+            Cancelar
+          </Button>
+          <Button onClick={salvar} disabled={salvando}>
+            {salvando ? "Substituindo..." : "Confirmar substituição"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
