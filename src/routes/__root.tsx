@@ -12,6 +12,11 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import {
+  clearChunkReloadFlag,
+  installChunkRecovery,
+  isStaleChunkError,
+} from "../lib/chunk-recovery";
 import { AppShell } from "@/components/app-shell";
 import { UnidadeProvider } from "@/lib/unidade-context";
 import { Toaster } from "@/components/ui/sonner";
@@ -39,11 +44,17 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: Error | undefined; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
+    if (isStaleChunkError(error)) {
+      window.location.reload();
+      return;
+    }
+    reportLovableError(error ?? new Error("Erro desconhecido na renderização"), {
+      boundary: "tanstack_root_error_component",
+    });
   }, [error]);
 
   return (
@@ -136,6 +147,12 @@ function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s: { location: { pathname: string } }) => s.location.pathname });
   const isAuthPage = pathname.startsWith("/auth");
+
+  useEffect(() => {
+    // App carregou com sucesso: libera nova tentativa de recuperação no futuro.
+    clearChunkReloadFlag();
+    return installChunkRecovery();
+  }, []);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
