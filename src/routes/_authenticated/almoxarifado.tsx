@@ -28,6 +28,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe } from "@/lib/store";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Select,
@@ -1210,22 +1211,28 @@ function RelatorioMovimentacoesModal({ unidade, onClose }: { unidade: Unidade; o
     },
   });
 
-  const filtrados = useMemo(() => {
+  const filtradosPorBusca = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return movimentos
-      .filter((m) => tipo === "todos" || m.movement_type === tipo)
       .filter((m) => !q || m.item_name.toLowerCase().includes(q) || (m.performed_by ?? "").toLowerCase().includes(q));
-  }, [movimentos, tipo, busca]);
+  }, [movimentos, busca]);
+
+  const filtrados = useMemo(
+    () => filtradosPorBusca.filter((m) => tipo === "todos" || m.movement_type === tipo),
+    [filtradosPorBusca, tipo],
+  );
 
   const totais = useMemo(() => {
     let entradas = 0;
     let saidas = 0;
-    filtrados.forEach((m) => {
+    filtradosPorBusca.forEach((m) => {
       if (m.movement_type === "in") entradas += Number(m.quantity);
       else saidas += Number(m.quantity);
     });
-    return { entradas, saidas, total: filtrados.length };
-  }, [filtrados]);
+    return { entradas, saidas, total: filtradosPorBusca.length };
+  }, [filtradosPorBusca]);
+
+  const tituloTipo = tipo === "in" ? "Entradas" : tipo === "out" ? "Saídas" : "Todos os registros";
 
   const imprimir = () => window.print();
 
@@ -1239,7 +1246,7 @@ function RelatorioMovimentacoesModal({ unidade, onClose }: { unidade: Unidade; o
           <div>
             <h3 className="text-base font-black text-slate-800">📊 Relatório de Movimentações</h3>
             <p className="text-[11px] text-slate-500">
-              INJOY {unidade} · {dateFrom} até {dateTo}
+              INJOY {unidade} · {dateFrom} até {dateTo} · {tituloTipo}
             </p>
           </div>
           <div className="flex items-center gap-2 print:hidden">
@@ -1298,17 +1305,54 @@ function RelatorioMovimentacoesModal({ unidade, onClose }: { unidade: Unidade; o
         </div>
 
         <div className="px-4 py-3 border-b border-slate-100 grid grid-cols-3 gap-3 text-center">
-          <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-2">
+          <Button
+            type="button"
+            variant="ghost"
+            aria-pressed={tipo === "in"}
+            onClick={() => setTipo("in")}
+            className={cn(
+              "h-auto rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-center hover:bg-emerald-100 print:hidden",
+              tipo === "in" && "ring-2 ring-emerald-500 ring-offset-2 bg-emerald-100",
+            )}
+          >
+            <span>
             <p className="text-[10px] font-bold text-emerald-700 uppercase">Entradas</p>
             <p className="text-lg font-black text-emerald-700">{totais.entradas}</p>
-          </div>
-          <div className="bg-red-50 border border-red-200 rounded-lg p-2">
+            </span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            aria-pressed={tipo === "out"}
+            onClick={() => setTipo("out")}
+            className={cn(
+              "h-auto rounded-lg border border-red-200 bg-red-50 p-2 text-center hover:bg-red-100 print:hidden",
+              tipo === "out" && "ring-2 ring-red-500 ring-offset-2 bg-red-100",
+            )}
+          >
+            <span>
             <p className="text-[10px] font-bold text-red-700 uppercase">Saídas</p>
             <p className="text-lg font-black text-red-700">{totais.saidas}</p>
-          </div>
-          <div className="bg-slate-50 border border-slate-200 rounded-lg p-2">
+            </span>
+          </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            aria-pressed={tipo === "todos"}
+            onClick={() => setTipo("todos")}
+            className={cn(
+              "h-auto rounded-lg border border-slate-200 bg-slate-50 p-2 text-center hover:bg-slate-100 print:hidden",
+              tipo === "todos" && "ring-2 ring-slate-500 ring-offset-2 bg-slate-100",
+            )}
+          >
+            <span>
             <p className="text-[10px] font-bold text-slate-600 uppercase">Registros</p>
             <p className="text-lg font-black text-slate-800">{totais.total}</p>
+            </span>
+          </Button>
+          <div className="hidden print:block col-span-3 border border-slate-300 rounded-lg p-2">
+            <p className="text-[10px] font-bold text-slate-600 uppercase">Relatório selecionado</p>
+            <p className="text-lg font-black text-slate-800">{tituloTipo} · {filtrados.length} registros</p>
           </div>
         </div>
 
