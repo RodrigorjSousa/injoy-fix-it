@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { ListChecks, RefreshCw, Building2, User, CalendarClock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { EmptyState, LoadingState, friendlyError } from "@/components/ui/data-state";
+import { Button } from "@/components/ui/button";
 import {
   Accordion,
   AccordionContent,
@@ -19,7 +20,7 @@ type LogRow = {
   created_at: string;
 };
 
-type Unidade = "Todas" | "Botafogo" | "Ipanema";
+type Unidade = "Botafogo" | "Ipanema";
 
 function pad(n: number) {
   return n.toString().padStart(2, "0");
@@ -53,7 +54,6 @@ function rangeForDay(dateStr: string) {
 
 export function TarefasExtrasHistoricoCard() {
   const [data, setData] = useState<string>(todayStr());
-  const [unidade, setUnidade] = useState<Unidade>("Todas");
   const [rows, setRows] = useState<LogRow[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -66,7 +66,6 @@ export function TarefasExtrasHistoricoCard() {
         .select("id, property, camareira_name, completed_tasks, created_at")
         .order("created_at", { ascending: false })
         .limit(200);
-      if (unidade !== "Todas") q = q.eq("property", unidade);
       if (data) {
         const r = rangeForDay(data);
         q = q.gte("created_at", r.start).lte("created_at", r.end);
@@ -79,7 +78,15 @@ export function TarefasExtrasHistoricoCard() {
     } finally {
       setLoading(false);
     }
-  }, [data, unidade]);
+  }, [data]);
+
+  const porUnidade = useMemo(
+    () => ({
+      Botafogo: rows.filter((row) => row.property === "Botafogo"),
+      Ipanema: rows.filter((row) => row.property === "Ipanema"),
+    }),
+    [rows],
+  );
 
   useEffect(() => {
     carregar();
@@ -129,88 +136,82 @@ export function TarefasExtrasHistoricoCard() {
                   className="block mt-1 border border-slate-200 rounded-lg px-2 py-1.5 text-sm"
                 />
               </label>
-              <label className="text-xs font-semibold text-slate-600">
-                Unidade
-                <select
-                  value={unidade}
-                  onChange={(e) => setUnidade(e.target.value as Unidade)}
-                  className="block mt-1 border border-slate-200 rounded-lg px-2 py-1.5 text-sm bg-white"
-                >
-                  <option value="Todas">Todas</option>
-                  <option value="Botafogo">Botafogo</option>
-                  <option value="Ipanema">Ipanema</option>
-                </select>
-              </label>
-              <button
+              <Button
                 type="button"
                 onClick={carregar}
                 disabled={loading}
-                className="p-2 bg-blue-600 text-white rounded-lg disabled:opacity-60"
+                size="icon"
                 aria-label="Recarregar"
               >
                 <RefreshCw size={16} className={loading ? "animate-spin" : ""} />
-              </button>
+              </Button>
               {data && (
-                <button
+                <Button
                   type="button"
                   onClick={() => setData("")}
-                  className="px-3 py-2 text-xs font-semibold text-slate-600 border border-slate-200 rounded-lg"
+                  variant="outline"
+                  size="sm"
                 >
                   Ver todos
-                </button>
+                </Button>
               )}
             </div>
 
             {loading && rows.length === 0 ? (
               <LoadingState label="Carregando..." />
-            ) : rows.length === 0 ? (
-              <EmptyState
-                title="Sem registros"
-                description="Nenhuma tarefa extra registrada para o filtro selecionado."
-              />
             ) : (
-              <div className="space-y-2">
-                {rows.map((r) => {
-                  const tasks = tasksOf(r.completed_tasks);
-                  return (
-                    <div
-                      key={r.id}
-                      className={cn(
-                        "rounded-xl border border-slate-200 p-3 bg-slate-50/60",
-                      )}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <p className="text-sm font-black text-slate-900 inline-flex items-center gap-1.5">
-                          <User size={13} className="text-slate-400" />
-                          {r.camareira_name || "—"}
-                        </p>
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-200 text-slate-700 uppercase tracking-wider whitespace-nowrap inline-flex items-center gap-1">
-                          <Building2 size={10} /> {r.property}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-[11px] text-slate-600 inline-flex items-center gap-1">
-                        <CalendarClock size={11} /> {fmtDateTime(r.created_at)}
-                      </p>
-                      {tasks.length > 0 && (
-                        <ul className="mt-2 space-y-1">
-                          {tasks.map((t, i) => (
-                            <li
-                              key={`${r.id}-${i}`}
-                              className="text-xs text-slate-700 bg-white border border-slate-200 rounded-md px-2 py-1"
-                            >
-                              {t}
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </div>
-                  );
-                })}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {(["Botafogo", "Ipanema"] as Unidade[]).map((nomeUnidade) => (
+                  <UnidadeHistorico key={nomeUnidade} unidade={nomeUnidade} rows={porUnidade[nomeUnidade]} />
+                ))}
               </div>
             )}
           </AccordionContent>
         </AccordionItem>
       </Accordion>
     </div>
+  );
+}
+
+function UnidadeHistorico({ unidade, rows }: { unidade: Unidade; rows: LogRow[] }) {
+  return (
+    <section className="rounded-xl border border-slate-200 bg-slate-50/60 overflow-hidden">
+      <div className="flex items-center justify-between gap-2 px-3 py-3 border-b border-slate-200 bg-white">
+        <h3 className="text-sm font-black text-slate-900 inline-flex items-center gap-2">
+          <Building2 size={15} className="text-slate-500" /> {unidade}
+        </h3>
+        <span className="text-[11px] font-bold text-slate-600 bg-slate-100 rounded-md px-2 py-1">
+          {rows.length} registros
+        </span>
+      </div>
+      {rows.length === 0 ? (
+        <EmptyState title="Sem registros" description={`Nenhuma tarefa extra registrada em ${unidade} para este período.`} />
+      ) : (
+        <div className="p-3 space-y-2">
+          {rows.map((r) => {
+            const tasks = tasksOf(r.completed_tasks);
+            return (
+              <article key={r.id} className={cn("rounded-lg border border-slate-200 p-3 bg-white")}>
+                <p className="text-sm font-black text-slate-900 inline-flex items-center gap-1.5">
+                  <User size={13} className="text-slate-400" /> {r.camareira_name || "—"}
+                </p>
+                <p className="mt-1 text-[11px] text-slate-600 inline-flex items-center gap-1">
+                  <CalendarClock size={11} /> {fmtDateTime(r.created_at)}
+                </p>
+                {tasks.length > 0 && (
+                  <ul className="mt-2 space-y-1">
+                    {tasks.map((task, index) => (
+                      <li key={`${r.id}-${index}`} className="text-xs text-slate-700 bg-slate-50 border border-slate-200 rounded-md px-2 py-1">
+                        {task}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </article>
+            );
+          })}
+        </div>
+      )}
+    </section>
   );
 }

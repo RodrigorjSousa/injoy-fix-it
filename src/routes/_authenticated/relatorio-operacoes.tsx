@@ -15,7 +15,6 @@ import {
   Loader2,
   Filter,
   ClipboardList,
-  Sunrise,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUnidade } from "@/lib/unidade-context";
@@ -54,23 +53,6 @@ type LaundryLog = {
   camareira_name: string;
   property: string;
   items_data: LaundryItem[];
-  created_at: string;
-};
-
-type ExtraTaskLog = {
-  id: string;
-  camareira_name: string;
-  property: string;
-  completed_tasks: string[];
-  created_at: string;
-};
-
-type PeriodChecklistLog = {
-  id: string;
-  camareira_name: string;
-  property: string;
-  period: "manha" | "tarde" | "noite";
-  completed_items: string[];
   created_at: string;
 };
 
@@ -133,20 +115,7 @@ function RelatorioOperacoes() {
     },
   });
 
-  const { data: extras = [], isLoading: loadingExtras } = useQuery({
-    queryKey: ["extra_tasks_logs", unidade],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("extra_tasks_logs" as never)
-        .select("*")
-        .eq("property", unidade)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
-      return (data as unknown as ExtraTaskLog[]) ?? [];
-    },
-  });
-
-  // Checklists de período foram movidos para "Histórico de Produção de Limpeza"
+  // Checklists e tarefas extras ficam exclusivamente no Histórico de Produção de Limpeza.
 
   const { data: laundryDir = [] } = useQuery({
     queryKey: ["laundry_items_directory"],
@@ -176,9 +145,8 @@ function RelatorioOperacoes() {
   const camareiras = useMemo(() => {
     const set = new Set<string>();
     laundry.forEach((l) => l.camareira_name && set.add(l.camareira_name));
-    extras.forEach((l) => l.camareira_name && set.add(l.camareira_name));
     return Array.from(set).sort();
-  }, [laundry, extras]);
+  }, [laundry]);
 
   const laundryFiltrado = useMemo(
     () =>
@@ -187,14 +155,6 @@ function RelatorioOperacoes() {
         : laundry.filter((l) => l.camareira_name === camareiraFiltro),
     [laundry, camareiraFiltro],
   );
-  const extrasFiltrado = useMemo(
-    () =>
-      camareiraFiltro === "__all"
-        ? extras
-        : extras.filter((l) => l.camareira_name === camareiraFiltro),
-    [extras, camareiraFiltro],
-  );
-
   // ---- KPIs (últimos 365 dias) --------------------------------------------
   const kpis = useMemo(() => {
     const cutoff = Date.now() - 365 * 24 * 60 * 60 * 1000;
@@ -207,16 +167,11 @@ function RelatorioOperacoes() {
         totalPerdas += Number(it.em_falta) || 0;
       });
     });
-    const totalExtras = extrasFiltrado.filter(
-      (e) => new Date(e.created_at).getTime() >= cutoff,
-    ).length;
-    return { totalPecas, totalPerdas, totalExtras };
-  }, [laundryFiltrado, extrasFiltrado]);
+    return { totalPecas, totalPerdas };
+  }, [laundryFiltrado]);
 
   // ---- Registros unificados agrupados por mês -----------------------------
-  type Registro =
-    | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog };
+  type Registro = { tipo: "lavanderia"; log: LaundryLog };
 
   const registrosPorMes = useMemo(() => {
     const map = new Map<string, Registro[]>();
@@ -224,11 +179,6 @@ function RelatorioOperacoes() {
       const k = monthKey(log.created_at);
       if (!map.has(k)) map.set(k, []);
       map.get(k)!.push({ tipo: "lavanderia", log });
-    });
-    extrasFiltrado.forEach((log) => {
-      const k = monthKey(log.created_at);
-      if (!map.has(k)) map.set(k, []);
-      map.get(k)!.push({ tipo: "tarefa", log });
     });
     const keys = Array.from(map.keys()).sort().reverse();
     return keys.map((k) => ({
@@ -242,7 +192,7 @@ function RelatorioOperacoes() {
             new Date(a.log.created_at).getTime(),
         ),
     }));
-  }, [laundryFiltrado, extrasFiltrado]);
+  }, [laundryFiltrado]);
 
   // ---- PDF Export ---------------------------------------------------------
   const exportPDF = async () => {
@@ -258,10 +208,6 @@ function RelatorioOperacoes() {
       const laundryPer = laundryFiltrado.filter(
         (l) => new Date(l.created_at).getTime() >= cutoff,
       );
-      const extrasPer = extrasFiltrado.filter(
-        (l) => new Date(l.created_at).getTime() >= cutoff,
-      );
-
       const doc = new jsPDF({ unit: "pt", format: "a4" });
       const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -296,13 +242,12 @@ function RelatorioOperacoes() {
       // Produção por funcionário
       const producao = new Map<
         string,
-        { pecas: number; perdas: number; extras: number }
+        { pecas: number; perdas: number }
       >();
       laundryPer.forEach((l) => {
         const row = producao.get(l.camareira_name) ?? {
           pecas: 0,
           perdas: 0,
-          extras: 0,
         };
         (l.items_data ?? []).forEach((it) => {
           row.pecas += Number(it.enviado) || 0;
@@ -310,24 +255,13 @@ function RelatorioOperacoes() {
         });
         producao.set(l.camareira_name, row);
       });
-      extrasPer.forEach((e) => {
-        const row = producao.get(e.camareira_name) ?? {
-          pecas: 0,
-          perdas: 0,
-          extras: 0,
-        };
-        row.extras += 1;
-        producao.set(e.camareira_name, row);
-      });
-
       autoTable(doc, {
         startY: 120,
-        head: [["Funcionário", "Peças Enviadas", "Peças em Falta", "Tarefas Extras"]],
+        head: [["Funcionário", "Peças Enviadas", "Peças em Falta"]],
         body: Array.from(producao.entries()).map(([nome, v]) => [
           nome,
           v.pecas,
           v.perdas,
-          v.extras,
         ]),
         headStyles: { fillColor: [15, 42, 82] },
         theme: "striped",
@@ -374,29 +308,6 @@ function RelatorioOperacoes() {
         styles: { fontSize: 9 },
       });
 
-      // Tarefas extras
-      const finalY2 =
-        (doc as unknown as { lastAutoTable?: { finalY: number } })
-          .lastAutoTable?.finalY ?? 400;
-      doc.setFontSize(12);
-      doc.setFont("helvetica", "bold");
-      doc.text("Tarefas Extras Concluídas", 40, finalY2 + 30);
-
-      autoTable(doc, {
-        startY: finalY2 + 40,
-        head: [["Data", "Hora", "Funcionário", "Tarefas"]],
-        body: extrasPer.map((e) => [
-          formatData(e.created_at),
-          formatHora(e.created_at),
-          e.camareira_name,
-          (e.completed_tasks ?? []).join(", "),
-        ]),
-        headStyles: { fillColor: [15, 42, 82] },
-        theme: "striped",
-        styles: { fontSize: 9, cellWidth: "wrap" },
-        columnStyles: { 3: { cellWidth: 260 } },
-      });
-
       doc.save(
         `relatorio-operacoes-${unidade}-${pdfRange}-${new Date().toISOString().slice(0, 10)}.pdf`,
       );
@@ -437,7 +348,7 @@ function RelatorioOperacoes() {
 
       <div className="p-4 space-y-6">
         {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
             <div className="flex items-center gap-2 text-slate-500">
               <Shirt size={16} />
@@ -464,20 +375,6 @@ function RelatorioOperacoes() {
             </p>
             <p className="text-[11px] text-slate-500 mt-1">
               Prejuízo acumulado (12 meses)
-            </p>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
-            <div className="flex items-center gap-2 text-slate-500">
-              <ListChecks size={16} />
-              <p className="text-[11px] font-bold uppercase tracking-wider">
-                Tarefas Extras
-              </p>
-            </div>
-            <p className="text-4xl font-black text-emerald-600 mt-2">
-              {kpis.totalExtras.toLocaleString("pt-BR")}
-            </p>
-            <p className="text-[11px] text-slate-500 mt-1">
-              Registros nos últimos 365 dias
             </p>
           </div>
         </div>
@@ -553,7 +450,7 @@ function RelatorioOperacoes() {
 
           {/* Registros por mês */}
           <TabsContent value="registros" className="mt-4">
-            {loadingLaundry || loadingExtras ? (
+            {loadingLaundry ? (
               <div className="p-8 text-center text-slate-500">
                 <Loader2 className="animate-spin inline mr-2" size={16} />
                 Carregando registros…
@@ -624,28 +521,15 @@ function RelatorioOperacoes() {
   );
 }
 
-const PERIOD_LABEL: Record<"manha" | "tarde" | "noite", string> = {
-  manha: "Manhã",
-  tarde: "Tarde",
-  noite: "Noite",
-};
-
 function RegistroRow({
   r,
 }: {
   r:
-    | { tipo: "lavanderia"; log: LaundryLog }
-    | { tipo: "tarefa"; log: ExtraTaskLog }
-    | { tipo: "checklist"; log: PeriodChecklistLog };
+    { tipo: "lavanderia"; log: LaundryLog };
 }) {
   const [open, setOpen] = useState(false);
   const log = r.log;
-  const badge =
-    r.tipo === "lavanderia"
-      ? { bg: "bg-sky-500", label: "Lavanderia", text: "text-sky-600", icon: <Shirt size={14} /> }
-      : r.tipo === "tarefa"
-        ? { bg: "bg-emerald-500", label: "Tarefa Extra", text: "text-emerald-600", icon: <ListChecks size={14} /> }
-        : { bg: "bg-amber-500", label: `Checklist ${PERIOD_LABEL[r.log.period]}`, text: "text-amber-600", icon: <Sunrise size={14} /> };
+  const badge = { bg: "bg-sky-500", label: "Lavanderia", text: "text-sky-600", icon: <Shirt size={14} /> };
   return (
     <div className="py-3">
       <button
@@ -677,8 +561,7 @@ function RegistroRow({
       </button>
       {open && (
         <div className="mt-3 ml-11 text-xs">
-          {r.tipo === "lavanderia" ? (
-            <table className="w-full">
+          <table className="w-full">
               <thead>
                 <tr className="text-slate-500 text-[10px] uppercase tracking-wider">
                   <th className="text-left py-1">Item</th>
@@ -704,20 +587,7 @@ function RegistroRow({
                   </tr>
                 ))}
               </tbody>
-            </table>
-          ) : r.tipo === "tarefa" ? (
-            <ul className="list-disc list-inside space-y-1 text-slate-700">
-              {(r.log.completed_tasks ?? []).map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
-          ) : (
-            <ul className="list-disc list-inside space-y-1 text-slate-700">
-              {(r.log.completed_items ?? []).map((t, i) => (
-                <li key={i}>{t}</li>
-              ))}
-            </ul>
-          )}
+          </table>
         </div>
       )}
     </div>
