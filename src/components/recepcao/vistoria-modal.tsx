@@ -1,8 +1,26 @@
-import { useEffect, useRef, useState } from "react";
-import { Camera, CheckCircle2, Loader2, X } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  AlertTriangle,
+  BedDouble,
+  Camera,
+  CheckCircle2,
+  Loader2,
+  Send,
+  Wrench,
+  X,
+} from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import type { Unidade } from "@/lib/store";
+import { CATEGORIAS, type Categoria, type Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 
@@ -15,13 +33,22 @@ const FALLBACK_CHECKLIST_ITEMS = [
 ];
 
 type ChecklistState = Record<string, boolean>;
+type IssueTeam = "camareira" | "manutencao";
+type InspectionIssue = {
+  id: string;
+  team: IssueTeam;
+  description: string;
+  responsible_name: string;
+  created_at: string;
+};
+type Technician = { id: string; nome: string; categorias: string[] | null };
 
 interface VistoriaModalProps {
   open: boolean;
   onClose: () => void;
   onSuccess?: () => void;
   unidade: Unidade;
-  roomNumber: string; // Ex: "APT 001"
+  roomNumber: string;
 }
 
 export function VistoriaModal({
@@ -33,35 +60,90 @@ export function VistoriaModal({
 }: VistoriaModalProps) {
   const [items, setItems] = useState<string[]>(FALLBACK_CHECKLIST_ITEMS);
   const [checklist, setChecklist] = useState<ChecklistState>(() =>
-    Object.fromEntries(FALLBACK_CHECKLIST_ITEMS.map((i) => [i, false])),
+    Object.fromEntries(FALLBACK_CHECKLIST_ITEMS.map((item) => [item, false])),
   );
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [loadingIssues, setLoadingIssues] = useState(false);
+  const [openIssues, setOpenIssues] = useState<InspectionIssue[]>([]);
+  const [hasIssue, setHasIssue] = useState<boolean | null>(null);
+  const [team, setTeam] = useState<IssueTeam | null>(null);
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState<Categoria | null>(null);
+  const [technicianId, setTechnicianId] = useState<string | null>(null);
+  const [technicians, setTechnicians] = useState<Technician[]>([]);
+  const [savingIssue, setSavingIssue] = useState(false);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const loadIssues = useCallback(async () => {
+    if (!open) return;
+    setLoadingIssues(true);
+    const { data, error } = await supabase
+      .from("room_inspection_issues")
+      .select("id, team, description, responsible_name, created_at")
+      .eq("property", unidade)
+      .eq("room_number", roomNumber)
+      .eq("status", "open")
+      .order("created_at", { ascending: true });
+    setLoadingIssues(false);
+    if (error) {
+      toast.error("Não foi possível verificar as pendências do quarto");
+      return;
+    }
+    const issues = (data ?? []) as InspectionIssue[];
+    setOpenIssues(issues);
+    if (issues.length > 0) setHasIssue(true);
+  }, [open, roomNumber, unidade]);
 
   useEffect(() => {
     if (!open) return;
     let cancelled = false;
-    (async () => {
-      const { data, error } = await supabase
-        .from("vistoria_checklist_items" as never)
-        .select("item_name, sort_order")
-        .order("sort_order", { ascending: true });
+    void (async () => {
+      const [{ data: checklistData, error: checklistError }, { data: technicianData }] =
+        await Promise.all([
+          supabase
+            .from("vistoria_checklist_items")
+            .select("item_name, sort_order")
+            .order("sort_order", { ascending: true }),
+          supabase.rpc("list_tecnicos"),
+        ]);
       if (cancelled) return;
       const list =
-        !error && data && (data as unknown as { item_name: string }[]).length > 0
-          ? (data as unknown as { item_name: string }[]).map((r) => r.item_name)
+        !checklistError && checklistData && checklistData.length > 0
+          ? checklistData.map((row) => row.item_name)
           : FALLBACK_CHECKLIST_ITEMS;
       setItems(list);
-      setChecklist(Object.fromEntries(list.map((i) => [i, false])));
+      setChecklist(Object.fromEntries(list.map((item) => [item, false])));
+      setTechnicians((technicianData ?? []) as Technician[]);
     })();
     setFile(null);
-    setPreviewUrl(null);
+    setHasIssue(null);
+    setTeam(null);
+    setDescription("");
+    setCategory(null);
+    setTechnicianId(null);
+    void loadIssues();
     return () => {
       cancelled = true;
     };
-  }, [open]);
+  }, [loadIssues, open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const channel = supabase
+      .channel(`vistoria-pendencias-${unidade}-${roomNumber}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "room_inspection_issues" },
+        () => void loadIssues(),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [loadIssues, open, roomNumber, unidade]);
 
   useEffect(() => {
     if (!file) {
@@ -75,17 +157,95 @@ export function VistoriaModal({
 
   if (!open) return null;
 
-  const allChecked = items.length > 0 && items.every((i) => checklist[i]);
-  const canSubmit = allChecked && !!file && !enviando;
+  const eligibleTechnicians = technicians.filter((technician) =>
+    category
+      ? (technician.categorias ?? []).some(
+          (item) => item.trim().toLowerCase() === category.trim().toLowerCase(),
+        )
+      : false,
+  );
+  const allChecked = items.length > 0 && items.every((item) => checklist[item]);
+  const issueDecisionComplete = hasIssue === false || (hasIssue === true && openIssues.length === 0);
+  const canSubmit =
+    allChecked && !!file && issueDecisionComplete && !enviando && !loadingIssues;
+  const canCreateIssue =
+    !!team &&
+    description.trim().length >= 4 &&
+    (team === "camareira" || (!!category && !!technicianId)) &&
+    !savingIssue;
 
   const toggleItem = (item: string) =>
-    setChecklist((prev) => ({ ...prev, [item]: !prev[item] }));
+    setChecklist((previous) => ({ ...previous, [item]: !previous[item] }));
 
+  const createIssue = async () => {
+    if (!canCreateIssue || !team) return;
+    setSavingIssue(true);
+    const args =
+      team === "manutencao"
+        ? {
+            _property: unidade,
+            _room_number: roomNumber,
+            _team: team,
+            _description: description.trim(),
+            _category: category ?? undefined,
+            _responsible_id: technicianId ?? undefined,
+          }
+        : {
+            _property: unidade,
+            _room_number: roomNumber,
+            _team: team,
+            _description: description.trim(),
+          };
+    const { error } = await supabase.rpc("open_room_inspection_issue", args);
+    setSavingIssue(false);
+    if (error) {
+      toast.error(error.message || "Não foi possível chamar o responsável");
+      return;
+    }
+    toast.success(
+      team === "camareira"
+        ? "Camareiras avisadas imediatamente"
+        : "Chamado urgente enviado ao técnico",
+    );
+    setDescription("");
+    setTeam(null);
+    setCategory(null);
+    setTechnicianId(null);
+    await loadIssues();
+  };
+
+  const resolveIssue = async (issueId: string) => {
+    setResolvingId(issueId);
+    const { error } = await supabase.rpc("resolve_room_inspection_issue", {
+      _issue_id: issueId,
+    });
+    setResolvingId(null);
+    if (error) {
+      toast.error(error.message || "Não foi possível resolver a pendência");
+      return;
+    }
+    toast.success("Pendência resolvida. Termine o checklist para liberar o quarto.");
+    await loadIssues();
+    setHasIssue(false);
+  };
 
   const handleSubmit = async () => {
     if (!canSubmit || !file) return;
     setEnviando(true);
     try {
+      const { data: freshIssues, error: issueError } = await supabase
+        .from("room_inspection_issues")
+        .select("id")
+        .eq("property", unidade)
+        .eq("room_number", roomNumber)
+        .eq("status", "open")
+        .limit(1);
+      if (issueError) throw issueError;
+      if ((freshIssues ?? []).length > 0) {
+        await loadIssues();
+        throw new Error("Resolva a pendência antes de liberar o quarto");
+      }
+
       const { data: userData } = await supabase.auth.getUser();
       const user = userData.user;
       let inspectorName = "Recepção";
@@ -102,28 +262,27 @@ export function VistoriaModal({
       const ext = compressed.name.split(".").pop()?.toLowerCase() || "jpg";
       const safeRoom = roomNumber.replace(/\s+/g, "_");
       const path = `${unidade}/${safeRoom}/${Date.now()}.${ext}`;
-
-      const { error: upErr } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from("inspections")
-        .upload(path, compressed, { cacheControl: "3600", upsert: false, contentType: compressed.type });
-      if (upErr) throw upErr;
+        .upload(path, compressed, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: compressed.type,
+        });
+      if (uploadError) throw uploadError;
 
-      const { data: publicUrlData } = supabase.storage
-        .from("inspections")
-        .getPublicUrl(path);
-      const photoUrl = publicUrlData.publicUrl;
-
-      const { error: insErr } = await supabase.from("room_inspections").insert({
+      const { data: publicUrlData } = supabase.storage.from("inspections").getPublicUrl(path);
+      const { error: inspectionError } = await supabase.from("room_inspections").insert({
         property: unidade,
         room_number: roomNumber,
         inspector_name: inspectorName,
         inspector_id: user?.id ?? null,
         checklist,
-        photo_url: photoUrl,
+        photo_url: publicUrlData.publicUrl,
       });
-      if (insErr) throw insErr;
+      if (inspectionError) throw inspectionError;
 
-      const { error: updErr } = await supabase
+      const { error: roomError } = await supabase
         .from("room_housekeeping")
         .update({
           status: "clean",
@@ -132,46 +291,38 @@ export function VistoriaModal({
         })
         .eq("property", unidade)
         .eq("room_number", roomNumber);
-      if (updErr) throw updErr;
+      if (roomError) throw roomError;
 
       toast.success(`Quarto ${roomNumber} vistoriado e liberado`);
       onSuccess?.();
       onClose();
-    } catch (err) {
-      console.error("[vistoria] erro:", err);
-      toast.error(
-        err instanceof Error ? err.message : "Falha ao salvar vistoria",
-      );
+    } catch (error) {
+      console.error("[vistoria] erro:", error);
+      toast.error(error instanceof Error ? error.message : "Falha ao salvar vistoria");
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4">
-      <div className="bg-white w-full sm:max-w-lg sm:rounded-2xl rounded-t-2xl shadow-xl max-h-[95vh] flex flex-col">
-        <div className="flex items-center justify-between p-4 border-b border-slate-100">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-0 sm:items-center sm:p-4">
+      <div className="flex max-h-[95vh] w-full flex-col rounded-t-2xl bg-white shadow-xl sm:max-w-lg sm:rounded-2xl">
+        <div className="flex items-center justify-between border-b border-slate-100 p-4">
           <div>
-            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+            <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
               Vistoria Preventiva
             </p>
-            <h3 className="text-base font-black text-slate-900">
-              Quarto {roomNumber}
-            </h3>
+            <h3 className="text-base font-black text-slate-900">Quarto {roomNumber}</h3>
             <p className="text-xs text-slate-500">INJOY {unidade}</p>
           </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg hover:bg-slate-100 text-slate-500"
-            aria-label="Fechar"
-          >
+          <Button variant="ghost" size="icon" onClick={onClose} aria-label="Fechar">
             <X size={20} />
-          </button>
+          </Button>
         </div>
 
-        <div className="p-4 space-y-4 overflow-y-auto flex-1">
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+        <div className="flex-1 space-y-5 overflow-y-auto p-4">
+          <section className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Checklist obrigatório
             </p>
             {items.map((item) => {
@@ -180,10 +331,10 @@ export function VistoriaModal({
                 <label
                   key={item}
                   className={cn(
-                    "flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors",
+                    "flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors",
                     checked
-                      ? "bg-emerald-50 border-emerald-200"
-                      : "bg-slate-50 border-slate-200 hover:bg-slate-100",
+                      ? "border-emerald-200 bg-emerald-50"
+                      : "border-slate-200 bg-slate-50 hover:bg-slate-100",
                   )}
                 >
                   <input
@@ -203,10 +354,176 @@ export function VistoriaModal({
                 </label>
               );
             })}
-          </div>
+          </section>
 
-          <div className="space-y-2">
-            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+          <section className="space-y-3 rounded-xl border border-amber-200 bg-amber-50 p-3">
+            <div className="flex items-start gap-2">
+              <AlertTriangle className="mt-0.5 h-5 w-5 text-amber-700" />
+              <div>
+                <p className="text-sm font-black text-amber-950">Existe alguma pendência?</p>
+                <p className="text-xs text-amber-800">
+                  Chame o responsável imediatamente antes de concluir a vistoria.
+                </p>
+              </div>
+            </div>
+
+            {loadingIssues ? (
+              <div className="flex items-center gap-2 text-xs font-semibold text-amber-800">
+                <Loader2 className="h-4 w-4 animate-spin" /> Verificando pendências...
+              </div>
+            ) : openIssues.length > 0 ? (
+              <div className="space-y-2">
+                {openIssues.map((issue) => (
+                  <div key={issue.id} className="rounded-lg border border-red-200 bg-white p-3">
+                    <div className="flex items-center gap-2 text-sm font-bold text-red-800">
+                      {issue.team === "camareira" ? (
+                        <BedDouble className="h-4 w-4" />
+                      ) : (
+                        <Wrench className="h-4 w-4" />
+                      )}
+                      {issue.team === "camareira" ? "Camareira" : "Manutenção"}
+                    </div>
+                    <p className="mt-1 text-sm text-slate-800">{issue.description}</p>
+                    <p className="mt-1 text-xs text-slate-500">
+                      Responsável: {issue.responsible_name} · {new Date(issue.created_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                    <Button
+                      type="button"
+                      className="mt-3 w-full bg-emerald-600 text-white hover:bg-emerald-700"
+                      onClick={() => void resolveIssue(issue.id)}
+                      disabled={resolvingId === issue.id}
+                    >
+                      {resolvingId === issue.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-4 w-4" />
+                      )}
+                      Pendência resolvida
+                    </Button>
+                  </div>
+                ))}
+                <p className="text-center text-xs font-bold text-red-700">
+                  O quarto não pode ser liberado enquanto houver pendência aberta.
+                </p>
+              </div>
+            ) : hasIssue === null ? (
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="outline" onClick={() => setHasIssue(false)}>
+                  Não, está tudo certo
+                </Button>
+                <Button type="button" variant="destructive" onClick={() => setHasIssue(true)}>
+                  Sim, há pendência
+                </Button>
+              </div>
+            ) : hasIssue === false ? (
+              <div className="flex items-center justify-between rounded-lg border border-emerald-200 bg-white p-2.5">
+                <span className="flex items-center gap-2 text-sm font-bold text-emerald-700">
+                  <CheckCircle2 className="h-4 w-4" /> Sem pendências
+                </span>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setHasIssue(true)}>
+                  Corrigir
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={team === "camareira" ? "default" : "outline"}
+                    onClick={() => {
+                      setTeam("camareira");
+                      setCategory(null);
+                      setTechnicianId(null);
+                    }}
+                  >
+                    <BedDouble className="h-4 w-4" /> Camareira
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={team === "manutencao" ? "default" : "outline"}
+                    onClick={() => setTeam("manutencao")}
+                  >
+                    <Wrench className="h-4 w-4" /> Manutenção
+                  </Button>
+                </div>
+
+                {team === "manutencao" && (
+                  <>
+                    <Select
+                      value={category ?? undefined}
+                      onValueChange={(value) => {
+                        setCategory(value as Categoria);
+                        setTechnicianId(null);
+                      }}
+                    >
+                      <SelectTrigger className="bg-white">
+                        <SelectValue placeholder="Categoria do problema" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIAS.map((item) => (
+                          <SelectItem key={item} value={item}>{item}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {category && (
+                      <Select value={technicianId ?? undefined} onValueChange={setTechnicianId}>
+                        <SelectTrigger className="bg-white">
+                          <SelectValue placeholder="Técnico responsável" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {eligibleTechnicians.map((technician) => (
+                            <SelectItem key={technician.id} value={technician.id}>
+                              {technician.nome}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                    {category && eligibleTechnicians.length === 0 && (
+                      <p className="text-xs font-semibold text-red-700">
+                        Nenhum técnico cadastrado para esta categoria.
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {team && (
+                  <Textarea
+                    value={description}
+                    onChange={(event) => setDescription(event.target.value)}
+                    placeholder="Descreva o que precisa ser resolvido antes de liberar o quarto"
+                    className="min-h-20 bg-white"
+                  />
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setHasIssue(null);
+                      setTeam(null);
+                    }}
+                  >
+                    Voltar
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    className="flex-1"
+                    disabled={!canCreateIssue}
+                    onClick={() => void createIssue()}
+                  >
+                    {savingIssue ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                    Chamar agora
+                  </Button>
+                </div>
+              </div>
+            )}
+          </section>
+
+          <section className="space-y-2">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">
               Anexar Foto do Quarto
             </p>
             <input
@@ -215,65 +532,65 @@ export function VistoriaModal({
               accept="image/*"
               capture="environment"
               className="hidden"
-              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+              onChange={(event) => setFile(event.target.files?.[0] ?? null)}
             />
             {previewUrl ? (
               <div className="relative">
                 <img
                   src={previewUrl}
                   alt="Prévia da vistoria"
-                  className="w-full h-56 object-cover rounded-xl border border-slate-200"
+                  className="h-56 w-full rounded-xl border border-slate-200 object-cover"
                 />
-                <button
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="absolute right-2 top-2"
                   onClick={() => {
                     setFile(null);
                     if (inputRef.current) inputRef.current.value = "";
                   }}
-                  className="absolute top-2 right-2 bg-white/90 backdrop-blur px-2.5 py-1 rounded-lg text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm"
                 >
                   Trocar foto
-                </button>
+                </Button>
               </div>
             ) : (
-              <button
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => inputRef.current?.click()}
-                className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-slate-300 text-slate-500 hover:bg-slate-50"
+                className="h-auto w-full flex-col gap-2 border-dashed py-8 text-slate-500"
               >
                 <Camera size={28} />
-                <span className="text-sm font-semibold">
-                  Tirar foto ou escolher da galeria
-                </span>
+                <span className="text-sm font-semibold">Tirar foto ou escolher da galeria</span>
                 <span className="text-[11px] text-slate-400">
                   Foto obrigatória para liberar o quarto
                 </span>
-              </button>
+              </Button>
             )}
-          </div>
+          </section>
         </div>
 
-        <div className="p-4 border-t border-slate-100">
-          <button
-            onClick={handleSubmit}
+        <div className="border-t border-slate-100 p-4">
+          <Button
+            type="button"
+            onClick={() => void handleSubmit()}
             disabled={!canSubmit}
-            className={cn(
-              "w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all",
-              canSubmit
-                ? "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm"
-                : "bg-slate-200 text-slate-400 cursor-not-allowed",
-            )}
+            className="h-12 w-full bg-emerald-600 text-sm font-bold text-white hover:bg-emerald-700"
           >
             {enviando ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Salvando...
-              </>
+              <><Loader2 className="h-4 w-4 animate-spin" /> Salvando...</>
             ) : (
-              <>
-                <CheckCircle2 size={16} /> Salvar e Liberar Quarto
-              </>
+              <><CheckCircle2 className="h-4 w-4" /> Salvar e Liberar Quarto</>
             )}
-          </button>
-          {!allChecked && (
-            <p className="text-[11px] text-center text-slate-500 mt-2">
+          </Button>
+          {!issueDecisionComplete && (
+            <p className="mt-2 text-center text-[11px] font-semibold text-red-600">
+              Confirme se há pendência e resolva qualquer problema antes de liberar.
+            </p>
+          )}
+          {issueDecisionComplete && (!allChecked || !file) && (
+            <p className="mt-2 text-center text-[11px] text-slate-500">
               Marque todos os itens do checklist e anexe uma foto.
             </p>
           )}

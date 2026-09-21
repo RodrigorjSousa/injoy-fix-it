@@ -1601,6 +1601,81 @@ export type Database = {
         }
         Relationships: []
       }
+      room_inspection_issues: {
+        Row: {
+          chamado_id: string | null
+          created_at: string
+          description: string
+          id: string
+          opened_by: string
+          opened_by_name: string
+          property: string
+          recado_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_by_name: string | null
+          responsible_id: string | null
+          responsible_name: string
+          room_number: string
+          status: string
+          team: string
+          updated_at: string
+        }
+        Insert: {
+          chamado_id?: string | null
+          created_at?: string
+          description: string
+          id?: string
+          opened_by: string
+          opened_by_name: string
+          property: string
+          recado_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string | null
+          responsible_id?: string | null
+          responsible_name: string
+          room_number: string
+          status?: string
+          team: string
+          updated_at?: string
+        }
+        Update: {
+          chamado_id?: string | null
+          created_at?: string
+          description?: string
+          id?: string
+          opened_by?: string
+          opened_by_name?: string
+          property?: string
+          recado_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_by_name?: string | null
+          responsible_id?: string | null
+          responsible_name?: string
+          room_number?: string
+          status?: string
+          team?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "room_inspection_issues_chamado_id_fkey"
+            columns: ["chamado_id"]
+            isOneToOne: false
+            referencedRelation: "chamados"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "room_inspection_issues_recado_id_fkey"
+            columns: ["recado_id"]
+            isOneToOne: false
+            referencedRelation: "recados_camareiras"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       room_inspections: {
         Row: {
           checklist: Json
@@ -1928,6 +2003,21 @@ export type Database = {
           id: string
           nome: string
         }[]
+      }
+      open_room_inspection_issue: {
+        Args: {
+          _category?: string
+          _description: string
+          _property: string
+          _responsible_id?: string
+          _room_number: string
+          _team: string
+        }
+        Returns: string
+      }
+      resolve_room_inspection_issue: {
+        Args: { _issue_id: string }
+        Returns: undefined
       }
     }
     Enums: {
