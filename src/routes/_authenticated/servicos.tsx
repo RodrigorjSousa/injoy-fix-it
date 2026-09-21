@@ -73,7 +73,6 @@ const SERVICOS: Servico[] = [
   {
     key: "emergencia",
     label: "Emergência",
-    sub: "Emergência",
     desc: "Qualquer ocorrência urgente que precise de atendimento imediato.",
     icon: AlertTriangle,
     to: "/painel",
