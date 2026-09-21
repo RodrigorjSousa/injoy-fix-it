@@ -594,13 +594,18 @@ export function useRegistrarLimpeza() {
 /* ------------------------------ helpers ----------------------------- */
 
 export function isAtivoLimpo(a: AtivoAr): boolean {
-  return a.status === "Limpo";
+  const dias = diasDesdeLimpeza(a);
+  return dias !== null && dias <= 90;
 }
 export function diasDesdeLimpeza(a: AtivoAr): number | null {
   if (!a.ultimaLimpeza) return null;
-  return Math.floor((Date.now() - new Date(a.ultimaLimpeza).getTime()) / (1000 * 60 * 60 * 24));
+  const ultimaLimpeza = new Date(a.ultimaLimpeza).getTime();
+  if (!Number.isFinite(ultimaLimpeza)) return null;
+  return Math.max(0, Math.floor((Date.now() - ultimaLimpeza) / (1000 * 60 * 60 * 24)));
 }
 export function proximaLimpeza(a: AtivoAr): Date | null {
   if (!a.ultimaLimpeza) return null;
-  return new Date(new Date(a.ultimaLimpeza).getTime() + a.intervaloDias * 86400000);
+  const ultimaLimpeza = new Date(a.ultimaLimpeza).getTime();
+  if (!Number.isFinite(ultimaLimpeza)) return null;
+  return new Date(ultimaLimpeza + 90 * 86400000);
 }

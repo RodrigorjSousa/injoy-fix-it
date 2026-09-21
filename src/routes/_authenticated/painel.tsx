@@ -22,7 +22,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { ChevronRight, MapPin, User2, Clock, Trash2 } from "lucide-react";
+import { AlertTriangle, ChevronRight, MapPin, User2, Clock, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import {
   CATEGORIAS,
@@ -54,6 +54,10 @@ const COLUNAS: { status: Status; label: string; tone: string }[] = [
   { status: "Concluído", label: "Feito", tone: "bg-success/15 text-success border-success/30" },
 ];
 
+function isUrgente(c: Chamado) {
+  return /^\[URGENTE\]/i.test(c.descricao.trim()) || /urgente|emerg[êe]ncia|bloqueia|sem refriger/i.test(c.descricao);
+}
+
 function Painel() {
   const search = Route.useSearch();
   const { data: me } = useMe();
@@ -71,9 +75,10 @@ function Painel() {
     return chamados.filter(
       (c) =>
         (unidade === "todas" || c.unidade === unidade) &&
-        (categoria === "todas" || c.categoria === categoria),
+        (categoria === "todas" || c.categoria === categoria) &&
+        (search.tipo !== "emergencia" || isUrgente(c)),
     );
-  }, [chamados, unidade, categoria]);
+  }, [chamados, unidade, categoria, search.tipo]);
 
   const nomePor = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? "—";
 
@@ -235,7 +240,14 @@ function ChamadoCard({
         className="block p-3"
       >
         <div className="flex items-center justify-between gap-2 mb-1 pr-7">
-          <Badge variant="outline" className="text-[10px] font-medium">{c.categoria}</Badge>
+          <div className="flex items-center gap-1.5">
+            <Badge variant="outline" className="text-[10px] font-medium">{c.categoria}</Badge>
+            {isUrgente(c) && (
+              <Badge variant="destructive" className="text-[10px] font-semibold">
+                <AlertTriangle className="h-3 w-3 mr-1" /> Urgente
+              </Badge>
+            )}
+          </div>
           <span className="text-[10px] text-muted-foreground flex items-center gap-1">
             <Clock className="h-3 w-3" />
             {new Date(c.criadoEm).toLocaleDateString("pt-BR")}
