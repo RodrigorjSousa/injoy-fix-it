@@ -2004,6 +2004,21 @@ export type Database = {
           nome: string
         }[]
       }
+      open_room_inspection_issue: {
+        Args: {
+          _category?: string
+          _description: string
+          _property: string
+          _responsible_id?: string
+          _room_number: string
+          _team: string
+        }
+        Returns: string
+      }
+      resolve_room_inspection_issue: {
+        Args: { _issue_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:
