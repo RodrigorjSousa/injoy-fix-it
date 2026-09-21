@@ -15,6 +15,13 @@
       "when": 1790023484365,
       "tag": "0001_add_inspection_issue_workflow_functions",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790023617364,
+      "tag": "0002_harden_room_inspection_issues",
+      "breakpoints": true
     }
   ]
 }
