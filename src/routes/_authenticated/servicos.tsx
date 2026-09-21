@@ -71,17 +71,17 @@ const SERVICOS: Servico[] = [
     categoria: "Ar condicionado",
   },
   {
-    key: "ac-emergencia",
-    label: "Ar condicionado",
+    key: "emergencia",
+    label: "Emergência",
     sub: "Emergência",
-    desc: "Quarto sem refrigeração — atendimento imediato.",
+    desc: "Qualquer ocorrência urgente que precise de atendimento imediato.",
     icon: AlertTriangle,
     to: "/painel",
-    search: { categoria: "Ar condicionado", tipo: "emergencia" },
+    search: { tipo: "emergencia" },
     tone: "from-red-600/15 to-red-600/0 text-red-600 border-red-600/40",
     dot: "bg-red-600",
     btn: "bg-red-600 hover:bg-red-700 focus-visible:ring-red-600 active:bg-red-800 text-white",
-    categoria: "Ar condicionado",
+    categoria: "",
     emergencia: true,
   },
   {
@@ -130,15 +130,14 @@ function isUrgente(c: Chamado) {
 function contarAbertos(chamados: Chamado[], s: Servico) {
   return chamados.filter((c) => {
     if (c.status === "Concluído") return false;
-    if (c.categoria !== s.categoria) return true && false;
-    if (s.categoria !== "Ar condicionado") return c.categoria === s.categoria;
-    // Ar condicionado split
     const urgente = isUrgente(c);
-    return s.emergencia ? urgente : !urgente;
+    if (s.emergencia) return urgente;
+    return c.categoria === s.categoria && !urgente;
   }).length;
 }
 
 function tecnicosDe(funcs: Funcionario[], categoria: string) {
+  if (!categoria) return [];
   return funcs.filter((f) =>
     (f.categorias ?? []).some((c) => c === categoria),
   );
@@ -251,7 +250,11 @@ function Servicos() {
                   <Users className="h-3 w-3" />
                   {tecnicos.length > 1 ? "Técnicos" : "Técnico"}
                 </div>
-                {tecnicos.length === 0 ? (
+                 {s.emergencia ? (
+                   <p className="text-sm text-muted-foreground">
+                     Direcionado ao técnico da categoria escolhida
+                   </p>
+                 ) : tecnicos.length === 0 ? (
                   <p className="text-sm text-muted-foreground italic">
                     Nenhum técnico cadastrado
                   </p>
@@ -288,7 +291,12 @@ function Servicos() {
                     s.btn,
                   )}
                 >
-                  <Link to="/" search={{ categoria: s.categoria as never }}>
+                  <Link
+                    to="/"
+                    search={s.emergencia
+                      ? ({ abrir: 1, urgente: 1 } as never)
+                      : ({ categoria: s.categoria as never })}
+                  >
                     <PlusCircle className="w-4 h-4" />
                     Abrir chamado
                   </Link>

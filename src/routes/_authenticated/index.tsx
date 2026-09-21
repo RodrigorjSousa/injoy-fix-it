@@ -11,6 +11,7 @@ import {
   PaintRoller,
   MapPin,
   ArrowRight,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -44,7 +45,8 @@ export const Route = createFileRoute("/_authenticated/")({
         | Categoria
         | undefined,
       abrir: s.abrir === "1" || s.abrir === 1 ? 1 : undefined,
-    }) as { categoria?: Categoria; abrir?: number },
+      urgente: s.urgente === "1" || s.urgente === 1 ? 1 : undefined,
+    }) as { categoria?: Categoria; abrir?: number; urgente?: number },
   beforeLoad: ({ search }) => {
     // Raiz autenticada abre a tela de Boas-Vindas por padrão.
     // Mantém a tela de abertura de chamado quando há `categoria` (deep-link)
@@ -84,7 +86,7 @@ function NovoChamado() {
   const { data: me } = useMe();
   const { data: funcionarios = [] } = useFuncionarios();
   const criar = useCriarChamado();
-  const { categoria: categoriaFromUrl } = Route.useSearch();
+  const { categoria: categoriaFromUrl, urgente: urgenteFromUrl } = Route.useSearch();
   const [unidade, setUnidade] = useState<Unidade | null>(null);
   const [quarto, setQuarto] = useState<string | null>(null);
   const [categoria, setCategoria] = useState<Categoria | null>(categoriaFromUrl ?? null);
@@ -92,6 +94,7 @@ function NovoChamado() {
   const [descricao, setDescricao] = useState("");
   const [midias, setMidias] = useState<Midia[]>([]);
   const [uploading, setUploading] = useState(false);
+  const [urgente, setUrgente] = useState(urgenteFromUrl === 1);
 
 
   // Sync when navigating to /?categoria=...
@@ -165,9 +168,10 @@ function NovoChamado() {
 
   const submit = () => {
     if (!podeEnviar || !unidade || !categoria) return;
-    const descricaoFinal = precisaQuarto && quarto
+    const descricaoComLocal = precisaQuarto && quarto
       ? `[${quarto === AREA_COMUM ? "Área comum" : `Quarto ${quarto}`}] ${descricao.trim()}`
       : descricao.trim();
+    const descricaoFinal = urgente ? `[URGENTE] ${descricaoComLocal}` : descricaoComLocal;
     criar.mutate(
       {
         unidade,
@@ -308,6 +312,16 @@ function NovoChamado() {
 
       <section className="space-y-3">
         <StepLabel n={precisaQuarto ? 4 : 3} title="Descreva brevemente" />
+        <Button
+          type="button"
+          variant={urgente ? "destructive" : "outline"}
+          className="w-full justify-start"
+          onClick={() => setUrgente((atual) => !atual)}
+          aria-pressed={urgente}
+        >
+          <AlertTriangle className="h-4 w-4 mr-2" />
+          {urgente ? "Chamado urgente selecionado" : "Marcar como urgente"}
+        </Button>
         <AudioDictationButton
           onTranscript={(text) =>
             setDescricao((prev) => (prev.trim() ? `${prev.trim()} ${text}` : text))

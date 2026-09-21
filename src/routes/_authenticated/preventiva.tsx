@@ -159,7 +159,7 @@ function Preventiva() {
           const limpo = isAtivoLimpo(a);
           const dias = diasDesdeLimpeza(a);
           const proxima = proximaLimpeza(a);
-          const vencida = proxima ? proxima.getTime() < Date.now() : true;
+          const requerLimpeza = dias === null || dias > 90;
           return (
             <Card key={a.id} className="p-4 space-y-3 relative overflow-hidden">
               <span
@@ -207,13 +207,13 @@ function Preventiva() {
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5 text-muted-foreground">
-                  {vencida ? (
+                  {requerLimpeza ? (
                     <AlertTriangle className="h-3.5 w-3.5 text-destructive" />
                   ) : (
                     <Calendar className="h-3.5 w-3.5" />
                   )}
                   Próxima:{" "}
-                  <span className={cn("font-medium", vencida ? "text-destructive" : "text-foreground")}>
+                  <span className={cn("font-medium", requerLimpeza ? "text-destructive" : "text-foreground")}>
                     {proxima ? proxima.toLocaleDateString("pt-BR") : "Imediata"}
                   </span>
                   <span className="text-foreground/60">(máx. 90 dias)</span>
@@ -230,7 +230,7 @@ function Preventiva() {
                   {limpo ? (
                     <><CheckCircle2 className="h-3 w-3 mr-1" /> Limpo</>
                   ) : (
-                    <><Sparkles className="h-3 w-3 mr-1" /> Sujo</>
+                    <><AlertTriangle className="h-3 w-3 mr-1" /> Requer limpeza</>
                   )}
                 </Badge>
               </div>
