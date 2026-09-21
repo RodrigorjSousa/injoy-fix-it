@@ -226,6 +226,7 @@ export function VistoriaModal({
     }
     toast.success("Pendência resolvida. Termine o checklist para liberar o quarto.");
     await loadIssues();
+    setHasIssue(false);
   };
 
   const handleSubmit = async () => {
