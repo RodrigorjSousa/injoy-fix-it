@@ -2021,6 +2021,19 @@ export type Database = {
         }
         Returns: string
       }
+      registrar_bonificacao_conjunta: {
+        Args: {
+          _data: string
+          _nome_hospede: string
+          _nota_funcionarios: number
+          _nota_geral: number
+          _nota_limpeza: number
+          _observacao: string
+          _teve_elogio: boolean
+          _unidade: string
+        }
+        Returns: undefined
+      }
       resolve_room_inspection_issue: {
         Args: { _issue_id: string }
         Returns: undefined
