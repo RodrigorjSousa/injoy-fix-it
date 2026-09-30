@@ -270,7 +270,7 @@ export function PainelControleRapido({ unidade }: Props) {
           <div className="mt-4">
             <div className="space-y-1 text-sm font-black">
               <p className={totaisBonif.recepcao >= 0 ? "text-emerald-400" : "text-red-400"}>Recepção {formatBRL(totaisBonif.recepcao)}</p>
-              <p className={totaisBonif.camareiras >= 0 ? "text-emerald-400" : "text-red-400"}>Camareiras {formatBRL(totaisBonif.camareiras)}</p>
+               <p className={totaisBonif.camareiras >= 0 ? "text-emerald-400" : "text-red-400"}>Camareiras / Manutenção {formatBRL(totaisBonif.camareiras)}</p>
             </div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-2">
               Saldo acumulado neste mês

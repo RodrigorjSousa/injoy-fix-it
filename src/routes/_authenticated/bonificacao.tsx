@@ -6,9 +6,9 @@ export const Route = createFileRoute("/_authenticated/bonificacao")({
   head: () => ({
     meta: [
       { title: "Bonificação | INJOY Hotéis" },
-      { name: "description", content: "Bonificações da Recepção e das Camareiras por avaliações de hóspedes." },
+       { name: "description", content: "Bonificações da Recepção e de Camareiras / Manutenção por avaliações de hóspedes." },
       { property: "og:title", content: "Bonificação | INJOY Hotéis" },
-      { property: "og:description", content: "Bonificações da Recepção e das Camareiras por avaliações de hóspedes." },
+       { property: "og:description", content: "Bonificações da Recepção e de Camareiras / Manutenção por avaliações de hóspedes." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
     ],
