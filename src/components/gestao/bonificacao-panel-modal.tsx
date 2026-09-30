@@ -386,6 +386,19 @@ function HistoricoTabela({
   const excluir = useExcluirRegistroBonificacao();
   const list = registros ?? [];
   const [editando, setEditando] = useState<RegistroBonificacao | null>(null);
+  const avaliacoes = useMemo(() => {
+    const grupos = new Map<string, { recepcao?: RegistroBonificacao; camareiras?: RegistroBonificacao }>();
+
+    for (const registro of list) {
+      const chave = registro.avaliacao_id ?? registro.id;
+      const grupo = grupos.get(chave) ?? {};
+      if (registro.setor === "camareiras") grupo.camareiras = registro;
+      else grupo.recepcao = registro;
+      grupos.set(chave, grupo);
+    }
+
+    return Array.from(grupos.values());
+  }, [list]);
 
   if (list.length === 0) {
     return (
@@ -420,36 +433,55 @@ function HistoricoTabela({
           </tr>
         </thead>
         <tbody>
-          {list.map((r) => {
-            const positivo = Number(r.valor_calculado) >= 0;
+          {avaliacoes.map((grupo) => {
+            const recepcao = grupo.recepcao;
+            const camareiras = grupo.camareiras;
+            const r = recepcao ?? camareiras;
+            if (!r) return null;
             return (
-              <tr key={r.id} className="border-t">
+              <tr key={r.avaliacao_id ?? r.id} className="border-t align-top">
                 <td className="p-2 whitespace-nowrap">
                   {new Date(r.data + "T00:00:00").toLocaleDateString("pt-BR")}
                 </td>
                 <td className="p-2">
                   <div className="font-medium">{r.nome_hospede}</div>
-                  {r.observacao && (
-                    <div className="text-xs text-muted-foreground line-clamp-1">{r.observacao}</div>
-                  )}
+                  {recepcao?.observacao && <div className="text-xs text-muted-foreground">Recepção: {recepcao.observacao}</div>}
+                  {camareiras?.observacao && <div className="text-xs text-muted-foreground">Limpeza: {camareiras.observacao}</div>}
                 </td>
                 <td className="p-2 text-center">
-                   <div className="font-medium">{r.setor === "camareiras" ? "Camareiras / Manutenção" : "Recepção"}</div>
-                  <div className="font-mono text-xs font-bold text-muted-foreground">
-                    {r.setor === "camareiras" ? "Limpeza" : "Funcionários"}: {Number(r.setor === "camareiras" ? r.nota_limpeza : r.nota_funcionarios)}
+                  <div className="space-y-2">
+                    {recepcao && (
+                      <div>
+                        <div className="font-medium">Recepção</div>
+                        <div className="font-mono text-xs font-bold text-muted-foreground">Funcionários: {Number(recepcao.nota_funcionarios)}</div>
+                      </div>
+                    )}
+                    {camareiras && (
+                      <div>
+                        <div className="font-medium">Camareiras / Manutenção</div>
+                        <div className="font-mono text-xs font-bold text-muted-foreground">Limpeza: {Number(camareiras.nota_limpeza)}</div>
+                      </div>
+                    )}
                   </div>
                 </td>
                 <td className="p-2 text-center font-mono font-bold">{Number(r.nota_geral)}</td>
                 <td className="p-2 text-center">{r.teve_elogio ? "⭐" : "—"}</td>
                 <td className="p-2 text-right">
-                  <Badge
-                    className={cn(
-                      "font-mono",
-                      positivo ? "bg-emerald-600 hover:bg-emerald-600" : "bg-red-600 hover:bg-red-600",
-                    )}
-                  >
-                    {formatBRL(Number(r.valor_calculado))}
-                  </Badge>
+                  <div className="flex flex-col items-end gap-2">
+                    {[recepcao, camareiras].map((registro) => registro && (
+                      <Badge
+                        key={registro.id}
+                        className={cn(
+                          "font-mono",
+                          Number(registro.valor_calculado) >= 0
+                            ? "bg-emerald-600 hover:bg-emerald-600"
+                            : "bg-red-600 hover:bg-red-600",
+                        )}
+                      >
+                        {formatBRL(Number(registro.valor_calculado))}
+                      </Badge>
+                    ))}
+                  </div>
                 </td>
                 {podeExcluir && (
                    <td className="p-2 text-right whitespace-nowrap">
