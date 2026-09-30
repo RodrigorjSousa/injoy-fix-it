@@ -1,0 +1,1 @@
+Persist the weather location choice and coordinates in browser storage, and use unit coordinates when unavailable; this prevents repeated permission prompts on the welcome screen.

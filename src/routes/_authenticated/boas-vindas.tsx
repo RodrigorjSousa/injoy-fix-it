@@ -87,6 +87,16 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 
 export const Route = createFileRoute("/_authenticated/boas-vindas")({
   component: BoasVindas,
+  head: () => ({
+    meta: [
+      { title: "Boas-vindas | INJOY Hotéis" },
+      { name: "description", content: "Visão geral das operações e do clima das unidades INJOY Hotéis." },
+      { property: "og:title", content: "Boas-vindas | INJOY Hotéis" },
+      { property: "og:description", content: "Visão geral das operações e do clima das unidades INJOY Hotéis." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function obterSaudacaoHora() {
