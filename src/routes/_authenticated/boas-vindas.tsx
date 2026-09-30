@@ -183,21 +183,15 @@ function BoasVindas() {
     };
   }, [me?.userId]);
 
-  // Clima via geolocalização + open-meteo
+  // A localização é solicitada apenas uma vez neste dispositivo. Depois, reutiliza-se a posição salva.
   useEffect(() => {
     let cancelled = false;
     const setDefault = () =>
       !cancelled &&
       setClima({ temp: 25, condicao: "clear", msg: "✨ Clima agradável. Vamos garantir um ótimo dia!" });
 
-    if (!("geolocation" in navigator)) {
-      setDefault();
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
+    const carregarClima = async (latitude: number, longitude: number) => {
+      try {
           const res = await fetch(
             `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
           );
@@ -221,17 +215,60 @@ function BoasVindas() {
             msg = "☀️ Dia quente! Abasteça a água saborizada com bastante gelo.";
           }
           if (!cancelled) setClima({ temp, condicao, msg });
-        } catch {
-          setDefault();
+      } catch {
+        setDefault();
+      }
+    };
+
+    // Se a permissão não foi concedida, o clima continua disponível pela localização da unidade.
+    const carregarClimaDaUnidade = () => {
+      const coords = unidade === "Ipanema" ? [-22.9838, -43.2046] : [-22.9519, -43.1825];
+      void carregarClima(coords[0], coords[1]);
+    };
+
+    let posicaoSalva: { latitude: number; longitude: number } | null = null;
+    let jaSolicitada = false;
+    try {
+      jaSolicitada = localStorage.getItem("injoy-location-requested") === "1";
+      const saved = localStorage.getItem("injoy-location-coordinates");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.latitude === "number" && typeof parsed?.longitude === "number") {
+          posicaoSalva = parsed;
         }
-      },
-      () => setDefault(),
-      { timeout: 8000 },
-    );
+      }
+    } catch {
+      // O armazenamento pode estar desativado no navegador.
+    }
+
+    if (posicaoSalva) {
+      void carregarClima(posicaoSalva.latitude, posicaoSalva.longitude);
+    } else if (jaSolicitada || !("geolocation" in navigator)) {
+      carregarClimaDaUnidade();
+    } else {
+      try {
+        localStorage.setItem("injoy-location-requested", "1");
+      } catch {
+        // Ainda é possível buscar o clima sem armazenar a preferência.
+      }
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          try {
+            localStorage.setItem("injoy-location-coordinates", JSON.stringify({ latitude, longitude }));
+          } catch {
+            // Sem armazenamento, usa a posição apenas nesta visita.
+          }
+          if (!cancelled) void carregarClima(latitude, longitude);
+        },
+        () => { if (!cancelled) carregarClimaDaUnidade(); },
+        { timeout: 8000 },
+      );
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [unidade]);
 
   // Métricas + status (fonte da verdade: hotel_metrics/Cloudbeds; faxina: room_housekeeping)
   useEffect(() => {
