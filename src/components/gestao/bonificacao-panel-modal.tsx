@@ -136,7 +136,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
 
 /* -------------------------------- Banner ---------------------------------- */
 
-function SaldoBanner({ total, count, titulo }: { total: number; count: number; titulo: string }) {
+function SaldoBanner({ total, count, titulo }: { total: number; count?: number; titulo: string }) {
   return (
     <div className="flex items-center justify-between rounded-xl border bg-muted/40 px-4 py-3">
       <div>
@@ -152,9 +152,9 @@ function SaldoBanner({ total, count, titulo }: { total: number; count: number; t
           {formatBRL(total)}
         </p>
       </div>
-      <p className="text-xs text-muted-foreground">
+      {count !== undefined && <p className="text-xs text-muted-foreground">
         {count} avaliação{count === 1 ? "" : "s"}
-      </p>
+      </p>}
     </div>
   );
 }
@@ -298,8 +298,8 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <SaldoBanner total={preview.recepcao} count={0} titulo="Valor previsto · Recepção" />
-        <SaldoBanner total={preview.camareiras} count={0} titulo="Valor previsto · Camareiras / Manutenção" />
+        <SaldoBanner total={preview.recepcao} titulo="Valor previsto · Recepção" />
+        <SaldoBanner total={preview.camareiras} titulo="Valor previsto · Camareiras / Manutenção" />
       </div>
 
       <Button type="submit" className="w-full" disabled={criar.isPending || !cfg}>
