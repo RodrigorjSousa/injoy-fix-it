@@ -158,7 +158,7 @@ export function useCriarRegistroBonificacao() {
         _nota_funcionarios: input.nota_funcionarios,
         _nota_limpeza: input.nota_limpeza,
         _nota_geral: input.nota_geral,
-        _observacao: input.observacao,
+        _observacao: input.observacao ?? "",
         _teve_elogio: input.teve_elogio,
         _unidade: input.unidade,
       });
