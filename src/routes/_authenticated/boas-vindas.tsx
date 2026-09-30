@@ -202,29 +202,29 @@ function BoasVindas() {
 
     const carregarClima = async (latitude: number, longitude: number) => {
       try {
-          const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
-          );
-          const data = await res.json();
-          const cw = data?.current_weather;
-          if (!cw) return setDefault();
-          const temp = Math.round(cw.temperature);
-          const code = cw.weathercode as number;
-          let condicao: Clima["condicao"] = "clear";
-          let msg = "✨ Clima perfeito! Vamos garantir um check-in inesquecível.";
-          if ([1, 2, 3].includes(code)) {
-            condicao = "cloudy";
-            msg = "☁️ Tempo nublado. Ótimo dia para focar nos detalhes internos!";
-          } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
-            condicao = "rainy";
-            msg = "🌧️ Piso molhado na recepção! Atenção às placas de alerta e guarda-chuvas.";
-          } else if ([95, 96, 99].includes(code)) {
-            condicao = "stormy";
-            msg = "⚡ Alerta de tempestade! Fechem as janelas dos quartos vazios.";
-          } else if (temp >= 28) {
-            msg = "☀️ Dia quente! Abasteça a água saborizada com bastante gelo.";
-          }
-          if (!cancelled) setClima({ temp, condicao, msg });
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
+        );
+        const data = await res.json();
+        const cw = data?.current_weather;
+        if (!cw) return setDefault();
+        const temp = Math.round(cw.temperature);
+        const code = cw.weathercode as number;
+        let condicao: Clima["condicao"] = "clear";
+        let msg = "✨ Clima perfeito! Vamos garantir um check-in inesquecível.";
+        if ([1, 2, 3].includes(code)) {
+          condicao = "cloudy";
+          msg = "☁️ Tempo nublado. Ótimo dia para focar nos detalhes internos!";
+        } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
+          condicao = "rainy";
+          msg = "🌧️ Piso molhado na recepção! Atenção às placas de alerta e guarda-chuvas.";
+        } else if ([95, 96, 99].includes(code)) {
+          condicao = "stormy";
+          msg = "⚡ Alerta de tempestade! Fechem as janelas dos quartos vazios.";
+        } else if (temp >= 28) {
+          msg = "☀️ Dia quente! Abasteça a água saborizada com bastante gelo.";
+        }
+        if (!cancelled) setClima({ temp, condicao, msg });
       } catch {
         setDefault();
       }
@@ -261,19 +261,23 @@ function BoasVindas() {
       } catch {
         // Ainda é possível buscar o clima sem armazenar a preferência.
       }
-      navigator.geolocation.getCurrentPosition(
-        (pos) => {
-          const { latitude, longitude } = pos.coords;
-          try {
-            localStorage.setItem("injoy-location-coordinates", JSON.stringify({ latitude, longitude }));
-          } catch {
-            // Sem armazenamento, usa a posição apenas nesta visita.
-          }
-          if (!cancelled) void carregarClima(latitude, longitude);
-        },
-        () => { if (!cancelled) carregarClimaDaUnidade(); },
-        { timeout: 8000 },
-      );
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            try {
+              localStorage.setItem("injoy-location-coordinates", JSON.stringify({ latitude, longitude }));
+            } catch {
+              // Sem armazenamento, usa a posição apenas nesta visita.
+            }
+            if (!cancelled) void carregarClima(latitude, longitude);
+          },
+          () => { if (!cancelled) carregarClimaDaUnidade(); },
+          { timeout: 8000 },
+        );
+      } catch {
+        carregarClimaDaUnidade();
+      }
     }
     return () => {
       cancelled = true;
