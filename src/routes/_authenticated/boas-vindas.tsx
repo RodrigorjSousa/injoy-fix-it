@@ -87,6 +87,16 @@ const STATUS_LABEL: Record<StatusKey, string> = {
 
 export const Route = createFileRoute("/_authenticated/boas-vindas")({
   component: BoasVindas,
+  head: () => ({
+    meta: [
+      { title: "Boas-vindas | INJOY Hotéis" },
+      { name: "description", content: "Visão geral das operações e do clima das unidades INJOY Hotéis." },
+      { property: "og:title", content: "Boas-vindas | INJOY Hotéis" },
+      { property: "og:description", content: "Visão geral das operações e do clima das unidades INJOY Hotéis." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
 });
 
 function obterSaudacaoHora() {
@@ -183,55 +193,96 @@ function BoasVindas() {
     };
   }, [me?.userId]);
 
-  // Clima via geolocalização + open-meteo
+  // A localização é solicitada apenas uma vez neste dispositivo. Depois, reutiliza-se a posição salva.
   useEffect(() => {
     let cancelled = false;
     const setDefault = () =>
       !cancelled &&
       setClima({ temp: 25, condicao: "clear", msg: "✨ Clima agradável. Vamos garantir um ótimo dia!" });
 
-    if (!("geolocation" in navigator)) {
-      setDefault();
-      return;
-    }
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        try {
-          const { latitude, longitude } = pos.coords;
-          const res = await fetch(
-            `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
-          );
-          const data = await res.json();
-          const cw = data?.current_weather;
-          if (!cw) return setDefault();
-          const temp = Math.round(cw.temperature);
-          const code = cw.weathercode as number;
-          let condicao: Clima["condicao"] = "clear";
-          let msg = "✨ Clima perfeito! Vamos garantir um check-in inesquecível.";
-          if ([1, 2, 3].includes(code)) {
-            condicao = "cloudy";
-            msg = "☁️ Tempo nublado. Ótimo dia para focar nos detalhes internos!";
-          } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
-            condicao = "rainy";
-            msg = "🌧️ Piso molhado na recepção! Atenção às placas de alerta e guarda-chuvas.";
-          } else if ([95, 96, 99].includes(code)) {
-            condicao = "stormy";
-            msg = "⚡ Alerta de tempestade! Fechem as janelas dos quartos vazios.";
-          } else if (temp >= 28) {
-            msg = "☀️ Dia quente! Abasteça a água saborizada com bastante gelo.";
-          }
-          if (!cancelled) setClima({ temp, condicao, msg });
-        } catch {
-          setDefault();
+    const carregarClima = async (latitude: number, longitude: number) => {
+      try {
+        const res = await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current_weather=true`,
+        );
+        const data = await res.json();
+        const cw = data?.current_weather;
+        if (!cw) return setDefault();
+        const temp = Math.round(cw.temperature);
+        const code = cw.weathercode as number;
+        let condicao: Clima["condicao"] = "clear";
+        let msg = "✨ Clima perfeito! Vamos garantir um check-in inesquecível.";
+        if ([1, 2, 3].includes(code)) {
+          condicao = "cloudy";
+          msg = "☁️ Tempo nublado. Ótimo dia para focar nos detalhes internos!";
+        } else if ([51, 53, 55, 61, 63, 65, 80, 81, 82].includes(code)) {
+          condicao = "rainy";
+          msg = "🌧️ Piso molhado na recepção! Atenção às placas de alerta e guarda-chuvas.";
+        } else if ([95, 96, 99].includes(code)) {
+          condicao = "stormy";
+          msg = "⚡ Alerta de tempestade! Fechem as janelas dos quartos vazios.";
+        } else if (temp >= 28) {
+          msg = "☀️ Dia quente! Abasteça a água saborizada com bastante gelo.";
         }
-      },
-      () => setDefault(),
-      { timeout: 8000 },
-    );
+        if (!cancelled) setClima({ temp, condicao, msg });
+      } catch {
+        setDefault();
+      }
+    };
+
+    // Se a permissão não foi concedida, o clima continua disponível pela localização da unidade.
+    const carregarClimaDaUnidade = () => {
+      const coords = unidade === "Ipanema" ? [-22.9838, -43.2046] : [-22.9519, -43.1825];
+      void carregarClima(coords[0], coords[1]);
+    };
+
+    let posicaoSalva: { latitude: number; longitude: number } | null = null;
+    let jaSolicitada = false;
+    try {
+      jaSolicitada = localStorage.getItem("injoy-location-requested") === "1";
+      const saved = localStorage.getItem("injoy-location-coordinates");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (typeof parsed?.latitude === "number" && typeof parsed?.longitude === "number") {
+          posicaoSalva = parsed;
+        }
+      }
+    } catch {
+      // O armazenamento pode estar desativado no navegador.
+    }
+
+    if (posicaoSalva) {
+      void carregarClima(posicaoSalva.latitude, posicaoSalva.longitude);
+    } else if (jaSolicitada || !("geolocation" in navigator)) {
+      carregarClimaDaUnidade();
+    } else {
+      try {
+        localStorage.setItem("injoy-location-requested", "1");
+      } catch {
+        // Ainda é possível buscar o clima sem armazenar a preferência.
+      }
+      try {
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            const { latitude, longitude } = pos.coords;
+            try {
+              localStorage.setItem("injoy-location-coordinates", JSON.stringify({ latitude, longitude }));
+            } catch {
+              // Sem armazenamento, usa a posição apenas nesta visita.
+            }
+            if (!cancelled) void carregarClima(latitude, longitude);
+          },
+          () => { if (!cancelled) carregarClimaDaUnidade(); },
+          { timeout: 8000 },
+        );
+      } catch {
+        carregarClimaDaUnidade();
+      }
+    }
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [unidade]);
 
   // Métricas + status (fonte da verdade: hotel_metrics/Cloudbeds; faxina: room_housekeeping)
   useEffect(() => {
