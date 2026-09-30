@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarDays, FileBarChart2, Settings, Trash2, Trophy } from "lucide-react";
+import { BedDouble, CalendarDays, FileBarChart2, Settings, Trash2, Trophy, Users } from "lucide-react";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -35,6 +35,7 @@ import {
   useSalvarConfigBonificacao,
   type ConfigBonificacao,
   type RegistroBonificacao,
+  type SetorBonificacao,
 } from "@/lib/bonificacao";
 import { cn } from "@/lib/utils";
 
@@ -50,10 +51,11 @@ const MESES = [
 ];
 
 export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
+  const [setor, setSetor] = useState<SetorBonificacao>("recepcao");
   const { data: me } = useMe();
   const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
-  const { data: cfg } = useConfigBonificacao();
-  const { data: registrosMes = [] } = useRegistrosBonificacaoMes(unidade);
+  const { data: cfg, isError: isConfigError, refetch: refetchConfig } = useConfigBonificacao();
+  const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade, setor);
 
   const totalMes = useMemo(
     () => registrosMes.reduce((sum, r) => sum + Number(r.valor_calculado), 0),
@@ -69,11 +71,43 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
             Painel de Bonificação · INJOY {unidade}
           </DialogTitle>
           <DialogDescription>
-            Registro e gestão das avaliações dos hóspedes para bonificação da recepção.
+            Avaliações e saldos separados da Recepção e das Camareiras.
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="mes" className="mt-2">
+        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1" aria-label="Tipo de bonificação">
+          <Button
+            type="button"
+            variant={setor === "recepcao" ? "default" : "ghost"}
+            onClick={() => setSetor("recepcao")}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" /> Recepção
+          </Button>
+          <Button
+            type="button"
+            variant={setor === "camareiras" ? "default" : "ghost"}
+            onClick={() => setSetor("camareiras")}
+            className="gap-2"
+          >
+            <BedDouble className="h-4 w-4" /> Camareiras
+          </Button>
+        </div>
+
+        {isError && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <span>Não foi possível carregar as avaliações.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        )}
+        {isConfigError && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <span>Não foi possível carregar as regras de cálculo.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => refetchConfig()}>Tentar novamente</Button>
+          </div>
+        )}
+
+        <Tabs key={setor} defaultValue="mes" className="mt-2">
           <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-3" : "grid-cols-1")}>
             <TabsTrigger value="mes">
               <CalendarDays className="h-4 w-4 mr-1" /> Mês Vigente
@@ -96,7 +130,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
               count={registrosMes.length}
               titulo="Saldo do Mês Vigente"
             />
-            <FormRegistro unidade={unidade} />
+            <FormRegistro unidade={unidade} setor={setor} />
             <div>
               <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
                 Avaliações deste mês
@@ -107,7 +141,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
 
           {isAdminGestor && (
             <TabsContent value="relatorios" className="mt-4">
-              <RelatoriosTab unidade={unidade} />
+              <RelatoriosTab unidade={unidade} setor={setor} />
             </TabsContent>
           )}
 
@@ -149,32 +183,34 @@ function SaldoBanner({ total, count, titulo }: { total: number; count: number; t
 
 /* ------------------------------- Formulário ------------------------------- */
 
-function FormRegistro({ unidade }: { unidade: Unidade }) {
+function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonificacao }) {
   const { data: cfg } = useConfigBonificacao();
   const criar = useCriarRegistroBonificacao();
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [nome, setNome] = useState("");
-  const [notaFunc, setNotaFunc] = useState("");
+  const [notaSetor, setNotaSetor] = useState("");
   const [notaGeral, setNotaGeral] = useState("");
   const [obs, setObs] = useState("");
   const [elogio, setElogio] = useState(false);
 
   const preview = useMemo(() => {
     if (!cfg) return 0;
-    const nf = Number(notaFunc);
+    const nf = Number(notaSetor);
     const ng = Number(notaGeral);
     if (!Number.isFinite(nf) || !Number.isFinite(ng)) return 0;
-    if (notaFunc === "" || notaGeral === "") return 0;
+    if (notaSetor === "" || notaGeral === "") return 0;
     return calcularValor(nf, ng, elogio, cfg);
-  }, [cfg, notaFunc, notaGeral, elogio]);
+  }, [cfg, notaSetor, notaGeral, elogio]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!cfg) return;
-    const nf = Number(notaFunc);
+    const nf = Number(notaSetor);
     const ng = Number(notaGeral);
     if (!nome.trim()) return toast.error("Informe o nome do hóspede");
-    if (!Number.isFinite(nf) || nf < 0 || nf > 10) return toast.error("Nota funcionários inválida (0-10)");
+    if (!Number.isFinite(nf) || nf < 0 || nf > 10) {
+      return toast.error(setor === "camareiras" ? "Nota de limpeza inválida (0-10)" : "Nota dos funcionários inválida (0-10)");
+    }
     if (!Number.isFinite(ng) || ng < 0 || ng > 10) return toast.error("Nota geral inválida (0-10)");
     const valor = calcularValor(nf, ng, elogio, cfg);
     try {
@@ -182,15 +218,17 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
         data,
         nome_hospede: nome.trim(),
         nota_funcionarios: nf,
+        nota_limpeza: setor === "camareiras" ? nf : null,
         nota_geral: ng,
         observacao: obs.trim() || null,
         teve_elogio: elogio,
         valor_calculado: valor,
         unidade,
+        setor,
       });
       toast.success(`Avaliação registrada · ${formatBRL(valor)}`);
       setNome("");
-      setNotaFunc("");
+      setNotaSetor("");
       setNotaGeral("");
       setObs("");
       setElogio(false);
@@ -218,7 +256,9 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="bonif-nf">Nota Funcionários (0–10)</Label>
+          <Label htmlFor="bonif-nf">
+            {setor === "camareiras" ? "Nota Limpeza (0–10)" : "Nota Funcionários (0–10)"}
+          </Label>
           <Input
             id="bonif-nf"
             type="number"
@@ -226,8 +266,8 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
             min={0}
             max={10}
             step="0.5"
-            value={notaFunc}
-            onChange={(e) => setNotaFunc(e.target.value)}
+            value={notaSetor}
+            onChange={(e) => setNotaSetor(e.target.value)}
             required
           />
         </div>
@@ -289,7 +329,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
 
 /* -------------------------------- Relatórios ------------------------------ */
 
-function RelatoriosTab({ unidade }: { unidade: Unidade }) {
+function RelatoriosTab({ unidade, setor }: { unidade: Unidade; setor: SetorBonificacao }) {
   const now = new Date();
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [mes, setMes] = useState<number>(now.getMonth());
@@ -299,7 +339,7 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
     return [atual, atual - 1, atual - 2, atual - 3];
   }, [now]);
 
-  const { data: registros = [], isLoading } = useRegistrosBonificacaoPorMes(unidade, ano, mes);
+  const { data: registros = [], isLoading, isError, refetch } = useRegistrosBonificacaoPorMes(unidade, ano, mes, setor);
   const total = useMemo(
     () => registros.reduce((s, r) => s + Number(r.valor_calculado), 0),
     [registros],
@@ -338,7 +378,12 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
         titulo={`Saldo · ${MESES[mes]}/${ano}`}
       />
 
-      {isLoading ? (
+      {isError ? (
+        <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+          <span>Não foi possível carregar este relatório.</span>
+          <Button type="button" size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+        </div>
+      ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
         <HistoricoTabela registros={registros} podeExcluir={true} />
@@ -374,7 +419,7 @@ function HistoricoTabela({
           <tr>
             <th className="p-2 text-left">Data</th>
             <th className="p-2 text-left">Hóspede</th>
-            <th className="p-2 text-center">Func.</th>
+            <th className="p-2 text-center">Setor</th>
             <th className="p-2 text-center">Geral</th>
             <th className="p-2 text-center">Elogio</th>
             <th className="p-2 text-right">Valor</th>
@@ -395,7 +440,12 @@ function HistoricoTabela({
                     <div className="text-xs text-muted-foreground line-clamp-1">{r.observacao}</div>
                   )}
                 </td>
-                <td className="p-2 text-center font-mono font-bold">{Number(r.nota_funcionarios)}</td>
+                <td className="p-2 text-center">
+                  <div className="font-medium">{r.setor === "camareiras" ? "Camareiras" : "Recepção"}</div>
+                  <div className="font-mono text-xs font-bold text-muted-foreground">
+                    {r.setor === "camareiras" ? "Limpeza" : "Funcionários"}: {Number(r.setor === "camareiras" ? r.nota_limpeza : r.nota_funcionarios)}
+                  </div>
+                </td>
                 <td className="p-2 text-center font-mono font-bold">{Number(r.nota_geral)}</td>
                 <td className="p-2 text-center">{r.teve_elogio ? "⭐" : "—"}</td>
                 <td className="p-2 text-right">

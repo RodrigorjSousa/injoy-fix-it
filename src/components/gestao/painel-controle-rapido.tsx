@@ -37,10 +37,10 @@ export function PainelControleRapido({ unidade }: Props) {
   const [trocasNovas, setTrocasNovas] = useState<number>(0);
   const [bonifOpen, setBonifOpen] = useState(false);
   const { data: registrosBonif = [] } = useRegistrosBonificacaoMes(unidade);
-  const totalBonif = useMemo(
-    () => registrosBonif.reduce((s, r) => s + Number(r.valor_calculado), 0),
-    [registrosBonif],
-  );
+  const totaisBonif = useMemo(() => ({
+    recepcao: registrosBonif.filter((r) => r.setor !== "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0),
+    camareiras: registrosBonif.filter((r) => r.setor === "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0),
+  }), [registrosBonif]);
 
   useEffect(() => {
     let cancelled = false;
@@ -255,7 +255,7 @@ export function PainelControleRapido({ unidade }: Props) {
         </Link>
 
 
-        {/* CARD 5 - Bonificação Recepção */}
+        {/* CARD 5 - Bonificação */}
         <button
           type="button"
           onClick={() => setBonifOpen(true)}
@@ -263,19 +263,15 @@ export function PainelControleRapido({ unidade }: Props) {
         >
           <div className="flex items-start justify-between">
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-              Bonificação Recepção
+               Bonificação
             </p>
             <Trophy className="h-5 w-5 text-emerald-400" />
           </div>
           <div className="mt-4">
-            <p
-              className={cn(
-                "text-3xl font-black leading-none",
-                totalBonif >= 0 ? "text-emerald-400" : "text-red-400",
-              )}
-            >
-              {formatBRL(totalBonif)}
-            </p>
+            <div className="space-y-1 text-sm font-black">
+              <p className={totaisBonif.recepcao >= 0 ? "text-emerald-400" : "text-red-400"}>Recepção {formatBRL(totaisBonif.recepcao)}</p>
+              <p className={totaisBonif.camareiras >= 0 ? "text-emerald-400" : "text-red-400"}>Camareiras {formatBRL(totaisBonif.camareiras)}</p>
+            </div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mt-2">
               Saldo acumulado neste mês
             </p>

@@ -10,7 +10,10 @@ const MESES = [
 
 export function BonificacaoResumoCard({ unidade }: { unidade: Unidade }) {
   const { data: registros = [], isLoading } = useRegistrosBonificacaoMes(unidade);
-  const total = registros.reduce((s, r) => s + Number(r.valor_calculado), 0);
+  const recepcao = registros.filter((r) => r.setor !== "camareiras");
+  const camareiras = registros.filter((r) => r.setor === "camareiras");
+  const totalRecepcao = recepcao.reduce((s, r) => s + Number(r.valor_calculado), 0);
+  const totalCamareiras = camareiras.reduce((s, r) => s + Number(r.valor_calculado), 0);
   const mesNome = MESES[new Date().getMonth()];
 
   return (
@@ -29,14 +32,10 @@ export function BonificacaoResumoCard({ unidade }: { unidade: Unidade }) {
             </p>
           </div>
         </div>
-        <p
-          className={cn(
-            "text-2xl font-black tabular-nums",
-            total >= 0 ? "text-emerald-600" : "text-red-600",
-          )}
-        >
-          {formatBRL(total)}
-        </p>
+        <div className="text-right text-xs">
+          <p className={cn("font-black tabular-nums", totalRecepcao >= 0 ? "text-emerald-600" : "text-destructive")}>Recepção {formatBRL(totalRecepcao)}</p>
+          <p className={cn("font-black tabular-nums", totalCamareiras >= 0 ? "text-emerald-600" : "text-destructive")}>Camareiras {formatBRL(totalCamareiras)}</p>
+        </div>
       </div>
     </div>
   );

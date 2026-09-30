@@ -17,13 +17,17 @@ export interface RegistroBonificacao {
   data: string;
   nome_hospede: string;
   nota_funcionarios: number;
+  nota_limpeza: number | null;
   nota_geral: number;
   observacao: string | null;
   teve_elogio: boolean;
   valor_calculado: number;
   unidade: string;
+  setor: SetorBonificacao;
   created_at: string;
 }
+
+export type SetorBonificacao = "recepcao" | "camareiras";
 
 export function calcularValor(
   notaFuncionarios: number,
@@ -90,33 +94,41 @@ function inicioFimMes(ref = new Date()) {
   return { inicio: iso(inicio), fim: iso(fim) };
 }
 
-export function useRegistrosBonificacaoMes(unidade: Unidade) {
+export function useRegistrosBonificacaoMes(unidade: Unidade, setor?: SetorBonificacao) {
   return useQuery({
-    queryKey: ["registros_bonificacao", "mes", unidade],
+    queryKey: ["registros_bonificacao", "mes", unidade, setor ?? "todos"],
     queryFn: async (): Promise<RegistroBonificacao[]> => {
       const { inicio, fim } = inicioFimMes();
-      const { data, error } = await supabase
+      let query = supabase
         .from("registros_bonificacao")
         .select("*")
         .eq("unidade", unidade)
         .gte("data", inicio)
         .lte("data", fim)
         .order("data", { ascending: false });
+      if (setor) query = query.eq("setor", setor);
+      const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as RegistroBonificacao[];
     },
   });
 }
 
-export function useRegistrosBonificacaoPorMes(unidade: Unidade, ano: number, mes: number) {
+export function useRegistrosBonificacaoPorMes(
+  unidade: Unidade,
+  ano: number,
+  mes: number,
+  setor: SetorBonificacao,
+) {
   return useQuery({
-    queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes],
+    queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes, setor],
     queryFn: async (): Promise<RegistroBonificacao[]> => {
       const { inicio, fim } = inicioFimMes(new Date(ano, mes, 1));
       const { data, error } = await supabase
         .from("registros_bonificacao")
         .select("*")
         .eq("unidade", unidade)
+        .eq("setor", setor)
         .gte("data", inicio)
         .lte("data", fim)
         .order("data", { ascending: false });
@@ -134,16 +146,20 @@ export function useCriarRegistroBonificacao() {
       data: string;
       nome_hospede: string;
       nota_funcionarios: number;
+      nota_limpeza: number | null;
       nota_geral: number;
       observacao: string | null;
       teve_elogio: boolean;
       valor_calculado: number;
       unidade: Unidade;
+      setor: SetorBonificacao;
     }) => {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u, error: userError } = await supabase.auth.getUser();
+      if (userError || !u.user) throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
       const { error } = await supabase.from("registros_bonificacao").insert({
         ...input,
-        criado_por: u.user?.id ?? null,
+        // O banco recalcula o valor e rejeita notas/setores inconsistentes.
+        criado_por: u.user.id,
       });
       if (error) throw error;
     },
