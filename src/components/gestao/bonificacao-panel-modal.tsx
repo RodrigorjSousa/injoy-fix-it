@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { BedDouble, CalendarDays, FileBarChart2, Settings, Trash2, Trophy, Users } from "lucide-react";
+import { CalendarDays, FileBarChart2, Settings, Trash2, Trophy } from "lucide-react";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -35,7 +35,6 @@ import {
   useSalvarConfigBonificacao,
   type ConfigBonificacao,
   type RegistroBonificacao,
-  type SetorBonificacao,
 } from "@/lib/bonificacao";
 import { cn } from "@/lib/utils";
 
@@ -51,16 +50,15 @@ const MESES = [
 ];
 
 export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
-  const [setor, setSetor] = useState<SetorBonificacao>("recepcao");
   const { data: me } = useMe();
   const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
   const { data: cfg, isError: isConfigError, refetch: refetchConfig } = useConfigBonificacao();
-  const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade, setor);
+  const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade);
 
-  const totalMes = useMemo(
-    () => registrosMes.reduce((sum, r) => sum + Number(r.valor_calculado), 0),
-    [registrosMes],
-  );
+  const totais = useMemo(() => ({
+    recepcao: registrosMes.filter((r) => r.setor === "recepcao"),
+    camareiras: registrosMes.filter((r) => r.setor === "camareiras"),
+  }), [registrosMes]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -71,28 +69,9 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
             Painel de Bonificação · INJOY {unidade}
           </DialogTitle>
           <DialogDescription>
-            Avaliações e saldos separados da Recepção e das Camareiras.
+            Avaliações e saldos da Recepção e de Camareiras / Manutenção.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="grid grid-cols-2 gap-2 rounded-lg bg-muted p-1" aria-label="Tipo de bonificação">
-          <Button
-            type="button"
-            variant={setor === "recepcao" ? "default" : "ghost"}
-            onClick={() => setSetor("recepcao")}
-            className="gap-2"
-          >
-            <Users className="h-4 w-4" /> Recepção
-          </Button>
-          <Button
-            type="button"
-            variant={setor === "camareiras" ? "default" : "ghost"}
-            onClick={() => setSetor("camareiras")}
-            className="gap-2"
-          >
-            <BedDouble className="h-4 w-4" /> Camareiras
-          </Button>
-        </div>
 
         {isError && (
           <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -107,7 +86,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           </div>
         )}
 
-        <Tabs key={setor} defaultValue="mes" className="mt-2">
+        <Tabs defaultValue="mes" className="mt-2">
           <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-3" : "grid-cols-1")}>
             <TabsTrigger value="mes">
               <CalendarDays className="h-4 w-4 mr-1" /> Mês Vigente
@@ -125,12 +104,11 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           </TabsList>
 
           <TabsContent value="mes" className="mt-4 space-y-4">
-            <SaldoBanner
-              total={totalMes}
-              count={registrosMes.length}
-              titulo="Saldo do Mês Vigente"
-            />
-            <FormRegistro unidade={unidade} setor={setor} />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <SaldoBanner total={totais.recepcao.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={totais.recepcao.length} titulo="Recepção · saldo do mês" />
+              <SaldoBanner total={totais.camareiras.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={totais.camareiras.length} titulo="Camareiras / Manutenção · saldo do mês" />
+            </div>
+            <FormRegistro unidade={unidade} />
             <div>
               <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
                 Avaliações deste mês
@@ -141,7 +119,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
 
           {isAdminGestor && (
             <TabsContent value="relatorios" className="mt-4">
-              <RelatoriosTab unidade={unidade} setor={setor} />
+              <RelatoriosTab unidade={unidade} />
             </TabsContent>
           )}
 
@@ -183,52 +161,53 @@ function SaldoBanner({ total, count, titulo }: { total: number; count: number; t
 
 /* ------------------------------- Formulário ------------------------------- */
 
-function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonificacao }) {
+function FormRegistro({ unidade }: { unidade: Unidade }) {
   const { data: cfg } = useConfigBonificacao();
   const criar = useCriarRegistroBonificacao();
   const [data, setData] = useState(() => new Date().toISOString().slice(0, 10));
   const [nome, setNome] = useState("");
-  const [notaSetor, setNotaSetor] = useState("");
+  const [notaFuncionarios, setNotaFuncionarios] = useState("");
+  const [notaLimpeza, setNotaLimpeza] = useState("");
   const [notaGeral, setNotaGeral] = useState("");
   const [obs, setObs] = useState("");
   const [elogio, setElogio] = useState(false);
 
   const preview = useMemo(() => {
-    if (!cfg) return 0;
-    const nf = Number(notaSetor);
+    if (!cfg) return { recepcao: 0, camareiras: 0 };
+    const nf = Number(notaFuncionarios);
+    const nl = Number(notaLimpeza);
     const ng = Number(notaGeral);
-    if (!Number.isFinite(nf) || !Number.isFinite(ng)) return 0;
-    if (notaSetor === "" || notaGeral === "") return 0;
-    return calcularValor(nf, ng, elogio, cfg);
-  }, [cfg, notaSetor, notaGeral, elogio]);
+    return {
+      recepcao: notaFuncionarios !== "" && notaGeral !== "" && Number.isFinite(nf) && Number.isFinite(ng) ? calcularValor(nf, ng, elogio, cfg) : 0,
+      camareiras: notaLimpeza !== "" && notaGeral !== "" && Number.isFinite(nl) && Number.isFinite(ng) ? calcularValor(nl, ng, elogio, cfg) : 0,
+    };
+  }, [cfg, notaFuncionarios, notaLimpeza, notaGeral, elogio]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!cfg) return;
-    const nf = Number(notaSetor);
+    const nf = Number(notaFuncionarios);
+    const nl = Number(notaLimpeza);
     const ng = Number(notaGeral);
     if (!nome.trim()) return toast.error("Informe o nome do hóspede");
-    if (!Number.isFinite(nf) || nf < 0 || nf > 10) {
-      return toast.error(setor === "camareiras" ? "Nota de limpeza inválida (0-10)" : "Nota dos funcionários inválida (0-10)");
-    }
-    if (!Number.isFinite(ng) || ng < 0 || ng > 10) return toast.error("Nota geral inválida (0-10)");
-    const valor = calcularValor(nf, ng, elogio, cfg);
+    if (notaFuncionarios === "" || !Number.isFinite(nf) || nf < 0 || nf > 10) return toast.error("Nota dos funcionários inválida (0-10)");
+    if (notaLimpeza === "" || !Number.isFinite(nl) || nl < 0 || nl > 10) return toast.error("Nota de limpeza inválida (0-10)");
+    if (notaGeral === "" || !Number.isFinite(ng) || ng < 0 || ng > 10) return toast.error("Nota geral inválida (0-10)");
     try {
       await criar.mutateAsync({
         data,
         nome_hospede: nome.trim(),
         nota_funcionarios: nf,
-        nota_limpeza: setor === "camareiras" ? nf : null,
+        nota_limpeza: nl,
         nota_geral: ng,
         observacao: obs.trim() || null,
         teve_elogio: elogio,
-        valor_calculado: valor,
         unidade,
-        setor,
       });
-      toast.success(`Avaliação registrada · ${formatBRL(valor)}`);
+      toast.success("Avaliação registrada para Recepção e Camareiras / Manutenção");
       setNome("");
-      setNotaSetor("");
+      setNotaFuncionarios("");
+      setNotaLimpeza("");
       setNotaGeral("");
       setObs("");
       setElogio(false);
@@ -256,9 +235,7 @@ function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonifi
           />
         </div>
         <div className="space-y-1.5">
-          <Label htmlFor="bonif-nf">
-            {setor === "camareiras" ? "Nota Limpeza (0–10)" : "Nota Funcionários (0–10)"}
-          </Label>
+          <Label htmlFor="bonif-nf">Nota Funcionários (0–10)</Label>
           <Input
             id="bonif-nf"
             type="number"
@@ -266,8 +243,22 @@ function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonifi
             min={0}
             max={10}
             step="0.5"
-            value={notaSetor}
-            onChange={(e) => setNotaSetor(e.target.value)}
+            value={notaFuncionarios}
+            onChange={(e) => setNotaFuncionarios(e.target.value)}
+            required
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor="bonif-nl">Nota Limpeza (0–10)</Label>
+          <Input
+            id="bonif-nl"
+            type="number"
+            inputMode="decimal"
+            min={0}
+            max={10}
+            step="0.5"
+            value={notaLimpeza}
+            onChange={(e) => setNotaLimpeza(e.target.value)}
             required
           />
         </div>
@@ -306,18 +297,9 @@ function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonifi
         />
       </div>
 
-      <div className="flex items-center justify-between rounded-lg border bg-muted/40 px-3 py-2">
-        <span className="text-xs uppercase font-bold tracking-wide text-muted-foreground">
-          Valor previsto
-        </span>
-        <span
-          className={cn(
-            "text-lg font-black",
-            preview >= 0 ? "text-emerald-600" : "text-red-600",
-          )}
-        >
-          {formatBRL(preview)}
-        </span>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <SaldoBanner total={preview.recepcao} count={0} titulo="Valor previsto · Recepção" />
+        <SaldoBanner total={preview.camareiras} count={0} titulo="Valor previsto · Camareiras / Manutenção" />
       </div>
 
       <Button type="submit" className="w-full" disabled={criar.isPending || !cfg}>
@@ -329,7 +311,7 @@ function FormRegistro({ unidade, setor }: { unidade: Unidade; setor: SetorBonifi
 
 /* -------------------------------- Relatórios ------------------------------ */
 
-function RelatoriosTab({ unidade, setor }: { unidade: Unidade; setor: SetorBonificacao }) {
+function RelatoriosTab({ unidade }: { unidade: Unidade }) {
   const now = new Date();
   const [ano, setAno] = useState<number>(now.getFullYear());
   const [mes, setMes] = useState<number>(now.getMonth());
@@ -339,11 +321,9 @@ function RelatoriosTab({ unidade, setor }: { unidade: Unidade; setor: SetorBonif
     return [atual, atual - 1, atual - 2, atual - 3];
   }, [now]);
 
-  const { data: registros = [], isLoading, isError, refetch } = useRegistrosBonificacaoPorMes(unidade, ano, mes, setor);
-  const total = useMemo(
-    () => registros.reduce((s, r) => s + Number(r.valor_calculado), 0),
-    [registros],
-  );
+  const { data: registros = [], isLoading, isError, refetch } = useRegistrosBonificacaoPorMes(unidade, ano, mes);
+  const recepcao = registros.filter((r) => r.setor === "recepcao");
+  const camareiras = registros.filter((r) => r.setor === "camareiras");
 
   return (
     <div className="space-y-4">
@@ -372,11 +352,10 @@ function RelatoriosTab({ unidade, setor }: { unidade: Unidade; setor: SetorBonif
         </div>
       </div>
 
-      <SaldoBanner
-        total={total}
-        count={registros.length}
-        titulo={`Saldo · ${MESES[mes]}/${ano}`}
-      />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <SaldoBanner total={recepcao.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={recepcao.length} titulo={`Recepção · ${MESES[mes]}/${ano}`} />
+        <SaldoBanner total={camareiras.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={camareiras.length} titulo={`Camareiras / Manutenção · ${MESES[mes]}/${ano}`} />
+      </div>
 
       {isError ? (
         <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
@@ -441,7 +420,7 @@ function HistoricoTabela({
                   )}
                 </td>
                 <td className="p-2 text-center">
-                  <div className="font-medium">{r.setor === "camareiras" ? "Camareiras" : "Recepção"}</div>
+                   <div className="font-medium">{r.setor === "camareiras" ? "Camareiras / Manutenção" : "Recepção"}</div>
                   <div className="font-mono text-xs font-bold text-muted-foreground">
                     {r.setor === "camareiras" ? "Limpeza" : "Funcionários"}: {Number(r.setor === "camareiras" ? r.nota_limpeza : r.nota_funcionarios)}
                   </div>
