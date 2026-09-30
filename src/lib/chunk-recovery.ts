@@ -33,22 +33,16 @@ export function isStaleChunkError(value: unknown): boolean {
   return CHUNK_ERROR_PATTERNS.some((p) => msg.includes(p));
 }
 
-function reloadOnce() {
+export function recoverStaleChunk() {
   try {
-    if (sessionStorage.getItem(RELOAD_FLAG)) return;
-    sessionStorage.setItem(RELOAD_FLAG, "1");
+    const lastAttempt = Number(sessionStorage.getItem(RELOAD_FLAG));
+    // Keep the guard across reloads; a failing page must not reload forever.
+    if (lastAttempt && Date.now() - lastAttempt < 60_000) return;
+    sessionStorage.setItem(RELOAD_FLAG, String(Date.now()));
   } catch {
     // sessionStorage indisponível — segue com o reload de qualquer forma.
   }
   window.location.reload();
-}
-
-export function clearChunkReloadFlag() {
-  try {
-    sessionStorage.removeItem(RELOAD_FLAG);
-  } catch {
-    // ignore
-  }
 }
 
 /** Instala os listeners globais. Retorna a função de limpeza. */
@@ -58,14 +52,14 @@ export function installChunkRecovery(): () => void {
   const onError = (event: ErrorEvent) => {
     if (isStaleChunkError(event.error) || isStaleChunkError(event.message)) {
       event.preventDefault();
-      reloadOnce();
+      recoverStaleChunk();
     }
   };
 
   const onRejection = (event: PromiseRejectionEvent) => {
     if (isStaleChunkError(event.reason)) {
       event.preventDefault();
-      reloadOnce();
+      recoverStaleChunk();
     }
   };
 
