@@ -495,7 +495,9 @@ function HistoricoTabela({
                        title={`Excluir avaliação de ${r.nome_hospede}`}
                        aria-label={`Excluir avaliação de ${r.nome_hospede}`}
                       onClick={() => {
-                        if (confirm("Excluir este registro?")) excluir.mutate(r.id);
+                        if (confirm("Excluir esta avaliação dos dois setores?")) {
+                          excluir.mutate({ id: r.id, avaliacaoId: r.avaliacao_id });
+                        }
                       }}
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
