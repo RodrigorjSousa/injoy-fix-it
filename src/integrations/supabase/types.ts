@@ -1370,7 +1370,9 @@ export type Database = {
           nome_hospede: string
           nota_funcionarios: number
           nota_geral: number
+          nota_limpeza: number | null
           observacao: string | null
+          setor: string
           teve_elogio: boolean
           unidade: string
           updated_at: string
@@ -1384,7 +1386,9 @@ export type Database = {
           nome_hospede: string
           nota_funcionarios: number
           nota_geral: number
+          nota_limpeza?: number | null
           observacao?: string | null
+          setor?: string
           teve_elogio?: boolean
           unidade: string
           updated_at?: string
@@ -1398,7 +1402,9 @@ export type Database = {
           nome_hospede?: string
           nota_funcionarios?: number
           nota_geral?: number
+          nota_limpeza?: number | null
           observacao?: string | null
+          setor?: string
           teve_elogio?: boolean
           unidade?: string
           updated_at?: string
