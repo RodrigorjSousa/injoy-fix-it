@@ -1,2 +1,2 @@
 Persist the weather location choice and coordinates in browser storage, and use unit coordinates when unavailable; this prevents repeated permission prompts on the welcome screen.
-Keep Reception and Housekeeping bonuses as separate sectors, while calculating final values in the database; this prevents mixed reports and client-side value tampering.
+Keep Reception and Camareiras / Manutenção as separate bonus sectors but capture all three scores in one form, saving both records atomically and calculating final values in the database; this prevents mixed reports, partial submissions, and client-side value tampering.

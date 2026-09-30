@@ -34,7 +34,7 @@ export function BonificacaoResumoCard({ unidade }: { unidade: Unidade }) {
         </div>
         <div className="text-right text-xs">
           <p className={cn("font-black tabular-nums", totalRecepcao >= 0 ? "text-emerald-600" : "text-destructive")}>Recepção {formatBRL(totalRecepcao)}</p>
-          <p className={cn("font-black tabular-nums", totalCamareiras >= 0 ? "text-emerald-600" : "text-destructive")}>Camareiras {formatBRL(totalCamareiras)}</p>
+           <p className={cn("font-black tabular-nums", totalCamareiras >= 0 ? "text-emerald-600" : "text-destructive")}>Camareiras / Manutenção {formatBRL(totalCamareiras)}</p>
         </div>
       </div>
     </div>

@@ -118,17 +118,15 @@ export function useRegistrosBonificacaoPorMes(
   unidade: Unidade,
   ano: number,
   mes: number,
-  setor: SetorBonificacao,
 ) {
   return useQuery({
-    queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes, setor],
+    queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes],
     queryFn: async (): Promise<RegistroBonificacao[]> => {
       const { inicio, fim } = inicioFimMes(new Date(ano, mes, 1));
       const { data, error } = await supabase
         .from("registros_bonificacao")
         .select("*")
         .eq("unidade", unidade)
-        .eq("setor", setor)
         .gte("data", inicio)
         .lte("data", fim)
         .order("data", { ascending: false });
@@ -146,20 +144,23 @@ export function useCriarRegistroBonificacao() {
       data: string;
       nome_hospede: string;
       nota_funcionarios: number;
-      nota_limpeza: number | null;
+      nota_limpeza: number;
       nota_geral: number;
       observacao: string | null;
       teve_elogio: boolean;
-      valor_calculado: number;
       unidade: Unidade;
-      setor: SetorBonificacao;
     }) => {
       const { data: u, error: userError } = await supabase.auth.getUser();
       if (userError || !u.user) throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
-      const { error } = await supabase.from("registros_bonificacao").insert({
-        ...input,
-        // O banco recalcula o valor e rejeita notas/setores inconsistentes.
-        criado_por: u.user.id,
+      const { error } = await supabase.rpc("registrar_bonificacao_conjunta", {
+        _data: input.data,
+        _nome_hospede: input.nome_hospede,
+        _nota_funcionarios: input.nota_funcionarios,
+        _nota_limpeza: input.nota_limpeza,
+        _nota_geral: input.nota_geral,
+        _observacao: input.observacao,
+        _teve_elogio: input.teve_elogio,
+        _unidade: input.unidade,
       });
       if (error) throw error;
     },
