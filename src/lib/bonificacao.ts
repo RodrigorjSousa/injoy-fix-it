@@ -24,6 +24,7 @@ export interface RegistroBonificacao {
   valor_calculado: number;
   unidade: string;
   setor: SetorBonificacao;
+  avaliacao_id: string | null;
   created_at: string;
 }
 
@@ -173,6 +174,41 @@ export function useExcluirRegistroBonificacao() {
   return useMutation({
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("registros_bonificacao").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),
+  });
+}
+
+export function useEditarRegistroBonificacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      registro_id: string;
+      data: string;
+      nome_hospede: string;
+      nota_funcionarios: number;
+      nota_limpeza: number;
+      nota_geral: number;
+      observacao_recepcao: string;
+      observacao_limpeza: string;
+      teve_elogio: boolean;
+      unidade: Unidade;
+    }) => {
+      const { data: auth, error: authError } = await supabase.auth.getUser();
+      if (authError || !auth.user) throw new Error("Sua sessão expirou. Entre novamente para editar a avaliação.");
+      const { error } = await supabase.rpc("editar_bonificacao_conjunta", {
+        _registro_id: input.registro_id,
+        _data: input.data,
+        _nome_hospede: input.nome_hospede,
+        _nota_funcionarios: input.nota_funcionarios,
+        _nota_limpeza: input.nota_limpeza,
+        _nota_geral: input.nota_geral,
+        _observacao_recepcao: input.observacao_recepcao,
+        _observacao_limpeza: input.observacao_limpeza,
+        _teve_elogio: input.teve_elogio,
+        _unidade: input.unidade,
+      });
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),

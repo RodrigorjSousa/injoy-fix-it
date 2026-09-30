@@ -1363,6 +1363,7 @@ export type Database = {
       }
       registros_bonificacao: {
         Row: {
+          avaliacao_id: string | null
           created_at: string
           criado_por: string | null
           data: string
@@ -1379,6 +1380,7 @@ export type Database = {
           valor_calculado: number
         }
         Insert: {
+          avaliacao_id?: string | null
           created_at?: string
           criado_por?: string | null
           data?: string
@@ -1395,6 +1397,7 @@ export type Database = {
           valor_calculado?: number
         }
         Update: {
+          avaliacao_id?: string | null
           created_at?: string
           criado_por?: string | null
           data?: string
@@ -1971,6 +1974,21 @@ export type Database = {
           id: string
           nome: string
         }[]
+      }
+      editar_bonificacao_conjunta: {
+        Args: {
+          _data: string
+          _nome_hospede: string
+          _nota_funcionarios: number
+          _nota_geral: number
+          _nota_limpeza: number
+          _observacao_limpeza: string
+          _observacao_recepcao: string
+          _registro_id: string
+          _teve_elogio: boolean
+          _unidade: string
+        }
+        Returns: undefined
       }
       get_camareiras_user_ids: {
         Args: never

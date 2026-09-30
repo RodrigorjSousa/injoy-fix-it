@@ -36,6 +36,13 @@
       "when": 1790790355682,
       "tag": "0004_save_both_bonus_sectors_together",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1790790993420,
+      "tag": "0005_edit_paired_bonus_evaluations",
+      "breakpoints": true
     }
   ]
 }
