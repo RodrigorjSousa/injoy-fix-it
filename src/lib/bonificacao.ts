@@ -154,11 +154,12 @@ export function useCriarRegistroBonificacao() {
       unidade: Unidade;
       setor: SetorBonificacao;
     }) => {
-      const { data: u } = await supabase.auth.getUser();
+      const { data: u, error: userError } = await supabase.auth.getUser();
+      if (userError || !u.user) throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
       const { error } = await supabase.from("registros_bonificacao").insert({
         ...input,
         // O banco recalcula o valor e rejeita notas/setores inconsistentes.
-        criado_por: u.user?.id ?? null,
+        criado_por: u.user.id,
       });
       if (error) throw error;
     },

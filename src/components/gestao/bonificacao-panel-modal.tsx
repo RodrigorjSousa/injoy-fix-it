@@ -54,7 +54,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
   const [setor, setSetor] = useState<SetorBonificacao>("recepcao");
   const { data: me } = useMe();
   const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
-  const { data: cfg } = useConfigBonificacao();
+  const { data: cfg, isError: isConfigError, refetch: refetchConfig } = useConfigBonificacao();
   const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade, setor);
 
   const totalMes = useMemo(
@@ -98,6 +98,12 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
             <span>Não foi possível carregar as avaliações.</span>
             <Button type="button" size="sm" variant="outline" onClick={() => refetch()}>Tentar novamente</Button>
+          </div>
+        )}
+        {isConfigError && (
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+            <span>Não foi possível carregar as regras de cálculo.</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => refetchConfig()}>Tentar novamente</Button>
           </div>
         )}
 
