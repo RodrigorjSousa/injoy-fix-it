@@ -396,7 +396,17 @@ function HistoricoTabela({
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border">
+    <div className="space-y-3">
+      {editando && (
+        <section className="rounded-lg border bg-background p-4 space-y-3" aria-label="Editar avaliação">
+          <div className="flex items-center justify-between gap-3">
+            <h4 className="font-semibold">Editar avaliação · {unidade}</h4>
+            <Button type="button" variant="outline" size="sm" onClick={() => setEditando(null)}>Cancelar</Button>
+          </div>
+          <EditarAvaliacao key={editando.id} registro={editando} par={list.find((r) => r.avaliacao_id && r.avaliacao_id === editando.avaliacao_id && r.id !== editando.id)} unidade={unidade} onSaved={() => setEditando(null)} />
+        </section>
+      )}
+      <div className="overflow-x-auto rounded-lg border">
       <table className="w-full text-sm">
         <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
           <tr>
@@ -443,7 +453,7 @@ function HistoricoTabela({
                 </td>
                 {podeExcluir && (
                    <td className="p-2 text-right whitespace-nowrap">
-                     <Button type="button" variant="ghost" size="icon" title={`Editar avaliação de ${r.nome_hospede}`} aria-label={`Editar avaliação de ${r.nome_hospede}`} onClick={() => setEditando(r)}>
+                      <Button type="button" variant="ghost" size="icon" title={`Editar avaliação de ${r.nome_hospede}`} aria-label={`Editar avaliação de ${r.nome_hospede}`} onClick={() => setEditando(r)}>
                        <Pencil className="h-4 w-4" />
                      </Button>
                     <Button
@@ -465,15 +475,7 @@ function HistoricoTabela({
           })}
         </tbody>
       </table>
-       <Dialog open={editando !== null} onOpenChange={(open) => { if (!open) setEditando(null); }}>
-         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
-           <DialogHeader>
-             <DialogTitle>Editar avaliação · {unidade}</DialogTitle>
-             <DialogDescription>Recepção e Camareiras / Manutenção são calculadas separadamente.</DialogDescription>
-           </DialogHeader>
-           {editando && <EditarAvaliacao key={editando.id} registro={editando} par={list.find((r) => r.avaliacao_id && r.avaliacao_id === editando.avaliacao_id && r.id !== editando.id)} unidade={unidade} onSaved={() => setEditando(null)} />}
-         </DialogContent>
-       </Dialog>
+      </div>
     </div>
   );
 }
