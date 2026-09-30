@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarDays, FileBarChart2, Settings, Trash2, Trophy } from "lucide-react";
+import { CalendarDays, FileBarChart2, Pencil, Settings, Trash2, Trophy } from "lucide-react";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -30,6 +30,7 @@ import {
   useConfigBonificacao,
   useCriarRegistroBonificacao,
   useExcluirRegistroBonificacao,
+  useEditarRegistroBonificacao,
   useRegistrosBonificacaoMes,
   useRegistrosBonificacaoPorMes,
   useSalvarConfigBonificacao,
@@ -113,7 +114,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
               <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
                 Avaliações deste mês
               </h3>
-              <HistoricoTabela registros={registrosMes} podeExcluir={isAdminGestor} />
+              <HistoricoTabela registros={registrosMes} podeExcluir={isAdminGestor} unidade={unidade} />
             </div>
           </TabsContent>
 
@@ -365,7 +366,7 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
       ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
-        <HistoricoTabela registros={registros} podeExcluir={true} />
+        <HistoricoTabela registros={registros} podeExcluir={true} unidade={unidade} />
       )}
     </div>
   );
@@ -376,12 +377,15 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
 function HistoricoTabela({
   registros,
   podeExcluir,
+  unidade,
 }: {
   registros: RegistroBonificacao[] | undefined;
   podeExcluir: boolean;
+  unidade: Unidade;
 }) {
   const excluir = useExcluirRegistroBonificacao();
   const list = registros ?? [];
+  const [editando, setEditando] = useState<RegistroBonificacao | null>(null);
 
   if (list.length === 0) {
     return (
@@ -438,11 +442,16 @@ function HistoricoTabela({
                   </Badge>
                 </td>
                 {podeExcluir && (
-                  <td className="p-2 text-right">
+                   <td className="p-2 text-right whitespace-nowrap">
+                     <Button type="button" variant="ghost" size="icon" title={`Editar avaliação de ${r.nome_hospede}`} aria-label={`Editar avaliação de ${r.nome_hospede}`} onClick={() => setEditando(r)}>
+                       <Pencil className="h-4 w-4" />
+                     </Button>
                     <Button
                       type="button"
                       variant="ghost"
                       size="icon"
+                       title={`Excluir avaliação de ${r.nome_hospede}`}
+                       aria-label={`Excluir avaliação de ${r.nome_hospede}`}
                       onClick={() => {
                         if (confirm("Excluir este registro?")) excluir.mutate(r.id);
                       }}
@@ -456,8 +465,70 @@ function HistoricoTabela({
           })}
         </tbody>
       </table>
+       <Dialog open={editando !== null} onOpenChange={(open) => { if (!open) setEditando(null); }}>
+         <DialogContent className="max-w-xl max-h-[90vh] overflow-y-auto">
+           <DialogHeader>
+             <DialogTitle>Editar avaliação · {unidade}</DialogTitle>
+             <DialogDescription>Recepção e Camareiras / Manutenção são calculadas separadamente.</DialogDescription>
+           </DialogHeader>
+           {editando && <EditarAvaliacao key={editando.id} registro={editando} par={list.find((r) => r.avaliacao_id && r.avaliacao_id === editando.avaliacao_id && r.id !== editando.id)} unidade={unidade} onSaved={() => setEditando(null)} />}
+         </DialogContent>
+       </Dialog>
     </div>
   );
+}
+
+function EditarAvaliacao({ registro, par, unidade, onSaved }: {
+  registro: RegistroBonificacao;
+  par?: RegistroBonificacao;
+  unidade: Unidade;
+  onSaved: () => void;
+}) {
+  const editar = useEditarRegistroBonificacao();
+  const recepcao = registro.setor === "recepcao" ? registro : par?.setor === "recepcao" ? par : undefined;
+  const limpeza = registro.setor === "camareiras" ? registro : par?.setor === "camareiras" ? par : undefined;
+  const [data, setData] = useState(registro.data);
+  const [nome, setNome] = useState(registro.nome_hospede);
+  const [notaFuncionarios, setNotaFuncionarios] = useState(recepcao ? String(recepcao.nota_funcionarios) : "");
+  const [notaLimpeza, setNotaLimpeza] = useState(limpeza?.nota_limpeza == null ? "" : String(limpeza.nota_limpeza));
+  const [notaGeral, setNotaGeral] = useState(String(registro.nota_geral));
+  const [obsRecepcao, setObsRecepcao] = useState(recepcao?.observacao ?? "");
+  const [obsLimpeza, setObsLimpeza] = useState(limpeza?.observacao ?? "");
+  const [elogio, setElogio] = useState(registro.teve_elogio);
+
+  async function salvar(e: React.FormEvent) {
+    e.preventDefault();
+    const nf = Number(notaFuncionarios), nl = Number(notaLimpeza), ng = Number(notaGeral);
+    if (!data || !nome.trim()) return toast.error("Informe a data e o nome do hóspede.");
+    if ([notaFuncionarios, notaLimpeza, notaGeral].some((v) => v.trim() === "") ||
+        [nf, nl, ng].some((v) => !Number.isFinite(v) || v < 0 || v > 10)) {
+      return toast.error("Informe as três notas entre 0 e 10.");
+    }
+    try {
+      await editar.mutateAsync({ registro_id: registro.id, data, nome_hospede: nome.trim(),
+        nota_funcionarios: nf, nota_limpeza: nl, nota_geral: ng,
+        observacao_recepcao: obsRecepcao.trim(), observacao_limpeza: obsLimpeza.trim(),
+        teve_elogio: elogio, unidade });
+      toast.success("Avaliação atualizada nos dois setores.");
+      onSaved();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Não foi possível atualizar a avaliação.");
+    }
+  }
+
+  return <form onSubmit={salvar} className="space-y-3">
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="space-y-1"><Label htmlFor="editar-data">Data</Label><Input id="editar-data" type="date" value={data} onChange={(e) => setData(e.target.value)} required /></div>
+      <div className="space-y-1"><Label htmlFor="editar-nome">Nome do Hóspede</Label><Input id="editar-nome" value={nome} onChange={(e) => setNome(e.target.value)} maxLength={120} required /></div>
+      <div className="space-y-1"><Label htmlFor="editar-nf">Nota Funcionários (0–10)</Label><Input id="editar-nf" type="number" inputMode="decimal" min={0} max={10} step="0.5" value={notaFuncionarios} onChange={(e) => setNotaFuncionarios(e.target.value)} required /></div>
+      <div className="space-y-1"><Label htmlFor="editar-nl">Nota Limpeza (0–10)</Label><Input id="editar-nl" type="number" inputMode="decimal" min={0} max={10} step="0.5" value={notaLimpeza} onChange={(e) => setNotaLimpeza(e.target.value)} required /></div>
+      <div className="space-y-1"><Label htmlFor="editar-ng">Nota Geral (0–10)</Label><Input id="editar-ng" type="number" inputMode="decimal" min={0} max={10} step="0.5" value={notaGeral} onChange={(e) => setNotaGeral(e.target.value)} required /></div>
+    </div>
+    <div className="flex items-center gap-2"><Checkbox id="editar-elogio" checked={elogio} onCheckedChange={(v) => setElogio(v === true)} /><Label htmlFor="editar-elogio">Teve elogio nominal?</Label></div>
+    <div className="space-y-1"><Label htmlFor="editar-obs-recepcao">Comentário · Recepção</Label><Textarea id="editar-obs-recepcao" value={obsRecepcao} onChange={(e) => setObsRecepcao(e.target.value)} maxLength={500} rows={2} /></div>
+    <div className="space-y-1"><Label htmlFor="editar-obs-limpeza">Comentário · Camareiras / Manutenção</Label><Textarea id="editar-obs-limpeza" value={obsLimpeza} onChange={(e) => setObsLimpeza(e.target.value)} maxLength={500} rows={2} /></div>
+    <Button type="submit" className="w-full" disabled={editar.isPending}>{editar.isPending ? "Salvando..." : "Salvar alterações"}</Button>
+  </form>;
 }
 
 /* ------------------------------ Configurações ----------------------------- */
