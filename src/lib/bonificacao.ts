@@ -172,8 +172,10 @@ export function useCriarRegistroBonificacao() {
 export function useExcluirRegistroBonificacao() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from("registros_bonificacao").delete().eq("id", id);
+    mutationFn: async ({ id, avaliacaoId }: { id: string; avaliacaoId: string | null }) => {
+      let query = supabase.from("registros_bonificacao").delete();
+      query = avaliacaoId ? query.eq("avaliacao_id", avaliacaoId) : query.eq("id", id);
+      const { error } = await query;
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),
