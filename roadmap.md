@@ -1,7 +1,7 @@
 # Roadmap
 
-- [ ] Criar guarda reutilizável de gestor e permissões por tela
-- [ ] Proteger todas as rotas administrativas e compartilháveis solicitadas
-- [ ] Criar /gestor e /gestor/financeiro
-- [ ] Reorganizar menus desktop e celular
-- [ ] Validar acesso, catálogo, visual e compilação
+- [x] Criar guarda reutilizável de gestor e permissões por tela
+- [x] Proteger todas as rotas administrativas e compartilháveis solicitadas
+- [x] Criar /gestor e /gestor/financeiro
+- [x] Reorganizar menus desktop e celular
+- [x] Validar acesso, catálogo, visual e compilação
