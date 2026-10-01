@@ -9,7 +9,10 @@ import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { todaySP } from "@/lib/tz";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/controle-ponto")({
+  beforeLoad: () => requireGestor(),
   component: ControlePontoPage,
 });
 

@@ -26,6 +26,7 @@ import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authent
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
 import { Route as AuthenticatedGestaoBoasVindasRouteImport } from './routes/_authenticated/gestao-boas-vindas'
+import { Route as AuthenticatedGestorRouteRouteImport } from './routes/_authenticated/gestor/route'
 import { Route as AuthenticatedHistoricoCaixaRouteImport } from './routes/_authenticated/historico-caixa'
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
 import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_authenticated/historico-manutencao'
@@ -40,6 +41,8 @@ import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticat
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
+import { Route as AuthenticatedGestorIndexRouteImport } from './routes/_authenticated/gestor/index'
+import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
@@ -135,6 +138,12 @@ const AuthenticatedGestaoBoasVindasRoute =
     path: '/gestao-boas-vindas',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedGestorRouteRoute =
+  AuthenticatedGestorRouteRouteImport.update({
+    id: '/gestor',
+    path: '/gestor',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedHistoricoCaixaRoute =
   AuthenticatedHistoricoCaixaRouteImport.update({
     id: '/historico-caixa',
@@ -211,6 +220,18 @@ const AuthenticatedChamadosIdRoute = AuthenticatedChamadosIdRouteImport.update({
   path: '/chamados/$id',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedGestorIndexRoute =
+  AuthenticatedGestorIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
+const AuthenticatedGestorFinanceiroRoute =
+  AuthenticatedGestorFinanceiroRouteImport.update({
+    id: '/financeiro',
+    path: '/financeiro',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
     id: '/api/public/cloudbeds-webhook',
@@ -232,6 +253,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/manutencao': typeof ManutencaoRoute
+  '/gestor': typeof AuthenticatedGestorRouteRouteWithChildren
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/bonificacao': typeof AuthenticatedBonificacaoRoute
@@ -259,9 +281,11 @@ export interface FileRoutesByFullPath {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/gestor/': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRoutesByTo {
   '/manutencao': typeof ManutencaoRoute
@@ -293,15 +317,18 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/gestor': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/manutencao': typeof ManutencaoRoute
+  '/_authenticated/gestor': typeof AuthenticatedGestorRouteRouteWithChildren
   '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/_authenticated/bonificacao': typeof AuthenticatedBonificacaoRoute
@@ -330,9 +357,11 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/_authenticated/gestor/': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -340,6 +369,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/manutencao'
+    | '/gestor'
     | '/almoxarifado'
     | '/boas-vindas'
     | '/bonificacao'
@@ -367,9 +397,11 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
+    | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
+    | '/gestor/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/manutencao'
@@ -401,14 +433,17 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/chamados/$id'
+    | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
+    | '/gestor'
   id:
     | '__root__'
     | '/_authenticated'
     | '/auth'
     | '/manutencao'
+    | '/_authenticated/gestor'
     | '/_authenticated/almoxarifado'
     | '/_authenticated/boas-vindas'
     | '/_authenticated/bonificacao'
@@ -437,9 +472,11 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/chamados/$id'
+    | '/_authenticated/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
+    | '/_authenticated/gestor/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -572,6 +609,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestaoBoasVindasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gestor': {
+      id: '/_authenticated/gestor'
+      path: '/gestor'
+      fullPath: '/gestor'
+      preLoaderRoute: typeof AuthenticatedGestorRouteRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/historico-caixa': {
       id: '/_authenticated/historico-caixa'
       path: '/historico-caixa'
@@ -670,6 +714,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedChamadosIdRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/gestor/': {
+      id: '/_authenticated/gestor/'
+      path: '/'
+      fullPath: '/gestor/'
+      preLoaderRoute: typeof AuthenticatedGestorIndexRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
+    '/_authenticated/gestor/financeiro': {
+      id: '/_authenticated/gestor/financeiro'
+      path: '/financeiro'
+      fullPath: '/gestor/financeiro'
+      preLoaderRoute: typeof AuthenticatedGestorFinanceiroRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/api/public/cloudbeds-webhook': {
       id: '/api/public/cloudbeds-webhook'
       path: '/api/public/cloudbeds-webhook'
@@ -694,7 +752,24 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AuthenticatedGestorRouteRouteChildren {
+  AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
+  AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
+}
+
+const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildren =
+  {
+    AuthenticatedGestorFinanceiroRoute: AuthenticatedGestorFinanceiroRoute,
+    AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
+  }
+
+const AuthenticatedGestorRouteRouteWithChildren =
+  AuthenticatedGestorRouteRoute._addFileChildren(
+    AuthenticatedGestorRouteRouteChildren,
+  )
+
 interface AuthenticatedRouteRouteChildren {
+  AuthenticatedGestorRouteRoute: typeof AuthenticatedGestorRouteRouteWithChildren
   AuthenticatedAlmoxarifadoRoute: typeof AuthenticatedAlmoxarifadoRoute
   AuthenticatedBoasVindasRoute: typeof AuthenticatedBoasVindasRoute
   AuthenticatedBonificacaoRoute: typeof AuthenticatedBonificacaoRoute
@@ -724,6 +799,7 @@ interface AuthenticatedRouteRouteChildren {
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedGestorRouteRoute: AuthenticatedGestorRouteRouteWithChildren,
   AuthenticatedAlmoxarifadoRoute: AuthenticatedAlmoxarifadoRoute,
   AuthenticatedBoasVindasRoute: AuthenticatedBoasVindasRoute,
   AuthenticatedBonificacaoRoute: AuthenticatedBonificacaoRoute,

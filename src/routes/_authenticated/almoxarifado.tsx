@@ -41,7 +41,10 @@ import {
 const ALMOX_PASSWORD = "injoy2014";
 const ALMOX_UNLOCK_KEY = "almox_unlocked_v1";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/almoxarifado")({
+  beforeLoad: () => requireGestor({ tela: "almoxarifado" }),
   component: AlmoxarifadoAdmin,
 });
 

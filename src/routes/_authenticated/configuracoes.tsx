@@ -71,7 +71,10 @@ import {
   type TelaPermitida,
 } from "@/lib/store";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/configuracoes")({
+  beforeLoad: () => requireGestor(),
   component: Configuracoes,
 });
 

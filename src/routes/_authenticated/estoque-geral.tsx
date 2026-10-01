@@ -4,7 +4,10 @@ import { AppShell } from "@/components/app-shell";
 import { EstoqueGeralView } from "@/components/almoxarifado/estoque-geral-view";
 import { useUnidade } from "@/lib/unidade-context";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/estoque-geral")({
+  beforeLoad: () => requireGestor({ tela: "estoque-geral" }),
   head: () => ({
     meta: [
       { title: "Almoxarifado - Estoque Geral — INJOY" },

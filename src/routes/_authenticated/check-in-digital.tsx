@@ -8,7 +8,10 @@ import { SenhasAtivasPanel } from "@/components/recepcao/senhas-ativas-panel";
 import { TuyaDevicesManagerModal } from "@/components/gestao/tuya-devices-manager";
 import { useUnidade } from "@/lib/unidade-context";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/check-in-digital")({
+  beforeLoad: () => requireGestor({ tela: "check-in-digital" }),
   component: CheckInDigitalPage,
 });
 
