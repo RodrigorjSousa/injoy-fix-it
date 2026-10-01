@@ -176,7 +176,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const mobileNavItems: NavChild[] = nav
     .flatMap((n) =>
       n.children
-        ? n.children
+        ? n.children.map((child) => ({
+            ...child,
+            label: child.to === "/gestor" ? "Gestor" : child.label,
+          }))
         : n.to
          ? [{ to: n.to, label: n.to === "/gestor" ? "Gestor" : n.label, icon: n.icon, exact: n.exact }]
         : [],
