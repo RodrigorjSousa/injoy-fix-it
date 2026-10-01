@@ -178,7 +178,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       n.children
         ? n.children
         : n.to
-        ? [{ to: n.to, label: n.label, icon: n.icon, exact: n.exact }]
+         ? [{ to: n.to, label: n.to === "/gestor" ? "Gestor" : n.label, icon: n.icon, exact: n.exact }]
         : [],
     )
     .filter(

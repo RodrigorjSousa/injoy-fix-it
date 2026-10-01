@@ -45,7 +45,7 @@ function NotFoundComponent() {
   );
 }
 
-function ErrorComponent({ error, reset }: { error: Error | undefined; reset: () => void }) {
+function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
   useEffect(() => {
@@ -53,7 +53,7 @@ function ErrorComponent({ error, reset }: { error: Error | undefined; reset: () 
       recoverStaleChunk();
       return;
     }
-    reportLovableError(error ?? new Error("Erro desconhecido na renderização"), {
+    reportLovableError(error, {
       boundary: "tanstack_root_error_component",
     });
   }, [error]);
