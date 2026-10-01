@@ -35,7 +35,10 @@ import {
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/preventiva")({
+  beforeLoad: () => requireGestor({ tela: "preventiva" }),
   component: Preventiva,
 });
 

@@ -15,7 +15,10 @@ import { cn } from "@/lib/utils";
 import { useMe } from "@/lib/store";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/historico-caixa")({
+  beforeLoad: () => requireGestor(),
   component: HistoricoCaixaPage,
 });
 

@@ -33,7 +33,10 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/gestao-boas-vindas")({
+  beforeLoad: () => requireGestor(),
   component: GestaoBoasVindas,
   head: () => ({
     meta: [

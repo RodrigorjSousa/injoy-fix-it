@@ -2,7 +2,10 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useUnidade } from "@/lib/unidade-context";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/bonificacao")({
+  beforeLoad: () => requireGestor({ tela: "bonificacao" }),
   head: () => ({
     meta: [
       { title: "Bonificação | INJOY Hotéis" },

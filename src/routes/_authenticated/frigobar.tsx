@@ -29,7 +29,10 @@ import {
   setCloudbedsItemStock,
 } from "@/lib/cloudbeds-pdv.functions";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/frigobar")({
+  beforeLoad: () => requireGestor({ tela: "frigobar" }),
   component: FrigobarPage,
   errorComponent: ({ error, reset }) => (
     <div className="p-6">

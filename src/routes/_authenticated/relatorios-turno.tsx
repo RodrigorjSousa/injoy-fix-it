@@ -23,7 +23,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMe, type Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/relatorios-turno")({
+  beforeLoad: () => requireGestor(),
   head: () => ({
     meta: [
       { title: "Relatórios de Turno — INJOY" },

@@ -36,7 +36,10 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/historico-manutencao")({
+  beforeLoad: () => requireGestor(),
   head: () => ({
     meta: [
       { title: "Histórico de Manutenção — INJOY" },

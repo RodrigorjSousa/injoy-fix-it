@@ -46,7 +46,10 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/escala")({
+  beforeLoad: () => requireGestor(),
   head: () => ({
     meta: [
       { title: "Escala de Funcionários — INJOY" },

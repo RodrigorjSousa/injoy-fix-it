@@ -36,7 +36,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/relatorio-operacoes")({
+  beforeLoad: () => requireGestor(),
   component: RelatorioOperacoes,
 });
 

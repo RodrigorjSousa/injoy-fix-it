@@ -23,7 +23,10 @@ import { InspectionImage } from "@/components/InspectionImage";
 import { VistoriaChecklistManager } from "@/components/configuracoes/vistoria-checklist-manager";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/historico-vistorias")({
+  beforeLoad: () => requireGestor(),
   component: HistoricoVistoriasPage,
 });
 

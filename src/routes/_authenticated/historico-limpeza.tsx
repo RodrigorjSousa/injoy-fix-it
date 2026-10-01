@@ -14,7 +14,10 @@ import { TarefasExtrasHistoricoCard } from "@/components/configuracoes/tarefas-e
 
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/historico-limpeza")({
+  beforeLoad: () => requireGestor(),
   component: HistoricoLimpezaPage,
 });
 

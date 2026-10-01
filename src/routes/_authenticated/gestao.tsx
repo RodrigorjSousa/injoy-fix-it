@@ -12,7 +12,10 @@ import { RecebimentosBalcaoCard } from "@/components/gestao/recebimentos-balcao-
 
 
 
+import { requireGestor } from "@/lib/require-gestor";
+
 export const Route = createFileRoute("/_authenticated/gestao")({
+  beforeLoad: () => requireGestor(),
   component: DashboardGestao,
 });
 
