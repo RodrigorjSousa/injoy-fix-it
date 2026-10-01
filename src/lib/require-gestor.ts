@@ -49,7 +49,6 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
   const categorias = funcionario?.categorias ?? [];
   const permitidoPorPapel =
     (options.tela === "almoxarifado" && roles.has("recepcao")) ||
-    (options.tela === "estoque-geral" && (roles.has("recepcao") || roles.has("camareira") || roles.has("funcionario"))) ||
     (options.tela === "preventiva" && categorias.includes("Ar condicionado")) ||
     (options.tela === "bonificacao" && /(^|\s)mayara(\s|$)/i.test(nome));
 

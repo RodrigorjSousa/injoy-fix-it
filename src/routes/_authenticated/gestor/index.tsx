@@ -36,7 +36,26 @@ export const Route = createFileRoute("/_authenticated/gestor/")({
   component: GestorHub,
 });
 
-type HubItem = { label: string; description: string; to: string; icon: typeof BarChart3; tone: string };
+type HubPath =
+  | "/gestao"
+  | "/relatorio-operacoes"
+  | "/preventiva"
+  | "/almoxarifado"
+  | "/estoque-geral"
+  | "/frigobar"
+  | "/check-in-digital"
+  | "/gestao-boas-vindas"
+  | "/configuracoes"
+  | "/escala"
+  | "/controle-ponto"
+  | "/bonificacao"
+  | "/historico-limpeza"
+  | "/historico-manutencao"
+  | "/historico-vistorias"
+  | "/historico-caixa"
+  | "/relatorios-turno";
+
+type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
 const sections: { title: string; items: HubItem[] }[] = [
   {
