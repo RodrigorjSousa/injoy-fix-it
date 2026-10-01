@@ -34,13 +34,14 @@ const isTecnicoAC = (me: Me) =>
 type TelaKey = "servicos" | "manutencao" | "recepcao" | "camareiras" | "preventiva" | "painel";
 const ALWAYS_ALLOWED_TELAS: TelaKey[] = ["painel", "servicos", "preventiva", "manutencao", "recepcao", "camareiras"];
 const MOBILE_PRIORITY: Record<string, number> = {
-  painel: 0,
-  servicos: 1,
-  preventiva: 2,
-  manutencao: 3,
-  recepcao: 4,
-  camareiras: 5,
-  chat: 6,
+  gestor: 0,
+  painel: 1,
+  servicos: 2,
+  preventiva: 3,
+  manutencao: 4,
+  recepcao: 5,
+  camareiras: 6,
+  chat: 7,
 };
 
 const telaKeyFromPath = (path: string) => path.replace(/^\//, "").split("/")[0] ?? path;
@@ -114,10 +115,11 @@ const ALL_NAV: NavItem[] = [
 
   // Somente admin
   {
-    label: "ADMINISTRADOR",
+    label: "ÁREA DO GESTOR",
     icon: ShieldCheck,
     show: isAdmin,
     children: [
+      { to: "/gestor", label: "INÍCIO DA ÁREA", icon: ShieldCheck, exact: true },
       { to: "/painel", label: "PAINEL", icon: LayoutGrid },
       
       { to: "/gestao", label: "GESTÃO", icon: BarChart3 },
@@ -150,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .map((k) => TELA_BY_KEY[k])
         .filter((t): t is NonNullable<typeof t> => !!t)
         .map((t) => ({ to: t.path, label: t.label, icon: t.icon }));
-      const admin = ALL_NAV.find((n) => n.label === "ADMINISTRADOR" && (!n.show || n.show(me)));
+       const admin = ALL_NAV.find((n) => n.label === "ÁREA DO GESTOR" && (!n.show || n.show(me)));
       return admin ? [...custom, admin] : custom;
     }
     return ALL_NAV.filter((n) => !n.show || n.show(me));
