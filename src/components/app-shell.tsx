@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -102,6 +102,7 @@ const podeBonificacao = (me: Me) => !isAdmin(me) && isMayara(me);
 
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
+  { to: "/minha-escala", label: "Minha Escala", icon: CalendarDays, show: (me) => !!me && !isAdmin(me) },
   { to: "/servicos", label: "Serviços", icon: Wrench, show: podeServicos },
   { to: "/manutencao", label: "Manutenção", icon: Cog, show: podeManutencao },
   // Condicionais
@@ -131,6 +132,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/check-in-digital", label: "CHECK IN DIGITAL", icon: Key },
       { to: "/gestao-boas-vindas", label: "BOAS-VINDAS", icon: LayoutGrid },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
+      { to: "/escala", label: "ESCALA", icon: CalendarDays },
 
     ],
   },
