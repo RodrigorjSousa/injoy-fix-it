@@ -39,6 +39,7 @@ import { ChegadasHojeCards } from "@/components/gestao/chegadas-hoje-cards";
 import { PainelControleRapido } from "@/components/gestao/painel-controle-rapido";
 import { PontoFuncionariosPainel } from "@/components/gestao/ponto-funcionarios-painel";
 import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
+import { NotasBonificacaoCard } from "@/components/gestao/notas-bonificacao-card";
 import { useBoasVindasView } from "@/hooks/use-boas-vindas-config";
 import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
 import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
@@ -144,7 +145,6 @@ function BoasVindas() {
 
 
   const [nome, setNome] = useState<string>("");
-  const [rating, setRating] = useState<number>(8.5);
   const [metricas, setMetricas] = useState<Metricas>({
     taxaOcupacao: 0,
     receberBalcao: 0,
@@ -308,13 +308,12 @@ function BoasVindas() {
       setRooms((quartos ?? []) as RoomRow[]);
       const m = metric as
         | {
-            rating?: number | null;
             occupancy_percentage?: number | null;
             pending_balance?: number | null;
             pending_docs_count?: number | null;
           }
         | null;
-      setRating(m?.rating != null ? Number(m.rating) : unidade === "Botafogo" ? 8.6 : 7.8);
+      // A nota da tela inicial agora vem da lista da Bonificação (NotasBonificacaoCard).
       setMetricas({
         taxaOcupacao: Number(m?.occupancy_percentage ?? 63),
         receberBalcao: Number(m?.pending_balance ?? 0),
@@ -428,10 +427,7 @@ function BoasVindas() {
     : candidatoEmail;
   const primeiroNome = nome || fallback || "Colaborador";
 
-  const metaBatida = rating >= 8.0;
   const visaoCompleta = Boolean(me?.isAdmin || me?.isGestor);
-  const isMayaraRecepcao = !!me?.funcionario?.nome && /(^|\s)mayara(\s|$)/i.test(me.funcionario.nome.trim());
-  const mostrarResumoBonificacao = !visaoCompleta && !isMayaraRecepcao;
 
   const renderIconeClima = () => {
     switch (clima.condicao) {
@@ -512,9 +508,7 @@ function BoasVindas() {
         <AuditoriaFuncionarioCard unidade={unidade} />
       )}
 
-      {mostrarResumoBonificacao && isVisible("resumo_bonificacao") && (
-        <BonificacaoResumoCard unidade={unidade} />
-      )}
+      <BonificacaoResumoCard unidade={unidade} />
 
 
 
@@ -550,46 +544,8 @@ function BoasVindas() {
               </p>
             </div>
 
-            <div
-              className={`lg:col-span-6 relative overflow-hidden rounded-3xl border-2 p-5 shadow-2xl backdrop-blur-md transition-all duration-300 ${
-                metaBatida
-                  ? "bg-gradient-to-br from-emerald-950/40 to-teal-950/20 border-emerald-500/30"
-                  : "bg-gradient-to-br from-amber-950/40 to-red-950/20 border-amber-500/30"
-              }`}
-            >
-              <div className="absolute -right-8 -bottom-8 opacity-10 pointer-events-none">
-                {metaBatida ? (
-                  <Award size={160} className="text-emerald-400" />
-                ) : (
-                  <AlertTriangle size={160} className="text-amber-400" />
-                )}
-              </div>
-              <div className="flex items-center gap-4 relative z-10">
-                <div
-                  className={`w-20 h-20 rounded-2xl flex flex-col items-center justify-center font-black text-2xl shadow-lg border-2 shrink-0 ${
-                    metaBatida
-                      ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-300 animate-pulse"
-                      : "bg-gradient-to-tr from-amber-500 to-orange-400 text-slate-950 border-amber-300"
-                  }`}
-                >
-                  <span>{rating.toFixed(1)}</span>
-                  <span className="text-[8px] uppercase font-bold -mt-1">Cloudbeds</span>
-                </div>
-                <div className="min-w-0">
-                  <span
-                    className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                      metaBatida ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                    }`}
-                  >
-                    {metaBatida ? "🏆 META ATINGIDA" : "⚠️ ABAIXO DA META"}
-                  </span>
-                  <p className="text-xs text-white/80 mt-1 leading-relaxed">
-                    {metaBatida
-                      ? `Equipe de parabéns! Bônus garantido para o time de ${unidade}.`
-                      : `Precisamos de foco para subir a nota e garantir o bônus de ${unidade}.`}
-                  </p>
-                </div>
-              </div>
+            <div className="lg:col-span-6">
+              <NotasBonificacaoCard unidade={unidade} />
             </div>
           </div>
 
@@ -682,40 +638,7 @@ function BoasVindas() {
                         </span>
                       </h2>
                     </div>
-                    <div
-                      className={`relative overflow-hidden rounded-2xl border-2 p-5 shadow-xl ${
-                        metaBatida
-                          ? "bg-gradient-to-br from-emerald-950/40 to-teal-950/20 border-emerald-500/40"
-                          : "bg-gradient-to-br from-amber-950/40 to-red-950/20 border-amber-500/40"
-                      }`}
-                    >
-                      <div className="flex items-center gap-4 relative z-10">
-                        <div
-                          className={`w-16 h-16 rounded-xl flex flex-col items-center justify-center font-black text-lg border-2 shrink-0 ${
-                            metaBatida
-                              ? "bg-gradient-to-tr from-emerald-500 to-teal-400 text-slate-950 border-emerald-300 animate-pulse"
-                              : "bg-gradient-to-tr from-amber-500 to-orange-400 text-slate-950 border-amber-300"
-                          }`}
-                        >
-                          <span>{rating.toFixed(1)}</span>
-                          <span className="text-[7px] uppercase font-bold -mt-0.5">Nota</span>
-                        </div>
-                        <div className="space-y-1 min-w-0">
-                          <span
-                            className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${
-                              metaBatida ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
-                            }`}
-                          >
-                            {metaBatida ? "🏆 METAS E BÔNUS ATIVOS" : "⚠️ ATENÇÃO COM A META"}
-                          </span>
-                          <p className="text-xs text-white/90 font-semibold leading-snug">
-                            {metaBatida
-                              ? `Bônus garantido para os colaboradores de ${unidade}.`
-                              : "Vamos recuperar nossa nota e garantir o bônus."}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
+                    <NotasBonificacaoCard unidade={unidade} />
                   </div>
                 );
               case "taxa_ocupacao":
