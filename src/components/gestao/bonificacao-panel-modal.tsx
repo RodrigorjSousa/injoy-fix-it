@@ -53,6 +53,14 @@ const MESES = [
 export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
   const { data: me } = useMe();
   const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
+  // Mesma regra do banco (private.pode_registrar_bonificacao): pode editar avaliações
+  // quem é gestor, recepção, tem a tela Bonificação liberada ou é a Mayara.
+  const podeEditar = Boolean(
+    isAdminGestor ||
+      me?.isRecepcao ||
+      me?.funcionario?.telasPermitidas?.includes("bonificacao") ||
+      /(^|\s)mayara(\s|$)/i.test(me?.funcionario?.nome?.trim() ?? ""),
+  );
   const { data: cfg, isError: isConfigError, refetch: refetchConfig } = useConfigBonificacao();
   const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade);
 
@@ -114,7 +122,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
               <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
                 Avaliações deste mês
               </h3>
-              <HistoricoTabela registros={registrosMes} podeExcluir={isAdminGestor} unidade={unidade} />
+              <HistoricoTabela registros={registrosMes} podeEditar={podeEditar} podeExcluir={isAdminGestor} unidade={unidade} />
             </div>
           </TabsContent>
 
@@ -366,7 +374,7 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
       ) : isLoading ? (
         <p className="text-sm text-muted-foreground">Carregando...</p>
       ) : (
-        <HistoricoTabela registros={registros} podeExcluir={true} unidade={unidade} />
+        <HistoricoTabela registros={registros} podeEditar={true} podeExcluir={true} unidade={unidade} />
       )}
     </div>
   );
@@ -376,10 +384,12 @@ function RelatoriosTab({ unidade }: { unidade: Unidade }) {
 
 function HistoricoTabela({
   registros,
+  podeEditar,
   podeExcluir,
   unidade,
 }: {
   registros: RegistroBonificacao[] | undefined;
+  podeEditar: boolean;
   podeExcluir: boolean;
   unidade: Unidade;
 }) {
@@ -429,7 +439,7 @@ function HistoricoTabela({
             <th className="p-2 text-center">Geral</th>
             <th className="p-2 text-center">Elogio</th>
             <th className="p-2 text-right">Valor</th>
-            {podeExcluir && <th className="p-2" />}
+            {(podeEditar || podeExcluir) && <th className="p-2" />}
           </tr>
         </thead>
         <tbody>
@@ -483,11 +493,14 @@ function HistoricoTabela({
                     ))}
                   </div>
                 </td>
-                {podeExcluir && (
+                {(podeEditar || podeExcluir) && (
                    <td className="p-2 text-right whitespace-nowrap">
+                      {podeEditar && (
                       <Button type="button" variant="ghost" size="icon" title={`Editar avaliação de ${r.nome_hospede}`} aria-label={`Editar avaliação de ${r.nome_hospede}`} onClick={() => setEditando(r)}>
                        <Pencil className="h-4 w-4" />
                      </Button>
+                      )}
+                    {podeExcluir && (
                     <Button
                       type="button"
                       variant="ghost"
@@ -502,6 +515,7 @@ function HistoricoTabela({
                     >
                       <Trash2 className="h-4 w-4 text-red-500" />
                     </Button>
+                    )}
                   </td>
                 )}
               </tr>
