@@ -127,6 +127,13 @@
       "when": 1791000000000,
       "tag": "0017_fix_schedule_audit_sync_and_finance_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1790957014112,
+      "tag": "0018_fix_schedule_audit_sync_and_finance_policies",
+      "breakpoints": true
     }
   ]
 }
