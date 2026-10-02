@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
 
-type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request";
+type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request" | "finance_due";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
@@ -36,6 +36,13 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         body: `${d.quantity ?? ""} × ${d.item_name ?? ""} (${d.urgency ?? "normal"})`,
         url: "/almoxarifado",
         tag: `compra-${d.id}`,
+      };
+    case "finance_due":
+      return {
+        title: "Contas a vencer",
+        body: `${d.count ?? 0} conta(s): ${d.due_today ?? 0} vencendo hoje e ${d.due_in_three_days ?? 0} em três dias.`,
+        url: "/gestor/financeiro",
+        tag: `financeiro-${d.date ?? "hoje"}`,
       };
   }
 }
@@ -78,6 +85,8 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     case "troca_turno":
       return byRoles(["admin", "gestor", "recepcao"]);
     case "purchase_request":
+      return byRoles(["admin", "gestor"]);
+    case "finance_due":
       return byRoles(["admin", "gestor"]);
   }
 }

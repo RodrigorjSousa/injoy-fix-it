@@ -9,3 +9,9 @@
 - [x] Implementar lançamentos, fornecedores, categorias e rateio
 - [x] Implementar comprovantes, ações rápidas e exportações
 - [x] Validar acesso, fluxos, celular e compilação do Financeiro
+- [x] Criar contas recorrentes e geração mensal idempotente
+- [x] Criar indicadores mensais por unidade
+- [x] Implementar painel financeiro, comparativos e gráficos
+- [x] Mostrar alertas financeiros no hub do gestor
+- [x] Agendar notificações financeiras diárias às 08:00
+- [x] Validar a continuação do Financeiro no celular e computador

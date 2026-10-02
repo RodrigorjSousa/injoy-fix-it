@@ -1,6 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-  AlertCircle,
   ArrowUpRight,
   Banknote,
   BarChart3,
@@ -21,6 +20,7 @@ import {
   Users,
   Wrench,
 } from "lucide-react";
+import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
   head: () => ({
@@ -95,13 +95,7 @@ const sections: { title: string; items: HubItem[] }[] = [
 function GestorHub() {
   return (
     <div className="space-y-8">
-      <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-emerald-800">
-        <AlertCircle className="h-5 w-5" />
-        <div>
-          <p className="text-xs font-bold uppercase">Alertas</p>
-          <p className="text-sm font-semibold">Nenhum alerta</p>
-        </div>
-      </div>
+      <FinanceiroAlertas />
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">

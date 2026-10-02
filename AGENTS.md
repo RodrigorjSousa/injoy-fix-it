@@ -5,3 +5,4 @@ Render paired bonus sectors as one evaluation row with Reception and Camareiras 
 Wrap the router in an outer error boundary and throttle stale-asset reloads for one minute; the router's inner boundary ignores falsy thrown values and can otherwise leave a blank screen or enter a reload loop.
 Protect manager routes with the reusable role-and-screen guard, and keep `/gestor` strictly manager-only; hidden navigation is not access control.
 Keep all financial records and attachments behind database and storage policies restricted to gestor/admin roles; route protection alone is insufficient.
+Generate monthly financial entries from recurring templates through the role-checked database function; this keeps generation idempotent and prevents client-side bypasses.
