@@ -6,6 +6,7 @@ import {
   Clock,
   Fingerprint,
   Loader2,
+  Coffee,
   LogIn,
   LogOut,
   MapPin,
@@ -23,6 +24,9 @@ import { useMe } from "@/lib/store";
 import { getDeviceId, getPosition } from "@/lib/ponto-face";
 import {
   MOTIVO_LABEL,
+  TIPO_BOTAO,
+  TIPO_LABEL,
+  type TipoBatida,
   enviarSelfie,
   horaSP,
   useListaQuiosque,
@@ -79,6 +83,44 @@ function PontoPage() {
   );
 }
 
+const COR_TIPO: Record<TipoBatida, string> = {
+  entrada: "bg-emerald-600 hover:bg-emerald-700",
+  saida_almoco: "bg-amber-500 hover:bg-amber-600",
+  volta_almoco: "bg-sky-600 hover:bg-sky-700",
+  saida: "bg-rose-600 hover:bg-rose-700",
+};
+
+function BotaoBatida({
+  tipo,
+  destaque,
+  onClick,
+}: {
+  tipo: TipoBatida;
+  destaque: boolean;
+  onClick: () => void;
+}) {
+  const Icone =
+    tipo === "entrada" || tipo === "volta_almoco"
+      ? LogIn
+      : tipo === "saida_almoco"
+        ? Coffee
+        : LogOut;
+  return (
+    <Button
+      size="lg"
+      className={cn(
+        "w-full gap-2 text-white",
+        destaque ? "h-16 text-lg" : "h-12 text-base",
+        COR_TIPO[tipo],
+      )}
+      onClick={onClick}
+    >
+      <Icone className={destaque ? "h-6 w-6" : "h-5 w-5"} />
+      {TIPO_BOTAO[tipo]}
+    </Button>
+  );
+}
+
 function ResultadoCard({ r, onOk }: { r: RegistroResultado; onOk: () => void }) {
   const ok = r.status === "valida";
   return (
@@ -95,7 +137,7 @@ function ResultadoCard({ r, onOk }: { r: RegistroResultado; onOk: () => void }) 
       )}
       <div>
         <p className="text-lg font-black">
-          {r.tipo === "entrada" ? "Entrada" : "Saída"} registrada às {horaSP(r.registrado_em)}
+          {TIPO_LABEL[r.tipo]} registrada às {horaSP(r.registrado_em)}
         </p>
         <p className="text-sm text-slate-600">
           {r.nome} · {r.unidade}
@@ -125,7 +167,7 @@ function ResultadoCard({ r, onOk }: { r: RegistroResultado; onOk: () => void }) 
 async function registrar(
   resultado: VerificacaoResultado,
   mutate: ReturnType<typeof useRegistrarPonto>["mutateAsync"],
-  extra: { modo: "app" | "quiosque"; colaboradorId?: string },
+  extra: { modo: "app" | "quiosque"; colaboradorId?: string; tipo: TipoBatida },
   posicao: Awaited<ReturnType<typeof getPosition>>,
 ) {
   const selfiePath = await enviarSelfie(resultado.selfie);
@@ -139,6 +181,7 @@ async function registrar(
     selfiePath,
     modo: extra.modo,
     colaboradorId: extra.colaboradorId ?? null,
+    tipo: extra.tipo,
   });
 }
 
@@ -148,6 +191,7 @@ function MeuPonto() {
   const [etapa, setEtapa] = useState<"inicio" | "camera" | "enviando" | "resultado">("inicio");
   const [resultado, setResultado] = useState<RegistroResultado | null>(null);
   const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
+  const [tipoEscolhido, setTipoEscolhido] = useState<TipoBatida>("entrada");
 
   if (status.isLoading)
     return (
@@ -183,16 +227,15 @@ function MeuPonto() {
     );
   }
 
-  const ultima = s.batidas_recentes?.find((b) => b.status !== "recusada");
-  const proxima: "entrada" | "saida" =
-    ultima &&
-    ultima.tipo === "entrada" &&
-    Date.now() - new Date(ultima.registrado_em).getTime() < 18 * 3600_000
-      ? "saida"
-      : "entrada";
+  const proximos: TipoBatida[] = s.proximos_tipos?.length ? s.proximos_tipos : ["entrada"];
+  const emAlmoco = s.ultimo_tipo_aberto === "saida_almoco";
+  const desde = s.batidas_recentes?.find(
+    (b) => b.status !== "recusada" && b.tipo === s.ultimo_tipo_aberto,
+  );
 
-  const comecar = () => {
+  const comecar = (tipo: TipoBatida) => {
     // Pede a localização em paralelo com a câmera (o GPS demora alguns segundos)
+    setTipoEscolhido(tipo);
     setPosicaoPromise(getPosition());
     setEtapa("camera");
   };
@@ -201,11 +244,15 @@ function MeuPonto() {
     setEtapa("enviando");
     try {
       const posicao = posicaoPromise ? await posicaoPromise : await getPosition();
-      const res = await registrar(r, registrarMut.mutateAsync, { modo: "app" }, posicao);
+      const res = await registrar(
+        r,
+        registrarMut.mutateAsync,
+        { modo: "app", tipo: tipoEscolhido },
+        posicao,
+      );
       setResultado(res);
       setEtapa("resultado");
-      if (res.status === "valida")
-        toast.success(`${res.tipo === "entrada" ? "Entrada" : "Saída"} registrada`);
+      if (res.status === "valida") toast.success(`${TIPO_LABEL[res.tipo]} registrada`);
     } catch (error) {
       toast.error((error as Error).message ?? "Falha ao registrar o ponto");
       setEtapa("inicio");
@@ -231,7 +278,8 @@ function MeuPonto() {
     );
   if (etapa === "camera")
     return (
-      <Card className="p-4">
+      <Card className="space-y-3 p-4">
+        <p className="text-center text-sm font-semibold">{TIPO_LABEL[tipoEscolhido]}</p>
         <FaceCapture
           modo="verificar"
           onResultado={aoCapturar}
@@ -278,17 +326,24 @@ function MeuPonto() {
             gestor conferir. Peça o cadastro facial ao gestor.
           </p>
         )}
-        <Button
-          size="lg"
-          className={cn(
-            "h-16 w-full gap-2 text-lg",
-            proxima === "saida" && "bg-rose-600 hover:bg-rose-700",
-          )}
-          onClick={comecar}
-        >
-          {proxima === "entrada" ? <LogIn className="h-6 w-6" /> : <LogOut className="h-6 w-6" />}
-          Registrar {proxima === "entrada" ? "entrada" : "saída"}
-        </Button>
+        {s.ultimo_tipo_aberto && desde && (
+          <p
+            className={cn(
+              "rounded-lg p-3 text-center text-sm font-semibold",
+              emAlmoco ? "bg-amber-50 text-amber-800" : "bg-emerald-50 text-emerald-800",
+            )}
+          >
+            {emAlmoco ? "Em almoço desde " : "Trabalhando — última batida: "}
+            {emAlmoco
+              ? horaSP(desde.registrado_em)
+              : `${TIPO_LABEL[desde.tipo]} às ${horaSP(desde.registrado_em)}`}
+          </p>
+        )}
+        <div className="grid gap-2">
+          {proximos.map((t, idx) => (
+            <BotaoBatida key={t} tipo={t} destaque={idx === 0} onClick={() => comecar(t)} />
+          ))}
+        </div>
         <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3" />
           Usa câmera e localização somente no momento da batida.
@@ -302,7 +357,7 @@ function MeuPonto() {
             {s.batidas_recentes.map((b) => (
               <li key={b.id} className="flex items-center justify-between">
                 <span>
-                  {b.tipo === "entrada" ? "Entrada" : "Saída"} ·{" "}
+                  {TIPO_LABEL[b.tipo]} ·{" "}
                   {new Date(b.registrado_em).toLocaleDateString("pt-BR", {
                     timeZone: "America/Sao_Paulo",
                   })}{" "}
@@ -342,8 +397,15 @@ function PontoRecepcao() {
     { titulo: "Freelancers", itens: filtrada.filter((p) => p.vinculo === "freelance") },
   ].filter((g) => g.itens.length);
   const registrarMut = useRegistrarPonto();
-  const [selecionado, setSelecionado] = useState<{ id: string; nome: string } | null>(null);
-  const [etapa, setEtapa] = useState<"lista" | "camera" | "enviando" | "resultado">("lista");
+  const [selecionado, setSelecionado] = useState<{
+    id: string;
+    nome: string;
+    proximos: TipoBatida[];
+    tipo: TipoBatida;
+  } | null>(null);
+  const [etapa, setEtapa] = useState<"lista" | "escolha" | "camera" | "enviando" | "resultado">(
+    "lista",
+  );
   const [resultado, setResultado] = useState<RegistroResultado | null>(null);
   const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
 
@@ -355,7 +417,7 @@ function PontoRecepcao() {
       const res = await registrar(
         r,
         registrarMut.mutateAsync,
-        { modo: "quiosque", colaboradorId: selecionado.id },
+        { modo: "quiosque", colaboradorId: selecionado.id, tipo: selecionado.tipo },
         posicao,
       );
       setResultado(res);
@@ -384,10 +446,41 @@ function PontoRecepcao() {
         <p className="text-sm">Registrando…</p>
       </Card>
     );
+  if (etapa === "escolha" && selecionado) {
+    return (
+      <Card className="space-y-3 p-5">
+        <p className="text-center font-semibold">{selecionado.nome} — o que vai registrar?</p>
+        {selecionado.proximos.map((t, idx) => (
+          <BotaoBatida
+            key={t}
+            tipo={t}
+            destaque={idx === 0}
+            onClick={() => {
+              setSelecionado({ ...selecionado, tipo: t });
+              setPosicaoPromise(getPosition());
+              setEtapa("camera");
+            }}
+          />
+        ))}
+        <Button
+          variant="ghost"
+          className="w-full"
+          onClick={() => {
+            setSelecionado(null);
+            setEtapa("lista");
+          }}
+        >
+          Voltar
+        </Button>
+      </Card>
+    );
+  }
   if (etapa === "camera" && selecionado) {
     return (
       <Card className="space-y-3 p-4">
-        <p className="text-center text-sm font-semibold">{selecionado.nome}</p>
+        <p className="text-center text-sm font-semibold">
+          {selecionado.nome} · {TIPO_LABEL[selecionado.tipo]}
+        </p>
         <FaceCapture
           modo="verificar"
           onResultado={aoCapturar}
@@ -447,7 +540,16 @@ function PontoRecepcao() {
                       type="button"
                       className="flex w-full items-center justify-between gap-2 rounded-xl border bg-white p-3 text-left hover:border-primary"
                       onClick={() => {
-                        setSelecionado({ id: f.colaborador_id, nome: f.nome });
+                        const proximos = f.proximos_tipos?.length
+                          ? f.proximos_tipos
+                          : (["entrada"] as TipoBatida[]);
+                        setSelecionado({
+                          id: f.colaborador_id,
+                          nome: f.nome,
+                          proximos,
+                          tipo: proximos[0],
+                        });
+                        if (proximos.length > 1) return setEtapa("escolha");
                         setPosicaoPromise(getPosition());
                         setEtapa("camera");
                       }}
@@ -459,8 +561,12 @@ function PontoRecepcao() {
                             sem rosto
                           </Badge>
                         )}
-                        <Badge className={f.entrada_aberta ? "bg-rose-600" : "bg-emerald-600"}>
-                          {f.entrada_aberta ? "Registrar saída" : "Registrar entrada"}
+                        <Badge className={COR_TIPO[f.proximos_tipos?.[0] ?? "entrada"]}>
+                          {f.ultimo_tipo === "saida_almoco"
+                            ? "No almoço"
+                            : f.entrada_aberta
+                              ? "Trabalhando"
+                              : "Registrar entrada"}
                         </Badge>
                       </span>
                     </button>

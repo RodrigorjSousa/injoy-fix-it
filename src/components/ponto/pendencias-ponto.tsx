@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
   MOTIVO_LABEL,
+  TIPO_LABEL,
   dataBR,
   horaSP,
   urlSelfie,
@@ -60,7 +61,7 @@ function PendenciaItem({ b }: { b: BatidaGestor }) {
       <div className="min-w-0 flex-1 space-y-1">
         <div className="flex flex-wrap items-center gap-2">
           <strong>{b.escala_colaboradores?.nome ?? "—"}</strong>
-          <Badge variant="outline">{b.tipo === "entrada" ? "Entrada" : "Saída"}</Badge>
+          <Badge variant="outline">{TIPO_LABEL[b.tipo]}</Badge>
           <span className="text-xs text-slate-500">
             {dataBR(b.data_ref)} · {horaSP(b.registrado_em)} · {b.unidade}
             {b.origem === "quiosque" ? " · recepção" : ""}
