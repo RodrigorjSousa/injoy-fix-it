@@ -48,6 +48,12 @@ export interface EscalaModalidade {
   updated_at: string;
   updated_by: string | null;
 }
+export interface FeriadoEscala {
+  id: string;
+  data: string;
+  nome: string;
+  abrangencia: "nacional" | "estadual_RJ" | "municipal_Rio";
+}
 export interface ColaboradorInput {
   id?: string;
   funcionario_id: string | null;
@@ -61,7 +67,7 @@ export interface ColaboradorInput {
   padrao?: Omit<EscalaPadrao, "id" | "colaborador_id" | "vigente_ate">;
 }
 
-const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"]] as const;
+const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"], ["escala-feriados"]] as const;
 function useRefreshSchedule() {
   const queryClient = useQueryClient();
   return () => scheduleKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [...key] }));
@@ -94,6 +100,40 @@ export function useEscalaModalidades() {
       if (error) throw error;
       return (data ?? []) as unknown as EscalaModalidade[];
     },
+  });
+}
+
+export function useEscalaFeriados() {
+  return useQuery({
+    queryKey: ["escala-feriados"],
+    queryFn: async (): Promise<FeriadoEscala[]> => {
+      const { data, error } = await supabase.from("feriados").select("id,data,nome,abrangencia").order("data");
+      if (error) throw error;
+      return (data ?? []) as FeriadoEscala[];
+    },
+  });
+}
+
+export function useSalvarEscalaFeriado() {
+  const refresh = useRefreshSchedule();
+  return useMutation({
+    mutationFn: async (input: FeriadoEscala) => {
+      const row = { data: input.data, nome: input.nome.trim(), abrangencia: input.abrangencia };
+      const result = input.id ? await supabase.from("feriados").update(row).eq("id", input.id) : await supabase.from("feriados").insert(row);
+      if (result.error) throw result.error;
+    },
+    onSuccess: refresh,
+  });
+}
+
+export function useExcluirEscalaFeriado() {
+  const refresh = useRefreshSchedule();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("feriados").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: refresh,
   });
 }
 

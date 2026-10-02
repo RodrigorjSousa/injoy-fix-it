@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, Pencil, Plus, Users, WalletCards } from "lucide-react";
+import { CalendarDays, Pencil, Plus, Trash2, Users, WalletCards } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,12 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
-import { useFuncionarios } from "@/lib/store";
+import { useFuncionarios, useUsuariosComRoles } from "@/lib/store";
 import {
   patternWorksOn, useAlternarEscalaColaborador, useEscalaColaboradores, useEscalaModalidades,
-  useSalvarEscalaColaborador, useSalvarEscalaModalidade, type ColaboradorInput, type EscalaColaborador,
+  useEscalaFeriados, useExcluirEscalaFeriado, useSalvarEscalaColaborador, useSalvarEscalaFeriado, useSalvarEscalaModalidade, type ColaboradorInput, type EscalaColaborador,
   type EscalaModalidade, type EscalaPadrao, type EscalaPadraoTipo, type EscalaSetor,
-  type EscalaTurno, type EscalaUnidade, type EscalaVinculo, type ModalidadeMotivo,
+  type EscalaTurno, type EscalaUnidade, type EscalaVinculo, type FeriadoEscala, type ModalidadeMotivo,
 } from "@/lib/escala";
 import { useImportarEquipeLocal, type LegacyEscalaMember } from "@/lib/escala";
 
@@ -31,8 +31,11 @@ const patternLabel: Record<EscalaPadraoTipo, string> = { "12x36": "12x36", "5x2_
 export function EquipeEscalaDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const colaboradores = useEscalaColaboradores();
   const modalidades = useEscalaModalidades();
+  const feriados = useEscalaFeriados();
+  const usuarios = useUsuariosComRoles();
   const [editing, setEditing] = useState<EscalaColaborador | null | undefined>();
   const [editingModalidade, setEditingModalidade] = useState<EscalaModalidade | null | undefined>();
+  const [editingFeriado, setEditingFeriado] = useState<FeriadoEscala | null | undefined>();
   const toggle = useAlternarEscalaColaborador();
   const grouped = useMemo(() => SETORES.map((setor) => ({ ...setor, people: (colaboradores.data ?? []).filter((c) => c.setor === setor.value) })), [colaboradores.data]);
   return <>
@@ -40,7 +43,7 @@ export function EquipeEscalaDialog({ open, onOpenChange }: { open: boolean; onOp
       <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader><DialogTitle className="flex items-center gap-2"><Users className="h-5 w-5" /> Equipe da Escala</DialogTitle><DialogDescription>Cadastre a equipe, configure padrões contínuos e gerencie os valores dos freelancers.</DialogDescription></DialogHeader>
         <Tabs defaultValue="equipe">
-          <TabsList className="grid w-full grid-cols-2"><TabsTrigger value="equipe">Equipe</TabsTrigger><TabsTrigger value="valores">Valores dos freelancers</TabsTrigger></TabsList>
+          <TabsList className="grid w-full grid-cols-3"><TabsTrigger value="equipe">Equipe</TabsTrigger><TabsTrigger value="valores">Freelancers</TabsTrigger><TabsTrigger value="feriados">Feriados</TabsTrigger></TabsList>
           <TabsContent value="equipe" className="space-y-4 pt-3">
             <div className="flex justify-end"><Button className="gap-2" onClick={() => setEditing(null)}><Plus className="h-4 w-4" /> Adicionar colaborador</Button></div>
             {grouped.map((group) => <section key={group.value} className="space-y-2"><h3 className="text-sm font-semibold uppercase text-muted-foreground">{group.label} ({group.people.length})</h3>
@@ -48,13 +51,15 @@ export function EquipeEscalaDialog({ open, onOpenChange }: { open: boolean; onOp
             </section>)}
           </TabsContent>
           <TabsContent value="valores" className="space-y-3 pt-3"><div className="flex justify-end"><Button className="gap-2" onClick={() => setEditingModalidade(null)}><Plus className="h-4 w-4" /> Nova modalidade</Button></div>
-            {(modalidades.data ?? []).map((item) => <Card key={item.id} className={cn("flex items-center justify-between gap-3 p-3", !item.ativo && "opacity-60")}><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{item.nome}</p><Badge variant="outline">{item.unidade}</Badge></div><p className="text-sm text-muted-foreground">{item.horas} h · {formatMoney(Number(item.valor))}</p><p className="text-xs text-muted-foreground">Última alteração: {new Date(item.updated_at).toLocaleString("pt-BR")}</p></div><Button size="icon" variant="ghost" onClick={() => setEditingModalidade(item)} aria-label="Editar modalidade"><Pencil className="h-4 w-4" /></Button></Card>)}
+            {(modalidades.data ?? []).map((item) => <Card key={item.id} className={cn("flex items-center justify-between gap-3 p-3", !item.ativo && "opacity-60")}><div><div className="flex flex-wrap items-center gap-2"><p className="font-medium">{item.nome}</p><Badge variant="outline">{item.unidade}</Badge></div><p className="text-sm text-muted-foreground">{item.horas} h · {formatMoney(Number(item.valor))}</p><p className="text-xs text-muted-foreground">Última alteração: {new Date(item.updated_at).toLocaleString("pt-BR")}{item.updated_by ? ` · ${usuarios.data?.find((u) => u.userId === item.updated_by)?.nome ?? "Gestor"}` : " · Cadastro inicial"}</p></div><Button size="icon" variant="ghost" onClick={() => setEditingModalidade(item)} aria-label="Editar modalidade"><Pencil className="h-4 w-4" /></Button></Card>)}
           </TabsContent>
+          <TabsContent value="feriados" className="space-y-3 pt-3"><div className="flex justify-end"><Button className="gap-2" onClick={() => setEditingFeriado(null)}><Plus className="h-4 w-4" /> Adicionar feriado</Button></div><div className="max-h-[52vh] space-y-4 overflow-y-auto pr-1">{[2026,2027].map((year) => <section key={year}><h3 className="mb-2 text-sm font-semibold">{year}</h3><div className="grid gap-2 md:grid-cols-2">{(feriados.data ?? []).filter((f)=>f.data.startsWith(String(year))).map((f)=><Card key={f.id} className="flex items-center justify-between gap-2 p-3"><div><p className="text-sm font-medium">{new Date(`${f.data}T12:00:00`).toLocaleDateString("pt-BR")} · {f.nome}</p><p className="text-xs text-muted-foreground">{f.abrangencia === "nacional" ? "Nacional" : f.abrangencia === "estadual_RJ" ? "Estado do Rio" : "Cidade do Rio"}</p></div><Button size="icon" variant="ghost" onClick={()=>setEditingFeriado(f)} aria-label="Editar feriado"><Pencil className="h-4 w-4" /></Button></Card>)}</div></section>)}</div></TabsContent>
         </Tabs>
       </DialogContent>
     </Dialog>
     {editing !== undefined && <ColaboradorDialog initial={editing} onClose={() => setEditing(undefined)} />}
     {editingModalidade !== undefined && <ModalidadeDialog initial={editingModalidade} nextOrder={(modalidades.data?.length ?? 0) + 1} onClose={() => setEditingModalidade(undefined)} />}
+    {editingFeriado !== undefined && <FeriadoDialog initial={editingFeriado} onClose={() => setEditingFeriado(undefined)} />}
   </>;
 }
 
@@ -85,6 +90,12 @@ function ModalidadeDialog({ initial, nextOrder, onClose }: { initial: EscalaModa
   const save=useSalvarEscalaModalidade(); const [nome,setNome]=useState(initial?.nome??""); const [motivo,setMotivo]=useState<ModalidadeMotivo>(initial?.motivo??"outro"); const [horas,setHoras]=useState(String(initial?.horas??8)); const [valor,setValor]=useState(String(initial?.valor??0)); const [unidade,setUnidade]=useState<EscalaUnidade>(initial?.unidade??"Ambas"); const [ativo,setAtivo]=useState(initial?.ativo??true);
   const submit=()=>{if(!nome.trim()||Number(horas)<=0||Number(valor)<0)return toast.error("Preencha nome, horas e valor"); save.mutate({id:initial?.id??"",nome,motivo,horas:Number(horas),valor:Number(valor),unidade,ativo,ordem:initial?.ordem??nextOrder},{onSuccess:()=>{toast.success("Modalidade salva");onClose();},onError:()=>toast.error("Não foi possível salvar")});};
   return <Dialog open onOpenChange={(v)=>!v&&onClose()}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="flex items-center gap-2"><WalletCards className="h-5 w-5" /> {initial?"Editar modalidade":"Nova modalidade"}</DialogTitle><DialogDescription>O valor será copiado para cada plantão e não mudará retroativamente.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2"><Field label="Nome"><Input value={nome} onChange={(e)=>setNome(e.target.value)} /></Field><Field label="Motivo"><Select value={motivo} onValueChange={(v)=>setMotivo(v as ModalidadeMotivo)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="reforco_ocupacao">Reforço de ocupação</SelectItem><SelectItem value="cobertura_falta">Cobertura de falta</SelectItem><SelectItem value="outro">Outro</SelectItem></SelectContent></Select></Field><Field label="Horas"><Input type="number" min="0.5" step="0.5" value={horas} onChange={(e)=>setHoras(e.target.value)} /></Field><Field label="Valor (R$)"><Input type="number" min="0" step="0.01" value={valor} onChange={(e)=>setValor(e.target.value)} /></Field><Field label="Unidade"><Select value={unidade} onValueChange={(v)=>setUnidade(v as EscalaUnidade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Botafogo","Ipanema","Ambas"].map((u)=><SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></Field><div className="flex items-end gap-2 pb-2"><Switch checked={ativo} onCheckedChange={setAtivo}/><Label>Ativa</Label></div></div><DialogFooter><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit} disabled={save.isPending}>Salvar</Button></DialogFooter></DialogContent></Dialog>;
+}
+
+function FeriadoDialog({ initial, onClose }: { initial: FeriadoEscala | null; onClose: () => void }) {
+  const save=useSalvarEscalaFeriado(); const remove=useExcluirEscalaFeriado(); const [data,setData]=useState(initial?.data??""); const [nome,setNome]=useState(initial?.nome??""); const [abrangencia,setAbrangencia]=useState<FeriadoEscala["abrangencia"]>(initial?.abrangencia??"nacional");
+  const submit=()=>{if(!data||!nome.trim())return toast.error("Informe data e nome");save.mutate({id:initial?.id??"",data,nome,abrangencia},{onSuccess:()=>{toast.success("Feriado salvo");onClose();},onError:()=>toast.error("Não foi possível salvar")});};
+  return <Dialog open onOpenChange={(v)=>!v&&onClose()}><DialogContent className="sm:max-w-md"><DialogHeader><DialogTitle>{initial?"Editar feriado":"Adicionar feriado"}</DialogTitle><DialogDescription>Cadastro informativo usado no planejamento da Escala.</DialogDescription></DialogHeader><div className="space-y-4"><Field label="Data"><Input type="date" value={data} onChange={(e)=>setData(e.target.value)} /></Field><Field label="Nome"><Input value={nome} onChange={(e)=>setNome(e.target.value)} /></Field><Field label="Abrangência"><Select value={abrangencia} onValueChange={(v)=>setAbrangencia(v as FeriadoEscala["abrangencia"])}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="nacional">Nacional</SelectItem><SelectItem value="estadual_RJ">Estado do Rio</SelectItem><SelectItem value="municipal_Rio">Cidade do Rio</SelectItem></SelectContent></Select></Field></div><DialogFooter className="sm:justify-between">{initial?<Button variant="destructive" className="gap-2" onClick={()=>remove.mutate(initial.id,{onSuccess:()=>{toast.success("Feriado removido");onClose();}})}><Trash2 className="h-4 w-4" /> Excluir</Button>:<span/>}<div className="flex gap-2"><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit}>Salvar</Button></div></DialogFooter></DialogContent></Dialog>;
 }
 
 const LEGACY_KEY = "injoy.escala.equipe.v1";
