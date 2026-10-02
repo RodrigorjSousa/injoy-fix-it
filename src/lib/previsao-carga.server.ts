@@ -1,0 +1,66 @@
+import { cloudbedsFetch, type CloudbedsProperty } from "@/lib/cloudbeds/client.server";
+import { predictHousekeepingTasks, type ForecastReservation } from "@/lib/cloudbeds/housekeeping-rules";
+import { addCivilDays } from "@/lib/escala-engine";
+import { todaySP } from "@/lib/tz";
+
+type Unit = "Botafogo" | "Ipanema";
+type Raw = Record<string, unknown>;
+const text = (value: unknown) => typeof value === "string" ? value.trim() : value == null ? "" : String(value);
+const dateOnly = (value: unknown) => text(value).slice(0, 10);
+const minutes = (value: string | null | undefined) => { if (!value) return null; const [h, m] = value.slice(0, 5).split(":").map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null; };
+const duration = (start: string | null, end: string | null) => { const a=minutes(start),b=minutes(end); if(a===null||b===null)return 0; return b>=a?b-a:1440-a+b; };
+const arrival = (value: unknown) => text(value).match(/\b(\d{1,2}):(\d{2})\b/)?.slice(1).join(":") ?? null;
+
+async function fetchPages(property: CloudbedsProperty, from: string, to: string) {
+  const page = async (pageNumber: number) => {
+    const qs = new URLSearchParams({ checkInFrom: addCivilDays(from, -365), checkInTo: to, checkOutFrom: from, checkOutTo: to, includeGuestsDetails: "true", includeAllRooms: "true", pageSize: "100", pageNumber: String(pageNumber) });
+    const response = await cloudbedsFetch(property, `/getReservations?${qs}`);
+    if (!response.ok) throw new Error(`Cloudbeds indisponível (${response.status})`);
+    return response.json() as Promise<{ success?: boolean; data?: Raw[]; total?: number | string; count?: number | string }>;
+  };
+  const first = await page(1); if (first.success === false) throw new Error("Cloudbeds retornou erro");
+  const rows = [...(first.data ?? [])]; const pages = Math.min(50, Math.ceil(Number(first.total ?? first.count ?? rows.length) / 100));
+  for (let current = 2; current <= pages; current++) { const next = await page(current); rows.push(...(next.data ?? [])); }
+  return rows;
+}
+
+function normalize(raw: Raw[]): ForecastReservation[] {
+  return raw.flatMap((record) => {
+    const status = text(record.status); const topIn = dateOnly(record.reservationCheckIn ?? record.startDate); const topOut = dateOnly(record.reservationCheckOut ?? record.endDate);
+    const rooms = Array.isArray(record.rooms) ? record.rooms as Raw[] : [];
+    const guestRooms = Object.values((record.guestList as Raw | undefined) ?? {}).flatMap((guest) => { const g=guest as Raw; return [...(Array.isArray(g.rooms)?g.rooms:[]), ...(Array.isArray(g.unassignedRooms)?g.unassignedRooms:[])] as Raw[]; });
+    const source = rooms.length ? rooms : guestRooms;
+    return source.flatMap((room) => { const roomNumber=text(room.roomName ?? room.roomNumber ?? room.assignedRoomNumber); if(!roomNumber)return []; return [{ roomNumber, checkIn:dateOnly(room.roomCheckIn ?? room.checkInDate ?? room.startDate) || topIn, checkOut:dateOnly(room.roomCheckOut ?? room.checkOutDate ?? room.endDate) || topOut, status:text(room.roomStatus)||status, arrivalTime:arrival(room.estimatedArrivalTime ?? room.arrivalTime ?? record.estimatedArrivalTime ?? record.arrivalTime) }]; });
+  });
+}
+
+export async function calculateLoadForecast(units: Unit[]) {
+  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+  const start=todaySP(), end=addCivilDays(start,7), inserted:string[]=[];
+  for (const unit of units) {
+    const property=unit.toLowerCase() as CloudbedsProperty;
+    const [raw, configResult, historyResult, daysResult] = await Promise.all([
+      fetchPages(property,start,end), supabaseAdmin.from("previsao_carga_config").select("*").eq("unidade",unit).single(),
+      supabaseAdmin.from("room_housekeeping_history").select("task_name,started_at,ended_at").eq("property",unit).gte("started_at",new Date(Date.now()-60*86400000).toISOString()),
+      supabaseAdmin.from("escala_dias").select("*,escala_colaboradores!inner(nome,vinculo),escala_padroes(intervalo_minutos)").eq("unidade",unit).eq("setor","camareiras").gte("data",start).lte("data",end),
+    ]);
+    if (configResult.error) throw configResult.error; if(historyResult.error)throw historyResult.error; if(daysResult.error)throw daysResult.error;
+    const reservations=normalize(raw); const rooms=[...new Set(reservations.map(r=>r.roomNumber))]; const config=configResult.data;
+    const aliases:Record<string,string>={"GERAL":"geral_minutos","GERAL - CHECK-IN":"geral_checkin_minutos","TROCA + ARRUMAÇÃO":"troca_arrumacao_minutos","ARRUMAÇÃO":"arrumacao_minutos"};
+    const measured=new Map<string,number>();
+    for(const task of Object.keys(aliases)){const samples=(historyResult.data??[]).filter(row=>text(row.task_name).toUpperCase()===task).map(row=>(new Date(row.ended_at??"").getTime()-new Date(row.started_at??"").getTime())/60000).filter(n=>n>=5&&n<=180).sort((a,b)=>a-b);if(samples.length>=20)measured.set(task,samples[Math.floor(samples.length/2)]);}
+    for(let offset=0;offset<=7;offset++){
+      const date=addCivilDays(start,offset), tasks=predictHousekeepingTasks(reservations,rooms,date); const counts=(name:string)=>tasks.filter(t=>t.tarefa===name).length;
+      const taskMinutes=(name:string)=>measured.get(name)??Number(config[aliases[name] as keyof typeof config]);
+      const load=Math.round(counts("GERAL")*taskMinutes("GERAL")+counts("GERAL - CHECK-IN")*taskMinutes("GERAL - CHECK-IN")+counts("TROCA + ARRUMAÇÃO")*taskMinutes("TROCA + ARRUMAÇÃO")+counts("ARRUMAÇÃO")*taskMinutes("ARRUMAÇÃO"));
+      const scheduled=(daysResult.data??[]).filter(row=>row.data===date&&(row.status==="trabalho"||row.status==="extra"));
+      const capacityDetails=scheduled.map(row=>{const extra=row.status==="extra";const pattern=Array.isArray(row.escala_padroes)?row.escala_padroes[0]:null;const gross=extra?Number(row.horas_contratadas??0)*60:duration(row.hora_entrada,row.hora_saida);const interval=extra?0:Number(pattern?.intervalo_minutos??0);return {nome:(row.escala_colaboradores as {nome?:string}|null)?.nome??"Camareira",tipo:extra?"freelancer":"fixa",minutos_brutos:gross,intervalo_minutos:interval,minutos_liquidos:Math.max(0,Math.round((gross-interval)*(1-Number(config.margem_pct)/100)))};});
+      const capacity=capacityDetails.reduce((sum,item)=>sum+item.minutos_liquidos,0), pct=capacity>0?Math.round(load/capacity*100):load>0?999:0, generals=counts("GERAL")+counts("GERAL - CHECK-IN");
+      const level=capacity===0&&load>0||pct>Number(config.limite_vermelho_pct)||generals>=config.limite_vermelho_gerais?"vermelho":pct>=Number(config.limite_amarelo_pct)||generals>=config.limite_amarelo_gerais?"amarelo":"verde";
+      const arrivals=tasks.flatMap(task=>task.chegada?[task.chegada]:[]).sort();
+      const {data:snapshot,error:snapshotError}=await supabaseAdmin.from("previsao_carga").insert({unidade:unit,data:date,horizonte_dias:offset,qtd_geral:counts("GERAL"),qtd_geral_checkin:counts("GERAL - CHECK-IN"),qtd_troca_arrumacao:counts("TROCA + ARRUMAÇÃO"),qtd_arrumacao:counts("ARRUMAÇÃO"),qtd_checkins:reservations.filter(r=>r.checkIn===date).length,qtd_checkouts:reservations.filter(r=>r.checkOut===date).length,carga_minutos:load,capacidade_minutos:capacity,camareiras_escaladas:scheduled.filter(r=>r.status==="trabalho").length,freelancers_escalados:scheduled.filter(r=>r.status==="extra").length,ocupacao_carga_pct:pct,nivel:level,chegada_mais_cedo:arrivals[0]??null,detalhes:tasks,capacidade_detalhes:capacityDetails}).select("id").single();
+      if(snapshotError)throw snapshotError; inserted.push(snapshot.id);
+    }
+  }
+  return { inserted: inserted.length, calculatedAt:new Date().toISOString() };
+}
