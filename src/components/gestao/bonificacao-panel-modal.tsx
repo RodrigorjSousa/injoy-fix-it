@@ -182,7 +182,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
   const [elogio, setElogio] = useState(false);
 
   const preview = useMemo(() => {
-    if (!cfg) return { recepcao: 0, camareiras: 0 };
+    if (!cfg) return null;
     const nf = Number(notaFuncionarios);
     const nl = Number(notaLimpeza);
     const ng = Number(notaGeral);
@@ -194,7 +194,6 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!cfg) return;
     const nf = Number(notaFuncionarios);
     const nl = Number(notaLimpeza);
     const ng = Number(notaGeral);
@@ -306,12 +305,14 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
         />
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <SaldoBanner total={preview.recepcao} titulo="Valor previsto · Recepção" />
-        <SaldoBanner total={preview.camareiras} titulo="Valor previsto · Camareiras / Manutenção" />
-      </div>
+      {preview && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+          <SaldoBanner total={preview.recepcao} titulo="Valor previsto · Recepção" />
+          <SaldoBanner total={preview.camareiras} titulo="Valor previsto · Camareiras / Manutenção" />
+        </div>
+      )}
 
-      <Button type="submit" className="w-full" disabled={criar.isPending || !cfg}>
+      <Button type="submit" className="w-full" disabled={criar.isPending}>
         {criar.isPending ? "Salvando..." : "Salvar Avaliação"}
       </Button>
     </form>

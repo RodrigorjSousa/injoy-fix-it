@@ -53,3 +53,4 @@
 - [x] Confirmar a tela liberada no cadastro da Mayara
 - [x] Liberar leitura das regras necessárias para preencher e salvar avaliações
 - [x] Validar o preenchimento autenticado como Mayara
+- [x] Permitir o salvamento mesmo quando as regras financeiras não estão visíveis ao funcionário
