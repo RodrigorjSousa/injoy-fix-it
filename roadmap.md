@@ -13,5 +13,5 @@
 - [x] Criar indicadores mensais por unidade
 - [x] Implementar painel financeiro, comparativos e gráficos
 - [x] Mostrar alertas financeiros no hub do gestor
-- [ ] Agendar notificações financeiras diárias às 08:00
-- [ ] Validar a continuação do Financeiro no celular e computador
+- [x] Agendar notificações financeiras diárias às 08:00
+- [x] Validar a continuação do Financeiro no celular e computador
