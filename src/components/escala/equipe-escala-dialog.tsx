@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import { useFuncionarios } from "@/lib/store";
 import {
@@ -19,6 +20,7 @@ import {
   type EscalaModalidade, type EscalaPadrao, type EscalaPadraoTipo, type EscalaSetor,
   type EscalaTurno, type EscalaUnidade, type EscalaVinculo, type ModalidadeMotivo,
 } from "@/lib/escala";
+import { useImportarEquipeLocal, type LegacyEscalaMember } from "@/lib/escala";
 
 const DAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const SETORES: { value: EscalaSetor; label: string }[] = [{ value: "manutencao", label: "Manutenção" }, { value: "recepcao", label: "Recepção" }, { value: "camareiras", label: "Camareiras" }];
@@ -83,4 +85,36 @@ function ModalidadeDialog({ initial, nextOrder, onClose }: { initial: EscalaModa
   const save=useSalvarEscalaModalidade(); const [nome,setNome]=useState(initial?.nome??""); const [motivo,setMotivo]=useState<ModalidadeMotivo>(initial?.motivo??"outro"); const [horas,setHoras]=useState(String(initial?.horas??8)); const [valor,setValor]=useState(String(initial?.valor??0)); const [unidade,setUnidade]=useState<EscalaUnidade>(initial?.unidade??"Ambas"); const [ativo,setAtivo]=useState(initial?.ativo??true);
   const submit=()=>{if(!nome.trim()||Number(horas)<=0||Number(valor)<0)return toast.error("Preencha nome, horas e valor"); save.mutate({id:initial?.id??"",nome,motivo,horas:Number(horas),valor:Number(valor),unidade,ativo,ordem:initial?.ordem??nextOrder},{onSuccess:()=>{toast.success("Modalidade salva");onClose();},onError:()=>toast.error("Não foi possível salvar")});};
   return <Dialog open onOpenChange={(v)=>!v&&onClose()}><DialogContent className="sm:max-w-lg"><DialogHeader><DialogTitle className="flex items-center gap-2"><WalletCards className="h-5 w-5" /> {initial?"Editar modalidade":"Nova modalidade"}</DialogTitle><DialogDescription>O valor será copiado para cada plantão e não mudará retroativamente.</DialogDescription></DialogHeader><div className="grid gap-4 sm:grid-cols-2"><Field label="Nome"><Input value={nome} onChange={(e)=>setNome(e.target.value)} /></Field><Field label="Motivo"><Select value={motivo} onValueChange={(v)=>setMotivo(v as ModalidadeMotivo)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="reforco_ocupacao">Reforço de ocupação</SelectItem><SelectItem value="cobertura_falta">Cobertura de falta</SelectItem><SelectItem value="outro">Outro</SelectItem></SelectContent></Select></Field><Field label="Horas"><Input type="number" min="0.5" step="0.5" value={horas} onChange={(e)=>setHoras(e.target.value)} /></Field><Field label="Valor (R$)"><Input type="number" min="0" step="0.01" value={valor} onChange={(e)=>setValor(e.target.value)} /></Field><Field label="Unidade"><Select value={unidade} onValueChange={(v)=>setUnidade(v as EscalaUnidade)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{["Botafogo","Ipanema","Ambas"].map((u)=><SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent></Select></Field><div className="flex items-end gap-2 pb-2"><Switch checked={ativo} onCheckedChange={setAtivo}/><Label>Ativa</Label></div></div><DialogFooter><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit} disabled={save.isPending}>Salvar</Button></DialogFooter></DialogContent></Dialog>;
+}
+
+const LEGACY_KEY = "injoy.escala.equipe.v1";
+export function ImportarEquipeLocalPrompt() {
+  const [legacy, setLegacy] = useState<LegacyEscalaMember[] | null>(null);
+  const importer = useImportarEquipeLocal();
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem(LEGACY_KEY);
+      if (!raw) return;
+      const parsed: unknown = JSON.parse(raw);
+      if (Array.isArray(parsed)) setLegacy(parsed as LegacyEscalaMember[]);
+      else window.localStorage.removeItem(LEGACY_KEY);
+    } catch {
+      window.localStorage.removeItem(LEGACY_KEY);
+    }
+  }, []);
+  const dismiss = () => { window.localStorage.removeItem(LEGACY_KEY); setLegacy(null); };
+  const importNow = () => {
+    if (!legacy) return;
+    importer.mutate(legacy, {
+      onSuccess: ({ imported, ignored }) => {
+        window.localStorage.removeItem(LEGACY_KEY);
+        setLegacy(null);
+        toast.success(`${imported} cadastro(s) importado(s)`, { description: `${ignored} item(ns) já existiam ou foram ignorados.` });
+      },
+      onError: () => toast.error("Não foi possível importar. Os dados continuam salvos neste aparelho."),
+    });
+  };
+  return <AlertDialog open={legacy !== null}>
+    <AlertDialogContent><AlertDialogHeader><AlertDialogTitle>Importar equipe salva neste aparelho?</AlertDialogTitle><AlertDialogDescription>Encontramos um cadastro antigo da Escala. Somente pessoas que ainda não existem serão adicionadas.</AlertDialogDescription></AlertDialogHeader><AlertDialogFooter><AlertDialogCancel onClick={dismiss}>Não importar</AlertDialogCancel><AlertDialogAction onClick={importNow} disabled={importer.isPending}>Importar equipe</AlertDialogAction></AlertDialogFooter></AlertDialogContent>
+  </AlertDialog>;
 }
