@@ -36,7 +36,7 @@ export function worksOnDate(pattern: EnginePattern, date: string): boolean {
   const diff=civilDayDiff(date,pattern.data_base);
   if(pattern.tipo==="12x36") return mod(diff,2)===0;
   if(pattern.tipo==="6x1") return mod(diff,7)!==0;
-  const sunday=addCivilDays(date,7-dow);
+  const sunday=addCivilDays(date,dow===0?0:7-dow);
   const week=Math.floor(civilDayDiff(sunday,pattern.data_base)/7);
   const weekA=mod(week,2)===0;
   const off=new Set(pattern.folgas_fixas);
