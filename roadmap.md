@@ -52,4 +52,4 @@
 
 - [x] Confirmar a tela liberada no cadastro da Mayara
 - [x] Liberar leitura das regras necessárias para preencher e salvar avaliações
-- [ ] Validar o preenchimento autenticado como Mayara
+- [x] Validar o preenchimento autenticado como Mayara
