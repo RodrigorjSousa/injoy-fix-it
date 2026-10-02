@@ -92,6 +92,13 @@
       "when": 1790943887414,
       "tag": "0012_finalize_staff_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1790943960335,
+      "tag": "0013_correct_schedule_finance_sync",
+      "breakpoints": true
     }
   ]
 }

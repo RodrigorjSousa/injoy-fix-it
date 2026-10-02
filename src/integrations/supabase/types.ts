@@ -1090,6 +1090,13 @@ export type Database = {
             foreignKeyName: "fin_lancamentos_recorrencia_id_fkey"
             columns: ["recorrencia_id"]
             isOneToOne: false
+            referencedRelation: "escala_alertas_financeiros"
+            referencedColumns: ["lancamento_id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
             referencedRelation: "fin_lancamentos"
             referencedColumns: ["id"]
           },
@@ -2638,6 +2645,31 @@ export type Database = {
       }
     }
     Views: {
+      escala_alertas_financeiros: {
+        Row: {
+          colaborador_id: string | null
+          competencia: string | null
+          divergencia_pago: boolean | null
+          faltas_descobertas: number | null
+          lancamento_id: string | null
+          lancamento_status: string | null
+          nome: string | null
+          qtd: number | null
+          sem_valor: number | null
+          total: number | null
+          unidade: string | null
+          valor_lancamento: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_dias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escala_prevista_dia: {
         Row: {
           colaborador_id: string | null
