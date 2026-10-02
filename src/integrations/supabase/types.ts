@@ -450,8 +450,10 @@ export type Database = {
           alterado_em: string
           alterado_por: string | null
           antes: Json
+          colaborador_id: string | null
+          data: string | null
           depois: Json
-          escala_dia_id: string
+          escala_dia_id: string | null
           id: string
           motivo: string | null
         }
@@ -459,8 +461,10 @@ export type Database = {
           alterado_em?: string
           alterado_por?: string | null
           antes: Json
+          colaborador_id?: string | null
+          data?: string | null
           depois: Json
-          escala_dia_id: string
+          escala_dia_id?: string | null
           id?: string
           motivo?: string | null
         }
@@ -468,12 +472,21 @@ export type Database = {
           alterado_em?: string
           alterado_por?: string | null
           antes?: Json
+          colaborador_id?: string | null
+          data?: string | null
           depois?: Json
-          escala_dia_id?: string
+          escala_dia_id?: string | null
           id?: string
           motivo?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "escala_alteracoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "escala_alteracoes_escala_dia_id_fkey"
             columns: ["escala_dia_id"]
