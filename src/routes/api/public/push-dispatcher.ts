@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
 
-type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request" | "finance_due";
+type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request" | "finance_due" | "escala_publicada" | "escala_alterada";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
@@ -44,6 +44,13 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         url: "/gestor/financeiro",
         tag: `financeiro-${d.date ?? "hoje"}`,
       };
+    case "escala_publicada": {
+      const date = String(d.competencia ?? "");
+      const [year, month] = date.split("-");
+      return { title: "📅 Escala publicada", body: `Sua escala de ${month}/${year} foi publicada.`, url: "/minha-escala", tag: `escala-${d.id}` };
+    }
+    case "escala_alterada":
+      return { title: "📅 Sua escala mudou", body: `Dia ${String(d.data ?? "").split("-").reverse().slice(0, 2).join("/")}: ${d.antes ?? "—"} → ${d.depois ?? "—"}${d.motivo ? `, motivo: ${d.motivo}` : ""}.`, url: "/minha-escala", tag: `escala-dia-${d.id}` };
   }
 }
 
@@ -88,6 +95,20 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       return byRoles(["admin", "gestor"]);
     case "finance_due":
       return byRoles(["admin", "gestor"]);
+    case "escala_alterada":
+      return typeof d.user_id === "string" ? [d.user_id] : [];
+    case "escala_publicada": {
+      const { data } = await supabaseAdmin
+        .from("escala_colaboradores")
+        .select("funcionario_id")
+        .eq("setor", String(d.setor))
+        .eq("ativo", true)
+        .in("unidade", [String(d.unidade), "Ambas"]);
+      const funcionarioIds = (data ?? []).map((row) => row.funcionario_id).filter((id): id is string => typeof id === "string");
+      if (!funcionarioIds.length) return [];
+      const { data: employees } = await supabaseAdmin.from("funcionarios").select("user_id").in("id", funcionarioIds);
+      return (employees ?? []).map((row) => row.user_id).filter((id): id is string => typeof id === "string");
+    }
   }
 }
 

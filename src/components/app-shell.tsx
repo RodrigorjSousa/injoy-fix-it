@@ -132,7 +132,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/check-in-digital", label: "CHECK IN DIGITAL", icon: Key },
       { to: "/gestao-boas-vindas", label: "BOAS-VINDAS", icon: LayoutGrid },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
-      { to: "/escala", label: "ESCALA", icon: CalendarDays },
+      { to: "/gestor/escala", label: "ESCALA", icon: CalendarDays },
 
     ],
   },

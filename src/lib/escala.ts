@@ -171,7 +171,7 @@ export function useGerarEscalaMes() {
 
 export function usePublicarEscalaMes() {
   const refresh=useRefreshSchedule();
-  return useMutation({mutationFn:async(input:{unidade:"Botafogo"|"Ipanema";setor:EscalaSetor;competencia:string})=>{const {error}=await supabase.rpc("escala_publicar_mes",{_unidade:input.unidade,_setor:input.setor,_competencia:input.competencia});if(error)throw error;},onSuccess:refresh});
+  return useMutation({mutationFn:async(input:{unidade:"Botafogo"|"Ipanema";setor:EscalaSetor;competencia:string;justificativa?:string|null})=>{const {error}=await supabase.rpc("escala_publicar_mes",{_unidade:input.unidade,_setor:input.setor,_competencia:input.competencia,_justificativa:input.justificativa??null});if(error)throw error;},onSuccess:refresh});
 }
 
 export type EscalaDiaInput=Omit<EscalaDia,"id"|"created_at"|"updated_at"|"updated_by">;
