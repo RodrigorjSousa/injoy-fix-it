@@ -588,6 +588,45 @@ export type Database = {
           },
         ]
       }
+      fin_indicadores_mes: {
+        Row: {
+          competencia: string
+          created_at: string
+          created_by: string
+          diarias_vendidas: number
+          id: string
+          observacoes: string | null
+          ocupacao_pct: number
+          receita_hospedagem: number
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          created_by?: string
+          diarias_vendidas?: number
+          id?: string
+          observacoes?: string | null
+          ocupacao_pct?: number
+          receita_hospedagem?: number
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          created_by?: string
+          diarias_vendidas?: number
+          id?: string
+          observacoes?: string | null
+          ocupacao_pct?: number
+          receita_hospedagem?: number
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       fin_lancamentos: {
         Row: {
           anexo_path: string | null
@@ -610,6 +649,7 @@ export type Database = {
           observacoes: string | null
           qtd_diarias: number | null
           recorrencia_id: string | null
+          recorrencia_modelo_id: string | null
           status: string
           tipo: string
           unidade: string
@@ -637,6 +677,7 @@ export type Database = {
           observacoes?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
+          recorrencia_modelo_id?: string | null
           status?: string
           tipo: string
           unidade: string
@@ -664,6 +705,7 @@ export type Database = {
           observacoes?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
+          recorrencia_modelo_id?: string | null
           status?: string
           tipo?: string
           unidade?: string
@@ -697,6 +739,79 @@ export type Database = {
             columns: ["recorrencia_id"]
             isOneToOne: false
             referencedRelation: "fin_lancamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_recorrencia_modelo_id_fkey"
+            columns: ["recorrencia_modelo_id"]
+            isOneToOne: false
+            referencedRelation: "fin_recorrencias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_recorrencias: {
+        Row: {
+          ativo: boolean
+          categoria_id: string
+          created_at: string
+          created_by: string
+          descricao: string
+          dia_vencimento: number
+          forma_pagamento: string | null
+          fornecedor_id: string | null
+          id: string
+          tipo: string
+          unidade: string
+          updated_at: string
+          valor_previsto: number
+          valor_variavel: boolean
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_id: string
+          created_at?: string
+          created_by?: string
+          descricao: string
+          dia_vencimento: number
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          tipo: string
+          unidade: string
+          updated_at?: string
+          valor_previsto: number
+          valor_variavel?: boolean
+        }
+        Update: {
+          ativo?: boolean
+          categoria_id?: string
+          created_at?: string
+          created_by?: string
+          descricao?: string
+          dia_vencimento?: number
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          id?: string
+          tipo?: string
+          unidade?: string
+          updated_at?: string
+          valor_previsto?: number
+          valor_variavel?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_recorrencias_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_recorrencias_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fin_fornecedores"
             referencedColumns: ["id"]
           },
         ]
@@ -2204,6 +2319,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      fin_gerar_mes: { Args: { _competencia: string }; Returns: number }
       get_camareiras_user_ids: {
         Args: never
         Returns: {
