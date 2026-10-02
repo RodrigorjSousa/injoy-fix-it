@@ -31,6 +31,7 @@ import { Route as AuthenticatedHistoricoCaixaRouteImport } from './routes/_authe
 import { Route as AuthenticatedHistoricoLimpezaRouteImport } from './routes/_authenticated/historico-limpeza'
 import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_authenticated/historico-manutencao'
 import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
+import { Route as AuthenticatedMinhaEscalaRouteImport } from './routes/_authenticated/minha-escala'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
@@ -168,6 +169,12 @@ const AuthenticatedHistoricoVistoriasRoute =
     path: '/historico-vistorias',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedMinhaEscalaRoute =
+  AuthenticatedMinhaEscalaRouteImport.update({
+    id: '/minha-escala',
+    path: '/minha-escala',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   id: '/painel',
   path: '/painel',
@@ -271,6 +278,7 @@ export interface FileRoutesByFullPath {
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
+  '/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -306,6 +314,7 @@ export interface FileRoutesByTo {
   '/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
+  '/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/painel': typeof AuthenticatedPainelRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -346,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/historico-limpeza': typeof AuthenticatedHistoricoLimpezaRoute
   '/_authenticated/historico-manutencao': typeof AuthenticatedHistoricoManutencaoRoute
   '/_authenticated/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
+  '/_authenticated/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
@@ -387,6 +397,7 @@ export interface FileRouteTypes {
     | '/historico-limpeza'
     | '/historico-manutencao'
     | '/historico-vistorias'
+    | '/minha-escala'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -422,6 +433,7 @@ export interface FileRouteTypes {
     | '/historico-limpeza'
     | '/historico-manutencao'
     | '/historico-vistorias'
+    | '/minha-escala'
     | '/painel'
     | '/preventiva'
     | '/recepcao'
@@ -461,6 +473,7 @@ export interface FileRouteTypes {
     | '/_authenticated/historico-limpeza'
     | '/_authenticated/historico-manutencao'
     | '/_authenticated/historico-vistorias'
+    | '/_authenticated/minha-escala'
     | '/_authenticated/painel'
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
@@ -644,6 +657,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedHistoricoVistoriasRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/minha-escala': {
+      id: '/_authenticated/minha-escala'
+      path: '/minha-escala'
+      fullPath: '/minha-escala'
+      preLoaderRoute: typeof AuthenticatedMinhaEscalaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/painel': {
       id: '/_authenticated/painel'
       path: '/painel'
@@ -787,6 +807,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoricoLimpezaRoute: typeof AuthenticatedHistoricoLimpezaRoute
   AuthenticatedHistoricoManutencaoRoute: typeof AuthenticatedHistoricoManutencaoRoute
   AuthenticatedHistoricoVistoriasRoute: typeof AuthenticatedHistoricoVistoriasRoute
+  AuthenticatedMinhaEscalaRoute: typeof AuthenticatedMinhaEscalaRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
@@ -817,6 +838,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoricoLimpezaRoute: AuthenticatedHistoricoLimpezaRoute,
   AuthenticatedHistoricoManutencaoRoute: AuthenticatedHistoricoManutencaoRoute,
   AuthenticatedHistoricoVistoriasRoute: AuthenticatedHistoricoVistoriasRoute,
+  AuthenticatedMinhaEscalaRoute: AuthenticatedMinhaEscalaRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
