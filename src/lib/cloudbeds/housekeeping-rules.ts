@@ -19,18 +19,19 @@ const dayDiff = (date: string, start: string) =>
 
 export function predictHousekeepingTasks(reservations: ForecastReservation[], rooms: string[], date: string): ForecastTask[] {
   const valid = reservations.filter((reservation) => !excluded.has(reservation.status.toLowerCase()));
-  return rooms.flatMap((roomNumber) => {
+  const tasks: ForecastTask[] = [];
+  for (const roomNumber of rooms) {
     const roomReservations = valid.filter((reservation) => reservation.roomNumber === roomNumber);
     const departure = roomReservations.find((reservation) => reservation.checkOut === date);
     const arrival = roomReservations.find((reservation) => reservation.checkIn === date);
-    if (departure && arrival) return [{ quarto: roomNumber, tarefa: "GERAL - CHECK-IN" as const, chegada: arrival.arrivalTime }];
-    if (departure) return [{ quarto: roomNumber, tarefa: "GERAL" as const, chegada: null }];
+    if (departure && arrival) { tasks.push({ quarto: roomNumber, tarefa: "GERAL - CHECK-IN", chegada: arrival.arrivalTime }); continue; }
+    if (departure) { tasks.push({ quarto: roomNumber, tarefa: "GERAL", chegada: null }); continue; }
     const inHouse = roomReservations.find((reservation) => reservation.checkIn < date && reservation.checkOut > date);
     if (inHouse) {
       const troca = dayDiff(date, inHouse.checkIn) > 0 && dayDiff(date, inHouse.checkIn) % 3 === 0;
-      return [{ quarto: roomNumber, tarefa: troca ? "TROCA + ARRUMAÇÃO" as const : "ARRUMAÇÃO" as const, chegada: null }];
+      tasks.push({ quarto: roomNumber, tarefa: troca ? "TROCA + ARRUMAÇÃO" : "ARRUMAÇÃO", chegada: null }); continue;
     }
-    if (arrival) return [{ quarto: roomNumber, tarefa: "REVISÃO" as const, chegada: arrival.arrivalTime }];
-    return [];
-  });
+    if (arrival) tasks.push({ quarto: roomNumber, tarefa: "REVISÃO", chegada: arrival.arrivalTime });
+  }
+  return tasks;
 }

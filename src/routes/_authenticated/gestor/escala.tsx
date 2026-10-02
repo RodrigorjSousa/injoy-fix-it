@@ -28,7 +28,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/_authenticated/gestor/escala")({
-  validateSearch:(search:Record<string,unknown>)=>({reforcoData:typeof search.reforcoData==="string"?search.reforcoData:undefined,reforcoUnidade:search.reforcoUnidade==="Botafogo"||search.reforcoUnidade==="Ipanema"?search.reforcoUnidade:undefined}),
+  validateSearch:(search:Record<string,unknown>)=>({reforcoData:typeof search.reforcoData==="string"?search.reforcoData:undefined,reforcoUnidade:(search.reforcoUnidade==="Botafogo"||search.reforcoUnidade==="Ipanema"?search.reforcoUnidade:undefined) as "Botafogo"|"Ipanema"|undefined}),
   beforeLoad: () => requireGestor(),
   head: () => ({ meta: [
     { title: "Escala de Funcionários — INJOY" },
