@@ -4,6 +4,7 @@
 export type BoasVindasAudience = "camareira" | "recepcao" | "manutencao";
 
 export type BoasVindasBlockId =
+  | "minha_escala"
   | "passagem_turno"
   | "auditoria_funcionario"
   | "resumo_bonificacao"
@@ -20,6 +21,11 @@ export type BoasVindasBlockDef = {
 };
 
 export const BOAS_VINDAS_BLOCKS: BoasVindasBlockDef[] = [
+  {
+    id: "minha_escala",
+    label: "Minha Escala",
+    description: "Próximos 14 dias da escala publicada do funcionário.",
+  },
   {
     id: "passagem_turno",
     label: "Passagem de Turno",
@@ -70,6 +76,7 @@ export const AUDIENCE_LABEL: Record<BoasVindasAudience, string> = {
 
 // Padrão inicial por público (usado quando ainda não existe registro no banco).
 const DEFAULT_ORDER: BoasVindasBlockId[] = [
+  "minha_escala",
   "passagem_turno",
   "auditoria_funcionario",
   "resumo_bonificacao",

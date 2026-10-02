@@ -41,6 +41,7 @@ import { PontoFuncionariosPainel } from "@/components/gestao/ponto-funcionarios-
 import { BonificacaoResumoCard } from "@/components/gestao/bonificacao-resumo-card";
 import { useBoasVindasView } from "@/hooks/use-boas-vindas-config";
 import type { BoasVindasBlockId } from "@/lib/boas-vindas-blocks";
+import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
 
 
 
@@ -663,6 +664,8 @@ function BoasVindas() {
         (() => {
           const renderBlock = (id: BoasVindasBlockId) => {
             switch (id) {
+              case "minha_escala":
+                return <MinhaEscalaCard key={id} dark />;
               case "saudacao":
                 return (
                   <div key={id} className="space-y-4">
@@ -807,7 +810,7 @@ function BoasVindas() {
                 return null;
             }
           };
-          const operacionais: BoasVindasBlockId[] = ["saudacao", "taxa_ocupacao", "clima", "status_quartos"];
+          const operacionais: BoasVindasBlockId[] = ["minha_escala", "saudacao", "taxa_ocupacao", "clima", "status_quartos"];
           const ids = orderedVisibleIds.filter((id) => operacionais.includes(id));
           return <>{ids.map(renderBlock)}</>;
         })()

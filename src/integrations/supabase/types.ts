@@ -680,6 +680,7 @@ export type Database = {
           competencia: string
           created_at: string
           id: string
+          justificativa_publicacao: string | null
           publicada_em: string | null
           publicada_por: string | null
           setor: string
@@ -691,6 +692,7 @@ export type Database = {
           competencia: string
           created_at?: string
           id?: string
+          justificativa_publicacao?: string | null
           publicada_em?: string | null
           publicada_por?: string | null
           setor: string
@@ -702,6 +704,7 @@ export type Database = {
           competencia?: string
           created_at?: string
           id?: string
+          justificativa_publicacao?: string | null
           publicada_em?: string | null
           publicada_por?: string | null
           setor?: string
@@ -993,6 +996,7 @@ export type Database = {
           id: string
           numero_documento: string | null
           observacoes: string | null
+          origem_escala: string | null
           qtd_diarias: number | null
           recorrencia_id: string | null
           recorrencia_modelo_id: string | null
@@ -1021,6 +1025,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
           recorrencia_modelo_id?: string | null
@@ -1049,6 +1054,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
           recorrencia_modelo_id?: string | null
@@ -1079,6 +1085,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "funcionarios"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "escala_alertas_financeiros"
+            referencedColumns: ["lancamento_id"]
           },
           {
             foreignKeyName: "fin_lancamentos_recorrencia_id_fkey"
@@ -2632,7 +2645,59 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      escala_alertas_financeiros: {
+        Row: {
+          colaborador_id: string | null
+          competencia: string | null
+          divergencia_pago: boolean | null
+          faltas_descobertas: number | null
+          lancamento_id: string | null
+          lancamento_status: string | null
+          nome: string | null
+          qtd: number | null
+          sem_valor: number | null
+          total: number | null
+          unidade: string | null
+          valor_lancamento: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_dias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escala_prevista_dia: {
+        Row: {
+          colaborador_id: string | null
+          data: string | null
+          funcionario_id: string | null
+          hora_entrada: string | null
+          hora_saida: string | null
+          status: string | null
+          turno: string | null
+          unidade: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_colaboradores_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_dias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       adjust_preventive_log_date: {
@@ -2665,10 +2730,20 @@ export type Database = {
         }
         Returns: undefined
       }
-      escala_publicar_mes: {
-        Args: { _competencia: string; _setor: string; _unidade: string }
-        Returns: undefined
-      }
+      escala_publicar_mes:
+        | {
+            Args: { _competencia: string; _setor: string; _unidade: string }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              _competencia: string
+              _justificativa?: string
+              _setor: string
+              _unidade: string
+            }
+            Returns: undefined
+          }
       escala_regenerar_mes: {
         Args: {
           _competencia: string
@@ -2676,6 +2751,10 @@ export type Database = {
           _setor: string
           _unidade: string
         }
+        Returns: number
+      }
+      escala_sincronizar_financeiro: {
+        Args: { _competencia: string; _unidade: string }
         Returns: number
       }
       fin_gerar_mes: { Args: { _competencia: string }; Returns: number }

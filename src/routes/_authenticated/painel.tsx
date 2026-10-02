@@ -38,6 +38,7 @@ import {
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
+import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) =>
@@ -121,6 +122,8 @@ function Painel() {
           </Select>
         </div>
       </header>
+
+      {!me?.isGestor && !me?.isAdmin && <MinhaEscalaCard />}
 
       {error ? (
         <ErrorState

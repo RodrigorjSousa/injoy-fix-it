@@ -21,6 +21,7 @@ import {
   Wrench,
 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
+import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
   head: () => ({
@@ -46,7 +47,7 @@ type HubPath =
   | "/check-in-digital"
   | "/gestao-boas-vindas"
   | "/configuracoes"
-  | "/escala"
+  | "/gestor/escala"
   | "/controle-ponto"
   | "/bonificacao"
   | "/historico-limpeza"
@@ -75,7 +76,7 @@ const sections: { title: string; items: HubItem[] }[] = [
     title: "Equipe",
     items: [
       { label: "Equipe", description: "Usuários e permissões", to: "/configuracoes", icon: Users, tone: "bg-blue-700" },
-      { label: "Escala", description: "Escalas por setor e unidade", to: "/escala", icon: CalendarDays, tone: "bg-amber-600" },
+      { label: "Escala", description: "Escalas por setor e unidade", to: "/gestor/escala", icon: CalendarDays, tone: "bg-amber-600" },
       { label: "Controle de Ponto", description: "Registros da equipe", to: "/controle-ponto", icon: Clock, tone: "bg-orange-600" },
       { label: "Bonificação", description: "Avaliações e valores", to: "/bonificacao", icon: Trophy, tone: "bg-emerald-600" },
     ],
@@ -96,6 +97,7 @@ function GestorHub() {
   return (
     <div className="space-y-8">
       <FinanceiroAlertas />
+      <EscalaHojeCard />
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">

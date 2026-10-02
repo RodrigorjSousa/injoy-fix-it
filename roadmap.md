@@ -30,11 +30,11 @@
 
 ## Finalização da Escala
 
-- [ ] Mover a Escala para `/gestor/escala` e redirecionar o endereço antigo
-- [ ] Finalizar publicação com justificativa, auditoria e notificações
-- [ ] Gerar PDF real e compartilhamento por WhatsApp por equipe ou pessoa
-- [ ] Mostrar os próximos 14 dias da escala nas telas dos funcionários
-- [ ] Adicionar o quadro de quem trabalha hoje e alertas de cobertura
-- [ ] Sincronizar plantões freelancers com o Financeiro sem duplicações
-- [ ] Criar a visão diária prevista para a futura integração com o ponto
+- [x] Mover a Escala para `/gestor/escala` e redirecionar o endereço antigo
+- [x] Finalizar publicação com justificativa, auditoria e notificações
+- [x] Gerar PDF real e compartilhamento por WhatsApp por equipe ou pessoa
+- [x] Mostrar os próximos 14 dias da escala nas telas dos funcionários
+- [x] Adicionar o quadro de quem trabalha hoje e alertas de cobertura
+- [x] Sincronizar plantões freelancers com o Financeiro sem duplicações
+- [x] Criar a visão diária prevista para a futura integração com o ponto
 - [ ] Validar regras, telas, exportações e notificações

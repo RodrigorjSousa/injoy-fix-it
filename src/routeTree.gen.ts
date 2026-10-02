@@ -43,6 +43,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedGestorIndexRouteImport } from './routes/_authenticated/gestor/index'
+import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authenticated/gestor/escala'
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
@@ -233,6 +234,12 @@ const AuthenticatedGestorIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorEscalaRoute =
+  AuthenticatedGestorEscalaRouteImport.update({
+    id: '/escala',
+    path: '/escala',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const AuthenticatedGestorFinanceiroRoute =
   AuthenticatedGestorFinanceiroRouteImport.update({
     id: '/financeiro',
@@ -289,6 +296,7 @@ export interface FileRoutesByFullPath {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -326,6 +334,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -367,6 +376,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/_authenticated/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -408,6 +418,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
+    | '/gestor/escala'
     | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -445,6 +456,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/chamados/$id'
+    | '/gestor/escala'
     | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -485,6 +497,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/chamados/$id'
+    | '/_authenticated/gestor/escala'
     | '/_authenticated/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -741,6 +754,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorIndexRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/escala': {
+      id: '/_authenticated/gestor/escala'
+      path: '/escala'
+      fullPath: '/gestor/escala'
+      preLoaderRoute: typeof AuthenticatedGestorEscalaRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/_authenticated/gestor/financeiro': {
       id: '/_authenticated/gestor/financeiro'
       path: '/financeiro'
@@ -773,12 +793,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedGestorRouteRouteChildren {
+  AuthenticatedGestorEscalaRoute: typeof AuthenticatedGestorEscalaRoute
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
 
 const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildren =
   {
+    AuthenticatedGestorEscalaRoute: AuthenticatedGestorEscalaRoute,
     AuthenticatedGestorFinanceiroRoute: AuthenticatedGestorFinanceiroRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
   }
