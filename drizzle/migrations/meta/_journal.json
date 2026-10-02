@@ -141,6 +141,13 @@
       "when": 1791010000000,
       "tag": "0019_create_facial_time_clock",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1790962767721,
+      "tag": "0020_allow_authorized_staff_read_bonus_rules",
+      "breakpoints": true
     }
   ]
 }

@@ -1704,6 +1704,172 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_batidas: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_ref: string
+          dentro_raio: boolean | null
+          device_id: string | null
+          device_ok: boolean | null
+          distancia_m: number | null
+          face_distancia: number | null
+          face_ok: boolean | null
+          id: string
+          latitude: number | null
+          longitude: number | null
+          motivos: string[]
+          observacao: string | null
+          origem: string
+          precisao_m: number | null
+          registrado_em: string
+          registrado_por: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          selfie_path: string | null
+          status: string
+          tipo: string
+          unidade: string
+          vivacidade_ok: boolean | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_ref: string
+          dentro_raio?: boolean | null
+          device_id?: string | null
+          device_ok?: boolean | null
+          distancia_m?: number | null
+          face_distancia?: number | null
+          face_ok?: boolean | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          motivos?: string[]
+          observacao?: string | null
+          origem?: string
+          precisao_m?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          selfie_path?: string | null
+          status: string
+          tipo: string
+          unidade: string
+          vivacidade_ok?: boolean | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_ref?: string
+          dentro_raio?: boolean | null
+          device_id?: string | null
+          device_ok?: boolean | null
+          distancia_m?: number | null
+          face_distancia?: number | null
+          face_ok?: boolean | null
+          id?: string
+          latitude?: number | null
+          longitude?: number | null
+          motivos?: string[]
+          observacao?: string | null
+          origem?: string
+          precisao_m?: number | null
+          registrado_em?: string
+          registrado_por?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          selfie_path?: string | null
+          status?: string
+          tipo?: string
+          unidade?: string
+          vivacidade_ok?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_batidas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_biometria: {
+        Row: {
+          cadastrado_por: string | null
+          colaborador_id: string
+          consentimento_em: string
+          consentimento_versao: string
+          created_at: string
+          descritores: Json
+          device_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          cadastrado_por?: string | null
+          colaborador_id: string
+          consentimento_em: string
+          consentimento_versao: string
+          created_at?: string
+          descritores: Json
+          device_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          cadastrado_por?: string | null
+          colaborador_id?: string
+          consentimento_em?: string
+          consentimento_versao?: string
+          created_at?: string
+          descritores?: Json
+          device_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_biometria_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_config: {
+        Row: {
+          latitude: number | null
+          limiar_face: number
+          longitude: number | null
+          raio_m: number
+          tolerancia_min: number
+          unidade: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          latitude?: number | null
+          limiar_face?: number
+          longitude?: number | null
+          raio_m?: number
+          tolerancia_min?: number
+          unidade: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          latitude?: number | null
+          limiar_face?: number
+          longitude?: number | null
+          raio_m?: number
+          tolerancia_min?: number
+          unidade?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       preventive_logs: {
         Row: {
           category: string
@@ -2863,6 +3029,34 @@ export type Database = {
           },
         ]
       }
+      ponto_dia: {
+        Row: {
+          apos_horario_min: number | null
+          atraso_min: number | null
+          batidas_pendentes: number | null
+          colaborador_id: string | null
+          data: string | null
+          entrada_prevista: string | null
+          entrada_real: string | null
+          falta_sem_registro: boolean | null
+          feriado: boolean | null
+          minutos_previstos: number | null
+          minutos_trabalhados: number | null
+          nome: string | null
+          saida_antecipada_min: number | null
+          saida_prevista: string | null
+          saida_real: string | null
+          sem_saida: boolean | null
+          setor: string | null
+          status_escala: string | null
+          tem_lancamento_manual: boolean | null
+          trabalhou_fora_da_escala: boolean | null
+          turno: string | null
+          unidade: string | null
+          vinculo: string | null
+        }
+        Relationships: []
+      }
       previsao_tempos_medianos: {
         Row: {
           amostras: number | null
@@ -2995,6 +3189,58 @@ export type Database = {
           _team: string
         }
         Returns: string
+      }
+      ponto_cadastrar_biometria: {
+        Args: {
+          _colaborador_id: string
+          _consentimento: boolean
+          _consentimento_versao: string
+          _descritores: Json
+          _device_id: string
+        }
+        Returns: undefined
+      }
+      ponto_freelancers_quiosque: {
+        Args: { _unidade: string }
+        Returns: {
+          cadastro_facial: boolean
+          colaborador_id: string
+          entrada_aberta: boolean
+          nome: string
+        }[]
+      }
+      ponto_lancar_manual: {
+        Args: {
+          _colaborador_id: string
+          _motivo: string
+          _registrado_em: string
+          _tipo: string
+          _unidade: string
+        }
+        Returns: string
+      }
+      ponto_meu_status: { Args: never; Returns: Json }
+      ponto_registrar: {
+        Args: {
+          _colaborador_id?: string
+          _descritor: Json
+          _device_id: string
+          _latitude: number
+          _longitude: number
+          _modo?: string
+          _precisao_m: number
+          _selfie_path: string
+          _vivacidade_ok: boolean
+        }
+        Returns: Json
+      }
+      ponto_revisar: {
+        Args: { _aprovar: boolean; _batida_id: string; _observacao?: string }
+        Returns: undefined
+      }
+      ponto_vincular_aparelho: {
+        Args: { _colaborador_id: string; _device_id: string }
+        Returns: undefined
       }
       registrar_bonificacao_conjunta: {
         Args: {

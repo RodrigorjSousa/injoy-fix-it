@@ -47,3 +47,9 @@
 - [x] Criar semáforo, detalhes e acesso ao freelancer
 - [x] Adicionar resumo e página na Área do Gestor
 - [x] Agendar cálculos e validar alertas, relatório e telas
+
+## Acesso da Mayara à Bonificação
+
+- [x] Confirmar a tela liberada no cadastro da Mayara
+- [x] Liberar leitura das regras necessárias para preencher e salvar avaliações
+- [ ] Validar o preenchimento autenticado como Mayara
