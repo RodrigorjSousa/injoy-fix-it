@@ -99,6 +99,13 @@
       "when": 1790943960335,
       "tag": "0013_correct_schedule_finance_sync",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1790944757590,
+      "tag": "0014_harden_final_schedule_rules",
+      "breakpoints": true
     }
   ]
 }
