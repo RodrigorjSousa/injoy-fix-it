@@ -78,6 +78,13 @@
       "when": 1790937108727,
       "tag": "0010_create_persistent_staff_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1790938058631,
+      "tag": "0011_schedule_generation_publication_and_employee_view",
+      "breakpoints": true
     }
   ]
 }
