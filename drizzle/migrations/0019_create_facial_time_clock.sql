@@ -128,24 +128,9 @@ DROP POLICY IF EXISTS "Funcionario consulta as proprias batidas" ON public.ponto
 CREATE POLICY "Funcionario consulta as proprias batidas" ON public.ponto_batidas FOR SELECT TO authenticated
   USING (colaborador_id = private.ponto_meu_colaborador());
 
--- ---------------------------------------------------------------------------
--- Selfies (bucket privado). Caminho: <auth.uid()>/<data>/<arquivo>.jpg
--- ---------------------------------------------------------------------------
-INSERT INTO storage.buckets (id, name, public) VALUES ('ponto', 'ponto', false)
-ON CONFLICT (id) DO NOTHING;
-
-DROP POLICY IF EXISTS "Ponto: envio da propria selfie" ON storage.objects;
-CREATE POLICY "Ponto: envio da propria selfie" ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (bucket_id = 'ponto' AND (storage.foldername(name))[1] = auth.uid()::text);
-DROP POLICY IF EXISTS "Ponto: leitura da propria selfie" ON storage.objects;
-CREATE POLICY "Ponto: leitura da propria selfie" ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'ponto' AND (storage.foldername(name))[1] = auth.uid()::text);
-DROP POLICY IF EXISTS "Ponto: gestores leem selfies" ON storage.objects;
-CREATE POLICY "Ponto: gestores leem selfies" ON storage.objects FOR SELECT TO authenticated
-  USING (bucket_id = 'ponto' AND (private.has_role(auth.uid(), 'gestor') OR private.has_role(auth.uid(), 'admin')));
-DROP POLICY IF EXISTS "Ponto: gestores apagam selfies" ON storage.objects;
-CREATE POLICY "Ponto: gestores apagam selfies" ON storage.objects FOR DELETE TO authenticated
-  USING (bucket_id = 'ponto' AND (private.has_role(auth.uid(), 'gestor') OR private.has_role(auth.uid(), 'admin')));
+-- Selfies: o bucket privado "ponto" é criado pela ferramenta de armazenamento do
+-- Lovable e as políticas ficam na migração 0020 (o banco não permite gravar
+-- direto em storage.buckets por migração).
 
 -- ---------------------------------------------------------------------------
 -- Funções auxiliares
