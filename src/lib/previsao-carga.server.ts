@@ -42,7 +42,7 @@ export async function calculateLoadForecast(units: Unit[]) {
     const [raw, configResult, historyResult, daysResult] = await Promise.all([
       fetchPages(property,start,end), supabaseAdmin.from("previsao_carga_config").select("*").eq("unidade",unit).single(),
       supabaseAdmin.from("room_housekeeping_history").select("task_name,started_at,ended_at").eq("property",unit).gte("started_at",new Date(Date.now()-60*86400000).toISOString()),
-      supabaseAdmin.from("escala_dias").select("*,escala_colaboradores!inner(nome,vinculo),escala_padroes(intervalo_minutos)").eq("unidade",unit).eq("setor","camareiras").gte("data",start).lte("data",end),
+      supabaseAdmin.from("escala_dias").select("*,escala_colaboradores!inner(nome,vinculo,escala_padroes(intervalo_minutos))").eq("unidade",unit).eq("setor","camareiras").gte("data",start).lte("data",end),
     ]);
     if (configResult.error) throw configResult.error; if(historyResult.error)throw historyResult.error; if(daysResult.error)throw daysResult.error;
     const reservations=normalize(raw); const rooms=[...new Set(reservations.map(r=>r.roomNumber))]; const config=configResult.data;
@@ -54,7 +54,7 @@ export async function calculateLoadForecast(units: Unit[]) {
       const taskMinutes=(name:string)=>measured.get(name)??Number(config[aliases[name] as keyof typeof config]);
       const load=Math.round(counts("GERAL")*taskMinutes("GERAL")+counts("GERAL - CHECK-IN")*taskMinutes("GERAL - CHECK-IN")+counts("TROCA + ARRUMAÇÃO")*taskMinutes("TROCA + ARRUMAÇÃO")+counts("ARRUMAÇÃO")*taskMinutes("ARRUMAÇÃO"));
       const scheduled=(daysResult.data??[]).filter(row=>row.data===date&&(row.status==="trabalho"||row.status==="extra"));
-      const capacityDetails=scheduled.map(row=>{const extra=row.status==="extra";const pattern=Array.isArray(row.escala_padroes)?row.escala_padroes[0]:null;const gross=extra?Number(row.horas_contratadas??0)*60:duration(row.hora_entrada,row.hora_saida);const interval=extra?0:Number(pattern?.intervalo_minutos??0);return {nome:(row.escala_colaboradores as {nome?:string}|null)?.nome??"Camareira",tipo:extra?"freelancer":"fixa",minutos_brutos:gross,intervalo_minutos:interval,minutos_liquidos:Math.max(0,Math.round((gross-interval)*(1-Number(config.margem_pct)/100)))};});
+      const capacityDetails=scheduled.map(row=>{const extra=row.status==="extra";const collaborator=(Array.isArray(row.escala_colaboradores)?row.escala_colaboradores[0]:row.escala_colaboradores) as {nome?:string;escala_padroes?:{intervalo_minutos?:number|null}[]}|null;const pattern=collaborator?.escala_padroes?.find(item=>item.intervalo_minutos!=null);const gross=extra?Number(row.horas_contratadas??0)*60:duration(row.hora_entrada,row.hora_saida);const interval=extra?0:Number(pattern?.intervalo_minutos??0);return {nome:collaborator?.nome??"Camareira",tipo:extra?"freelancer":"fixa",minutos_brutos:gross,intervalo_minutos:interval,minutos_liquidos:Math.max(0,Math.round((gross-interval)*(1-Number(config.margem_pct)/100)))};});
       const capacity=capacityDetails.reduce((sum,item)=>sum+item.minutos_liquidos,0), pct=capacity>0?Math.round(load/capacity*100):load>0?999:0, generals=counts("GERAL")+counts("GERAL - CHECK-IN");
       const level=capacity===0&&load>0||pct>Number(config.limite_vermelho_pct)||generals>=config.limite_vermelho_gerais?"vermelho":pct>=Number(config.limite_amarelo_pct)||generals>=config.limite_amarelo_gerais?"amarelo":"verde";
       const arrivals=tasks.flatMap(task=>task.chegada?[task.chegada]:[]).sort();
