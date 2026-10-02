@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { BonificacaoPanelModal } from "@/components/gestao/bonificacao-panel-modal";
 import { useUnidade } from "@/lib/unidade-context";
+import { useMe } from "@/lib/store";
 
 import { requireGestor } from "@/lib/require-gestor";
 
@@ -22,11 +23,14 @@ export const Route = createFileRoute("/_authenticated/bonificacao")({
 function BonificacaoPage() {
   const navigate = useNavigate();
   const { unidade } = useUnidade();
+  const { data: me } = useMe();
+  // Fechar o painel: gestor volta para a Gestão; demais funcionários para a tela inicial
+  const destino = me?.isAdmin || me?.isGestor ? "/gestao" : "/";
   return (
     <BonificacaoPanelModal
       open
       onOpenChange={(v) => {
-        if (!v) navigate({ to: "/gestao" });
+        if (!v) navigate({ to: destino });
       }}
       unidade={unidade}
     />
