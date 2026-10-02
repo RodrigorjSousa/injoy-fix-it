@@ -57,6 +57,13 @@
       "when": 1790934244769,
       "tag": "0007_secure_financeiro_storage",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790934983781,
+      "tag": "0008_add_finance_recurring_and_indicators",
+      "breakpoints": true
     }
   ]
 }
