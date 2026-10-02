@@ -46,4 +46,4 @@
 - [x] Calcular tempos medianos, carga e capacidade pela Escala
 - [x] Criar semáforo, detalhes e acesso ao freelancer
 - [x] Adicionar resumo e página na Área do Gestor
-- [ ] Agendar cálculos e validar alertas, relatório e telas
+- [x] Agendar cálculos e validar alertas, relatório e telas
