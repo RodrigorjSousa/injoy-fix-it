@@ -183,6 +183,20 @@
       "when": 1791050000000,
       "tag": "0025_ponto_intervalo_almoco",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790969552539,
+      "tag": "0026_ponto_intervalo_almoco",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1790969574654,
+      "tag": "0027_bonificacao_registro_liberado",
+      "breakpoints": true
     }
   ]
 }

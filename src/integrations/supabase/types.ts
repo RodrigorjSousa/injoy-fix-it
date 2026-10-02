@@ -3034,6 +3034,9 @@ export type Database = {
       }
       ponto_dia: {
         Row: {
+          almoco_saida: string | null
+          almoco_sem_volta: boolean | null
+          almoco_volta: string | null
           apos_horario_min: number | null
           atraso_min: number | null
           batidas_pendentes: number | null
@@ -3043,12 +3046,16 @@ export type Database = {
           entrada_real: string | null
           falta_sem_registro: boolean | null
           feriado: boolean | null
+          intervalo_curto: boolean | null
+          intervalo_min: number | null
+          intervalo_previsto_min: number | null
           minutos_previstos: number | null
           minutos_trabalhados: number | null
           nome: string | null
           saida_antecipada_min: number | null
           saida_prevista: string | null
           saida_real: string | null
+          sem_intervalo: boolean | null
           sem_saida: boolean | null
           setor: string | null
           status_escala: string | null
@@ -3230,7 +3237,9 @@ export type Database = {
           colaborador_id: string
           entrada_aberta: boolean
           nome: string
+          proximos_tipos: string[]
           setor: string
+          ultimo_tipo: string
           vinculo: string
         }[]
       }
@@ -3244,6 +3253,7 @@ export type Database = {
           _modo?: string
           _precisao_m: number
           _selfie_path: string
+          _tipo?: string
           _vivacidade_ok: boolean
         }
         Returns: Json
