@@ -21,6 +21,7 @@ import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/c
 import { Route as AuthenticatedCheckInDigitalRouteImport } from './routes/_authenticated/check-in-digital'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
+import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
@@ -112,6 +113,11 @@ const AuthenticatedControlePontoRoute =
     path: '/controle-ponto',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
+  id: '/escala',
+  path: '/escala',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedEstoqueGeralRoute =
   AuthenticatedEstoqueGeralRouteImport.update({
     id: '/estoque-geral',
@@ -270,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
@@ -306,6 +313,7 @@ export interface FileRoutesByTo {
   '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
+  '/escala': typeof AuthenticatedEscalaRoute
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
@@ -347,6 +355,7 @@ export interface FileRoutesById {
   '/_authenticated/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/controle-ponto': typeof AuthenticatedControlePontoRoute
+  '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
@@ -389,6 +398,7 @@ export interface FileRouteTypes {
     | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
+    | '/escala'
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
@@ -425,6 +435,7 @@ export interface FileRouteTypes {
     | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
+    | '/escala'
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
@@ -465,6 +476,7 @@ export interface FileRouteTypes {
     | '/_authenticated/check-in-digital'
     | '/_authenticated/configuracoes'
     | '/_authenticated/controle-ponto'
+    | '/_authenticated/escala'
     | '/_authenticated/estoque-geral'
     | '/_authenticated/frigobar'
     | '/_authenticated/gestao'
@@ -586,6 +598,13 @@ declare module '@tanstack/react-router' {
       path: '/controle-ponto'
       fullPath: '/controle-ponto'
       preLoaderRoute: typeof AuthenticatedControlePontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escala': {
+      id: '/_authenticated/escala'
+      path: '/escala'
+      fullPath: '/escala'
+      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/estoque-geral': {
@@ -801,6 +820,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCheckInDigitalRoute: typeof AuthenticatedCheckInDigitalRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedControlePontoRoute: typeof AuthenticatedControlePontoRoute
+  AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedEstoqueGeralRoute: typeof AuthenticatedEstoqueGeralRoute
   AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
@@ -831,6 +851,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCheckInDigitalRoute: AuthenticatedCheckInDigitalRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedControlePontoRoute: AuthenticatedControlePontoRoute,
+  AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedEstoqueGeralRoute: AuthenticatedEstoqueGeralRoute,
   AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
