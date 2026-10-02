@@ -33,6 +33,7 @@ import {
   usePontoDia,
   type PontoDiaRow,
   type PontoUnidade,
+  type TipoBatida,
 } from "@/lib/ponto";
 
 type Alerta = { label: string; tone: string };
@@ -42,6 +43,15 @@ function alertasDaLinha(r: PontoDiaRow, tolerancia: number): Alerta[] {
   if (r.falta_sem_registro)
     a.push({ label: "Falta sem registro", tone: "bg-rose-100 text-rose-800" });
   if (r.sem_saida) a.push({ label: "Sem saída", tone: "bg-rose-100 text-rose-800" });
+  if (r.almoco_sem_volta)
+    a.push({ label: "Saiu p/ almoço e não registrou a volta", tone: "bg-rose-100 text-rose-800" });
+  if (r.sem_intervalo)
+    a.push({ label: "Sem registro de almoço", tone: "bg-amber-100 text-amber-800" });
+  if (r.intervalo_curto)
+    a.push({
+      label: `Almoço curto (${minutosParaHoras(r.intervalo_min)})`,
+      tone: "bg-amber-100 text-amber-800",
+    });
   if (r.atraso_min > tolerancia)
     a.push({
       label: `Atraso ${minutosParaHoras(r.atraso_min)}`,
@@ -78,7 +88,10 @@ function exportarCsv(rows: PontoDiaRow[]) {
     "entrada_prevista",
     "saida_prevista",
     "entrada",
+    "saida_almoco",
+    "volta_almoco",
     "saida",
+    "intervalo",
     "trabalhado",
     "previsto",
     "atraso_min",
@@ -99,7 +112,10 @@ function exportarCsv(rows: PontoDiaRow[]) {
       horaSP(r.entrada_prevista),
       horaSP(r.saida_prevista),
       horaSP(r.entrada_real),
+      horaSP(r.almoco_saida),
+      horaSP(r.almoco_volta),
       horaSP(r.saida_real),
+      minutosParaHoras(r.intervalo_min),
       minutosParaHoras(r.minutos_trabalhados),
       minutosParaHoras(r.minutos_previstos),
       r.atraso_min,
@@ -310,6 +326,14 @@ export function RelatorioPonto() {
                       </td>
                       <td className="p-2 whitespace-nowrap">
                         {horaSP(r.entrada_real)}–{horaSP(r.saida_real)}
+                        {(r.almoco_saida || r.almoco_volta) && (
+                          <span className="block text-xs text-slate-500">
+                            almoço {horaSP(r.almoco_saida)}–{horaSP(r.almoco_volta)}
+                            {r.intervalo_min != null
+                              ? ` (${minutosParaHoras(r.intervalo_min)})`
+                              : ""}
+                          </span>
+                        )}
                       </td>
                       <td className="p-2 whitespace-nowrap">
                         {minutosParaHoras(r.minutos_trabalhados)}
@@ -374,7 +398,7 @@ function LancamentoManualDialog({
   const colabs = useColaboradoresPonto();
   const lancar = useLancarManual();
   const [colaboradorId, setColaboradorId] = useState("");
-  const [tipo, setTipo] = useState<"entrada" | "saida">("entrada");
+  const [tipo, setTipo] = useState<TipoBatida>("entrada");
   const [data, setData] = useState(todaySP());
   const [hora, setHora] = useState("07:00");
   const [unidade, setUnidade] = useState<PontoUnidade>("Botafogo");
@@ -424,6 +448,8 @@ function LancamentoManualDialog({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="entrada">Entrada</SelectItem>
+                  <SelectItem value="saida_almoco">Saída para almoço</SelectItem>
+                  <SelectItem value="volta_almoco">Volta do almoço</SelectItem>
                   <SelectItem value="saida">Saída</SelectItem>
                 </SelectContent>
               </Select>

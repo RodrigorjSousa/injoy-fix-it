@@ -4,6 +4,20 @@ import { todaySP } from "@/lib/tz";
 
 export type PontoUnidade = "Botafogo" | "Ipanema";
 export type PontoStatusBatida = "valida" | "pendente" | "aprovada" | "recusada";
+export type TipoBatida = "entrada" | "saida_almoco" | "volta_almoco" | "saida";
+
+export const TIPO_LABEL: Record<TipoBatida, string> = {
+  entrada: "Entrada",
+  saida_almoco: "Saída para almoço",
+  volta_almoco: "Volta do almoço",
+  saida: "Saída",
+};
+export const TIPO_BOTAO: Record<TipoBatida, string> = {
+  entrada: "Registrar entrada",
+  saida_almoco: "Saída para almoço",
+  volta_almoco: "Volta do almoço",
+  saida: "Encerrar expediente",
+};
 
 export const CONSENTIMENTO_VERSAO = "2026-10-v1";
 export const CONSENTIMENTO_TEXTO =
@@ -25,7 +39,7 @@ export const MOTIVO_LABEL: Record<string, string> = {
 
 export type RegistroResultado = {
   id: string;
-  tipo: "entrada" | "saida";
+  tipo: TipoBatida;
   status: PontoStatusBatida;
   motivos: string[];
   registrado_em: string;
@@ -38,6 +52,8 @@ export type MeuStatus = {
   colaborador_id?: string;
   nome?: string;
   habilitado?: boolean;
+  ultimo_tipo_aberto?: TipoBatida | null;
+  proximos_tipos?: TipoBatida[];
   cadastro_facial?: boolean;
   aparelho_vinculado?: string | null;
   escala_hoje?:
@@ -52,7 +68,7 @@ export type MeuStatus = {
   batidas_recentes?:
     | {
         id: string;
-        tipo: "entrada" | "saida";
+        tipo: TipoBatida;
         registrado_em: string;
         status: PontoStatusBatida;
         motivos: string[];
@@ -65,7 +81,7 @@ export type BatidaGestor = {
   id: string;
   colaborador_id: string;
   unidade: PontoUnidade;
-  tipo: "entrada" | "saida";
+  tipo: TipoBatida;
   registrado_em: string;
   data_ref: string;
   origem: "app" | "quiosque" | "manual";
@@ -95,7 +111,14 @@ export type PontoDiaRow = {
   entrada_prevista: string | null;
   saida_prevista: string | null;
   entrada_real: string | null;
+  almoco_saida: string | null;
+  almoco_volta: string | null;
   saida_real: string | null;
+  intervalo_min: number | null;
+  intervalo_previsto_min: number | null;
+  almoco_sem_volta: boolean;
+  sem_intervalo: boolean;
+  intervalo_curto: boolean;
   minutos_trabalhados: number | null;
   minutos_previstos: number | null;
   atraso_min: number;
@@ -159,6 +182,7 @@ export type RegistrarInput = {
   selfiePath: string | null;
   modo?: "app" | "quiosque";
   colaboradorId?: string | null;
+  tipo?: TipoBatida | null;
 };
 
 export function useRegistrarPonto() {
@@ -175,6 +199,7 @@ export function useRegistrarPonto() {
         _selfie_path: input.selfiePath,
         _modo: input.modo ?? "app",
         _colaborador_id: input.colaboradorId ?? null,
+        _tipo: input.tipo ?? null,
       });
       if (error) throw error;
       return data as RegistroResultado;
@@ -190,6 +215,8 @@ export type PessoaQuiosque = {
   setor: string;
   cadastro_facial: boolean;
   entrada_aberta: boolean;
+  ultimo_tipo: TipoBatida | null;
+  proximos_tipos: TipoBatida[];
 };
 
 /** Todas as pessoas habilitadas (fixos e freelancers) para o ponto na recepção. */
@@ -283,7 +310,7 @@ export function useLancarManual() {
   return useMutation({
     mutationFn: async (input: {
       colaboradorId: string;
-      tipo: "entrada" | "saida";
+      tipo: TipoBatida;
       registradoEm: string;
       unidade: PontoUnidade;
       motivo: string;
