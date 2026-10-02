@@ -37,6 +37,7 @@ export type MeuStatus = {
   vinculado: boolean;
   colaborador_id?: string;
   nome?: string;
+  habilitado?: boolean;
   cadastro_facial?: boolean;
   aparelho_vinculado?: string | null;
   escala_hoje?:
@@ -182,19 +183,24 @@ export function useRegistrarPonto() {
   });
 }
 
-export function useFreelancersQuiosque(unidade: PontoUnidade, enabled: boolean) {
+export type PessoaQuiosque = {
+  colaborador_id: string;
+  nome: string;
+  vinculo: "fixo" | "freelance";
+  setor: string;
+  cadastro_facial: boolean;
+  entrada_aberta: boolean;
+};
+
+/** Todas as pessoas habilitadas (fixos e freelancers) para o ponto na recepção. */
+export function useListaQuiosque(unidade: PontoUnidade, enabled: boolean) {
   return useQuery({
     queryKey: ["ponto", "quiosque", unidade],
     enabled,
-    queryFn: async () => {
-      const { data, error } = await db.rpc("ponto_freelancers_quiosque", { _unidade: unidade });
+    queryFn: async (): Promise<PessoaQuiosque[]> => {
+      const { data, error } = await db.rpc("ponto_quiosque_lista", { _unidade: unidade });
       if (error) throw error;
-      return (data ?? []) as {
-        colaborador_id: string;
-        nome: string;
-        cadastro_facial: boolean;
-        entrada_aberta: boolean;
-      }[];
+      return (data ?? []) as PessoaQuiosque[];
     },
   });
 }
@@ -302,8 +308,9 @@ export function useColaboradoresPonto() {
       const [{ data: colabs, error: e1 }, { data: bios, error: e2 }] = await Promise.all([
         db
           .from("escala_colaboradores")
-          .select("id, nome, setor, unidade, vinculo, funcionario_id, ativo")
+          .select("id, nome, setor, unidade, vinculo, funcionario_id, ativo, ponto_habilitado")
           .eq("ativo", true)
+          .eq("ponto_habilitado", true)
           .order("nome"),
         db
           .from("ponto_biometria")
@@ -438,3 +445,75 @@ export const minutosParaHoras = (m: number | null | undefined) => {
   const abs = Math.abs(Math.round(m));
   return `${sinal}${Math.floor(abs / 60)}h${String(abs % 60).padStart(2, "0")}`;
 };
+
+// ---------------------------------------------------------------- pessoas do ponto (gestor)
+export type PessoaPonto = {
+  id: string;
+  nome: string;
+  setor: "manutencao" | "recepcao" | "camareiras";
+  unidade: "Botafogo" | "Ipanema" | "Ambas";
+  vinculo: "fixo" | "freelance";
+  telefone: string | null;
+  funcionario_id: string | null;
+  ativo: boolean;
+  ponto_habilitado: boolean;
+};
+
+export function usePessoasPonto() {
+  return useQuery({
+    queryKey: ["ponto", "pessoas"],
+    queryFn: async () => {
+      const [{ data: pessoas, error: e1 }, { data: funcs, error: e2 }, { data: bios, error: e3 }] =
+        await Promise.all([
+          db
+            .from("escala_colaboradores")
+            .select(
+              "id, nome, setor, unidade, vinculo, telefone, funcionario_id, ativo, ponto_habilitado",
+            )
+            .order("nome"),
+          db.from("funcionarios").select("id, nome, user_id").order("nome"),
+          db.from("ponto_biometria").select("colaborador_id"),
+        ]);
+      if (e1) throw e1;
+      if (e2) throw e2;
+      if (e3) throw e3;
+      const comRosto = new Set(
+        (bios ?? []).map((b: { colaborador_id: string }) => b.colaborador_id),
+      );
+      return {
+        pessoas: ((pessoas ?? []) as PessoaPonto[]).map((p) => ({
+          ...p,
+          cadastro_facial: comRosto.has(p.id),
+        })),
+        funcionarios: (funcs ?? []) as { id: string; nome: string; user_id: string | null }[],
+      };
+    },
+  });
+}
+
+export function useSalvarPessoaPonto() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: Omit<PessoaPonto, "id"> & { id?: string }) => {
+      const row = {
+        nome: p.nome.trim(),
+        setor: p.setor,
+        unidade: p.unidade,
+        vinculo: p.vinculo,
+        telefone: p.telefone?.trim() || null,
+        funcionario_id: p.funcionario_id || null,
+        ativo: p.ativo,
+        ponto_habilitado: p.ponto_habilitado,
+      };
+      if (!row.nome) throw new Error("Informe o nome");
+      const { error } = p.id
+        ? await db.from("escala_colaboradores").update(row).eq("id", p.id)
+        : await db.from("escala_colaboradores").insert(row);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["ponto"] });
+      qc.invalidateQueries({ queryKey: ["escala-colaboradores"] });
+    },
+  });
+}

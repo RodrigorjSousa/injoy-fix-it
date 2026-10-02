@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
 import { useMe } from "@/lib/store";
@@ -24,7 +25,7 @@ import {
   MOTIVO_LABEL,
   enviarSelfie,
   horaSP,
-  useFreelancersQuiosque,
+  useListaQuiosque,
   useMeuStatusPonto,
   useRegistrarPonto,
   type PontoUnidade,
@@ -62,13 +63,13 @@ function PontoPage() {
         <Tabs defaultValue="meu">
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="meu">Meu ponto</TabsTrigger>
-            <TabsTrigger value="freelancer">Ponto do freelancer</TabsTrigger>
+            <TabsTrigger value="freelancer">Ponto na recepção</TabsTrigger>
           </TabsList>
           <TabsContent value="meu" className="mt-4">
             <MeuPonto />
           </TabsContent>
           <TabsContent value="freelancer" className="mt-4">
-            <PontoFreelancer />
+            <PontoRecepcao />
           </TabsContent>
         </Tabs>
       ) : (
@@ -167,8 +168,17 @@ function MeuPonto() {
         <Users className="mx-auto h-8 w-8 text-slate-400" />
         <p className="font-semibold">Seu usuário ainda não está ligado à escala.</p>
         <p className="text-sm text-muted-foreground">
-          Peça ao gestor para vincular seu cadastro na Equipe da Escala.
+          O gestor vincula seu usuário em Área do Gestor › Ponto Facial › Pessoas.
         </p>
+      </Card>
+    );
+  }
+  if (s.habilitado === false) {
+    return (
+      <Card className="space-y-2 p-6 text-center">
+        <Users className="mx-auto h-8 w-8 text-slate-400" />
+        <p className="font-semibold">Você não está habilitado(a) para o ponto do app.</p>
+        <p className="text-sm text-muted-foreground">Fale com o gestor se precisar registrar.</p>
       </Card>
     );
   }
@@ -316,10 +326,21 @@ function MeuPonto() {
   );
 }
 
-function PontoFreelancer() {
+function PontoRecepcao() {
   const { unidade: unidadeAtiva } = useUnidade();
   const [unidade, setUnidade] = useState<PontoUnidade>(unidadeAtiva as PontoUnidade);
-  const lista = useFreelancersQuiosque(unidade, true);
+  const lista = useListaQuiosque(unidade, true);
+  const [busca, setBusca] = useState("");
+  const normal = (t: string) =>
+    t
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase();
+  const filtrada = (lista.data ?? []).filter((p) => normal(p.nome).includes(normal(busca)));
+  const grupos = [
+    { titulo: "Funcionários fixos", itens: filtrada.filter((p) => p.vinculo === "fixo") },
+    { titulo: "Freelancers", itens: filtrada.filter((p) => p.vinculo === "freelance") },
+  ].filter((g) => g.itens.length);
   const registrarMut = useRegistrarPonto();
   const [selecionado, setSelecionado] = useState<{ id: string; nome: string } | null>(null);
   const [etapa, setEtapa] = useState<"lista" | "camera" | "enviando" | "resultado">("lista");
@@ -366,7 +387,7 @@ function PontoFreelancer() {
   if (etapa === "camera" && selecionado) {
     return (
       <Card className="space-y-3 p-4">
-        <p className="text-center text-sm font-semibold">Freelancer: {selecionado.nome}</p>
+        <p className="text-center text-sm font-semibold">{selecionado.nome}</p>
         <FaceCapture
           modo="verificar"
           onResultado={aoCapturar}
@@ -382,8 +403,8 @@ function PontoFreelancer() {
   return (
     <Card className="space-y-4 p-5">
       <p className="text-sm text-muted-foreground">
-        Use este aparelho para o freelancer registrar a chegada e a saída do plantão. Escolha o nome
-        e ele confirma pelo rosto.
+        Aparelho da recepção: qualquer pessoa da equipe (fixa ou freelancer) escolhe o nome e
+        confirma pelo rosto. Use quando a pessoa estiver sem o celular dela.
       </p>
       <div className="flex gap-2">
         {(["Botafogo", "Ipanema"] as PontoUnidade[]).map((u) => (
@@ -403,36 +424,52 @@ function PontoFreelancer() {
         <p className="text-sm text-rose-600">{(lista.error as Error).message}</p>
       ) : !lista.data?.length ? (
         <p className="text-sm text-muted-foreground">
-          Nenhum freelancer cadastrado para {unidade}.
+          Ninguém habilitado para o ponto em {unidade}. O gestor inclui as pessoas em Ponto Facial ›
+          Pessoas.
         </p>
       ) : (
-        <ul className="space-y-2">
-          {lista.data.map((f) => (
-            <li key={f.colaborador_id}>
-              <button
-                type="button"
-                className="flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left hover:border-primary"
-                onClick={() => {
-                  setSelecionado({ id: f.colaborador_id, nome: f.nome });
-                  setPosicaoPromise(getPosition());
-                  setEtapa("camera");
-                }}
-              >
-                <span className="font-semibold">{f.nome}</span>
-                <span className="flex items-center gap-2">
-                  {!f.cadastro_facial && (
-                    <Badge variant="outline" className="border-amber-400 text-amber-700">
-                      sem rosto
-                    </Badge>
-                  )}
-                  <Badge className={f.entrada_aberta ? "bg-rose-600" : "bg-emerald-600"}>
-                    {f.entrada_aberta ? "Registrar saída" : "Registrar entrada"}
-                  </Badge>
-                </span>
-              </button>
-            </li>
+        <div className="space-y-4">
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar pelo nome"
+          />
+          {!grupos.length && (
+            <p className="text-sm text-muted-foreground">Nenhum nome encontrado.</p>
+          )}
+          {grupos.map((g) => (
+            <div key={g.titulo} className="space-y-2">
+              <p className="text-xs font-bold uppercase text-slate-500">{g.titulo}</p>
+              <ul className="space-y-2">
+                {g.itens.map((f) => (
+                  <li key={f.colaborador_id}>
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-between gap-2 rounded-xl border bg-white p-3 text-left hover:border-primary"
+                      onClick={() => {
+                        setSelecionado({ id: f.colaborador_id, nome: f.nome });
+                        setPosicaoPromise(getPosition());
+                        setEtapa("camera");
+                      }}
+                    >
+                      <span className="font-semibold">{f.nome}</span>
+                      <span className="flex shrink-0 items-center gap-2">
+                        {!f.cadastro_facial && (
+                          <Badge variant="outline" className="border-amber-400 text-amber-700">
+                            sem rosto
+                          </Badge>
+                        )}
+                        <Badge className={f.entrada_aberta ? "bg-rose-600" : "bg-emerald-600"}>
+                          {f.entrada_aberta ? "Registrar saída" : "Registrar entrada"}
+                        </Badge>
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
           ))}
-        </ul>
+        </div>
       )}
     </Card>
   );
