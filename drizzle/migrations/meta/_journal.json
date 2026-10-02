@@ -148,6 +148,13 @@
       "when": 1790962767721,
       "tag": "0020_allow_authorized_staff_read_bonus_rules",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1791030000000,
+      "tag": "0021_ponto_selfies_storage_policies",
+      "breakpoints": true
     }
   ]
 }
