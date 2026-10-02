@@ -1783,6 +1783,158 @@ export type Database = {
         }
         Relationships: []
       }
+      previsao_carga: {
+        Row: {
+          calculado_em: string
+          camareiras_escaladas: number
+          capacidade_detalhes: Json
+          capacidade_minutos: number
+          carga_minutos: number
+          chegada_mais_cedo: string | null
+          data: string
+          detalhes: Json
+          freelancers_escalados: number
+          horizonte_dias: number
+          id: string
+          nivel: string
+          ocupacao_carga_pct: number
+          qtd_arrumacao: number
+          qtd_checkins: number
+          qtd_checkouts: number
+          qtd_geral: number
+          qtd_geral_checkin: number
+          qtd_troca_arrumacao: number
+          unidade: string
+        }
+        Insert: {
+          calculado_em?: string
+          camareiras_escaladas?: number
+          capacidade_detalhes?: Json
+          capacidade_minutos?: number
+          carga_minutos?: number
+          chegada_mais_cedo?: string | null
+          data: string
+          detalhes?: Json
+          freelancers_escalados?: number
+          horizonte_dias: number
+          id?: string
+          nivel: string
+          ocupacao_carga_pct?: number
+          qtd_arrumacao?: number
+          qtd_checkins?: number
+          qtd_checkouts?: number
+          qtd_geral?: number
+          qtd_geral_checkin?: number
+          qtd_troca_arrumacao?: number
+          unidade: string
+        }
+        Update: {
+          calculado_em?: string
+          camareiras_escaladas?: number
+          capacidade_detalhes?: Json
+          capacidade_minutos?: number
+          carga_minutos?: number
+          chegada_mais_cedo?: string | null
+          data?: string
+          detalhes?: Json
+          freelancers_escalados?: number
+          horizonte_dias?: number
+          id?: string
+          nivel?: string
+          ocupacao_carga_pct?: number
+          qtd_arrumacao?: number
+          qtd_checkins?: number
+          qtd_checkouts?: number
+          qtd_geral?: number
+          qtd_geral_checkin?: number
+          qtd_troca_arrumacao?: number
+          unidade?: string
+        }
+        Relationships: []
+      }
+      previsao_carga_alertas: {
+        Row: {
+          data: string
+          enviado_em: string
+          id: string
+          nivel: string
+          previsao_id: string
+          tipo: string
+          unidade: string
+        }
+        Insert: {
+          data: string
+          enviado_em?: string
+          id?: string
+          nivel: string
+          previsao_id: string
+          tipo: string
+          unidade: string
+        }
+        Update: {
+          data?: string
+          enviado_em?: string
+          id?: string
+          nivel?: string
+          previsao_id?: string
+          tipo?: string
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "previsao_carga_alertas_previsao_id_fkey"
+            columns: ["previsao_id"]
+            isOneToOne: false
+            referencedRelation: "previsao_carga"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      previsao_carga_config: {
+        Row: {
+          arrumacao_minutos: number
+          geral_checkin_minutos: number
+          geral_minutos: number
+          limite_amarelo_gerais: number
+          limite_amarelo_pct: number
+          limite_vermelho_gerais: number
+          limite_vermelho_pct: number
+          margem_pct: number
+          troca_arrumacao_minutos: number
+          unidade: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          arrumacao_minutos?: number
+          geral_checkin_minutos?: number
+          geral_minutos?: number
+          limite_amarelo_gerais: number
+          limite_amarelo_pct?: number
+          limite_vermelho_gerais: number
+          limite_vermelho_pct?: number
+          margem_pct?: number
+          troca_arrumacao_minutos?: number
+          unidade: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          arrumacao_minutos?: number
+          geral_checkin_minutos?: number
+          geral_minutos?: number
+          limite_amarelo_gerais?: number
+          limite_amarelo_pct?: number
+          limite_vermelho_gerais?: number
+          limite_vermelho_pct?: number
+          margem_pct?: number
+          troca_arrumacao_minutos?: number
+          unidade?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -2697,6 +2849,15 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      previsao_tempos_medianos: {
+        Row: {
+          amostras: number | null
+          mediana_minutos: number | null
+          tarefa: string | null
+          unidade: string | null
+        }
+        Relationships: []
       }
     }
     Functions: {
