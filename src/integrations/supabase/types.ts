@@ -487,6 +487,220 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_categorias: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          grupo: string
+          id: string
+          nome: string
+          ordem: number
+          tipo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          grupo: string
+          id?: string
+          nome: string
+          ordem?: number
+          tipo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          grupo?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          tipo?: string
+        }
+        Relationships: []
+      }
+      fin_config: {
+        Row: {
+          id: number
+          rateio_botafogo_pct: number
+          rateio_ipanema_pct: number
+          updated_at: string
+        }
+        Insert: {
+          id?: number
+          rateio_botafogo_pct?: number
+          rateio_ipanema_pct?: number
+          updated_at?: string
+        }
+        Update: {
+          id?: number
+          rateio_botafogo_pct?: number
+          rateio_ipanema_pct?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      fin_fornecedores: {
+        Row: {
+          ativo: boolean
+          categoria_padrao_id: string | null
+          chave_pix: string | null
+          cnpj_cpf: string | null
+          contato: string | null
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          categoria_padrao_id?: string | null
+          chave_pix?: string | null
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          categoria_padrao_id?: string | null
+          chave_pix?: string | null
+          cnpj_cpf?: string | null
+          contato?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_fornecedores_categoria_padrao_id_fkey"
+            columns: ["categoria_padrao_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categorias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_lancamentos: {
+        Row: {
+          anexo_path: string | null
+          ativo_descricao: string | null
+          categoria_id: string
+          competencia: string
+          consumo_quantidade: number | null
+          consumo_unidade: string | null
+          created_at: string
+          created_by: string
+          data_pagamento: string | null
+          data_vencimento: string | null
+          descricao: string
+          forma_pagamento: string | null
+          fornecedor_id: string | null
+          freelancer_nome: string | null
+          funcionario_id: string | null
+          id: string
+          numero_documento: string | null
+          observacoes: string | null
+          qtd_diarias: number | null
+          recorrencia_id: string | null
+          status: string
+          tipo: string
+          unidade: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          anexo_path?: string | null
+          ativo_descricao?: string | null
+          categoria_id: string
+          competencia: string
+          consumo_quantidade?: number | null
+          consumo_unidade?: string | null
+          created_at?: string
+          created_by?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao: string
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          freelancer_nome?: string | null
+          funcionario_id?: string | null
+          id?: string
+          numero_documento?: string | null
+          observacoes?: string | null
+          qtd_diarias?: number | null
+          recorrencia_id?: string | null
+          status?: string
+          tipo: string
+          unidade: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          anexo_path?: string | null
+          ativo_descricao?: string | null
+          categoria_id?: string
+          competencia?: string
+          consumo_quantidade?: number | null
+          consumo_unidade?: string | null
+          created_at?: string
+          created_by?: string
+          data_pagamento?: string | null
+          data_vencimento?: string | null
+          descricao?: string
+          forma_pagamento?: string | null
+          fornecedor_id?: string | null
+          freelancer_nome?: string | null
+          funcionario_id?: string | null
+          id?: string
+          numero_documento?: string | null
+          observacoes?: string | null
+          qtd_diarias?: number | null
+          recorrencia_id?: string | null
+          status?: string
+          tipo?: string
+          unidade?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_lancamentos_categoria_id_fkey"
+            columns: ["categoria_id"]
+            isOneToOne: false
+            referencedRelation: "fin_categorias"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_fornecedor_id_fkey"
+            columns: ["fornecedor_id"]
+            isOneToOne: false
+            referencedRelation: "fin_fornecedores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_lancamentos_recorrencia_id_fkey"
+            columns: ["recorrencia_id"]
+            isOneToOne: false
+            referencedRelation: "fin_lancamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       funcionarios: {
         Row: {
           categorias: string[]
