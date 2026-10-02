@@ -204,6 +204,13 @@
       "when": 1790971092536,
       "tag": "0028_apply_bonificacao_edicao_liberada",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1790971665154,
+      "tag": "0029_fix_mayara_bonificacao_access",
+      "breakpoints": true
     }
   ]
 }
