@@ -131,7 +131,7 @@ function GestorHub() {
           <h2 className="text-xs font-black uppercase text-slate-500">Financeiro</h2>
           <Link to="/gestor/financeiro" className="flex min-h-24 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-emerald-400">
             <div className="grid h-11 w-11 place-items-center rounded-lg bg-emerald-700 text-white"><Banknote className="h-5 w-5" /></div>
-            <div className="flex-1"><p className="font-black text-slate-900">Financeiro</p><p className="text-xs text-slate-500">Área financeira centralizada</p></div>
+            <div className="flex-1"><p className="font-black text-slate-900">Financeiro</p><p className="text-xs text-slate-500">Despesas, receitas e fornecedores</p></div>
             <ArrowUpRight className="h-4 w-4 text-slate-400" />
           </Link>
         </div>
