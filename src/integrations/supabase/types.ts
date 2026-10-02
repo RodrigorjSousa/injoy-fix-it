@@ -503,6 +503,7 @@ export type Database = {
           funcionario_id: string | null
           id: string
           nome: string
+          ponto_habilitado: boolean
           setor: string
           telefone: string | null
           turno_padrao: string | null
@@ -516,6 +517,7 @@ export type Database = {
           funcionario_id?: string | null
           id?: string
           nome: string
+          ponto_habilitado?: boolean
           setor: string
           telefone?: string | null
           turno_padrao?: string | null
@@ -529,6 +531,7 @@ export type Database = {
           funcionario_id?: string | null
           id?: string
           nome?: string
+          ponto_habilitado?: boolean
           setor?: string
           telefone?: string | null
           turno_padrao?: string | null
@@ -3220,6 +3223,17 @@ export type Database = {
         Returns: string
       }
       ponto_meu_status: { Args: never; Returns: Json }
+      ponto_quiosque_lista: {
+        Args: { _unidade: string }
+        Returns: {
+          cadastro_facial: boolean
+          colaborador_id: string
+          entrada_aberta: boolean
+          nome: string
+          setor: string
+          vinculo: string
+        }[]
+      }
       ponto_registrar: {
         Args: {
           _colaborador_id?: string
