@@ -27,3 +27,14 @@
 - [x] Implementar fluxo completo de freelancers
 - [x] Liberar consulta segura da escala publicada ao funcionário
 - [x] Validar tipos, rotas e regras automatizadas da Escala
+
+## Finalização da Escala
+
+- [ ] Mover a Escala para `/gestor/escala` e redirecionar o endereço antigo
+- [ ] Finalizar publicação com justificativa, auditoria e notificações
+- [ ] Gerar PDF real e compartilhamento por WhatsApp por equipe ou pessoa
+- [ ] Mostrar os próximos 14 dias da escala nas telas dos funcionários
+- [ ] Adicionar o quadro de quem trabalha hoje e alertas de cobertura
+- [ ] Sincronizar plantões freelancers com o Financeiro sem duplicações
+- [ ] Criar a visão diária prevista para a futura integração com o ponto
+- [ ] Validar regras, telas, exportações e notificações
