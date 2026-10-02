@@ -9,11 +9,14 @@ const text = (value: unknown) => typeof value === "string" ? value.trim() : valu
 const dateOnly = (value: unknown) => text(value).slice(0, 10);
 const minutes = (value: string | null | undefined) => { if (!value) return null; const [h, m] = value.slice(0, 5).split(":").map(Number); return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null; };
 const duration = (start: string | null, end: string | null) => { const a=minutes(start),b=minutes(end); if(a===null||b===null)return 0; return b>=a?b-a:1440-a+b; };
+const hourSP = () => Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Sao_Paulo", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
 const arrival = (value: unknown) => text(value).match(/\b(\d{1,2}):(\d{2})\b/)?.slice(1).join(":") ?? null;
 
+// Sem checkOutTo: hóspedes que saem depois do horizonte continuam no quarto
+// durante a janela e precisam contar como ARRUMAÇÃO/TROCA.
 async function fetchPages(property: CloudbedsProperty, from: string, to: string) {
   const page = async (pageNumber: number) => {
-    const qs = new URLSearchParams({ checkInFrom: addCivilDays(from, -365), checkInTo: to, checkOutFrom: from, checkOutTo: to, includeGuestsDetails: "true", includeAllRooms: "true", pageSize: "100", pageNumber: String(pageNumber) });
+    const qs = new URLSearchParams({ checkInFrom: addCivilDays(from, -365), checkInTo: to, checkOutFrom: from, includeGuestsDetails: "true", includeAllRooms: "true", pageSize: "100", pageNumber: String(pageNumber) });
     const response = await cloudbedsFetch(property, `/getReservations?${qs}`);
     if (!response.ok) throw new Error(`Cloudbeds indisponível (${response.status})`);
     return response.json() as Promise<{ success?: boolean; data?: Raw[]; total?: number | string; count?: number | string }>;
@@ -61,7 +64,10 @@ export async function calculateLoadForecast(units: Unit[]) {
       const {data:previous}=await supabaseAdmin.from("previsao_carga").select("nivel").eq("unidade",unit).eq("data",date).order("calculado_em",{ascending:false}).limit(1).maybeSingle();
       const {data:snapshot,error:snapshotError}=await supabaseAdmin.from("previsao_carga").insert({unidade:unit,data:date,horizonte_dias:offset,qtd_geral:counts("GERAL"),qtd_geral_checkin:counts("GERAL - CHECK-IN"),qtd_troca_arrumacao:counts("TROCA + ARRUMAÇÃO"),qtd_arrumacao:counts("ARRUMAÇÃO"),qtd_checkins:reservations.filter(r=>r.checkIn===date).length,qtd_checkouts:reservations.filter(r=>r.checkOut===date).length,carga_minutos:load,capacidade_minutos:capacity,camareiras_escaladas:scheduled.filter(r=>r.status==="trabalho").length,freelancers_escalados:scheduled.filter(r=>r.status==="extra").length,ocupacao_carga_pct:pct,nivel:level,chegada_mais_cedo:arrivals[0]??null,detalhes:tasks,capacidade_detalhes:capacityDetails}).select("id").single();
       if(snapshotError)throw snapshotError; inserted.push(snapshot.id);
-      const alertType=level!=="verde"&&offset===2?"d2":level!=="verde"&&offset===1?"lembrete_d1":level!=="verde"&&previous?.nivel&&previous.nivel!==level?"mudanca_nivel":null;
+      const freelancers=scheduled.filter(r=>r.status==="extra").length;
+      // Reforço já escalado: mantém o semáforo calculado, mas não insiste na contratação.
+      const reforcoEscalado=freelancers>0;
+      const alertType=level==="verde"||reforcoEscalado?null:offset===2?"d2":offset===1&&hourSP()>=16?"lembrete_d1":previous?.nivel&&previous.nivel!==level?"mudanca_nivel":null;
       if(alertType){const{error:alertError}=await supabaseAdmin.from("previsao_carga_alertas").insert({unidade:unit,data:date,nivel:level,previsao_id:snapshot.id,tipo:alertType});if(!alertError){const{data:settings}=await supabaseAdmin.from("app_settings").select("key,value").in("key",["push_dispatcher_url","push_dispatcher_secret"]);const setting=Object.fromEntries((settings??[]).map(item=>[item.key,item.value]));if(setting.push_dispatcher_url&&setting.push_dispatcher_secret)await fetch(String(setting.push_dispatcher_url),{method:"POST",headers:{"Content-Type":"application/json","x-dispatcher-secret":String(setting.push_dispatcher_secret)},body:JSON.stringify({event:"previsao_carga",data:{unidade:unit,data:date,nivel:level,tipo:alertType,gerais:generals,ocupacao_pct:pct}})}).catch(()=>undefined);}}
     }
   }
