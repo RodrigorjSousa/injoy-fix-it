@@ -113,6 +113,13 @@
       "when": 1790947469072,
       "tag": "0015_create_housekeeping_load_forecast",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1790947946332,
+      "tag": "0016_schedule_housekeeping_load_forecast",
+      "breakpoints": true
     }
   ]
 }
