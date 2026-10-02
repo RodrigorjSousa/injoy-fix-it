@@ -8,6 +8,7 @@ import { PendenciasPonto } from "@/components/ponto/pendencias-ponto";
 import { RelatorioPonto } from "@/components/ponto/relatorio-ponto";
 import { CadastroFacial } from "@/components/ponto/cadastro-facial";
 import { ConfigPonto } from "@/components/ponto/config-ponto";
+import { PessoasPonto } from "@/components/ponto/pessoas-ponto";
 
 export const Route = createFileRoute("/_authenticated/gestor/ponto")({
   beforeLoad: () => requireGestor(),
@@ -48,6 +49,7 @@ function GestorPonto() {
         <TabsList className="flex w-full flex-wrap justify-start">
           <TabsTrigger value="pendencias">Pendências{qtd ? ` (${qtd})` : ""}</TabsTrigger>
           <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+          <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
           <TabsTrigger value="cadastro">Cadastro facial</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
         </TabsList>
@@ -56,6 +58,9 @@ function GestorPonto() {
         </TabsContent>
         <TabsContent value="relatorio" className="mt-4">
           <RelatorioPonto />
+        </TabsContent>
+        <TabsContent value="pessoas" className="mt-4">
+          <PessoasPonto />
         </TabsContent>
         <TabsContent value="cadastro" className="mt-4">
           <CadastroFacial />
