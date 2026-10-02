@@ -64,6 +64,13 @@
       "when": 1790934983781,
       "tag": "0008_add_finance_recurring_and_indicators",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1790935343915,
+      "tag": "0009_schedule_daily_finance_alerts",
+      "breakpoints": true
     }
   ]
 }
