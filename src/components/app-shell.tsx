@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -34,6 +34,7 @@ const isTecnicoAC = (me: Me) =>
 type TelaKey = "servicos" | "manutencao" | "recepcao" | "camareiras" | "preventiva" | "painel";
 const ALWAYS_ALLOWED_TELAS: TelaKey[] = ["painel", "servicos", "preventiva", "manutencao", "recepcao", "camareiras"];
 const MOBILE_PRIORITY: Record<string, number> = {
+  ponto: -1,
   gestor: 0,
   painel: 1,
   servicos: 2,
@@ -102,6 +103,7 @@ const podeBonificacao = (me: Me) => !isAdmin(me) && isMayara(me);
 
 const ALL_NAV: NavItem[] = [
   // Comuns a todos
+  { to: "/ponto", label: "Bater Ponto", icon: Fingerprint, show: (me) => !!me },
   { to: "/minha-escala", label: "Minha Escala", icon: CalendarDays, show: (me) => !!me && !isAdmin(me) },
   { to: "/servicos", label: "Serviços", icon: Wrench, show: podeServicos },
   { to: "/manutencao", label: "Manutenção", icon: Cog, show: podeManutencao },
@@ -133,6 +135,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/gestao-boas-vindas", label: "BOAS-VINDAS", icon: LayoutGrid },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
       { to: "/gestor/escala", label: "ESCALA", icon: CalendarDays },
+      { to: "/gestor/ponto", label: "PONTO FACIAL", icon: Fingerprint },
 
     ],
   },
@@ -155,8 +158,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .filter((t): t is NonNullable<typeof t> => !!t)
         .map((t) => ({ to: t.path, label: t.label, icon: t.icon }));
       const minhaEscala = ALL_NAV.find((n) => n.to === "/minha-escala");
+      const baterPonto = ALL_NAV.find((n) => n.to === "/ponto");
        const admin = ALL_NAV.find((n) => n.label === "ÁREA DO GESTOR" && (!n.show || n.show(me)));
-      return [...(minhaEscala ? [minhaEscala] : []), ...custom, ...(admin ? [admin] : [])];
+      return [...(baterPonto ? [baterPonto] : []), ...(minhaEscala ? [minhaEscala] : []), ...custom.filter((n) => n.to !== "/ponto"), ...(admin ? [admin] : [])];
     }
     return ALL_NAV.filter((n) => !n.show || n.show(me));
   })();

@@ -33,6 +33,7 @@ import { Route as AuthenticatedHistoricoManutencaoRouteImport } from './routes/_
 import { Route as AuthenticatedHistoricoVistoriasRouteImport } from './routes/_authenticated/historico-vistorias'
 import { Route as AuthenticatedMinhaEscalaRouteImport } from './routes/_authenticated/minha-escala'
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
+import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
@@ -45,6 +46,7 @@ import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedGestorIndexRouteImport } from './routes/_authenticated/gestor/index'
 import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authenticated/gestor/escala'
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
+import { Route as AuthenticatedGestorPontoRouteImport } from './routes/_authenticated/gestor/ponto'
 import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
@@ -183,6 +185,11 @@ const AuthenticatedPainelRoute = AuthenticatedPainelRouteImport.update({
   path: '/painel',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPontoRoute = AuthenticatedPontoRouteImport.update({
+  id: '/ponto',
+  path: '/ponto',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
   id: '/preventiva',
   path: '/preventiva',
@@ -248,6 +255,12 @@ const AuthenticatedGestorFinanceiroRoute =
     path: '/financeiro',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorPontoRoute =
+  AuthenticatedGestorPontoRouteImport.update({
+    id: '/ponto',
+    path: '/ponto',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const AuthenticatedGestorPrevisaoCargaRoute =
   AuthenticatedGestorPrevisaoCargaRouteImport.update({
     id: '/previsao-carga',
@@ -300,6 +313,7 @@ export interface FileRoutesByFullPath {
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/ponto': typeof AuthenticatedPontoRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
@@ -311,6 +325,7 @@ export interface FileRoutesByFullPath {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -339,6 +354,7 @@ export interface FileRoutesByTo {
   '/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/painel': typeof AuthenticatedPainelRoute
+  '/ponto': typeof AuthenticatedPontoRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
@@ -351,6 +367,7 @@ export interface FileRoutesByTo {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -383,6 +400,7 @@ export interface FileRoutesById {
   '/_authenticated/historico-vistorias': typeof AuthenticatedHistoricoVistoriasRoute
   '/_authenticated/minha-escala': typeof AuthenticatedMinhaEscalaRoute
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
+  '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
@@ -395,6 +413,7 @@ export interface FileRoutesById {
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/_authenticated/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -428,6 +447,7 @@ export interface FileRouteTypes {
     | '/historico-vistorias'
     | '/minha-escala'
     | '/painel'
+    | '/ponto'
     | '/preventiva'
     | '/recepcao'
     | '/relatorio-operacoes'
@@ -439,6 +459,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/gestor/escala'
     | '/gestor/financeiro'
+    | '/gestor/ponto'
     | '/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -467,6 +488,7 @@ export interface FileRouteTypes {
     | '/historico-vistorias'
     | '/minha-escala'
     | '/painel'
+    | '/ponto'
     | '/preventiva'
     | '/recepcao'
     | '/relatorio-operacoes'
@@ -479,6 +501,7 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/gestor/escala'
     | '/gestor/financeiro'
+    | '/gestor/ponto'
     | '/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -510,6 +533,7 @@ export interface FileRouteTypes {
     | '/_authenticated/historico-vistorias'
     | '/_authenticated/minha-escala'
     | '/_authenticated/painel'
+    | '/_authenticated/ponto'
     | '/_authenticated/preventiva'
     | '/_authenticated/recepcao'
     | '/_authenticated/relatorio-operacoes'
@@ -522,6 +546,7 @@ export interface FileRouteTypes {
     | '/_authenticated/chamados/$id'
     | '/_authenticated/gestor/escala'
     | '/_authenticated/gestor/financeiro'
+    | '/_authenticated/gestor/ponto'
     | '/_authenticated/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -710,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPainelRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/ponto': {
+      id: '/_authenticated/ponto'
+      path: '/ponto'
+      fullPath: '/ponto'
+      preLoaderRoute: typeof AuthenticatedPontoRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/preventiva': {
       id: '/_authenticated/preventiva'
       path: '/preventiva'
@@ -794,6 +826,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorFinanceiroRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/ponto': {
+      id: '/_authenticated/gestor/ponto'
+      path: '/ponto'
+      fullPath: '/gestor/ponto'
+      preLoaderRoute: typeof AuthenticatedGestorPontoRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/_authenticated/gestor/previsao-carga': {
       id: '/_authenticated/gestor/previsao-carga'
       path: '/previsao-carga'
@@ -835,6 +874,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorEscalaRoute: typeof AuthenticatedGestorEscalaRoute
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
+  AuthenticatedGestorPontoRoute: typeof AuthenticatedGestorPontoRoute
   AuthenticatedGestorPrevisaoCargaRoute: typeof AuthenticatedGestorPrevisaoCargaRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
@@ -843,6 +883,7 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
   {
     AuthenticatedGestorEscalaRoute: AuthenticatedGestorEscalaRoute,
     AuthenticatedGestorFinanceiroRoute: AuthenticatedGestorFinanceiroRoute,
+    AuthenticatedGestorPontoRoute: AuthenticatedGestorPontoRoute,
     AuthenticatedGestorPrevisaoCargaRoute:
       AuthenticatedGestorPrevisaoCargaRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
@@ -874,6 +915,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedHistoricoVistoriasRoute: typeof AuthenticatedHistoricoVistoriasRoute
   AuthenticatedMinhaEscalaRoute: typeof AuthenticatedMinhaEscalaRoute
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
+  AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedRelatorioOperacoesRoute: typeof AuthenticatedRelatorioOperacoesRoute
@@ -905,6 +947,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedHistoricoVistoriasRoute: AuthenticatedHistoricoVistoriasRoute,
   AuthenticatedMinhaEscalaRoute: AuthenticatedMinhaEscalaRoute,
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
+  AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedRelatorioOperacoesRoute: AuthenticatedRelatorioOperacoesRoute,

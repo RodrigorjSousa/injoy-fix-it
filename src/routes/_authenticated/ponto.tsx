@@ -1,0 +1,439 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Fingerprint,
+  Loader2,
+  LogIn,
+  LogOut,
+  MapPin,
+  ScanFace,
+  Users,
+} from "lucide-react";
+import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
+import { useMe } from "@/lib/store";
+import { getDeviceId, getPosition } from "@/lib/ponto-face";
+import {
+  MOTIVO_LABEL,
+  enviarSelfie,
+  horaSP,
+  useFreelancersQuiosque,
+  useMeuStatusPonto,
+  useRegistrarPonto,
+  type PontoUnidade,
+  type RegistroResultado,
+} from "@/lib/ponto";
+import { useUnidade } from "@/lib/unidade-context";
+import { cn } from "@/lib/utils";
+
+export const Route = createFileRoute("/_authenticated/ponto")({
+  head: () => ({
+    meta: [
+      { title: "Bater Ponto — INJOY" },
+      { name: "description", content: "Registro de entrada e saída com reconhecimento facial." },
+    ],
+  }),
+  component: PontoPage,
+});
+
+function PontoPage() {
+  const { data: me } = useMe();
+  const podeQuiosque = !!me && (me.isGestor || me.isAdmin || me.isRecepcao);
+  return (
+    <div className="mx-auto max-w-xl space-y-5">
+      <header>
+        <Badge variant="secondary" className="mb-2">
+          <Fingerprint className="mr-1 h-3 w-3" />
+          Ponto
+        </Badge>
+        <h1 className="text-2xl font-bold">Bater Ponto</h1>
+        <p className="text-sm text-muted-foreground">
+          Controle interno do INJOY. O ponto oficial continua sendo a Pontomais.
+        </p>
+      </header>
+      {podeQuiosque ? (
+        <Tabs defaultValue="meu">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="meu">Meu ponto</TabsTrigger>
+            <TabsTrigger value="freelancer">Ponto do freelancer</TabsTrigger>
+          </TabsList>
+          <TabsContent value="meu" className="mt-4">
+            <MeuPonto />
+          </TabsContent>
+          <TabsContent value="freelancer" className="mt-4">
+            <PontoFreelancer />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <MeuPonto />
+      )}
+    </div>
+  );
+}
+
+function ResultadoCard({ r, onOk }: { r: RegistroResultado; onOk: () => void }) {
+  const ok = r.status === "valida";
+  return (
+    <Card
+      className={cn(
+        "space-y-3 p-5 text-center",
+        ok ? "border-emerald-300 bg-emerald-50" : "border-amber-300 bg-amber-50",
+      )}
+    >
+      {ok ? (
+        <CheckCircle2 className="mx-auto h-12 w-12 text-emerald-600" />
+      ) : (
+        <AlertTriangle className="mx-auto h-12 w-12 text-amber-600" />
+      )}
+      <div>
+        <p className="text-lg font-black">
+          {r.tipo === "entrada" ? "Entrada" : "Saída"} registrada às {horaSP(r.registrado_em)}
+        </p>
+        <p className="text-sm text-slate-600">
+          {r.nome} · {r.unidade}
+        </p>
+      </div>
+      {!ok && (
+        <div className="space-y-1 text-sm">
+          <p className="font-semibold text-amber-800">
+            Registrada com pendência — o gestor vai conferir:
+          </p>
+          <div className="flex flex-wrap justify-center gap-1">
+            {r.motivos.map((m) => (
+              <Badge key={m} variant="outline" className="border-amber-400 text-amber-800">
+                {MOTIVO_LABEL[m] ?? m}
+              </Badge>
+            ))}
+          </div>
+        </div>
+      )}
+      <Button onClick={onOk} className="w-full">
+        OK
+      </Button>
+    </Card>
+  );
+}
+
+async function registrar(
+  resultado: VerificacaoResultado,
+  mutate: ReturnType<typeof useRegistrarPonto>["mutateAsync"],
+  extra: { modo: "app" | "quiosque"; colaboradorId?: string },
+  posicao: Awaited<ReturnType<typeof getPosition>>,
+) {
+  const selfiePath = await enviarSelfie(resultado.selfie);
+  return mutate({
+    descritor: resultado.descritor,
+    latitude: posicao?.latitude ?? null,
+    longitude: posicao?.longitude ?? null,
+    precisao: posicao ? Math.round(posicao.accuracy) : null,
+    vivacidade: resultado.vivacidade,
+    deviceId: getDeviceId(),
+    selfiePath,
+    modo: extra.modo,
+    colaboradorId: extra.colaboradorId ?? null,
+  });
+}
+
+function MeuPonto() {
+  const status = useMeuStatusPonto();
+  const registrarMut = useRegistrarPonto();
+  const [etapa, setEtapa] = useState<"inicio" | "camera" | "enviando" | "resultado">("inicio");
+  const [resultado, setResultado] = useState<RegistroResultado | null>(null);
+  const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
+
+  if (status.isLoading)
+    return (
+      <Card className="p-6 text-center">
+        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+      </Card>
+    );
+  if (status.error)
+    return (
+      <Card className="p-6 text-sm text-rose-600">
+        Não foi possível carregar seu ponto. {(status.error as Error).message}
+      </Card>
+    );
+  const s = status.data;
+  if (!s?.vinculado) {
+    return (
+      <Card className="space-y-2 p-6 text-center">
+        <Users className="mx-auto h-8 w-8 text-slate-400" />
+        <p className="font-semibold">Seu usuário ainda não está ligado à escala.</p>
+        <p className="text-sm text-muted-foreground">
+          Peça ao gestor para vincular seu cadastro na Equipe da Escala.
+        </p>
+      </Card>
+    );
+  }
+
+  const ultima = s.batidas_recentes?.find((b) => b.status !== "recusada");
+  const proxima: "entrada" | "saida" =
+    ultima &&
+    ultima.tipo === "entrada" &&
+    Date.now() - new Date(ultima.registrado_em).getTime() < 18 * 3600_000
+      ? "saida"
+      : "entrada";
+
+  const comecar = () => {
+    // Pede a localização em paralelo com a câmera (o GPS demora alguns segundos)
+    setPosicaoPromise(getPosition());
+    setEtapa("camera");
+  };
+
+  const aoCapturar = async (r: VerificacaoResultado) => {
+    setEtapa("enviando");
+    try {
+      const posicao = posicaoPromise ? await posicaoPromise : await getPosition();
+      const res = await registrar(r, registrarMut.mutateAsync, { modo: "app" }, posicao);
+      setResultado(res);
+      setEtapa("resultado");
+      if (res.status === "valida")
+        toast.success(`${res.tipo === "entrada" ? "Entrada" : "Saída"} registrada`);
+    } catch (error) {
+      toast.error((error as Error).message ?? "Falha ao registrar o ponto");
+      setEtapa("inicio");
+    }
+  };
+
+  if (etapa === "resultado" && resultado)
+    return (
+      <ResultadoCard
+        r={resultado}
+        onOk={() => {
+          setResultado(null);
+          setEtapa("inicio");
+        }}
+      />
+    );
+  if (etapa === "enviando")
+    return (
+      <Card className="space-y-2 p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+        <p className="text-sm">Registrando…</p>
+      </Card>
+    );
+  if (etapa === "camera")
+    return (
+      <Card className="p-4">
+        <FaceCapture
+          modo="verificar"
+          onResultado={aoCapturar}
+          onCancelar={() => setEtapa("inicio")}
+        />
+      </Card>
+    );
+
+  const escala =
+    s.escala_hoje?.filter((e) => e.status === "trabalho" || e.status === "extra") ?? [];
+  return (
+    <div className="space-y-4">
+      <Card className="space-y-4 p-5">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-500">Olá</p>
+            <p className="text-lg font-black">{s.nome}</p>
+          </div>
+          <Badge variant={s.cadastro_facial ? "secondary" : "destructive"} className="gap-1">
+            <ScanFace className="h-3 w-3" />
+            {s.cadastro_facial ? "Rosto cadastrado" : "Sem cadastro facial"}
+          </Badge>
+        </div>
+        <div className="rounded-xl bg-slate-50 p-3 text-sm">
+          <p className="flex items-center gap-2 font-semibold">
+            <Clock className="h-4 w-4" />
+            Escala de hoje
+          </p>
+          {escala.length ? (
+            escala.map((e, i) => (
+              <p key={i} className="mt-1 text-slate-600">
+                {e.unidade} · {e.hora_entrada?.slice(0, 5) ?? "—"} às{" "}
+                {e.hora_saida?.slice(0, 5) ?? "—"}
+                {e.status === "extra" ? " · plantão extra" : ""}
+              </p>
+            ))
+          ) : (
+            <p className="mt-1 text-slate-500">Sem plantão publicado para hoje.</p>
+          )}
+        </div>
+        {!s.cadastro_facial && (
+          <p className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+            Você ainda não tem o rosto cadastrado. Pode bater o ponto, mas ele ficará pendente até o
+            gestor conferir. Peça o cadastro facial ao gestor.
+          </p>
+        )}
+        <Button
+          size="lg"
+          className={cn(
+            "h-16 w-full gap-2 text-lg",
+            proxima === "saida" && "bg-rose-600 hover:bg-rose-700",
+          )}
+          onClick={comecar}
+        >
+          {proxima === "entrada" ? <LogIn className="h-6 w-6" /> : <LogOut className="h-6 w-6" />}
+          Registrar {proxima === "entrada" ? "entrada" : "saída"}
+        </Button>
+        <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+          <MapPin className="h-3 w-3" />
+          Usa câmera e localização somente no momento da batida.
+        </p>
+      </Card>
+
+      {!!s.batidas_recentes?.length && (
+        <Card className="p-4">
+          <p className="mb-2 text-xs font-bold uppercase text-slate-500">Últimas batidas</p>
+          <ul className="space-y-1 text-sm">
+            {s.batidas_recentes.map((b) => (
+              <li key={b.id} className="flex items-center justify-between">
+                <span>
+                  {b.tipo === "entrada" ? "Entrada" : "Saída"} ·{" "}
+                  {new Date(b.registrado_em).toLocaleDateString("pt-BR", {
+                    timeZone: "America/Sao_Paulo",
+                  })}{" "}
+                  {horaSP(b.registrado_em)}
+                </span>
+                <Badge
+                  variant="outline"
+                  className={cn(
+                    b.status === "pendente" && "border-amber-400 text-amber-700",
+                    b.status === "recusada" && "border-rose-400 text-rose-700",
+                  )}
+                >
+                  {b.status === "valida" ? "ok" : b.status}
+                </Badge>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
+    </div>
+  );
+}
+
+function PontoFreelancer() {
+  const { unidade: unidadeAtiva } = useUnidade();
+  const [unidade, setUnidade] = useState<PontoUnidade>(unidadeAtiva as PontoUnidade);
+  const lista = useFreelancersQuiosque(unidade, true);
+  const registrarMut = useRegistrarPonto();
+  const [selecionado, setSelecionado] = useState<{ id: string; nome: string } | null>(null);
+  const [etapa, setEtapa] = useState<"lista" | "camera" | "enviando" | "resultado">("lista");
+  const [resultado, setResultado] = useState<RegistroResultado | null>(null);
+  const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
+
+  const aoCapturar = async (r: VerificacaoResultado) => {
+    if (!selecionado) return;
+    setEtapa("enviando");
+    try {
+      const posicao = posicaoPromise ? await posicaoPromise : await getPosition();
+      const res = await registrar(
+        r,
+        registrarMut.mutateAsync,
+        { modo: "quiosque", colaboradorId: selecionado.id },
+        posicao,
+      );
+      setResultado(res);
+      setEtapa("resultado");
+    } catch (error) {
+      toast.error((error as Error).message ?? "Falha ao registrar o ponto");
+      setEtapa("lista");
+    }
+  };
+
+  if (etapa === "resultado" && resultado)
+    return (
+      <ResultadoCard
+        r={resultado}
+        onOk={() => {
+          setResultado(null);
+          setSelecionado(null);
+          setEtapa("lista");
+        }}
+      />
+    );
+  if (etapa === "enviando")
+    return (
+      <Card className="space-y-2 p-8 text-center">
+        <Loader2 className="mx-auto h-8 w-8 animate-spin" />
+        <p className="text-sm">Registrando…</p>
+      </Card>
+    );
+  if (etapa === "camera" && selecionado) {
+    return (
+      <Card className="space-y-3 p-4">
+        <p className="text-center text-sm font-semibold">Freelancer: {selecionado.nome}</p>
+        <FaceCapture
+          modo="verificar"
+          onResultado={aoCapturar}
+          onCancelar={() => {
+            setSelecionado(null);
+            setEtapa("lista");
+          }}
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="space-y-4 p-5">
+      <p className="text-sm text-muted-foreground">
+        Use este aparelho para o freelancer registrar a chegada e a saída do plantão. Escolha o nome
+        e ele confirma pelo rosto.
+      </p>
+      <div className="flex gap-2">
+        {(["Botafogo", "Ipanema"] as PontoUnidade[]).map((u) => (
+          <Button
+            key={u}
+            variant={u === unidade ? "default" : "outline"}
+            className="flex-1"
+            onClick={() => setUnidade(u)}
+          >
+            {u}
+          </Button>
+        ))}
+      </div>
+      {lista.isLoading ? (
+        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
+      ) : lista.error ? (
+        <p className="text-sm text-rose-600">{(lista.error as Error).message}</p>
+      ) : !lista.data?.length ? (
+        <p className="text-sm text-muted-foreground">
+          Nenhum freelancer cadastrado para {unidade}.
+        </p>
+      ) : (
+        <ul className="space-y-2">
+          {lista.data.map((f) => (
+            <li key={f.colaborador_id}>
+              <button
+                type="button"
+                className="flex w-full items-center justify-between rounded-xl border bg-white p-3 text-left hover:border-primary"
+                onClick={() => {
+                  setSelecionado({ id: f.colaborador_id, nome: f.nome });
+                  setPosicaoPromise(getPosition());
+                  setEtapa("camera");
+                }}
+              >
+                <span className="font-semibold">{f.nome}</span>
+                <span className="flex items-center gap-2">
+                  {!f.cadastro_facial && (
+                    <Badge variant="outline" className="border-amber-400 text-amber-700">
+                      sem rosto
+                    </Badge>
+                  )}
+                  <Badge className={f.entrada_aberta ? "bg-rose-600" : "bg-emerald-600"}>
+                    {f.entrada_aberta ? "Registrar saída" : "Registrar entrada"}
+                  </Badge>
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
