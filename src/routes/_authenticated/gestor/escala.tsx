@@ -25,7 +25,7 @@ import {
 } from "@/lib/escala";
 import { todaySP } from "@/lib/tz";
 
-export const Route = createFileRoute("/_authenticated/escala")({
+export const Route = createFileRoute("/_authenticated/gestor/escala")({
   beforeLoad: () => requireGestor(),
   head: () => ({ meta: [
     { title: "Escala de Funcionários — INJOY" },

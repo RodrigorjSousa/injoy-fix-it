@@ -21,7 +21,6 @@ import { Route as AuthenticatedChatRouteImport } from './routes/_authenticated/c
 import { Route as AuthenticatedCheckInDigitalRouteImport } from './routes/_authenticated/check-in-digital'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
 import { Route as AuthenticatedControlePontoRouteImport } from './routes/_authenticated/controle-ponto'
-import { Route as AuthenticatedEscalaRouteImport } from './routes/_authenticated/escala'
 import { Route as AuthenticatedEstoqueGeralRouteImport } from './routes/_authenticated/estoque-geral'
 import { Route as AuthenticatedFrigobarRouteImport } from './routes/_authenticated/frigobar'
 import { Route as AuthenticatedGestaoRouteImport } from './routes/_authenticated/gestao'
@@ -43,6 +42,7 @@ import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
 import { Route as AuthenticatedGestorIndexRouteImport } from './routes/_authenticated/gestor/index'
+import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authenticated/gestor/escala'
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
@@ -112,11 +112,6 @@ const AuthenticatedControlePontoRoute =
     path: '/controle-ponto',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedEscalaRoute = AuthenticatedEscalaRouteImport.update({
-  id: '/escala',
-  path: '/escala',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedEstoqueGeralRoute =
   AuthenticatedEstoqueGeralRouteImport.update({
     id: '/estoque-geral',
@@ -233,6 +228,12 @@ const AuthenticatedGestorIndexRoute =
     path: '/',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorEscalaRoute =
+  AuthenticatedGestorEscalaRouteImport.update({
+    id: '/escala',
+    path: '/escala',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const AuthenticatedGestorFinanceiroRoute =
   AuthenticatedGestorFinanceiroRouteImport.update({
     id: '/financeiro',
@@ -269,7 +270,6 @@ export interface FileRoutesByFullPath {
   '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
-  '/escala': typeof AuthenticatedEscalaRoute
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
@@ -289,6 +289,7 @@ export interface FileRoutesByFullPath {
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -305,7 +306,6 @@ export interface FileRoutesByTo {
   '/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/controle-ponto': typeof AuthenticatedControlePontoRoute
-  '/escala': typeof AuthenticatedEscalaRoute
   '/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/frigobar': typeof AuthenticatedFrigobarRoute
   '/gestao': typeof AuthenticatedGestaoRoute
@@ -326,6 +326,7 @@ export interface FileRoutesByTo {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -346,7 +347,6 @@ export interface FileRoutesById {
   '/_authenticated/check-in-digital': typeof AuthenticatedCheckInDigitalRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
   '/_authenticated/controle-ponto': typeof AuthenticatedControlePontoRoute
-  '/_authenticated/escala': typeof AuthenticatedEscalaRoute
   '/_authenticated/estoque-geral': typeof AuthenticatedEstoqueGeralRoute
   '/_authenticated/frigobar': typeof AuthenticatedFrigobarRoute
   '/_authenticated/gestao': typeof AuthenticatedGestaoRoute
@@ -367,6 +367,7 @@ export interface FileRoutesById {
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
+  '/_authenticated/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -388,7 +389,6 @@ export interface FileRouteTypes {
     | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
-    | '/escala'
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
@@ -408,6 +408,7 @@ export interface FileRouteTypes {
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
+    | '/gestor/escala'
     | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -424,7 +425,6 @@ export interface FileRouteTypes {
     | '/check-in-digital'
     | '/configuracoes'
     | '/controle-ponto'
-    | '/escala'
     | '/estoque-geral'
     | '/frigobar'
     | '/gestao'
@@ -445,6 +445,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/chamados/$id'
+    | '/gestor/escala'
     | '/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -464,7 +465,6 @@ export interface FileRouteTypes {
     | '/_authenticated/check-in-digital'
     | '/_authenticated/configuracoes'
     | '/_authenticated/controle-ponto'
-    | '/_authenticated/escala'
     | '/_authenticated/estoque-geral'
     | '/_authenticated/frigobar'
     | '/_authenticated/gestao'
@@ -485,6 +485,7 @@ export interface FileRouteTypes {
     | '/_authenticated/'
     | '/auth/'
     | '/_authenticated/chamados/$id'
+    | '/_authenticated/gestor/escala'
     | '/_authenticated/gestor/financeiro'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/push-dispatcher'
@@ -585,13 +586,6 @@ declare module '@tanstack/react-router' {
       path: '/controle-ponto'
       fullPath: '/controle-ponto'
       preLoaderRoute: typeof AuthenticatedControlePontoRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
-    '/_authenticated/escala': {
-      id: '/_authenticated/escala'
-      path: '/escala'
-      fullPath: '/escala'
-      preLoaderRoute: typeof AuthenticatedEscalaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
     '/_authenticated/estoque-geral': {
@@ -741,6 +735,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorIndexRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/escala': {
+      id: '/_authenticated/gestor/escala'
+      path: '/escala'
+      fullPath: '/gestor/escala'
+      preLoaderRoute: typeof AuthenticatedGestorEscalaRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/_authenticated/gestor/financeiro': {
       id: '/_authenticated/gestor/financeiro'
       path: '/financeiro'
@@ -773,12 +774,14 @@ declare module '@tanstack/react-router' {
 }
 
 interface AuthenticatedGestorRouteRouteChildren {
+  AuthenticatedGestorEscalaRoute: typeof AuthenticatedGestorEscalaRoute
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
 
 const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildren =
   {
+    AuthenticatedGestorEscalaRoute: AuthenticatedGestorEscalaRoute,
     AuthenticatedGestorFinanceiroRoute: AuthenticatedGestorFinanceiroRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
   }
@@ -798,7 +801,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedCheckInDigitalRoute: typeof AuthenticatedCheckInDigitalRoute
   AuthenticatedConfiguracoesRoute: typeof AuthenticatedConfiguracoesRoute
   AuthenticatedControlePontoRoute: typeof AuthenticatedControlePontoRoute
-  AuthenticatedEscalaRoute: typeof AuthenticatedEscalaRoute
   AuthenticatedEstoqueGeralRoute: typeof AuthenticatedEstoqueGeralRoute
   AuthenticatedFrigobarRoute: typeof AuthenticatedFrigobarRoute
   AuthenticatedGestaoRoute: typeof AuthenticatedGestaoRoute
@@ -829,7 +831,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedCheckInDigitalRoute: AuthenticatedCheckInDigitalRoute,
   AuthenticatedConfiguracoesRoute: AuthenticatedConfiguracoesRoute,
   AuthenticatedControlePontoRoute: AuthenticatedControlePontoRoute,
-  AuthenticatedEscalaRoute: AuthenticatedEscalaRoute,
   AuthenticatedEstoqueGeralRoute: AuthenticatedEstoqueGeralRoute,
   AuthenticatedFrigobarRoute: AuthenticatedFrigobarRoute,
   AuthenticatedGestaoRoute: AuthenticatedGestaoRoute,
