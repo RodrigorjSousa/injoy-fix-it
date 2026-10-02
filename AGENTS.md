@@ -6,3 +6,4 @@ Wrap the router in an outer error boundary and throttle stale-asset reloads for 
 Protect manager routes with the reusable role-and-screen guard, and keep `/gestor` strictly manager-only; hidden navigation is not access control.
 Keep all financial records and attachments behind database and storage policies restricted to gestor/admin roles; route protection alone is insufficient.
 Generate monthly financial entries from recurring templates through the role-checked database function; this keeps generation idempotent and prevents client-side bypasses.
+Treat the database as the schedule source of truth, and anchor work cycles to continuous base dates instead of restarting them each month; this preserves patterns across month boundaries.

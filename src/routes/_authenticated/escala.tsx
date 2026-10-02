@@ -45,6 +45,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { EquipeEscalaDialog, ImportarEquipeLocalPrompt } from "@/components/escala/equipe-escala-dialog";
+import { useEscalaColaboradores } from "@/lib/escala";
 
 import { requireGestor } from "@/lib/require-gestor";
 
@@ -168,7 +170,15 @@ function EscalaPage() {
   const [month, setMonth] = useState(today.getMonth());
   const [manageOpen, setManageOpen] = useState(false);
 
-  const { equipe, upsert, remove } = useEquipe();
+  const colaboradores = useEscalaColaboradores();
+  const equipe = useMemo<Funcionario[]>(() => (colaboradores.data ?? []).filter((c) => c.ativo).map((c) => ({
+    id: c.id,
+    nome: c.nome,
+    setor: c.setor,
+    unidade: c.unidade === "Ambas" ? "todas" : c.unidade.toLowerCase() as UnidadeEq,
+    tipo: c.vinculo === "fixo" ? "Fixo" : "Freelance",
+    ...(c.turno_padrao === "manha" || c.turno_padrao === "noite" ? { turno: c.turno_padrao } : {}),
+  })), [colaboradores.data]);
   const label = `${MONTHS[month]} / ${year}`;
 
   return (
@@ -231,13 +241,8 @@ function EscalaPage() {
         </Tabs>
       </Card>
 
-      <ManageTeamDialog
-        open={manageOpen}
-        onOpenChange={setManageOpen}
-        equipe={equipe}
-        onUpsert={upsert}
-        onRemove={remove}
-      />
+      <EquipeEscalaDialog open={manageOpen} onOpenChange={setManageOpen} />
+      <ImportarEquipeLocalPrompt />
     </div>
   );
 }

@@ -71,6 +71,13 @@
       "when": 1790935343915,
       "tag": "0009_schedule_daily_finance_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1790937108727,
+      "tag": "0010_create_persistent_staff_schedule",
+      "breakpoints": true
     }
   ]
 }
