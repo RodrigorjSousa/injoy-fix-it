@@ -7,6 +7,8 @@ export type Categoria = Database["public"]["Tables"]["fin_categorias"]["Row"];
 export type Fornecedor = Database["public"]["Tables"]["fin_fornecedores"]["Row"];
 export type Lancamento = Database["public"]["Tables"]["fin_lancamentos"]["Row"];
 export type FinConfig = Database["public"]["Tables"]["fin_config"]["Row"];
+export type Recorrencia = Database["public"]["Tables"]["fin_recorrencias"]["Row"];
+export type IndicadorMes = Database["public"]["Tables"]["fin_indicadores_mes"]["Row"];
 export type TipoLancamento = "despesa" | "receita";
 export type UnidadeFinanceira = "Botafogo" | "Ipanema" | "Ambas";
 export type FiltroUnidade = "Botafogo" | "Ipanema" | "Consolidado";
@@ -24,6 +26,9 @@ export const STATUS: Record<string, string> = { previsto: "Previsto", a_pagar: "
 export const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 export const dateBR = (value: string | null) => value ? value.split("-").reverse().join("/") : "—";
 export const monthNow = () => todaySP().slice(0, 7);
+export const competenciaDate = (month: string) => `${month}-01`;
+export const previousMonth = (month: string) => { const [y,m]=month.split("-").map(Number); const d=new Date(Date.UTC(y,m-2,1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`; };
+export const lastTwelveMonths = (month: string) => Array.from({length:12},(_,index)=>{const [y,m]=month.split("-").map(Number);const d=new Date(Date.UTC(y,m-12+index,1));return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}`;});
 export const statusReal = (l: Lancamento) => l.status === "a_pagar" && !!l.data_vencimento && l.data_vencimento < todaySP() ? "vencido" : l.status;
 export const monthNext = (date: string) => { const [y,m]=date.split("-").map(Number); const d=new Date(Date.UTC(y,m,1)); return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,"0")}-01`; };
 export function valorRateado(l: Lancamento, unidade: FiltroUnidade, config: FinConfig | null) {
