@@ -169,6 +169,13 @@
       "when": 1791040000000,
       "tag": "0023_ponto_todas_as_pessoas",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1790965457699,
+      "tag": "0024_ponto_todas_as_pessoas",
+      "breakpoints": true
     }
   ]
 }
