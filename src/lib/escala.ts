@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { GeneratedDay } from "@/lib/escala-engine";
 
 export type EscalaSetor = "manutencao" | "recepcao" | "camareiras";
 export type EscalaUnidade = "Botafogo" | "Ipanema" | "Ambas";
@@ -54,6 +55,28 @@ export interface FeriadoEscala {
   nome: string;
   abrangencia: "nacional" | "estadual_RJ" | "municipal_Rio";
 }
+export interface EscalaDia {
+  id: string;
+  colaborador_id: string;
+  unidade: "Botafogo" | "Ipanema";
+  setor: EscalaSetor;
+  data: string;
+  turno: EscalaTurno;
+  hora_entrada: string | null;
+  hora_saida: string | null;
+  status: "trabalho" | "folga" | "falta" | "atestado" | "ferias" | "extra";
+  origem: "gerado" | "manual";
+  substitui_colaborador_id: string | null;
+  motivo: string | null;
+  modalidade_id: string | null;
+  motivo_chamada: ModalidadeMotivo | null;
+  horas_contratadas: number | null;
+  valor_combinado: number | null;
+  updated_by: string | null;
+  updated_at: string;
+  created_at: string;
+}
+export interface EscalaMes { id:string; unidade:"Botafogo"|"Ipanema"; setor:EscalaSetor; competencia:string; status:"rascunho"|"publicada"; publicada_em:string|null; publicada_por:string|null; }
 export interface ColaboradorInput {
   id?: string;
   funcionario_id: string | null;
@@ -67,7 +90,7 @@ export interface ColaboradorInput {
   padrao?: Omit<EscalaPadrao, "id" | "colaborador_id" | "vigente_ate">;
 }
 
-const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"], ["escala-feriados"]] as const;
+const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"], ["escala-feriados"], ["escala-dias"], ["escala-meses"]] as const;
 function useRefreshSchedule() {
   const queryClient = useQueryClient();
   return () => scheduleKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [...key] }));
@@ -113,6 +136,57 @@ export function useEscalaFeriados() {
     },
   });
 }
+
+export function useEscalaDias(start: string, end: string) {
+  return useQuery({
+    queryKey: ["escala-dias", start, end],
+    queryFn: async (): Promise<EscalaDia[]> => {
+      const { data, error } = await supabase.from("escala_dias").select("*").gte("data", start).lte("data", end).order("data").order("turno");
+      if (error) throw error;
+      return (data ?? []) as EscalaDia[];
+    },
+  });
+}
+
+export function useEscalaMeses(competencia: string) {
+  return useQuery({
+    queryKey: ["escala-meses", competencia],
+    queryFn: async (): Promise<EscalaMes[]> => {
+      const { data, error } = await supabase.from("escala_meses").select("*").eq("competencia", competencia);
+      if (error) throw error;
+      return (data ?? []) as EscalaMes[];
+    },
+  });
+}
+
+export function useGerarEscalaMes() {
+  const refresh=useRefreshSchedule();
+  return useMutation({
+    mutationFn: async (input:{unidade:"Botafogo"|"Ipanema";setor:EscalaSetor;competencia:string;dias:(GeneratedDay&{colaborador_id:string;turno:EscalaTurno;hora_entrada:string|null;hora_saida:string|null})[]}) => {
+      const { data,error }=await supabase.rpc("escala_regenerar_mes",{_unidade:input.unidade,_setor:input.setor,_competencia:input.competencia,_dias:input.dias});
+      if(error)throw error; return data;
+    },onSuccess:refresh,
+  });
+}
+
+export function usePublicarEscalaMes() {
+  const refresh=useRefreshSchedule();
+  return useMutation({mutationFn:async(input:{unidade:"Botafogo"|"Ipanema";setor:EscalaSetor;competencia:string})=>{const {error}=await supabase.rpc("escala_publicar_mes",{_unidade:input.unidade,_setor:input.setor,_competencia:input.competencia});if(error)throw error;},onSuccess:refresh});
+}
+
+export type EscalaDiaInput=Omit<EscalaDia,"id"|"created_at"|"updated_at"|"updated_by">;
+export function useSalvarEscalaDia(){
+  const refresh=useRefreshSchedule();
+  return useMutation({mutationFn:async(input:EscalaDiaInput)=>{const {data:auth}=await supabase.auth.getUser();const {error}=await supabase.from("escala_dias").upsert({...input,updated_by:auth.user?.id??null},{onConflict:"colaborador_id,data,turno"});if(error)throw error;},onSuccess:refresh});
+}
+
+export function useSalvarEscalaDias(){
+  const refresh=useRefreshSchedule();
+  return useMutation({mutationFn:async(inputs:EscalaDiaInput[])=>{const {data:auth}=await supabase.auth.getUser();const {error}=await supabase.from("escala_dias").upsert(inputs.map(input=>({...input,updated_by:auth.user?.id??null})),{onConflict:"colaborador_id,data,turno"});if(error)throw error;},onSuccess:refresh});
+}
+
+export type MinhaEscalaDia={id:string;data:string;unidade:string;setor:string;turno:string;hora_entrada:string|null;hora_saida:string|null;status:string;motivo:string|null;publicada_em:string|null};
+export function useMinhaEscala(start:string,end:string){return useQuery({queryKey:["minha-escala",start,end],queryFn:async():Promise<MinhaEscalaDia[]>=>{const {data,error}=await supabase.rpc("minha_escala_publicada",{_inicio:start,_fim:end});if(error)throw error;return (data??[]) as MinhaEscalaDia[];}});}
 
 export function useSalvarEscalaFeriado() {
   const refresh = useRefreshSchedule();
