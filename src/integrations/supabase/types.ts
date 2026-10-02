@@ -445,6 +445,328 @@ export type Database = {
         }
         Relationships: []
       }
+      escala_alteracoes: {
+        Row: {
+          alterado_em: string
+          alterado_por: string | null
+          antes: Json
+          depois: Json
+          escala_dia_id: string
+          id: string
+          motivo: string | null
+        }
+        Insert: {
+          alterado_em?: string
+          alterado_por?: string | null
+          antes: Json
+          depois: Json
+          escala_dia_id: string
+          id?: string
+          motivo?: string | null
+        }
+        Update: {
+          alterado_em?: string
+          alterado_por?: string | null
+          antes?: Json
+          depois?: Json
+          escala_dia_id?: string
+          id?: string
+          motivo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_alteracoes_escala_dia_id_fkey"
+            columns: ["escala_dia_id"]
+            isOneToOne: false
+            referencedRelation: "escala_dias"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escala_colaboradores: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          funcionario_id: string | null
+          id: string
+          nome: string
+          setor: string
+          telefone: string | null
+          turno_padrao: string | null
+          unidade: string
+          updated_at: string
+          vinculo: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          nome: string
+          setor: string
+          telefone?: string | null
+          turno_padrao?: string | null
+          unidade: string
+          updated_at?: string
+          vinculo: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          funcionario_id?: string | null
+          id?: string
+          nome?: string
+          setor?: string
+          telefone?: string | null
+          turno_padrao?: string | null
+          unidade?: string
+          updated_at?: string
+          vinculo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_colaboradores_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escala_dias: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data: string
+          hora_entrada: string | null
+          hora_saida: string | null
+          horas_contratadas: number | null
+          id: string
+          modalidade_id: string | null
+          motivo: string | null
+          motivo_chamada: string | null
+          origem: string
+          setor: string
+          status: string
+          substitui_colaborador_id: string | null
+          turno: string
+          unidade: string
+          updated_at: string
+          updated_by: string | null
+          valor_combinado: number | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data: string
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          horas_contratadas?: number | null
+          id?: string
+          modalidade_id?: string | null
+          motivo?: string | null
+          motivo_chamada?: string | null
+          origem: string
+          setor: string
+          status: string
+          substitui_colaborador_id?: string | null
+          turno: string
+          unidade: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_combinado?: number | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data?: string
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          horas_contratadas?: number | null
+          id?: string
+          modalidade_id?: string | null
+          motivo?: string | null
+          motivo_chamada?: string | null
+          origem?: string
+          setor?: string
+          status?: string
+          substitui_colaborador_id?: string | null
+          turno?: string
+          unidade?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor_combinado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_dias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_dias_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "escala_freelance_modalidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_dias_substitui_colaborador_id_fkey"
+            columns: ["substitui_colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      escala_freelance_modalidades: {
+        Row: {
+          ativo: boolean
+          horas: number
+          id: string
+          motivo: string
+          nome: string
+          ordem: number
+          unidade: string
+          updated_at: string
+          updated_by: string | null
+          valor: number
+        }
+        Insert: {
+          ativo?: boolean
+          horas: number
+          id?: string
+          motivo: string
+          nome: string
+          ordem?: number
+          unidade: string
+          updated_at?: string
+          updated_by?: string | null
+          valor: number
+        }
+        Update: {
+          ativo?: boolean
+          horas?: number
+          id?: string
+          motivo?: string
+          nome?: string
+          ordem?: number
+          unidade?: string
+          updated_at?: string
+          updated_by?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      escala_freelance_modalidades_seed_guard: {
+        Row: {
+          id: number
+          seeded_at: string
+        }
+        Insert: {
+          id?: number
+          seeded_at?: string
+        }
+        Update: {
+          id?: number
+          seeded_at?: string
+        }
+        Relationships: []
+      }
+      escala_meses: {
+        Row: {
+          competencia: string
+          created_at: string
+          id: string
+          publicada_em: string | null
+          publicada_por: string | null
+          setor: string
+          status: string
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          competencia: string
+          created_at?: string
+          id?: string
+          publicada_em?: string | null
+          publicada_por?: string | null
+          setor: string
+          status?: string
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          competencia?: string
+          created_at?: string
+          id?: string
+          publicada_em?: string | null
+          publicada_por?: string | null
+          setor?: string
+          status?: string
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      escala_padroes: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          data_base: string | null
+          folga_semana_a: number | null
+          folga_semana_b: number | null
+          folgas_fixas: number[]
+          hora_entrada: string | null
+          hora_saida: string | null
+          id: string
+          intervalo_minutos: number | null
+          tipo: string
+          vigente_ate: string | null
+          vigente_desde: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          data_base?: string | null
+          folga_semana_a?: number | null
+          folga_semana_b?: number | null
+          folgas_fixas?: number[]
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          id?: string
+          intervalo_minutos?: number | null
+          tipo: string
+          vigente_ate?: string | null
+          vigente_desde?: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          data_base?: string | null
+          folga_semana_a?: number | null
+          folga_semana_b?: number | null
+          folgas_fixas?: number[]
+          hora_entrada?: string | null
+          hora_saida?: string | null
+          id?: string
+          intervalo_minutos?: number | null
+          tipo?: string
+          vigente_ate?: string | null
+          vigente_desde?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_padroes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       extra_tasks_directory: {
         Row: {
           created_at: string
@@ -484,6 +806,30 @@ export type Database = {
           created_at?: string
           id?: string
           property?: string
+        }
+        Relationships: []
+      }
+      feriados: {
+        Row: {
+          abrangencia: string
+          created_at: string
+          data: string
+          id: string
+          nome: string
+        }
+        Insert: {
+          abrangencia: string
+          created_at?: string
+          data: string
+          id?: string
+          nome: string
+        }
+        Update: {
+          abrangencia?: string
+          created_at?: string
+          data?: string
+          id?: string
+          nome?: string
         }
         Relationships: []
       }
