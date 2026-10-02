@@ -45,7 +45,9 @@ import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authentic
 import { Route as AuthenticatedGestorIndexRouteImport } from './routes/_authenticated/gestor/index'
 import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authenticated/gestor/escala'
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
+import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
+import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 
@@ -246,12 +248,23 @@ const AuthenticatedGestorFinanceiroRoute =
     path: '/financeiro',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorPrevisaoCargaRoute =
+  AuthenticatedGestorPrevisaoCargaRouteImport.update({
+    id: '/previsao-carga',
+    path: '/previsao-carga',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
     id: '/api/public/cloudbeds-webhook',
     path: '/api/public/cloudbeds-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPrevisaoCargaRoute = ApiPublicPrevisaoCargaRouteImport.update({
+  id: '/api/public/previsao-carga',
+  path: '/api/public/previsao-carga',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPushDispatcherRoute = ApiPublicPushDispatcherRouteImport.update({
   id: '/api/public/push-dispatcher',
   path: '/api/public/push-dispatcher',
@@ -298,7 +311,9 @@ export interface FileRoutesByFullPath {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor/': typeof AuthenticatedGestorIndexRoute
@@ -336,7 +351,9 @@ export interface FileRoutesByTo {
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor': typeof AuthenticatedGestorIndexRoute
@@ -378,7 +395,9 @@ export interface FileRoutesById {
   '/_authenticated/chamados/$id': typeof AuthenticatedChamadosIdRoute
   '/_authenticated/gestor/escala': typeof AuthenticatedGestorEscalaRoute
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
+  '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/_authenticated/gestor/': typeof AuthenticatedGestorIndexRoute
@@ -420,7 +439,9 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/gestor/escala'
     | '/gestor/financeiro'
+    | '/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
     | '/gestor/'
@@ -458,7 +479,9 @@ export interface FileRouteTypes {
     | '/chamados/$id'
     | '/gestor/escala'
     | '/gestor/financeiro'
+    | '/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
     | '/gestor'
@@ -499,7 +522,9 @@ export interface FileRouteTypes {
     | '/_authenticated/chamados/$id'
     | '/_authenticated/gestor/escala'
     | '/_authenticated/gestor/financeiro'
+    | '/_authenticated/gestor/previsao-carga'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
     | '/_authenticated/gestor/'
@@ -510,6 +535,7 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRouteWithChildren
   ManutencaoRoute: typeof ManutencaoRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
+  ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
 }
@@ -768,11 +794,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorFinanceiroRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/previsao-carga': {
+      id: '/_authenticated/gestor/previsao-carga'
+      path: '/previsao-carga'
+      fullPath: '/gestor/previsao-carga'
+      preLoaderRoute: typeof AuthenticatedGestorPrevisaoCargaRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/api/public/cloudbeds-webhook': {
       id: '/api/public/cloudbeds-webhook'
       path: '/api/public/cloudbeds-webhook'
       fullPath: '/api/public/cloudbeds-webhook'
       preLoaderRoute: typeof ApiPublicCloudbedsWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/previsao-carga': {
+      id: '/api/public/previsao-carga'
+      path: '/api/public/previsao-carga'
+      fullPath: '/api/public/previsao-carga'
+      preLoaderRoute: typeof ApiPublicPrevisaoCargaRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/push-dispatcher': {
@@ -795,6 +835,7 @@ declare module '@tanstack/react-router' {
 interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorEscalaRoute: typeof AuthenticatedGestorEscalaRoute
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
+  AuthenticatedGestorPrevisaoCargaRoute: typeof AuthenticatedGestorPrevisaoCargaRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
 
@@ -802,6 +843,8 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
   {
     AuthenticatedGestorEscalaRoute: AuthenticatedGestorEscalaRoute,
     AuthenticatedGestorFinanceiroRoute: AuthenticatedGestorFinanceiroRoute,
+    AuthenticatedGestorPrevisaoCargaRoute:
+      AuthenticatedGestorPrevisaoCargaRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
   }
 
@@ -892,6 +935,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRouteWithChildren,
   ManutencaoRoute: ManutencaoRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
+  ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
 }

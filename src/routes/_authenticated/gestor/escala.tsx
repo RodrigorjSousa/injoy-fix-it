@@ -28,6 +28,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/_authenticated/gestor/escala")({
+  validateSearch:(search:Record<string,unknown>)=>({reforcoData:typeof search.reforcoData==="string"?search.reforcoData:undefined,reforcoUnidade:(search.reforcoUnidade==="Botafogo"||search.reforcoUnidade==="Ipanema"?search.reforcoUnidade:undefined) as "Botafogo"|"Ipanema"|undefined}),
   beforeLoad: () => requireGestor(),
   head: () => ({ meta: [
     { title: "Escala de Funcionários — INJOY" },
@@ -59,8 +60,9 @@ function exportSchedulePdf(year:number,month:number,unit:UnitFilter,sector:Escal
 }
 
 function EscalaPage(){
+  const search=Route.useSearch();
   const now=todaySP(); const [year,setYear]=useState(Number(now.slice(0,4))); const [month,setMonth]=useState(Number(now.slice(5,7))-1);
-  const [unit,setUnit]=useState<UnitFilter>("Botafogo"); const [sector,setSector]=useState<EscalaSetor>("recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false);
+  const [unit,setUnit]=useState<UnitFilter>(search.reforcoUnidade??"Botafogo"); const [sector,setSector]=useState<EscalaSetor>(search.reforcoData?"camareiras":"recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false);
   const bounds=monthBounds(year,month); const queryStart=addCivilDays(bounds.start,-7); const queryEnd=addCivilDays(bounds.end,7);
   const peopleQuery=useEscalaColaboradores(); const daysQuery=useEscalaDias(queryStart,queryEnd); const holidaysQuery=useEscalaFeriados(); const monthsQuery=useEscalaMeses(bounds.start);
   const people=peopleQuery.data??[]; const allDays=daysQuery.data??[]; const visibleUnits: ("Botafogo"|"Ipanema")[]=unit==="Ambas"?["Botafogo","Ipanema"]:[unit];
@@ -78,16 +80,16 @@ function EscalaPage(){
         <div className="flex flex-wrap gap-2"><Select value={unit} onValueChange={v=>setUnit(v as UnitFilter)}><SelectTrigger className="w-36"><SelectValue/></SelectTrigger><SelectContent><SelectItem value="Botafogo">Botafogo</SelectItem><SelectItem value="Ipanema">Ipanema</SelectItem><SelectItem value="Ambas">Ambas</SelectItem></SelectContent></Select><div className="flex rounded-md border p-1"><Button size="sm" variant={view==="calendar"?"secondary":"ghost"} onClick={()=>setView("calendar")}><Grid3X3 className="mr-1 h-4 w-4"/>Calendário</Button><Button size="sm" variant={view==="grid"?"secondary":"ghost"} onClick={()=>setView("grid")}><List className="mr-1 h-4 w-4"/>Por pessoa</Button></div></div>
       </div>
       <Tabs value={sector} onValueChange={v=>setSector(v as EscalaSetor)}><TabsList className="grid w-full grid-cols-3 print:hidden"><TabsTrigger value="manutencao">Manutenção</TabsTrigger><TabsTrigger value="recepcao">Recepção</TabsTrigger><TabsTrigger value="camareiras">Camareiras</TabsTrigger></TabsList>
-        <TabsContent value={sector} className="mt-4"><ScheduleWorkspace year={year} month={month} unit={unit} sector={sector} view={view} people={sectionPeople} allPeople={people} days={visibleDays} contextDays={allDays} months={months} issues={issues} holidays={holidaysQuery.data??[]} loading={loading}/></TabsContent>
+        <TabsContent value={sector} className="mt-4"><ScheduleWorkspace year={year} month={month} unit={unit} sector={sector} view={view} people={sectionPeople} allPeople={people} days={visibleDays} contextDays={allDays} months={months} issues={issues} holidays={holidaysQuery.data??[]} loading={loading} initialFree={search.reforcoData&&search.reforcoUnidade?{date:search.reforcoData,unit:search.reforcoUnidade}:null}/></TabsContent>
       </Tabs>
     </Card>
     <EquipeEscalaDialog open={teamOpen} onOpenChange={setTeamOpen}/><ImportarEquipeLocalPrompt/>
   </div>;
 }
 
-function ScheduleWorkspace({year,month,unit,sector,view,people,allPeople,days,contextDays,months,issues,holidays,loading}:{year:number;month:number;unit:UnitFilter;sector:EscalaSetor;view:ViewMode;people:EscalaColaborador[];allPeople:EscalaColaborador[];days:EscalaDia[];contextDays:EscalaDia[];months:EscalaMes[];issues:ScheduleIssue[];holidays:{data:string;nome:string}[];loading:boolean}){
+function ScheduleWorkspace({year,month,unit,sector,view,people,allPeople,days,contextDays,months,issues,holidays,loading,initialFree}:{year:number;month:number;unit:UnitFilter;sector:EscalaSetor;view:ViewMode;people:EscalaColaborador[];allPeople:EscalaColaborador[];days:EscalaDia[];contextDays:EscalaDia[];months:EscalaMes[];issues:ScheduleIssue[];holidays:{data:string;nome:string}[];loading:boolean;initialFree:{date:string;unit:"Botafogo"|"Ipanema"}|null}){
   const generate=useGerarEscalaMes(); const publish=usePublicarEscalaMes(); const save=useSalvarEscalaDia(); const saveMany=useSalvarEscalaDias(); const modalities=useEscalaModalidades(); const bounds=monthBounds(year,month);
-  const [edit,setEdit]=useState<{person:EscalaColaborador;date:string;row?:EscalaDia}|null>(null); const [free,setFree]=useState<{date:string;unit:"Botafogo"|"Ipanema";replaces?:string}|null>(null); const [regenerate,setRegenerate]=useState(false); const [override,setOverride]=useState<{patches:EscalaDiaInput[];errors:ScheduleIssue[]}|null>(null); const [reason,setReason]=useState(""); const [publishOverride,setPublishOverride]=useState<ScheduleIssue[]|null>(null); const [publishReason,setPublishReason]=useState("");
+  const [edit,setEdit]=useState<{person:EscalaColaborador;date:string;row?:EscalaDia}|null>(null); const [free,setFree]=useState<{date:string;unit:"Botafogo"|"Ipanema";replaces?:string}|null>(initialFree); const [regenerate,setRegenerate]=useState(false); const [override,setOverride]=useState<{patches:EscalaDiaInput[];errors:ScheduleIssue[]}|null>(null); const [reason,setReason]=useState(""); const [publishOverride,setPublishOverride]=useState<ScheduleIssue[]|null>(null); const [publishReason,setPublishReason]=useState("");
   const generatedCount=days.filter(d=>d.origem==="gerado").length; const publication=months.length&&months.every(m=>m.status==="publicada")?"publicada":"rascunho";
   const units:("Botafogo"|"Ipanema")[]=unit==="Ambas"?["Botafogo","Ipanema"]:[unit];
   const doGenerate=async()=>{if(unit==="Ambas")return toast.error("Selecione Botafogo ou Ipanema para gerar; Ambas é uma visão consolidada.");const rows=[] as {colaborador_id:string;data:string;status:"trabalho"|"folga";turno:"manha"|"noite"|"dia";hora_entrada:string|null;hora_saida:string|null}[];const missing:string[]=[];for(const person of people.filter(p=>p.vinculo==="fixo")){const p=activePattern(person);if(!p){missing.push(`${person.nome}: padrão`);continue;}if(p.tipo!=="5x2_fixo"&&!p.data_base){missing.push(`${person.nome}: data-base`);continue;}for(const d of generatePatternMonth(p,year,month))rows.push({...d,colaborador_id:person.id,turno:person.turno_padrao??"dia",hora_entrada:p.hora_entrada,hora_saida:p.hora_saida});}if(missing.length)return toast.error("Complete os padrões antes de gerar",{description:missing.join(" · ")});try{await generate.mutateAsync({unidade:unit,setor:sector,competencia:bounds.start,dias:rows});toast.success("Escala do mês gerada",{description:`${rows.length} dias calculados sem reiniciar o ciclo.`});setRegenerate(false);}catch(e){toast.error(e instanceof Error?e.message:"Não foi possível gerar");}};

@@ -1,7 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_authenticated/escala")({
-  beforeLoad: () => { throw redirect({ to: "/gestor/escala", replace: true }); },
+  beforeLoad: () => { throw redirect({ to: "/gestor/escala", search: { reforcoData: undefined, reforcoUnidade: undefined }, replace: true }); },
   head: () => ({ meta: [
     { title: "Escala de Funcionários — INJOY" },
     { name: "description", content: "A Escala agora está disponível na Área do Gestor." },

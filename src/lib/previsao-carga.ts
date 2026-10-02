@@ -1,0 +1,12 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { supabase } from "@/integrations/supabase/client";
+import { recalcularPrevisaoCarga } from "@/lib/previsao-carga.functions";
+
+export type ForecastLevel="verde"|"amarelo"|"vermelho";
+export type ForecastRow={id:string;unidade:string;data:string;calculado_em:string;qtd_geral:number;qtd_geral_checkin:number;qtd_troca_arrumacao:number;qtd_arrumacao:number;qtd_checkins:number;qtd_checkouts:number;carga_minutos:number;capacidade_minutos:number;camareiras_escaladas:number;freelancers_escalados:number;ocupacao_carga_pct:number;nivel:ForecastLevel;chegada_mais_cedo:string|null;detalhes:unknown;capacidade_detalhes:unknown};
+export type ForecastConfig={unidade:string;geral_minutos:number;geral_checkin_minutos:number;troca_arrumacao_minutos:number;arrumacao_minutos:number;margem_pct:number;limite_amarelo_pct:number;limite_vermelho_pct:number;limite_amarelo_gerais:number;limite_vermelho_gerais:number};
+export function usePrevisaoCarga(){return useQuery({queryKey:["previsao-carga"],queryFn:async()=>{const{data,error}=await supabase.from("previsao_carga").select("*").gte("data",new Date().toISOString().slice(0,10)).order("calculado_em",{ascending:false});if(error)throw error;const latest=new Map<string,ForecastRow>();for(const row of data??[]){const key=`${row.unidade}|${row.data}`;if(!latest.has(key))latest.set(key,row as ForecastRow);}return [...latest.values()].sort((a,b)=>a.data.localeCompare(b.data)||a.unidade.localeCompare(b.unidade));}});}
+export function usePrevisaoConfig(){return useQuery({queryKey:["previsao-carga-config"],queryFn:async()=>{const{data,error}=await supabase.from("previsao_carga_config").select("*").order("unidade");if(error)throw error;return(data??[]) as ForecastConfig[];}});}
+export function useSalvarPrevisaoConfig(){const qc=useQueryClient();return useMutation({mutationFn:async(row:ForecastConfig)=>{const{error}=await supabase.from("previsao_carga_config").update(row).eq("unidade",row.unidade);if(error)throw error;},onSuccess:()=>qc.invalidateQueries({queryKey:["previsao-carga-config"]})});}
+export function useRecalcularPrevisao(){const call=useServerFn(recalcularPrevisaoCarga),qc=useQueryClient();return useMutation({mutationFn:(unidades:("Botafogo"|"Ipanema")[])=>call({data:{unidades}}),onSuccess:()=>qc.invalidateQueries({queryKey:["previsao-carga"]})});}

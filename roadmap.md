@@ -38,3 +38,21 @@
 - [x] Sincronizar plantões freelancers com o Financeiro sem duplicações
 - [x] Criar a visão diária prevista para a futura integração com o ponto
 - [x] Validar regras, telas, exportações e notificações
+
+## Sinalizador de Reforço
+
+- [x] Criar armazenamento seguro, histórico e configurações por unidade
+- [x] Calcular tarefas futuras pela regra operacional do Cloudbeds
+- [x] Calcular tempos medianos, carga e capacidade pela Escala
+- [x] Criar semáforo, detalhes e acesso ao freelancer
+- [x] Adicionar resumo e página na Área do Gestor
+- [ ] Agendar cálculos e validar alertas, relatório e telas
+
+## Sinalizador de Reforço
+
+- [x] Criar armazenamento seguro, histórico e configurações por unidade
+- [x] Calcular tarefas futuras pela regra operacional do Cloudbeds
+- [x] Calcular tempos medianos, carga e capacidade pela Escala
+- [x] Criar semáforo, detalhes e acesso ao freelancer
+- [x] Adicionar resumo e página na Área do Gestor
+- [ ] Agendar cálculos e validar alertas, relatório e telas
