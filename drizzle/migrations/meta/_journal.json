@@ -155,6 +155,13 @@
       "when": 1791030000000,
       "tag": "0021_ponto_selfies_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1790964045364,
+      "tag": "0022_ponto_selfies_storage_policies",
+      "breakpoints": true
     }
   ]
 }
