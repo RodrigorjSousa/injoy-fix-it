@@ -8,3 +8,4 @@ Keep all financial records and attachments behind database and storage policies 
 Generate monthly financial entries from recurring templates through the role-checked database function; this keeps generation idempotent and prevents client-side bypasses.
 Treat the database as the schedule source of truth, and anchor work cycles to continuous base dates instead of restarting them each month; this preserves patterns across month boundaries.
 Publish schedules through manager-only atomic operations, sync freelancer costs by stable schedule identifiers, and expose employee schedules only through a value-free published-schedule RPC; this prevents duplication, partial updates, and financial leakage.
+Keep housekeeping load forecasts as immutable manager-only snapshots calculated server-side from Cloudbeds and the published schedule; this preserves audit history and protects operational data.

@@ -28,6 +28,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 export const Route = createFileRoute("/_authenticated/gestor/escala")({
+  validateSearch:(search:Record<string,unknown>)=>({reforcoData:typeof search.reforcoData==="string"?search.reforcoData:undefined,reforcoUnidade:search.reforcoUnidade==="Botafogo"||search.reforcoUnidade==="Ipanema"?search.reforcoUnidade:undefined}),
   beforeLoad: () => requireGestor(),
   head: () => ({ meta: [
     { title: "Escala de Funcionários — INJOY" },
@@ -59,8 +60,9 @@ function exportSchedulePdf(year:number,month:number,unit:UnitFilter,sector:Escal
 }
 
 function EscalaPage(){
+  const search=Route.useSearch();
   const now=todaySP(); const [year,setYear]=useState(Number(now.slice(0,4))); const [month,setMonth]=useState(Number(now.slice(5,7))-1);
-  const [unit,setUnit]=useState<UnitFilter>("Botafogo"); const [sector,setSector]=useState<EscalaSetor>("recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false);
+  const [unit,setUnit]=useState<UnitFilter>(search.reforcoUnidade??"Botafogo"); const [sector,setSector]=useState<EscalaSetor>(search.reforcoData?"camareiras":"recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false);
   const bounds=monthBounds(year,month); const queryStart=addCivilDays(bounds.start,-7); const queryEnd=addCivilDays(bounds.end,7);
   const peopleQuery=useEscalaColaboradores(); const daysQuery=useEscalaDias(queryStart,queryEnd); const holidaysQuery=useEscalaFeriados(); const monthsQuery=useEscalaMeses(bounds.start);
   const people=peopleQuery.data??[]; const allDays=daysQuery.data??[]; const visibleUnits: ("Botafogo"|"Ipanema")[]=unit==="Ambas"?["Botafogo","Ipanema"]:[unit];

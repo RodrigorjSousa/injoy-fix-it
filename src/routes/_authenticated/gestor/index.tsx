@@ -19,9 +19,11 @@ import {
   Trophy,
   Users,
   Wrench,
+  Gauge,
 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
 import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
+import { PrevisaoCargaCard } from "@/components/gestao/previsao-carga-card";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
   head: () => ({
@@ -54,7 +56,8 @@ type HubPath =
   | "/historico-manutencao"
   | "/historico-vistorias"
   | "/historico-caixa"
-  | "/relatorios-turno";
+  | "/relatorios-turno"
+  | "/gestor/previsao-carga";
 
 type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
@@ -63,6 +66,7 @@ const sections: { title: string; items: HubItem[] }[] = [
     title: "Operação",
     items: [
       { label: "Painel de Gestão", description: "Indicadores e visão diária", to: "/gestao", icon: BarChart3, tone: "bg-blue-600" },
+      { label: "Previsão de Carga", description: "Sinalizador de reforço da limpeza", to: "/gestor/previsao-carga", icon: Gauge, tone: "bg-amber-600" },
       { label: "Lavanderia", description: "Operações e conta corrente", to: "/relatorio-operacoes", icon: Shirt, tone: "bg-sky-600" },
       { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },
       { label: "Almoxarifado", description: "Estoque e movimentações", to: "/almoxarifado", icon: Package, tone: "bg-violet-600" },
@@ -98,6 +102,7 @@ function GestorHub() {
     <div className="space-y-8">
       <FinanceiroAlertas />
       <EscalaHojeCard />
+      <PrevisaoCargaCard />
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">
