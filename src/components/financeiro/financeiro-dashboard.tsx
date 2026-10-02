@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
-import { competenciaDate, currency, GRUPOS, lastTwelveMonths, previousMonth, todaySP, valorRateado, type Categoria, type FinConfig, type FiltroUnidade, type IndicadorMes, type Lancamento } from "@/lib/financeiro";
+import { competenciaDate, currency, GRUPOS, lastTwelveMonths, previousMonth, valorRateado, type Categoria, type FinConfig, type FiltroUnidade, type IndicadorMes, type Lancamento } from "@/lib/financeiro";
+import { todaySP } from "@/lib/tz";
 
 type Props={month:string;unit:FiltroUnidade;items:Lancamento[];categorias:Categoria[];config:FinConfig|null;indicadores:IndicadorMes[];refresh:()=>void};
 const chartConfig={receita:{label:"Receita",color:"var(--color-success)"},despesa:{label:"Despesa",color:"var(--color-destructive)"},energia:{label:"Energia (kWh)",color:"var(--color-warning)"},agua:{label:"Água (m³)",color:"var(--color-primary)"}} satisfies ChartConfig;
