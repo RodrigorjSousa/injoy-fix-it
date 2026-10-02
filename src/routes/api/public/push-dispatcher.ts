@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
 
-type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request" | "finance_due" | "escala_publicada" | "escala_alterada" | "previsao_carga";
+type EventKind = "chamado" | "recado_camareira" | "troca_turno" | "purchase_request" | "finance_due" | "escala_publicada" | "escala_alterada" | "previsao_carga" | "ponto_pendente";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
@@ -50,6 +50,13 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         body: `${d.unidade} · ${d.data}: ${d.gerais ?? 0} gerais e carga de ${d.ocupacao_pct ?? 0}%.`,
         url: "/gestor/previsao-carga",
         tag: `previsao-${d.unidade}-${d.data}-${d.tipo}`,
+      };
+    case "ponto_pendente":
+      return {
+        title: "Ponto com pendência",
+        body: `${d.nome ?? "Colaborador"} · ${d.tipo === "saida" ? "saída" : "entrada"} em ${d.unidade ?? ""} precisa de conferência.`,
+        url: "/gestor/ponto",
+        tag: `ponto-${d.id}`,
       };
     case "escala_publicada": {
       const date = String(d.competencia ?? "");
@@ -102,6 +109,7 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       return byRoles(["admin", "gestor"]);
     case "finance_due":
     case "previsao_carga":
+    case "ponto_pendente":
       return byRoles(["admin", "gestor"]);
     case "escala_alterada":
       return typeof d.user_id === "string" ? [d.user_id] : [];

@@ -28,6 +28,7 @@ const EXCLUDE = new Set([
   "index",
   "boas-vindas",
   "configuracoes",
+  "ponto", // sempre disponível para todos (Bater Ponto)
 ]);
 
 // Rótulos amigáveis (fallback: gera a partir do slug)

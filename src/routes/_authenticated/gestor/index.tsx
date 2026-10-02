@@ -20,6 +20,7 @@ import {
   Users,
   Wrench,
   Gauge,
+  Fingerprint,
 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
 import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
@@ -57,7 +58,8 @@ type HubPath =
   | "/historico-vistorias"
   | "/historico-caixa"
   | "/relatorios-turno"
-  | "/gestor/previsao-carga";
+  | "/gestor/previsao-carga"
+  | "/gestor/ponto";
 
 type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
@@ -81,7 +83,8 @@ const sections: { title: string; items: HubItem[] }[] = [
     items: [
       { label: "Equipe", description: "Usuários e permissões", to: "/configuracoes", icon: Users, tone: "bg-blue-700" },
       { label: "Escala", description: "Escalas por setor e unidade", to: "/gestor/escala", icon: CalendarDays, tone: "bg-amber-600" },
-      { label: "Controle de Ponto", description: "Registros da equipe", to: "/controle-ponto", icon: Clock, tone: "bg-orange-600" },
+      { label: "Ponto Facial", description: "Batidas no app, pendências e relatório x escala", to: "/gestor/ponto", icon: Fingerprint, tone: "bg-rose-600" },
+      { label: "Controle de Ponto", description: "Pontomais (ponto oficial)", to: "/controle-ponto", icon: Clock, tone: "bg-orange-600" },
       { label: "Bonificação", description: "Avaliações e valores", to: "/bonificacao", icon: Trophy, tone: "bg-emerald-600" },
     ],
   },
