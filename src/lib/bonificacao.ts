@@ -115,11 +115,7 @@ export function useRegistrosBonificacaoMes(unidade: Unidade, setor?: SetorBonifi
   });
 }
 
-export function useRegistrosBonificacaoPorMes(
-  unidade: Unidade,
-  ano: number,
-  mes: number,
-) {
+export function useRegistrosBonificacaoPorMes(unidade: Unidade, ano: number, mes: number) {
   return useQuery({
     queryKey: ["registros_bonificacao", "por-mes", unidade, ano, mes],
     queryFn: async (): Promise<RegistroBonificacao[]> => {
@@ -137,7 +133,6 @@ export function useRegistrosBonificacaoPorMes(
   });
 }
 
-
 export function useCriarRegistroBonificacao() {
   const qc = useQueryClient();
   return useMutation({
@@ -152,7 +147,8 @@ export function useCriarRegistroBonificacao() {
       unidade: Unidade;
     }) => {
       const { data: u, error: userError } = await supabase.auth.getUser();
-      if (userError || !u.user) throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
+      if (userError || !u.user)
+        throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
       const { error } = await supabase.rpc("registrar_bonificacao_conjunta", {
         _data: input.data,
         _nome_hospede: input.nome_hospede,
@@ -198,7 +194,8 @@ export function useEditarRegistroBonificacao() {
       unidade: Unidade;
     }) => {
       const { data: auth, error: authError } = await supabase.auth.getUser();
-      if (authError || !auth.user) throw new Error("Sua sessão expirou. Entre novamente para editar a avaliação.");
+      if (authError || !auth.user)
+        throw new Error("Sua sessão expirou. Entre novamente para editar a avaliação.");
       const { error } = await supabase.rpc("editar_bonificacao_conjunta", {
         _registro_id: input.registro_id,
         _data: input.data,
@@ -219,4 +216,58 @@ export function useEditarRegistroBonificacao() {
 
 export function formatBRL(v: number): string {
   return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(v);
+}
+
+// ---------------------------------------------------------------- notas do mês (tela inicial)
+export type NivelNota = "verde" | "amarelo" | "vermelho" | "sem";
+
+/** Faixas das notas na tela inicial. O bônus só é positivo com nota ≥ 9. */
+export const FAIXAS_NOTA = { verde: 9, amarelo: 8 } as const;
+
+export function nivelNota(nota: number | null): NivelNota {
+  if (nota == null || Number.isNaN(nota)) return "sem";
+  if (nota >= FAIXAS_NOTA.verde) return "verde";
+  if (nota >= FAIXAS_NOTA.amarelo) return "amarelo";
+  return "vermelho";
+}
+
+export type MediasBonificacao = {
+  geral: number | null;
+  funcionarios: number | null;
+  limpeza: number | null;
+  avaliacoes: number;
+};
+
+const media = (valores: number[]) =>
+  valores.length
+    ? Math.round((valores.reduce((s, v) => s + v, 0) / valores.length) * 10) / 10
+    : null;
+
+/**
+ * Médias do mês a partir da lista da Bonificação.
+ * Uma avaliação de hóspede pode gerar 2 linhas (Recepção e Camareiras) com a mesma
+ * nota geral; por isso a nota geral conta cada avaliação uma vez só.
+ */
+export function calcularMediasBonificacao(registros: RegistroBonificacao[]): MediasBonificacao {
+  const porAvaliacao = new Map<string, RegistroBonificacao[]>();
+  for (const r of registros) {
+    const chave = r.avaliacao_id ?? r.id;
+    porAvaliacao.set(chave, [...(porAvaliacao.get(chave) ?? []), r]);
+  }
+  const avaliacoes = [...porAvaliacao.values()];
+  const geral = avaliacoes.map((linhas) => Number(linhas[0].nota_geral));
+  const funcionarios = avaliacoes
+    .map((linhas) => linhas.find((l) => l.setor !== "camareiras"))
+    .filter((l): l is RegistroBonificacao => !!l)
+    .map((l) => Number(l.nota_funcionarios));
+  const limpeza = avaliacoes
+    .map((linhas) => linhas.find((l) => l.nota_limpeza != null))
+    .filter((l): l is RegistroBonificacao => !!l)
+    .map((l) => Number(l.nota_limpeza));
+  return {
+    geral: media(geral),
+    funcionarios: media(funcionarios),
+    limpeza: media(limpeza),
+    avaliacoes: avaliacoes.length,
+  };
 }
