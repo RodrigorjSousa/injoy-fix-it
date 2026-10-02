@@ -15,3 +15,8 @@
 - [x] Mostrar alertas financeiros no hub do gestor
 - [x] Agendar notificações financeiras diárias às 08:00
 - [x] Validar a continuação do Financeiro no celular e computador
+- [ ] Criar base segura e persistente da Escala
+- [ ] Cadastrar equipe, padrões, modalidades e feriados iniciais
+- [ ] Refazer Equipe da Escala com prévia de ciclos
+- [ ] Migrar equipe antiga salva no aparelho
+- [ ] Validar Escala no celular, computador e compilação
