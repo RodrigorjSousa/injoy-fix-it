@@ -2665,6 +2665,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      escala_publicar_mes: {
+        Args: { _competencia: string; _setor: string; _unidade: string }
+        Returns: undefined
+      }
+      escala_regenerar_mes: {
+        Args: {
+          _competencia: string
+          _dias: Json
+          _setor: string
+          _unidade: string
+        }
+        Returns: number
+      }
       fin_gerar_mes: { Args: { _competencia: string }; Returns: number }
       get_camareiras_user_ids: {
         Args: never
@@ -2702,6 +2715,21 @@ export type Database = {
           categorias: string[]
           id: string
           nome: string
+        }[]
+      }
+      minha_escala_publicada: {
+        Args: { _fim: string; _inicio: string }
+        Returns: {
+          data: string
+          hora_entrada: string
+          hora_saida: string
+          id: string
+          motivo: string
+          publicada_em: string
+          setor: string
+          status: string
+          turno: string
+          unidade: string
         }[]
       }
       open_room_inspection_issue: {
