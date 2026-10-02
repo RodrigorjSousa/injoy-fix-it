@@ -154,8 +154,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         .map((k) => TELA_BY_KEY[k])
         .filter((t): t is NonNullable<typeof t> => !!t)
         .map((t) => ({ to: t.path, label: t.label, icon: t.icon }));
+      const minhaEscala = ALL_NAV.find((n) => n.to === "/minha-escala");
        const admin = ALL_NAV.find((n) => n.label === "ÁREA DO GESTOR" && (!n.show || n.show(me)));
-      return admin ? [...custom, admin] : custom;
+      return [...(minhaEscala ? [minhaEscala] : []), ...custom, ...(admin ? [admin] : [])];
     }
     return ALL_NAV.filter((n) => !n.show || n.show(me));
   })();

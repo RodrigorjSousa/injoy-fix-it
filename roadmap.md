@@ -21,9 +21,9 @@
 - [x] Migrar equipe antiga salva no aparelho
 - [x] Validar Escala no celular, computador e compilação
 
-- [ ] Criar motor contínuo e testes da Escala
-- [ ] Persistir geração, edições e publicação mensal
-- [ ] Implementar calendário, grade e painel de avisos
-- [ ] Implementar fluxo completo de freelancers
-- [ ] Liberar consulta segura da escala publicada ao funcionário
-- [ ] Validar a Escala completa no celular e computador
+- [x] Criar motor contínuo e testes da Escala
+- [x] Persistir geração, edições e publicação mensal
+- [x] Implementar calendário, grade e painel de avisos
+- [x] Implementar fluxo completo de freelancers
+- [x] Liberar consulta segura da escala publicada ao funcionário
+- [x] Validar tipos, rotas e regras automatizadas da Escala
