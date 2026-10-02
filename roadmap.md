@@ -37,4 +37,4 @@
 - [x] Adicionar o quadro de quem trabalha hoje e alertas de cobertura
 - [x] Sincronizar plantões freelancers com o Financeiro sem duplicações
 - [x] Criar a visão diária prevista para a futura integração com o ponto
-- [ ] Validar regras, telas, exportações e notificações
+- [x] Validar regras, telas, exportações e notificações
