@@ -669,12 +669,12 @@ export type Database = {
           colaborador_id: string
           created_at: string
           created_by: string | null
+          fim: string
           folgas_extra: boolean
           folgas_hora_entrada: string | null
           folgas_horas: number | null
           folgas_modalidade_id: string | null
           folgas_valor: number | null
-          fim: string
           hora_entrada: string | null
           horas_contratadas: number | null
           id: string
@@ -690,12 +690,12 @@ export type Database = {
           colaborador_id: string
           created_at?: string
           created_by?: string | null
+          fim: string
           folgas_extra?: boolean
           folgas_hora_entrada?: string | null
           folgas_horas?: number | null
           folgas_modalidade_id?: string | null
           folgas_valor?: number | null
-          fim: string
           hora_entrada?: string | null
           horas_contratadas?: number | null
           id?: string
@@ -711,12 +711,12 @@ export type Database = {
           colaborador_id?: string
           created_at?: string
           created_by?: string | null
+          fim?: string
           folgas_extra?: boolean
           folgas_hora_entrada?: string | null
           folgas_horas?: number | null
           folgas_modalidade_id?: string | null
           folgas_valor?: number | null
-          fim?: string
           hora_entrada?: string | null
           horas_contratadas?: number | null
           id?: string
@@ -734,6 +734,13 @@ export type Database = {
             columns: ["colaborador_id"]
             isOneToOne: false
             referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_ferias_folgas_modalidade_id_fkey"
+            columns: ["folgas_modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "escala_freelance_modalidades"
             referencedColumns: ["id"]
           },
           {
