@@ -239,6 +239,13 @@
       "when": 1791304076154,
       "tag": "0033_escala_padrao_duas_unidades",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1791306060251,
+      "tag": "0034_migration",
+      "breakpoints": true
     }
   ]
 }
