@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { AlertTriangle, Award, Siren } from "lucide-react";
+import { BonificacaoVisualizacaoDialog } from "@/components/gestao/bonificacao-visualizacao-dialog";
 import {
   calcularMediasBonificacao,
   nivelNota,
@@ -68,11 +70,16 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
   const medias = calcularMediasBonificacao(registros);
   const nivelGeral = nivelNota(medias.geral);
   const Icone = nivelGeral === "verde" ? Award : nivelGeral === "vermelho" ? Siren : AlertTriangle;
+  const [aberto, setAberto] = useState(false);
 
   return (
-    <div
+    <>
+    <button
+      type="button"
+      onClick={() => setAberto(true)}
+      aria-label="Ver detalhes das notas da bonificação"
       className={cn(
-        "relative overflow-hidden rounded-2xl border-2 p-4 shadow-xl sm:p-5",
+        "relative block w-full overflow-hidden rounded-2xl border-2 p-4 text-left shadow-xl transition hover:brightness-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-400 sm:p-5",
         FUNDO[nivelGeral],
       )}
     >
@@ -99,10 +106,12 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
           </p>
           <p className="text-[10px] text-white/50">
             Média do mês · {medias.avaliacoes} avaliação{medias.avaliacoes === 1 ? "" : "s"} ·{" "}
-            {unidade}
+            {unidade} · toque para ver as avaliações
           </p>
         </div>
       </div>
-    </div>
+    </button>
+    <BonificacaoVisualizacaoDialog open={aberto} onOpenChange={setAberto} unidade={unidade} />
+    </>
   );
 }
