@@ -31,6 +31,16 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 ## Estado atual
 - Entregue: gerar, publicar e ver a própria escala; freelancers com integração ao Financeiro;
   previsão de carga D+2; correções da auditoria (0017/0018).
+- Branch `fix/escala-revezamento-maria` (sem migração):
+  - O 5x2 revezamento agora usa um ciclo de 14 dias que começa no domingo de folga (semanas de
+    domingo a sábado), igual à prévia do cadastro. Antes o gerador usava semanas de segunda a domingo
+    e, com a folga fixa na quarta e a segunda folga na segunda, criava 6 dias seguidos.
+  - `resolveRevezamento` confere as regras (domingo sim/não, 2 folgas por semana, sem sexta+sábado
+    ou sábado+domingo, no máximo 5 dias seguidos). Se o cadastro quebrar alguma, escolhe as folgas
+    válidas mais próximas e o cadastro mostra o aviso. A prévia do cadastro usa o mesmo motor.
+  - A validação ganhou o erro `max_5_days`, e a contagem de 2 folgas passou a ser de domingo a sábado.
+  - Botão **Cobrir folgas com freelancer** (ex.: Cristina nas folgas da Maria): cria dias `extra`
+    manuais (vão para o Financeiro) e remove coberturas antigas em dias que deixaram de ser folga.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
