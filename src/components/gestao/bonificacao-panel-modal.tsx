@@ -21,7 +21,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarDays, FileBarChart2, Pencil, Settings, Trash2, Trophy } from "lucide-react";
+import { CalendarDays, FileBarChart2, Lock, Pencil, Settings, Trash2, Trophy, Users } from "lucide-react";
+import { BonificacaoAcessos } from "@/components/gestao/bonificacao-acessos";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -34,6 +35,7 @@ import {
   useRegistrosBonificacaoMes,
   useRegistrosBonificacaoPorMes,
   useSalvarConfigBonificacao,
+  usePermissaoBonificacao,
   type ConfigBonificacao,
   type RegistroBonificacao,
 } from "@/lib/bonificacao";
@@ -52,15 +54,13 @@ const MESES = [
 
 export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
   const { data: me } = useMe();
-  const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor);
-  // Mesma regra do banco (private.pode_registrar_bonificacao): pode editar avaliações
-  // quem é gestor, recepção, tem a tela Bonificação liberada ou é a Mayara.
-  const podeEditar = Boolean(
-    isAdminGestor ||
-      me?.isRecepcao ||
-      me?.funcionario?.telasPermitidas?.includes("bonificacao") ||
-      /(^|\s)mayara(\s|$)/i.test(me?.funcionario?.nome?.trim() ?? ""),
-  );
+  // Permissões vêm do banco (lista em Bonificação › Acessos), a mesma regra
+  // que o banco usa para aceitar ou recusar o lançamento.
+  const perm = usePermissaoBonificacao();
+  const isAdminGestor = Boolean(me?.isAdmin || me?.isGestor || perm.data?.gestor);
+  const podeRegistrar = Boolean(isAdminGestor || perm.data?.podeRegistrar);
+  const podeEditar = Boolean(isAdminGestor || perm.data?.podeEditar);
+  const podeExcluir = Boolean(isAdminGestor || perm.data?.podeExcluir);
   const { data: cfg, isError: isConfigError, refetch: refetchConfig } = useConfigBonificacao();
   const { data: registrosMes = [], isError, refetch } = useRegistrosBonificacaoMes(unidade);
 
@@ -96,7 +96,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
         )}
 
         <Tabs defaultValue="mes" className="mt-2">
-          <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-3" : "grid-cols-1")}>
+          <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-4" : "grid-cols-1")}>
             <TabsTrigger value="mes">
               <CalendarDays className="h-4 w-4 mr-1" /> Mês Vigente
             </TabsTrigger>
@@ -110,6 +110,11 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
                 <Settings className="h-4 w-4 mr-1" /> Regras
               </TabsTrigger>
             )}
+            {isAdminGestor && (
+              <TabsTrigger value="acessos">
+                <Users className="h-4 w-4 mr-1" /> Acessos
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="mes" className="mt-4 space-y-4">
@@ -117,12 +122,27 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
               <SaldoBanner total={totais.recepcao.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={totais.recepcao.length} titulo="Recepção · saldo do mês" />
               <SaldoBanner total={totais.camareiras.reduce((s, r) => s + Number(r.valor_calculado), 0)} count={totais.camareiras.length} titulo="Camareiras / Manutenção · saldo do mês" />
             </div>
-            <FormRegistro unidade={unidade} />
+            {perm.isError && !isAdminGestor && (
+              <div className="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive">
+                {(perm.error as Error).message}
+              </div>
+            )}
+            {podeRegistrar ? (
+              <FormRegistro unidade={unidade} />
+            ) : perm.isLoading ? null : (
+              <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <Lock className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Seu login ({me?.email ?? "—"}) ainda não está liberado para lançar avaliações. Peça
+                  ao gestor para liberar em <strong>Bonificação › Acessos</strong>.
+                </span>
+              </div>
+            )}
             <div>
               <h3 className="text-sm font-bold mb-2 uppercase tracking-wide text-muted-foreground">
                 Avaliações deste mês
               </h3>
-              <HistoricoTabela registros={registrosMes} podeEditar={podeEditar} podeExcluir={isAdminGestor} unidade={unidade} />
+              <HistoricoTabela registros={registrosMes} podeEditar={podeEditar} podeExcluir={podeExcluir} unidade={unidade} />
             </div>
           </TabsContent>
 
@@ -135,6 +155,12 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           {isAdminGestor && (
             <TabsContent value="regras" className="mt-4">
               <ConfiguracoesForm cfg={cfg ?? null} />
+            </TabsContent>
+          )}
+
+          {isAdminGestor && (
+            <TabsContent value="acessos" className="mt-4">
+              <BonificacaoAcessos />
             </TabsContent>
           )}
         </Tabs>
