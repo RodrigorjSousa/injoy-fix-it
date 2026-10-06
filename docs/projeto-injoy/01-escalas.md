@@ -31,7 +31,7 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 ## Estado atual
 - Entregue: gerar, publicar e ver a própria escala; freelancers com integração ao Financeiro;
   previsão de carga D+2; correções da auditoria (0017/0018).
-- Branch `fix/escala-revezamento-maria` (sem migração):
+- Revezamento corrigido (PR #13, sem migração):
   - O 5x2 revezamento agora usa um ciclo de 14 dias que começa no domingo de folga (semanas de
     domingo a sábado), igual à prévia do cadastro. Antes o gerador usava semanas de segunda a domingo
     e, com a folga fixa na quarta e a segunda folga na segunda, criava 6 dias seguidos.
@@ -41,6 +41,15 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - A validação ganhou o erro `max_5_days`, e a contagem de 2 folgas passou a ser de domingo a sábado.
   - Botão **Cobrir folgas com freelancer** (ex.: Cristina nas folgas da Maria): cria dias `extra`
     manuais (vão para o Financeiro) e remove coberturas antigas em dias que deixaram de ser folga.
+- Férias (branch `feat/escala-ferias`, migração `0033_escala_ferias.sql`):
+  - Tabela `escala_ferias` (pessoa, unidade, início, fim, freelancer, modalidade, horário, valor).
+    O banco recusa dois períodos sobrepostos para a mesma pessoa.
+  - Botão **Férias** na escala do gestor: lança, edita e cancela. Todos os dias do período viram
+    `ferias` (manual, motivo "Férias"); a freelancer recebe `extra` (motivo "Cobertura de férias — Nome")
+    só nos dias em que a pessoa trabalharia (vale o que já está na escala; o resto segue o padrão).
+  - Cancelar devolve os dias ao padrão (origem `gerado`) e apaga a cobertura.
+  - Semanas com férias/atestado/falta não entram nas regras de folga do revezamento; freelancers
+    agora contam para o aviso "sem cobertura".
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)

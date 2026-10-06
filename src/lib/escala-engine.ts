@@ -15,7 +15,7 @@ export type GeneratedDay = { data: string; status: "trabalho" | "folga" };
 export type ValidationPerson = {
   id: string; nome: string; setor: "manutencao" | "recepcao" | "camareiras";
   unidade: "Botafogo" | "Ipanema"; turno: "manha" | "noite" | "dia";
-  pattern: EnginePattern; days: { data: string; status: DayStatus; hora_entrada?: string | null; hora_saida?: string | null; origem?: "gerado" | "manual" }[];
+  pattern: EnginePattern; /** Freelancer: só conta para a cobertura do dia, sem regras de padrão. */ freelance?: boolean; days: { data: string; status: DayStatus; hora_entrada?: string | null; hora_saida?: string | null; origem?: "gerado" | "manual" }[];
 };
 export type ScheduleIssue = { id: string; severity: "error" | "warning"; code: string; message: string; date?: string; unidade?: "Botafogo" | "Ipanema"; personId?: string };
 
@@ -108,12 +108,15 @@ export function generatePatternMonth(pattern: EnginePattern, year:number, monthZ
 }
 
 const isWork=(status:DayStatus)=>status==="trabalho"||status==="extra";
+/** Férias, atestado e falta: a semana não entra nas regras de folga do revezamento. */
+const isAbsence=(status:DayStatus)=>status==="ferias"||status==="atestado"||status==="falta";
 const minutes=(time?:string|null)=>{ if(!time)return null; const [h,m]=time.split(":").map(Number); return h*60+m; };
 export function calculateEndTime(start:string,hours:number):string { const total=(minutes(start)??0)+Math.round(hours*60); return `${String(Math.floor(mod(total,1440)/60)).padStart(2,"0")}:${String(mod(total,60)).padStart(2,"0")}`; }
 
 export function validateSchedule(people: ValidationPerson[], holidays: string[] = [], publishedChanges: {date:string;personId:string}[] = []): ScheduleIssue[] {
   const issues:ScheduleIssue[]=[]; const holidaySet=new Set(holidays);
   for(const person of people){
+    if(person.freelance)continue;
     const sorted=[...person.days].sort((a,b)=>a.data.localeCompare(b.data));
     let streak=0;
     for(let i=0;i<sorted.length;i++){
@@ -126,8 +129,8 @@ export function validateSchedule(people: ValidationPerson[], holidays: string[] 
     }
     if(person.setor==="camareiras"&&person.pattern.tipo==="5x2_revezamento"){
       for(const day of sorted){ if(day.status!=="folga")continue; const dow=civilDow(day.data); const next=sorted.find(d=>d.data===addCivilDays(day.data,1)); if(next?.status==="folga"&&dow===5) issues.push({id:`fri-sat-${person.id}-${day.data}`,severity:"error",code:"friday_saturday_off",message:`${person.nome} tem folga seguida na sexta e sábado.`,date:day.data,unidade:person.unidade,personId:person.id}); if(next?.status==="folga"&&dow===6) issues.push({id:`sat-sun-${person.id}-${day.data}`,severity:"error",code:"saturday_sunday_off",message:`${person.nome} tem folga seguida no sábado e domingo.`,date:day.data,unidade:person.unidade,personId:person.id}); }
-      const sundays=sorted.filter(d=>civilDow(d.data)===0); for(let i=1;i<sundays.length;i++) if(isWork(sundays[i].status)===isWork(sundays[i-1].status)) issues.push({id:`sunday-${person.id}-${sundays[i].data}`,severity:"error",code:"sunday_alternation",message:`${person.nome} não está alternando os domingos.`,date:sundays[i].data,unidade:person.unidade,personId:person.id});
-      const sundayStarts=sorted.filter(d=>civilDow(d.data)===0); for(const sun of sundayStarts){const week=sorted.filter(d=>d.data>=sun.data&&d.data<=addCivilDays(sun.data,6));if(week.length===7&&week.filter(d=>d.status==="folga").length!==2)issues.push({id:`week-${person.id}-${sun.data}`,severity:"error",code:"weekly_days_off",message:`${person.nome} não tem exatamente 2 folgas na semana (domingo a sábado).`,date:sun.data,unidade:person.unidade,personId:person.id});}
+      const sundays=sorted.filter(d=>civilDow(d.data)===0); for(let i=1;i<sundays.length;i++) if(!isAbsence(sundays[i].status)&&!isAbsence(sundays[i-1].status)&&isWork(sundays[i].status)===isWork(sundays[i-1].status)) issues.push({id:`sunday-${person.id}-${sundays[i].data}`,severity:"error",code:"sunday_alternation",message:`${person.nome} não está alternando os domingos.`,date:sundays[i].data,unidade:person.unidade,personId:person.id});
+      const sundayStarts=sorted.filter(d=>civilDow(d.data)===0); for(const sun of sundayStarts){const week=sorted.filter(d=>d.data>=sun.data&&d.data<=addCivilDays(sun.data,6));if(week.length===7&&!week.some(d=>isAbsence(d.status))&&week.filter(d=>d.status==="folga").length!==2)issues.push({id:`week-${person.id}-${sun.data}`,severity:"error",code:"weekly_days_off",message:`${person.nome} não tem exatamente 2 folgas na semana (domingo a sábado).`,date:sun.data,unidade:person.unidade,personId:person.id});}
       let run=0; let prevDate:string|null=null; for(const day of sorted){ if(isWork(day.status)&&prevDate&&civilDayDiff(day.data,prevDate)===1&&run>0) run++; else run=isWork(day.status)?1:0; prevDate=day.data; if(run===MAX_DIAS_SEGUIDOS_REVEZAMENTO+1) issues.push({id:`max5-${person.id}-${day.data}`,severity:"error",code:"max_5_days",message:`${person.nome} está com mais de ${MAX_DIAS_SEGUIDOS_REVEZAMENTO} dias seguidos de trabalho.`,date:day.data,unidade:person.unidade,personId:person.id}); }
     }
   }
@@ -138,3 +141,16 @@ export function validateSchedule(people: ValidationPerson[], holidays: string[] 
 }
 
 export function mergeGeneratedWithManual<T extends { colaborador_id:string; data:string; turno:string; origem:"gerado"|"manual" }>(generated:T[],existing:T[]):T[]{const manual=existing.filter(d=>d.origem==="manual");const keys=new Set(manual.map(d=>`${d.colaborador_id}|${d.data}|${d.turno}`));return [...manual,...generated.filter(d=>!keys.has(`${d.colaborador_id}|${d.data}|${d.turno}`))];}
+
+/**
+ * Férias: todos os dias do período ficam como "ferias" para quem sai, e a freelancer cobre só os dias
+ * em que a pessoa trabalharia. Vale o que já está na escala (trabalho/folga, inclusive trocas manuais);
+ * dias ainda não gerados (ou já marcados como férias) seguem o padrão da pessoa.
+ */
+export function planejarFerias(pattern:EnginePattern,inicio:string,fim:string,existentes:{data:string;status:DayStatus}[]=[]):{diasFerias:string[];diasCobertura:string[]}{
+  if(fim<inicio)return {diasFerias:[],diasCobertura:[]};
+  const byDate=new Map(existentes.map(d=>[d.data,d.status]));
+  const diasFerias=civilRange(inicio,fim);
+  const diasCobertura=diasFerias.filter(data=>{const st=byDate.get(data);if(st==="trabalho"||st==="extra")return true;if(st==="folga")return false;return worksOnDate(pattern,data);});
+  return {diasFerias,diasCobertura};
+}

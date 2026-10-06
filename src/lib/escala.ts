@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { formatCivilDate, worksOnDate, type GeneratedDay } from "@/lib/escala-engine";
+import { calculateEndTime, formatCivilDate, planejarFerias, worksOnDate, type EnginePattern, type GeneratedDay } from "@/lib/escala-engine";
 
 export type EscalaSetor = "manutencao" | "recepcao" | "camareiras";
 export type EscalaUnidade = "Botafogo" | "Ipanema" | "Ambas";
@@ -90,7 +90,7 @@ export interface ColaboradorInput {
   padrao?: Omit<EscalaPadrao, "id" | "colaborador_id" | "vigente_ate">;
 }
 
-const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"], ["escala-feriados"], ["escala-dias"], ["escala-meses"]] as const;
+const scheduleKeys = [["escala-colaboradores"], ["escala-modalidades"], ["escala-feriados"], ["escala-dias"], ["escala-meses"], ["escala-ferias"]] as const;
 function useRefreshSchedule() {
   const queryClient = useQueryClient();
   return () => scheduleKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: [...key] }));
@@ -325,4 +325,140 @@ export function useImportarEquipeLocal() {
 /** Prévia do cadastro: usa o mesmo motor do gerador para a prévia nunca divergir da escala gerada. */
 export function patternWorksOn(p: EscalaPadrao, date: Date): boolean {
   return worksOnDate({ tipo: p.tipo, data_base: p.data_base, folgas_fixas: p.folgas_fixas ?? [], folga_semana_a: p.folga_semana_a, folga_semana_b: p.folga_semana_b }, formatCivilDate(date));
+}
+
+// ---------------------------------------------------------------------------
+// Férias: lançamento (tabela escala_ferias) + dias na escala (status "ferias" e cobertura "extra")
+// ---------------------------------------------------------------------------
+export interface EscalaFerias {
+  id: string; colaborador_id: string; unidade: "Botafogo" | "Ipanema"; inicio: string; fim: string;
+  substituto_id: string | null; modalidade_id: string | null; hora_entrada: string | null;
+  horas_contratadas: number | null; valor_combinado: number | null; observacao: string | null;
+  created_by: string | null; created_at: string; updated_at: string;
+}
+export const FERIAS_MOTIVO = "Férias";
+const COBERTURA_FERIAS_PREFIXO = "Cobertura de férias";
+export const coberturaFeriasMotivo = (nome: string) => `${COBERTURA_FERIAS_PREFIXO} — ${nome}`;
+
+export function useEscalaFerias() {
+  return useQuery({ queryKey: ["escala-ferias"], queryFn: async (): Promise<EscalaFerias[]> => {
+    const { data, error } = await supabase.from("escala_ferias").select("*").order("inicio", { ascending: false });
+    if (error) throw error;
+    return (data ?? []) as EscalaFerias[];
+  } });
+}
+
+async function apagarComConferencia(ids: string[]) {
+  if (!ids.length) return 0;
+  const { data, error } = await supabase.from("escala_dias").delete().in("id", ids).select("id");
+  if (error) throw error;
+  if ((data?.length ?? 0) !== ids.length) throw new Error(`Só ${data?.length ?? 0} de ${ids.length} dias foram apagados. Verifique a permissão de gestor.`);
+  return data.length;
+}
+
+/** Desfaz os dias de um lançamento de férias: tira a cobertura e devolve os dias da pessoa ao padrão. */
+async function desfazerDiasFerias(f: Pick<EscalaFerias, "colaborador_id" | "inicio" | "fim" | "substituto_id">, pattern: EnginePattern | null) {
+  if (f.substituto_id) {
+    const { data, error } = await supabase.from("escala_dias").select("id").eq("colaborador_id", f.substituto_id)
+      .eq("substitui_colaborador_id", f.colaborador_id).eq("status", "extra").like("motivo", `${COBERTURA_FERIAS_PREFIXO}%`)
+      .gte("data", f.inicio).lte("data", f.fim);
+    if (error) throw error;
+    await apagarComConferencia((data ?? []).map((d) => d.id));
+  }
+  const { data: dias, error } = await supabase.from("escala_dias").select("id,data").eq("colaborador_id", f.colaborador_id)
+    .eq("status", "ferias").eq("motivo", FERIAS_MOTIVO).gte("data", f.inicio).lte("data", f.fim);
+  if (error) throw error;
+  const trabalho = (dias ?? []).filter((d) => pattern && worksOnDate(pattern, d.data)).map((d) => d.id);
+  const folga = (dias ?? []).filter((d) => !trabalho.includes(d.id)).map((d) => d.id);
+  for (const [ids, status] of [[trabalho, "trabalho"], [folga, "folga"]] as const) {
+    if (!ids.length) continue;
+    const { error: e } = await supabase.from("escala_dias").update({
+      status, origem: "gerado", motivo: null,
+      hora_entrada: status === "trabalho" ? pattern?.hora_entrada ?? null : null,
+      hora_saida: status === "trabalho" ? pattern?.hora_saida ?? null : null,
+    }).in("id", ids);
+    if (e) throw e;
+  }
+}
+
+export type FeriasInput = {
+  id?: string; colaborador: EscalaColaborador; pattern: EnginePattern; unidade: "Botafogo" | "Ipanema";
+  inicio: string; fim: string; substituto: EscalaColaborador | null; modalidade: EscalaModalidade | null;
+  hora_entrada: string; horas: number; valor: number; observacao: string | null;
+};
+export type FeriasResultado = { diasFerias: number; diasCobertura: number; ocupados: string[] };
+
+export function useSalvarFerias() {
+  const refresh = useRefreshSchedule();
+  return useMutation({ mutationFn: async (input: FeriasInput): Promise<FeriasResultado> => {
+    if (input.fim < input.inicio) throw new Error("A data final é antes do início.");
+    if (input.substituto && !input.modalidade) throw new Error("Escolha a modalidade da freelancer.");
+    let anterior: EscalaFerias | null = null;
+    if (input.id) {
+      const { data: old, error } = await supabase.from("escala_ferias").select("*").eq("id", input.id).single();
+      if (error) throw error;
+      anterior = old as EscalaFerias;
+    }
+    const record = {
+      colaborador_id: input.colaborador.id, unidade: input.unidade, inicio: input.inicio, fim: input.fim,
+      substituto_id: input.substituto?.id ?? null, modalidade_id: input.substituto ? input.modalidade?.id ?? null : null,
+      hora_entrada: input.substituto ? input.hora_entrada : null, horas_contratadas: input.substituto ? input.horas : null,
+      valor_combinado: input.substituto ? input.valor : null, observacao: input.observacao,
+    };
+    const saved = input.id
+      ? await supabase.from("escala_ferias").update(record).eq("id", input.id).select("id").single()
+      : await supabase.from("escala_ferias").insert(record).select("id").single();
+    if (saved.error) throw saved.error;
+    // Edição: só depois de salvar (o banco recusa períodos sobrepostos) desfaz os dias do lançamento anterior
+    if (anterior) await desfazerDiasFerias(anterior, input.pattern);
+
+    const { data: existentes, error: e1 } = await supabase.from("escala_dias").select("data,status,turno")
+      .eq("colaborador_id", input.colaborador.id).gte("data", input.inicio).lte("data", input.fim);
+    if (e1) throw e1;
+    const atuais = (existentes ?? []) as { data: string; status: EscalaDia["status"]; turno: EscalaTurno }[];
+    const plano = planejarFerias(input.pattern, input.inicio, input.fim, atuais.filter((d) => d.status !== "ferias"));
+    const turnoDe = new Map(atuais.map((d) => [d.data, d.turno]));
+    const { data: auth } = await supabase.auth.getUser();
+    const by = auth.user?.id ?? null;
+    const diasPessoa = plano.diasFerias.map((data) => ({
+      colaborador_id: input.colaborador.id, unidade: input.unidade, setor: input.colaborador.setor, data,
+      turno: turnoDe.get(data) ?? input.colaborador.turno_padrao ?? "dia", hora_entrada: null, hora_saida: null,
+      status: "ferias" as const, origem: "manual" as const, substitui_colaborador_id: null, motivo: FERIAS_MOTIVO,
+      modalidade_id: null, motivo_chamada: null, horas_contratadas: null, valor_combinado: null, updated_by: by,
+    }));
+    const { error: e2 } = await supabase.from("escala_dias").upsert(diasPessoa, { onConflict: "colaborador_id,data,turno" });
+    if (e2) throw e2;
+
+    let ocupados: string[] = []; let cobertos = 0;
+    if (input.substituto && input.modalidade && plano.diasCobertura.length) {
+      const { data: agenda, error: e3 } = await supabase.from("escala_dias").select("data")
+        .eq("colaborador_id", input.substituto.id).in("data", plano.diasCobertura);
+      if (e3) throw e3;
+      ocupados = [...new Set((agenda ?? []).map((d) => d.data))].sort();
+      const turno = input.substituto.turno_padrao ?? "dia";
+      const cobertura = plano.diasCobertura.filter((d) => !ocupados.includes(d)).map((data) => ({
+        colaborador_id: input.substituto!.id, unidade: input.unidade, setor: input.colaborador.setor, data, turno,
+        hora_entrada: input.hora_entrada, hora_saida: calculateEndTime(input.hora_entrada, input.horas),
+        status: "extra" as const, origem: "manual" as const, substitui_colaborador_id: input.colaborador.id,
+        motivo: coberturaFeriasMotivo(input.colaborador.nome), modalidade_id: input.modalidade!.id,
+        motivo_chamada: input.modalidade!.motivo, horas_contratadas: input.horas, valor_combinado: input.valor, updated_by: by,
+      }));
+      if (cobertura.length) {
+        const { error: e4 } = await supabase.from("escala_dias").upsert(cobertura, { onConflict: "colaborador_id,data,turno" });
+        if (e4) throw e4;
+      }
+      cobertos = cobertura.length;
+    }
+    return { diasFerias: plano.diasFerias.length, diasCobertura: cobertos, ocupados };
+  }, onSuccess: refresh });
+}
+
+export function useExcluirFerias() {
+  const refresh = useRefreshSchedule();
+  return useMutation({ mutationFn: async (input: { ferias: EscalaFerias; pattern: EnginePattern | null }) => {
+    await desfazerDiasFerias(input.ferias, input.pattern);
+    const { data, error } = await supabase.from("escala_ferias").delete().eq("id", input.ferias.id).select("id");
+    if (error) throw error;
+    if (!data?.length) throw new Error("As férias não foram apagadas. Verifique a permissão de gestor.");
+  }, onSuccess: refresh });
 }
