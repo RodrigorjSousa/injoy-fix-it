@@ -835,7 +835,6 @@ export type Database = {
           colaborador_id: string
           created_at: string
           data_base: string | null
-          dias_ipanema: number[] | null
           folga_semana_a: number | null
           folga_semana_b: number | null
           folgas_fixas: number[]
@@ -843,8 +842,6 @@ export type Database = {
           hora_saida: string | null
           id: string
           intervalo_minutos: number | null
-          proporcao_botafogo: number | null
-          proporcao_ipanema: number | null
           tipo: string
           vigente_ate: string | null
           vigente_desde: string
@@ -853,7 +850,6 @@ export type Database = {
           colaborador_id: string
           created_at?: string
           data_base?: string | null
-          dias_ipanema?: number[] | null
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -861,8 +857,6 @@ export type Database = {
           hora_saida?: string | null
           id?: string
           intervalo_minutos?: number | null
-          proporcao_botafogo?: number | null
-          proporcao_ipanema?: number | null
           tipo: string
           vigente_ate?: string | null
           vigente_desde?: string
@@ -871,7 +865,6 @@ export type Database = {
           colaborador_id?: string
           created_at?: string
           data_base?: string | null
-          dias_ipanema?: number[] | null
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -879,8 +872,6 @@ export type Database = {
           hora_saida?: string | null
           id?: string
           intervalo_minutos?: number | null
-          proporcao_botafogo?: number | null
-          proporcao_ipanema?: number | null
           tipo?: string
           vigente_ate?: string | null
           vigente_desde?: string
