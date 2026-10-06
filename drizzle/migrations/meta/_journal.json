@@ -218,6 +218,13 @@
       "when": 1790971791203,
       "tag": "0030_grant_bonus_config_read",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1791280881894,
+      "tag": "0031_apply_existing_0032_bonificacao_acessos_v2",
+      "breakpoints": true
     }
   ]
 }

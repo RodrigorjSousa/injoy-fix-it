@@ -248,6 +248,33 @@ export type Database = {
         }
         Relationships: []
       }
+      bonificacao_acessos: {
+        Row: {
+          created_at: string
+          liberado_por: string | null
+          pode_editar: boolean
+          pode_excluir: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          liberado_por?: string | null
+          pode_editar?: boolean
+          pode_excluir?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          liberado_por?: string | null
+          pode_editar?: boolean
+          pode_excluir?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       booking_reviews: {
         Row: {
           cleanliness_score: number | null
@@ -3086,6 +3113,28 @@ export type Database = {
           next_due_date: string
         }[]
       }
+      bonificacao_acessos_listar: {
+        Args: never
+        Returns: {
+          email: string
+          gestor: boolean
+          liberado: boolean
+          nome: string
+          papeis: string[]
+          pode_editar: boolean
+          pode_excluir: boolean
+          user_id: string
+        }[]
+      }
+      bonificacao_definir_acesso: {
+        Args: {
+          _liberado: boolean
+          _pode_editar: boolean
+          _pode_excluir: boolean
+          _user_id: string
+        }
+        Returns: undefined
+      }
       chat_contacts: {
         Args: never
         Returns: {
@@ -3189,6 +3238,7 @@ export type Database = {
           unidade: string
         }[]
       }
+      minha_permissao_bonificacao: { Args: never; Returns: Json }
       open_room_inspection_issue: {
         Args: {
           _category?: string
