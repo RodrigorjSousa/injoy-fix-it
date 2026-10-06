@@ -225,6 +225,13 @@
       "when": 1791280881894,
       "tag": "0031_apply_existing_0032_bonificacao_acessos_v2",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1791296787022,
+      "tag": "0032_escala_ferias",
+      "breakpoints": true
     }
   ]
 }
