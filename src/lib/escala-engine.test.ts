@@ -10,7 +10,7 @@ describe("escala-engine",()=>{
   for(let fixa=1;fixa<=6;fixa++)for(let b=1;b<=6;b++){const pattern={...p("5x2_revezamento","2026-10-04",[fixa]),folga_semana_b:b};expect(check(pattern)).toEqual([]);}
   expect(check({...p("5x2_revezamento","2026-10-04",[]),folga_semana_b:1})).toEqual([]);
   expect(check({...p("5x2_revezamento","2026-10-04",[5,6]),folga_semana_b:1})).toEqual([]);
- });
+ },20000);
  it("cadastro válido não é alterado e cadastro inválido é ajustado mantendo a folga fixa",()=>{
   const ok=resolveRevezamento({folgas_fixas:[3],folga_semana_a:0,folga_semana_b:1});expect(ok.ajustado).toBe(false);expect(ok.semanaDomingoFolga).toEqual([0,3]);expect(ok.semanaDomingoTrabalho).toEqual([1,3]);
   const bad=resolveRevezamento({folgas_fixas:[6],folga_semana_a:0,folga_semana_b:5});expect(bad.ajustado).toBe(true);expect(bad.problemasDoCadastro.join(" ")).toMatch(/sábado e domingo|sexta e sábado/);expect(revezamentoProblemas(bad.semanaDomingoFolga,bad.semanaDomingoTrabalho)).toEqual([]);

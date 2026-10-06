@@ -64,6 +64,11 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     "Extra nas férias — folga de X", vai para o Financeiro) e a freelancer folga.
   - Ao lançar férias, os plantões "Cobertura de folga" da freelancer para essa pessoa no período são
     removidos, e essas datas contam como folga da pessoa (corrige a Cristina sem folga em out/2026).
+- Avisos e valores (branch `fix/escala-avisos-valores`, sem migração):
+  - Avisos só do setor e unidade abertos e do mês exibido; Ipanema não gera "recepção sem cobertura".
+  - Valores pagos a freelancers escondidos no calendário e no resumo; botão "Mostrar valores"
+    (lembrado por aparelho). Funcionários não veem valores: escala_dias, modalidades, férias e
+    Financeiro são só gestor/admin (RLS) e `minha_escala_publicada` não devolve valor.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
