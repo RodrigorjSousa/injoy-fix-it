@@ -1,3 +1,4 @@
+import { descreverRevezamento, resolveRevezamento } from "@/lib/escala-engine";
 import { useEffect, useMemo, useState } from "react";
 import { CalendarDays, Pencil, Plus, Trash2, Users, WalletCards } from "lucide-react";
 import { toast } from "sonner";
@@ -81,6 +82,9 @@ function ColaboradorDialog({ initial, onClose }: { initial: EscalaColaborador | 
       {(tipo === "5x2_fixo" || tipo === "5x2_revezamento") && <div className="space-y-2 sm:col-span-2"><Label>{tipo === "5x2_fixo" ? "Dois dias de folga" : "Folga fixa semanal"}</Label><div className="flex flex-wrap gap-3">{DAYS.map((day,i)=><label key={day} className="flex items-center gap-1.5 text-sm"><Checkbox checked={folgas.includes(i)} onCheckedChange={()=>toggleDay(i)} />{day}</label>)}</div></div>}
       {tipo === "5x2_revezamento" && <Field label="Segunda folga quando trabalha domingo"><Select value={String(folgaB)} onValueChange={(v)=>setFolgaB(Number(v))}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{DAYS.map((d,i)=><SelectItem key={d} value={String(i)}>{d}</SelectItem>)}</SelectContent></Select></Field>}
       <div className="sm:col-span-2"><Label className="flex items-center gap-2"><CalendarDays className="h-4 w-4" /> Prévia de 4 semanas</Label>{!base && (tipo === "12x36" || tipo === "5x2_revezamento" || tipo === "6x1") ? <p className="mt-2 text-sm text-muted-foreground">Informe a data-base para visualizar o ciclo.</p> : <div className="mt-2 grid grid-cols-7 gap-1">{preview.map(({d,work})=><div key={d.toISOString()} className={cn("rounded border p-1 text-center text-[10px]",work?"border-emerald-200 bg-emerald-50 text-emerald-800":"bg-muted text-muted-foreground")}><div>{DAYS[d.getUTCDay()]}</div><strong>{d.getUTCDate()}</strong><div>{work?"Trabalho":"Folga"}</div></div>)}</div>}</div>
+      {tipo === "5x2_revezamento" && (() => { const c = resolveRevezamento({ folgas_fixas: folgas, folga_semana_a: 0, folga_semana_b: folgaB }); return c.ajustado
+        ? <div className="sm:col-span-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"><p className="font-medium">Este cadastro quebra as regras: {c.problemasDoCadastro.join("; ")}.</p><p className="mt-1">A geração (e a prévia acima) usa as folgas válidas mais próximas. {descreverRevezamento(c)} Máximo de {c.maiorSequencia} dias seguidos.</p></div>
+        : <p className="sm:col-span-2 text-xs text-muted-foreground">Regras ok: domingo sim, domingo não; sem folga sexta+sábado ou sábado+domingo; no máximo {c.maiorSequencia} dias seguidos de trabalho.</p>; })()}
     </>}
   </div><DialogFooter><Button variant="outline" onClick={onClose}>Cancelar</Button><Button onClick={submit} disabled={save.isPending}>Salvar</Button></DialogFooter></DialogContent></Dialog>;
 }

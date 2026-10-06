@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import type { GeneratedDay } from "@/lib/escala-engine";
+import { formatCivilDate, worksOnDate, type GeneratedDay } from "@/lib/escala-engine";
 
 export type EscalaSetor = "manutencao" | "recepcao" | "camareiras";
 export type EscalaUnidade = "Botafogo" | "Ipanema" | "Ambas";
@@ -185,6 +185,12 @@ export function useSalvarEscalaDias(){
   return useMutation({mutationFn:async(inputs:EscalaDiaInput[])=>{const {data:auth}=await supabase.auth.getUser();const {error}=await supabase.from("escala_dias").upsert(inputs.map(input=>({...input,updated_by:auth.user?.id??null})),{onConflict:"colaborador_id,data,turno"});if(error)throw error;},onSuccess:refresh});
 }
 
+/** Apaga dias da escala e confere se o banco realmente apagou (RLS apaga 0 linhas sem erro). */
+export function useExcluirEscalaDias(){
+  const refresh=useRefreshSchedule();
+  return useMutation({mutationFn:async(ids:string[])=>{if(!ids.length)return 0;const {data,error}=await supabase.from("escala_dias").delete().in("id",ids).select("id");if(error)throw error;if((data?.length??0)!==ids.length)throw new Error(`Só ${data?.length??0} de ${ids.length} dias foram apagados. Verifique a permissão de gestor.`);return data.length;},onSuccess:refresh});
+}
+
 export type MinhaEscalaDia={id:string;data:string;unidade:string;setor:string;turno:string;hora_entrada:string|null;hora_saida:string|null;status:string;motivo:string|null;publicada_em:string|null};
 export function useMinhaEscala(start:string,end:string){return useQuery({queryKey:["minha-escala",start,end],queryFn:async():Promise<MinhaEscalaDia[]>=>{const {data,error}=await supabase.rpc("minha_escala_publicada",{_inicio:start,_fim:end});if(error)throw error;return (data??[]) as MinhaEscalaDia[];}});}
 
@@ -316,20 +322,7 @@ export function useImportarEquipeLocal() {
   });
 }
 
-const DAY_MS = 86_400_000;
-function utcDate(value: string) { const [y,m,d] = value.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d)); }
-function dayDiff(a: Date, b: Date) { return Math.round((a.getTime() - b.getTime()) / DAY_MS); }
+/** Prévia do cadastro: usa o mesmo motor do gerador para a prévia nunca divergir da escala gerada. */
 export function patternWorksOn(p: EscalaPadrao, date: Date): boolean {
-  const dow = date.getUTCDay();
-  if (p.tipo === "5x2_fixo") return !p.folgas_fixas.includes(dow);
-  if (!p.data_base) return false;
-  const base = utcDate(p.data_base);
-  const diff = dayDiff(date, base);
-  if (p.tipo === "12x36") return ((diff % 2) + 2) % 2 === 0;
-  if (p.tipo === "6x1") return ((diff % 7) + 7) % 7 !== 0;
-  const sunday = new Date(date); sunday.setUTCDate(date.getUTCDate() - dow);
-  const week = Math.floor(dayDiff(sunday, base) / 7);
-  const weekA = ((week % 2) + 2) % 2 === 0;
-  const off = weekA ? new Set([...(p.folgas_fixas ?? []), p.folga_semana_a ?? 0]) : new Set([...(p.folgas_fixas ?? []), p.folga_semana_b ?? 1]);
-  return !off.has(dow);
+  return worksOnDate({ tipo: p.tipo, data_base: p.data_base, folgas_fixas: p.folgas_fixas ?? [], folga_semana_a: p.folga_semana_a, folga_semana_b: p.folga_semana_b }, formatCivilDate(date));
 }
