@@ -722,17 +722,17 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "escala_ferias_substituto_id_fkey"
-            columns: ["substituto_id"]
-            isOneToOne: false
-            referencedRelation: "escala_colaboradores"
-            referencedColumns: ["id"]
-          },
-          {
             foreignKeyName: "escala_ferias_modalidade_id_fkey"
             columns: ["modalidade_id"]
             isOneToOne: false
             referencedRelation: "escala_freelance_modalidades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_ferias_substituto_id_fkey"
+            columns: ["substituto_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
             referencedColumns: ["id"]
           },
         ]
