@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateEndTime, generatePatternMonth, mergeGeneratedWithManual, resolveRevezamento, revezamentoProblemas, validateSchedule, worksOnDate, type EnginePattern, type ValidationPerson } from "./escala-engine";
+import { calculateEndTime, generatePatternMonth, mergeGeneratedWithManual, planejarFerias, resolveRevezamento, revezamentoProblemas, validateSchedule, worksOnDate, type EnginePattern, type ValidationPerson } from "./escala-engine";
 const p=(tipo:EnginePattern["tipo"],data_base:string|null,folgas_fixas:number[]=[])=>({tipo,data_base,folgas_fixas,folga_semana_a:0,folga_semana_b:1});
 describe("escala-engine",()=>{
  it("mantém 12x36 em viradas de mês e ano",()=>{const a=p("12x36","2026-10-31");expect(worksOnDate(a,"2026-10-31")).toBe(true);expect(worksOnDate(a,"2026-11-01")).toBe(false);const b=p("12x36","2026-12-31");expect(worksOnDate(b,"2027-01-01")).toBe(false);});
@@ -18,4 +18,20 @@ describe("escala-engine",()=>{
  });
  it("detecta sexta+sábado, sábado+domingo e 7 dias",()=>{const pattern=p("5x2_revezamento","2026-10-04",[3]);const days:ValidationPerson["days"]=Array.from({length:12},(_,i)=>({data:`2026-10-${String(i+1).padStart(2,"0")}`,status:"trabalho"}));days[1].status="folga";days[2].status="folga";days[3].status="folga";const person:ValidationPerson={id:"1",nome:"Maria",setor:"camareiras",unidade:"Ipanema",turno:"dia",pattern,days};const codes=validateSchedule([person]).map(i=>i.code);expect(codes).toContain("friday_saturday_off");expect(codes).toContain("saturday_sunday_off");expect(validateSchedule([{...person,days:Array.from({length:7},(_,i)=>({data:`2026-10-${String(i+1).padStart(2,"0")}`,status:"trabalho" as const}))}]).map(i=>i.code)).toContain("seven_days");});
  it("preserva manual e calcula saída",()=>{type Row={colaborador_id:string;data:string;turno:string;origem:"gerado"|"manual"};const g:Row[]=[{colaborador_id:"1",data:"2026-10-01",turno:"dia",origem:"gerado"}];const m:Row[]=[{...g[0],origem:"manual"}];expect(mergeGeneratedWithManual(g,m)).toEqual(m);expect(calculateEndTime("20:00",12)).toBe("08:00");});
+ it("férias: cobre só os dias de trabalho e respeita trocas já feitas",()=>{
+  const maria={...p("5x2_revezamento","2026-10-04",[3]),folga_semana_b:1};
+  const plan=planejarFerias(maria,"2026-10-05","2026-10-18",[{data:"2026-10-06",status:"folga"},{data:"2026-10-07",status:"trabalho"}]);
+  expect(plan.diasFerias).toHaveLength(14);
+  expect(plan.diasCobertura).toEqual(["2026-10-05","2026-10-07","2026-10-08","2026-10-09","2026-10-10","2026-10-11","2026-10-13","2026-10-15","2026-10-16","2026-10-17"]);
+  const raquel=p("12x36","2026-10-01");expect(planejarFerias(raquel,"2026-10-01","2026-10-06").diasCobertura).toEqual(["2026-10-01","2026-10-03","2026-10-05"]);
+ });
+ it("férias não geram erro de folga/domingo e a freelancer conta na cobertura",()=>{
+  const pattern={...p("5x2_revezamento","2026-10-04",[3]),folga_semana_b:1};
+  const days:ValidationPerson["days"]=generatePatternMonth(pattern,2026,9).map(d=>d.data>="2026-10-05"?{data:d.data,status:"ferias" as const}:d);
+  const maria:ValidationPerson={id:"m",nome:"Maria",setor:"camareiras",unidade:"Ipanema",turno:"dia",pattern,days};
+  expect(validateSchedule([maria]).filter(i=>i.severity==="error")).toEqual([]);
+  const cristina:ValidationPerson={id:"c",nome:"Cristina",setor:"camareiras",unidade:"Ipanema",turno:"dia",pattern:p("5x2_fixo",null,[]),freelance:true,days:[{data:"2026-10-08",status:"extra"}]};
+  const unc=(ps:ValidationPerson[])=>validateSchedule(ps).filter(i=>i.code==="uncovered"&&i.unidade==="Ipanema"&&i.date==="2026-10-08"&&i.message.startsWith("Camareiras"));
+  expect(unc([maria])).toHaveLength(1);expect(unc([maria,cristina])).toHaveLength(0);
+ });
 });

@@ -664,6 +664,79 @@ export type Database = {
           },
         ]
       }
+      escala_ferias: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          created_by: string | null
+          fim: string
+          hora_entrada: string | null
+          horas_contratadas: number | null
+          id: string
+          inicio: string
+          modalidade_id: string | null
+          observacao: string | null
+          substituto_id: string | null
+          unidade: string
+          updated_at: string
+          valor_combinado: number | null
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          created_by?: string | null
+          fim: string
+          hora_entrada?: string | null
+          horas_contratadas?: number | null
+          id?: string
+          inicio: string
+          modalidade_id?: string | null
+          observacao?: string | null
+          substituto_id?: string | null
+          unidade: string
+          updated_at?: string
+          valor_combinado?: number | null
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          created_by?: string | null
+          fim?: string
+          hora_entrada?: string | null
+          horas_contratadas?: number | null
+          id?: string
+          inicio?: string
+          modalidade_id?: string | null
+          observacao?: string | null
+          substituto_id?: string | null
+          unidade?: string
+          updated_at?: string
+          valor_combinado?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "escala_ferias_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_ferias_substituto_id_fkey"
+            columns: ["substituto_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "escala_ferias_modalidade_id_fkey"
+            columns: ["modalidade_id"]
+            isOneToOne: false
+            referencedRelation: "escala_freelance_modalidades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       escala_freelance_modalidades: {
         Row: {
           ativo: boolean
