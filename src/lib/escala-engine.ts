@@ -10,6 +10,11 @@ export type EnginePattern = {
   folga_semana_b: number | null;
   hora_entrada?: string | null;
   hora_saida?: string | null;
+  /** Divisão entre unidades (ex.: manutenção): dias da semana que são em Ipanema; os demais, Botafogo. */
+  dias_ipanema?: number[] | null;
+  /** Proporção mensal desejada (ex.: 12 Botafogo : 10 Ipanema). Vazio = só os dias da semana. */
+  proporcao_botafogo?: number | null;
+  proporcao_ipanema?: number | null;
 };
 export type GeneratedDay = { data: string; status: "trabalho" | "folga" };
 export type ValidationPerson = {
@@ -153,4 +158,41 @@ export function planejarFerias(pattern:EnginePattern,inicio:string,fim:string,ex
   const diasFerias=civilRange(inicio,fim);
   const diasCobertura=diasFerias.filter(data=>{const st=byDate.get(data);if(st==="trabalho"||st==="extra")return true;if(st==="folga")return false;return worksOnDate(pattern,data);});
   return {diasFerias,diasCobertura};
+}
+
+export type Unidade="Botafogo"|"Ipanema";
+export const isDuasUnidades=(p:Pick<EnginePattern,"dias_ipanema">)=>Array.isArray(p.dias_ipanema)&&p.dias_ipanema.length>0;
+/** Unidade "da casa" para as folgas: a de maior proporção (empate ou sem proporção: Botafogo). */
+export const unidadePrincipal=(p:Pick<EnginePattern,"proporcao_botafogo"|"proporcao_ipanema">):Unidade=>(p.proporcao_ipanema??0)>(p.proporcao_botafogo??0)?"Ipanema":"Botafogo";
+/**
+ * Distribui os dias de trabalho entre Botafogo e Ipanema: primeiro pelos dias da semana fixos;
+ * se houver proporção, troca o mínimo de dias (do fim do mês para o começo, sempre no dia da semana
+ * mais repetido da unidade que sobrou) para o mês chegar o mais perto da proporção (ex.: 12:10).
+ */
+export function distribuirUnidades(pattern:EnginePattern,diasTrabalho:string[]):Map<string,Unidade>{
+  const result=new Map<string,Unidade>();
+  const ipaDow=new Set(pattern.dias_ipanema??[]);
+  const sorted=[...diasTrabalho].sort();
+  for(const d of sorted)result.set(d,ipaDow.has(civilDow(d))?"Ipanema":"Botafogo");
+  const pb=pattern.proporcao_botafogo??0, pi=pattern.proporcao_ipanema??0;
+  if(pb<=0||pi<=0||!sorted.length)return result;
+  const alvoBot=Math.round(sorted.length*pb/(pb+pi));
+  let botCount=sorted.filter(d=>result.get(d)==="Botafogo").length;
+  while(botCount!==alvoBot){
+    const from:Unidade=botCount>alvoBot?"Botafogo":"Ipanema"; const to:Unidade=from==="Botafogo"?"Ipanema":"Botafogo";
+    const candidates=sorted.filter(d=>result.get(d)===from&&(from==="Botafogo"?!ipaDow.has(civilDow(d)):ipaDow.has(civilDow(d))));
+    if(!candidates.length)break;
+    const freq=new Map<number,number>(); for(const d of candidates)freq.set(civilDow(d),(freq.get(civilDow(d))??0)+1);
+    const top=Math.max(...freq.values()); const dow=[...freq.entries()].filter(([,n])=>n===top).map(([w])=>w).sort((a,b)=>a-b)[0];
+    const pick=candidates.filter(d=>civilDow(d)===dow).pop()!;
+    result.set(pick,to); botCount+=to==="Botafogo"?1:-1;
+  }
+  return result;
+}
+/** Mês gerado com a unidade de cada dia (folgas ficam na unidade principal). */
+export function generatePatternMonthUnits(pattern:EnginePattern,year:number,monthZero:number):(GeneratedDay&{unidade:Unidade})[]{
+  const days=generatePatternMonth(pattern,year,monthZero);
+  const split=distribuirUnidades(pattern,days.filter(d=>d.status==="trabalho").map(d=>d.data));
+  const casa=unidadePrincipal(pattern);
+  return days.map(d=>({...d,unidade:split.get(d.data)??casa}));
 }

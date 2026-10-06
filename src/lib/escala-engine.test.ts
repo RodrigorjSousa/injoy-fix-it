@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateEndTime, generatePatternMonth, mergeGeneratedWithManual, planejarFerias, resolveRevezamento, revezamentoProblemas, validateSchedule, worksOnDate, type EnginePattern, type ValidationPerson } from "./escala-engine";
+import { calculateEndTime, generatePatternMonth, mergeGeneratedWithManual, generatePatternMonthUnits, planejarFerias, resolveRevezamento, revezamentoProblemas, validateSchedule, worksOnDate, type EnginePattern, type ValidationPerson } from "./escala-engine";
 const p=(tipo:EnginePattern["tipo"],data_base:string|null,folgas_fixas:number[]=[])=>({tipo,data_base,folgas_fixas,folga_semana_a:0,folga_semana_b:1});
 describe("escala-engine",()=>{
  it("mantém 12x36 em viradas de mês e ano",()=>{const a=p("12x36","2026-10-31");expect(worksOnDate(a,"2026-10-31")).toBe(true);expect(worksOnDate(a,"2026-11-01")).toBe(false);const b=p("12x36","2026-12-31");expect(worksOnDate(b,"2027-01-01")).toBe(false);});
@@ -33,5 +33,16 @@ describe("escala-engine",()=>{
   const cristina:ValidationPerson={id:"c",nome:"Cristina",setor:"camareiras",unidade:"Ipanema",turno:"dia",pattern:p("5x2_fixo",null,[]),freelance:true,days:[{data:"2026-10-08",status:"extra"}]};
   const unc=(ps:ValidationPerson[])=>validateSchedule(ps).filter(i=>i.code==="uncovered"&&i.unidade==="Ipanema"&&i.date==="2026-10-08"&&i.message.startsWith("Camareiras"));
   expect(unc([maria])).toHaveLength(1);expect(unc([maria,cristina])).toHaveLength(0);
+ });
+ it("Flavio: dias fixos por unidade e proporção 12:10 no mês",()=>{
+  const flavio={...p("5x2_fixo",null,[0,6]),dias_ipanema:[2,4],proporcao_botafogo:12,proporcao_ipanema:10};
+  for(let m=0;m<12;m++){const days=generatePatternMonthUnits(flavio,2027,m);const work=days.filter(d=>d.status==="trabalho");const bot=work.filter(d=>d.unidade==="Botafogo").length;expect(bot).toBe(Math.round(work.length*12/22));expect(work.length-bot).toBe(work.length-Math.round(work.length*12/22));expect(days.filter(d=>d.status==="folga").every(d=>d.unidade==="Botafogo")).toBe(true);}
+  // Outubro/2026: 22 dias úteis -> 12 Botafogo, 10 Ipanema; terças e quintas sempre Ipanema
+  const out=generatePatternMonthUnits(flavio,2026,9).filter(d=>d.status==="trabalho");
+  expect(out.filter(d=>d.unidade==="Botafogo")).toHaveLength(12);expect(out.filter(d=>d.unidade==="Ipanema")).toHaveLength(10);
+  expect(out.filter(d=>[2,4].includes(new Date(`${d.data}T00:00:00Z`).getUTCDay())).every(d=>d.unidade==="Ipanema")).toBe(true);
+  // Sem proporção: só os dias da semana
+  const fixo=generatePatternMonthUnits({...flavio,proporcao_botafogo:null,proporcao_ipanema:null},2026,9).filter(d=>d.status==="trabalho");
+  expect(fixo.filter(d=>d.unidade==="Ipanema")).toHaveLength(9);
  });
 });

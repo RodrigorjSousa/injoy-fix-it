@@ -6,7 +6,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - **Camareira de Botafogo:** 12x36.
 - **Camareira de Ipanema:** 5x2. As folgas nunca são sábado+domingo nem sexta+sábado juntos, e ela
   folga um domingo sim, um não.
-- **Manutenção:** 5x2, com folga no sábado e no domingo.
+- **Manutenção:** 5x2, com folga no sábado e no domingo. O Flavio divide a semana: 12 dias em Botafogo
+  e 10 em Ipanema (dias da semana fixos + ajuste mensal para a proporção). Na manutenção não se usa
+  freelancer nas folgas nem nos dias em que ele está na outra unidade; freelancer só pontual.
 - **Freelancers:** os valores são editáveis.
   - 8 h por R$ 150: reforço quando o hotel está cheio, ou seja, com muitas "gerais" (limpezas de
     checkout).
@@ -41,7 +43,7 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - A validação ganhou o erro `max_5_days`, e a contagem de 2 folgas passou a ser de domingo a sábado.
   - Botão **Cobrir folgas com freelancer** (ex.: Cristina nas folgas da Maria): cria dias `extra`
     manuais (vão para o Financeiro) e remove coberturas antigas em dias que deixaram de ser folga.
-- Férias (branch `feat/escala-ferias`, migração `0033_escala_ferias.sql`):
+- Férias (PR #14; o Lovable aplicou como `0032_escala_ferias.sql`):
   - Tabela `escala_ferias` (pessoa, unidade, início, fim, freelancer, modalidade, horário, valor).
     O banco recusa dois períodos sobrepostos para a mesma pessoa.
   - Botão **Férias** na escala do gestor: lança, edita e cancela. Todos os dias do período viram
@@ -50,6 +52,13 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - Cancelar devolve os dias ao padrão (origem `gerado`) e apaga a cobertura.
   - Semanas com férias/atestado/falta não entram nas regras de folga do revezamento; freelancers
     agora contam para o aviso "sem cobertura".
+- Duas unidades (branch `feat/escala-flavio-duas-unidades`, migração `0034_escala_padrao_duas_unidades.sql`):
+  - `escala_padroes` ganhou `dias_ipanema` (dias da semana em Ipanema), `proporcao_botafogo` e
+    `proporcao_ipanema`. Cadastro com unidade "Ambas" mostra a opção "Trabalha nas duas unidades".
+  - `distribuirUnidades` (motor) segue os dias da semana e troca o mínimo de dias, do fim do mês
+    para o começo, para chegar à proporção. Folgas ficam na unidade principal.
+  - Gerar o mês do setor gera Botafogo e Ipanema juntas quando há alguém dividido.
+  - `escala_regenerar_mes` agora move o dia automático de unidade (antes ficava preso na antiga).
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
