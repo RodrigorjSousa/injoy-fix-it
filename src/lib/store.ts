@@ -291,6 +291,8 @@ export function useMe() {
           .from("funcionarios")
           .select("id, nome, email, categorias, user_id, telas_permitidas")
           .eq("user_id", u.user.id)
+          .order("nome")
+          .limit(1)
           .maybeSingle(),
       ]);
       const roleList = (roles ?? []).map((r) => r.role);

@@ -6,6 +6,7 @@ import injoyLogo from "@/assets/injoy-logo.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
+import { usePermissaoBonificacao } from "@/lib/bonificacao";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationsButton } from "@/components/push-notifications-button";
 import { useUnidade } from "@/lib/unidade-context";
@@ -95,10 +96,9 @@ const podePainel = (me: Me) => {
   if (ind !== null) return ind && !isAdmin(me);
   return !isAdmin(me) && (!!me?.isRecepcao || !!me?.isCamareira || (!!me?.isFuncionario && !me?.isRecepcao && !me?.isCamareira));
 };
-// Bonificação: além dos gestores/admins, liberada para a Mayara (recepção).
-const isMayara = (me: Me) =>
-  !!me?.funcionario?.nome && /(^|\s)mayara(\s|$)/i.test(me.funcionario.nome.trim());
-const podeBonificacao = (me: Me) => !isAdmin(me) && isMayara(me);
+// Bonificação: o item é incluído abaixo conforme a lista de acessos do banco
+// (Bonificação › Acessos), e não mais pelo nome do funcionário.
+const BONIFICACAO_NAV: NavItem = { to: "/bonificacao", label: "Bonificação", icon: Trophy };
 
 
 const ALL_NAV: NavItem[] = [
@@ -112,7 +112,6 @@ const ALL_NAV: NavItem[] = [
   { to: "/painel", label: "PAINEL", icon: LayoutGrid, show: podePainel },
   { to: "/camareiras", label: "Camareiras", icon: BedDouble, show: podeCamareira },
   { to: "/preventiva", label: "Preventiva AC", icon: Snowflake, show: podePreventiva },
-  { to: "/bonificacao", label: "Bonificação", icon: Trophy, show: podeBonificacao },
   { to: "/almoxarifado", label: "Almoxarifado", icon: Package, show: (me) => !isAdmin(me) && !!me?.isRecepcao },
   { to: "/chat", label: "Chat", icon: MessageSquare },
 
@@ -150,7 +149,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Se o funcionário tem uma lista personalizada de telas em EQUIPE,
   // ela substitui a navegação de topo (o grupo ADMINISTRADOR continua só para admins).
   const listaCustom = me?.funcionario?.telasPermitidas ?? null;
-  const nav: NavItem[] = (() => {
+  const { data: permBonif } = usePermissaoBonificacao();
+  const navBase: NavItem[] = (() => {
     if (listaCustom && !isAdmin(me)) {
       const keys = Array.from(new Set([...listaCustom, ...requiredTelaKeys(me), "chat"]));
       const custom: NavItem[] = keys
@@ -163,6 +163,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       return [...(baterPonto ? [baterPonto] : []), ...(minhaEscala ? [minhaEscala] : []), ...custom.filter((n) => n.to !== "/ponto"), ...(admin ? [admin] : [])];
     }
     return ALL_NAV.filter((n) => !n.show || n.show(me));
+  })();
+  // Bonificação aparece para quem o gestor liberou, mesmo com lista personalizada.
+  const nav: NavItem[] = (() => {
+    const semBonif = navBase.filter((n) => n.to !== "/bonificacao");
+    if (!me || isAdmin(me) || !permBonif?.podeRegistrar) return semBonif;
+    const idxChat = semBonif.findIndex((n) => n.to === "/chat");
+    const pos = idxChat >= 0 ? idxChat : semBonif.length;
+    return [...semBonif.slice(0, pos), BONIFICACAO_NAV, ...semBonif.slice(pos)];
   })();
 
   const isActive = (to: string, exact?: boolean) =>

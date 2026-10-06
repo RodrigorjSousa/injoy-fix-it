@@ -171,8 +171,13 @@ export function useExcluirRegistroBonificacao() {
     mutationFn: async ({ id, avaliacaoId }: { id: string; avaliacaoId: string | null }) => {
       let query = supabase.from("registros_bonificacao").delete();
       query = avaliacaoId ? query.eq("avaliacao_id", avaliacaoId) : query.eq("id", id);
-      const { error } = await query;
+      const { data, error } = await query.select("id");
       if (error) throw error;
+      // Sem permissão o banco não apaga nada e não avisa: mostramos o motivo.
+      if (!data?.length)
+        throw new Error(
+          "A avaliação não foi excluída: seu login não tem permissão para excluir. Peça ao gestor em Bonificação › Acessos.",
+        );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),
   });
@@ -270,4 +275,99 @@ export function calcularMediasBonificacao(registros: RegistroBonificacao[]): Med
     limpeza: media(limpeza),
     avaliacoes: avaliacoes.length,
   };
+}
+
+// ---------------------------------------------------------------- permissões
+// Fonte única: o banco (public.minha_permissao_bonificacao). O gestor define
+// quem acessa em Bonificação › Acessos (tabela public.bonificacao_acessos).
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const db = supabase as any;
+
+export interface PermissaoBonificacao {
+  gestor: boolean;
+  podeRegistrar: boolean;
+  podeEditar: boolean;
+  podeExcluir: boolean;
+}
+
+export const SEM_PERMISSAO_BONIFICACAO: PermissaoBonificacao = {
+  gestor: false,
+  podeRegistrar: false,
+  podeEditar: false,
+  podeExcluir: false,
+};
+
+/** Pergunta ao banco o que o login atual pode fazer na Bonificação. */
+export async function buscarPermissaoBonificacao(): Promise<PermissaoBonificacao> {
+  const { data, error } = await db.rpc("minha_permissao_bonificacao");
+  if (error) {
+    const msg = String(error.message ?? "");
+    if (/minha_permissao_bonificacao|function|schema cache/i.test(msg))
+      throw new Error(
+        "O banco de dados ainda não recebeu a atualização de acessos da Bonificação (migração 0031). Aplique a migração e publique o app.",
+      );
+    throw new Error(msg || "Não foi possível verificar sua permissão na Bonificação.");
+  }
+  const p = (data ?? {}) as Record<string, unknown>;
+  return {
+    gestor: p.gestor === true,
+    podeRegistrar: p.pode_registrar === true,
+    podeEditar: p.pode_editar === true,
+    podeExcluir: p.pode_excluir === true,
+  };
+}
+
+export function usePermissaoBonificacao() {
+  return useQuery({
+    queryKey: ["permissao_bonificacao"],
+    queryFn: buscarPermissaoBonificacao,
+    staleTime: 30_000,
+  });
+}
+
+export interface AcessoBonificacao {
+  user_id: string;
+  nome: string;
+  email: string | null;
+  papeis: string[];
+  gestor: boolean;
+  liberado: boolean;
+  pode_editar: boolean;
+  pode_excluir: boolean;
+}
+
+export function useAcessosBonificacao(enabled = true) {
+  return useQuery({
+    queryKey: ["acessos_bonificacao"],
+    enabled,
+    queryFn: async (): Promise<AcessoBonificacao[]> => {
+      const { data, error } = await db.rpc("bonificacao_acessos_listar");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AcessoBonificacao[];
+    },
+  });
+}
+
+export function useDefinirAcessoBonificacao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: {
+      userId: string;
+      liberado: boolean;
+      podeEditar: boolean;
+      podeExcluir: boolean;
+    }) => {
+      const { error } = await db.rpc("bonificacao_definir_acesso", {
+        _user_id: input.userId,
+        _liberado: input.liberado,
+        _pode_editar: input.podeEditar,
+        _pode_excluir: input.podeExcluir,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["acessos_bonificacao"] });
+      void qc.invalidateQueries({ queryKey: ["permissao_bonificacao"] });
+    },
+  });
 }

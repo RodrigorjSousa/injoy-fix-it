@@ -1,6 +1,7 @@
 import { redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { buscarPermissaoBonificacao } from "@/lib/bonificacao";
 
 export type TelaGestorCompartilhada =
   | "almoxarifado"
@@ -16,14 +17,29 @@ type AccessOptions =
   | { somenteGestor: true }
   | { somenteGestor?: false; tela: TelaGestorCompartilhada };
 
-function negarAcesso(): never {
-  toast.error("Acesso restrito aos gestores");
+function negarAcesso(mensagem = "Acesso restrito aos gestores"): never {
+  toast.error(mensagem);
   throw redirect({ to: "/" });
 }
 
 export async function requireGestor(options: AccessOptions = { somenteGestor: true }) {
   const { data: auth, error: authError } = await supabase.auth.getUser();
   if (authError || !auth.user) throw redirect({ to: "/auth" });
+
+  // Bonificação: quem decide é o banco (lista de acessos que o gestor edita).
+  if (!options.somenteGestor && options.tela === "bonificacao") {
+    let permissao;
+    try {
+      permissao = await buscarPermissaoBonificacao();
+    } catch (e) {
+      negarAcesso(e instanceof Error ? e.message : "Não foi possível verificar seu acesso.");
+    }
+    if (permissao.gestor || permissao.podeRegistrar)
+      return { gestor: permissao.gestor, userId: auth.user.id };
+    negarAcesso(
+      "Seu login não está liberado na Bonificação. Peça ao gestor para liberar em Bonificação › Acessos.",
+    );
+  }
 
   const [{ data: roleRows, error: rolesError }, { data: funcionario, error: funcionarioError }] =
     await Promise.all([
@@ -32,6 +48,10 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
         .from("funcionarios")
         .select("nome, categorias, telas_permitidas")
         .eq("user_id", auth.user.id)
+        // Pode haver mais de um cadastro ligado ao mesmo login: usamos o primeiro
+        // em vez de falhar (maybeSingle dá erro com 2 linhas).
+        .order("nome")
+        .limit(1)
         .maybeSingle(),
     ]);
 
@@ -45,12 +65,10 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
   const telas = funcionario?.telas_permitidas ?? null;
   if (telas?.includes(options.tela)) return { gestor: false, userId: auth.user.id };
 
-  const nome = funcionario?.nome?.trim() ?? "";
   const categorias = funcionario?.categorias ?? [];
   const permitidoPorPapel =
     (options.tela === "almoxarifado" && roles.has("recepcao")) ||
-    (options.tela === "preventiva" && categorias.includes("Ar condicionado")) ||
-    (options.tela === "bonificacao" && /(^|\s)mayara(\s|$)/i.test(nome));
+    (options.tela === "preventiva" && categorias.includes("Ar condicionado"));
 
   if (permitidoPorPapel) return { gestor: false, userId: auth.user.id };
   negarAcesso();
