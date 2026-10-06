@@ -54,10 +54,11 @@ WHERE NOT (
           OR btrim(f.nome) ~* '(^|\s)mayara(\s|$)'
         )
     )
+    OR coalesce(u.email, '') ~* '^mayara'
     OR EXISTS (
       SELECT 1 FROM public.profiles p
       WHERE p.id = u.id
-        AND (btrim(coalesce(p.nome, '')) ~* '(^|\s)mayara(\s|$)' OR p.email ~* '^mayara')
+        AND btrim(coalesce(p.nome, '')) ~* '(^|\s)mayara(\s|$)'
     )
   )
 ON CONFLICT (user_id) DO NOTHING;
@@ -131,14 +132,15 @@ BEGIN
   RETURN QUERY
   SELECT
     p.id,
-    coalesce(nullif(btrim(f.nome), ''), nullif(btrim(p.nome), ''), p.email)::text,
-    p.email::text,
+    coalesce(nullif(btrim(f.nome), ''), nullif(btrim(p.nome), ''), u.email)::text,
+    u.email::text,
     coalesce((SELECT array_agg(r.role::text ORDER BY r.role::text) FROM public.user_roles r WHERE r.user_id = p.id), '{}'::text[]),
     private.bonificacao_eh_gestor(p.id),
     a.user_id IS NOT NULL,
     coalesce(a.pode_editar, false),
     coalesce(a.pode_excluir, false)
   FROM public.profiles p
+  LEFT JOIN auth.users u ON u.id = p.id
   LEFT JOIN LATERAL (
     SELECT fx.nome FROM public.funcionarios fx WHERE fx.user_id = p.id ORDER BY fx.nome LIMIT 1
   ) f ON true
