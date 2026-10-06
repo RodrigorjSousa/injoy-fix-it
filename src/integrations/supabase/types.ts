@@ -669,6 +669,11 @@ export type Database = {
           colaborador_id: string
           created_at: string
           created_by: string | null
+          folgas_extra: boolean
+          folgas_hora_entrada: string | null
+          folgas_horas: number | null
+          folgas_modalidade_id: string | null
+          folgas_valor: number | null
           fim: string
           hora_entrada: string | null
           horas_contratadas: number | null
@@ -685,6 +690,11 @@ export type Database = {
           colaborador_id: string
           created_at?: string
           created_by?: string | null
+          folgas_extra?: boolean
+          folgas_hora_entrada?: string | null
+          folgas_horas?: number | null
+          folgas_modalidade_id?: string | null
+          folgas_valor?: number | null
           fim: string
           hora_entrada?: string | null
           horas_contratadas?: number | null
@@ -701,6 +711,11 @@ export type Database = {
           colaborador_id?: string
           created_at?: string
           created_by?: string | null
+          folgas_extra?: boolean
+          folgas_hora_entrada?: string | null
+          folgas_horas?: number | null
+          folgas_modalidade_id?: string | null
+          folgas_valor?: number | null
           fim?: string
           hora_entrada?: string | null
           horas_contratadas?: number | null

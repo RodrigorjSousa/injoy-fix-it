@@ -59,6 +59,11 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     para o começo, para chegar à proporção. Folgas ficam na unidade principal.
   - Gerar o mês do setor gera Botafogo e Ipanema juntas quando há alguém dividido.
   - `escala_regenerar_mes` agora move o dia automático de unidade (antes ficava preso na antiga).
+- Folgas como extra nas férias (branch `feat/escala-ferias-folgas-extra`, migração `0035_escala_ferias_folgas_extra.sql`):
+  - Opção no lançamento de férias: nas folgas dela a própria pessoa trabalha como extra (motivo
+    "Extra nas férias — folga de X", vai para o Financeiro) e a freelancer folga.
+  - Ao lançar férias, os plantões "Cobertura de folga" da freelancer para essa pessoa no período são
+    removidos, e essas datas contam como folga da pessoa (corrige a Cristina sem folga em out/2026).
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)

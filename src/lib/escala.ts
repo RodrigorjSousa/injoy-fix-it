@@ -340,9 +340,14 @@ export interface EscalaFerias {
   id: string; colaborador_id: string; unidade: "Botafogo" | "Ipanema"; inicio: string; fim: string;
   substituto_id: string | null; modalidade_id: string | null; hora_entrada: string | null;
   horas_contratadas: number | null; valor_combinado: number | null; observacao: string | null;
+  folgas_extra?: boolean; folgas_modalidade_id?: string | null; folgas_hora_entrada?: string | null;
+  folgas_horas?: number | null; folgas_valor?: number | null;
   created_by: string | null; created_at: string; updated_at: string;
 }
 export const FERIAS_MOTIVO = "Férias";
+/** Nas férias, a própria pessoa trabalha como extra nos dias que seriam folga dela (a freelancer folga). */
+export const EXTRA_FERIAS_PREFIXO = "Extra nas férias";
+const COBERTURA_FOLGA_PREFIXO = "Cobertura de folga";
 const COBERTURA_FERIAS_PREFIXO = "Cobertura de férias";
 export const coberturaFeriasMotivo = (nome: string) => `${COBERTURA_FERIAS_PREFIXO} — ${nome}`;
 
@@ -371,15 +376,19 @@ async function desfazerDiasFerias(f: Pick<EscalaFerias, "colaborador_id" | "inic
     if (error) throw error;
     await apagarComConferencia((data ?? []).map((d) => d.id));
   }
-  const { data: dias, error } = await supabase.from("escala_dias").select("id,data").eq("colaborador_id", f.colaborador_id)
+  const { data: diasFerias, error } = await supabase.from("escala_dias").select("id,data").eq("colaborador_id", f.colaborador_id)
     .eq("status", "ferias").eq("motivo", FERIAS_MOTIVO).gte("data", f.inicio).lte("data", f.fim);
   if (error) throw error;
+  const { data: diasExtra, error: eX } = await supabase.from("escala_dias").select("id,data").eq("colaborador_id", f.colaborador_id)
+    .eq("status", "extra").like("motivo", `${EXTRA_FERIAS_PREFIXO}%`).gte("data", f.inicio).lte("data", f.fim);
+  if (eX) throw eX;
+  const dias = [...(diasFerias ?? []), ...(diasExtra ?? [])];
   const trabalho = (dias ?? []).filter((d) => pattern && worksOnDate(pattern, d.data)).map((d) => d.id);
   const folga = (dias ?? []).filter((d) => !trabalho.includes(d.id)).map((d) => d.id);
   for (const [ids, status] of [[trabalho, "trabalho"], [folga, "folga"]] as const) {
     if (!ids.length) continue;
     const { error: e } = await supabase.from("escala_dias").update({
-      status, origem: "gerado", motivo: null,
+      status, origem: "gerado", motivo: null, modalidade_id: null, motivo_chamada: null, horas_contratadas: null, valor_combinado: null,
       hora_entrada: status === "trabalho" ? pattern?.hora_entrada ?? null : null,
       hora_saida: status === "trabalho" ? pattern?.hora_saida ?? null : null,
     }).in("id", ids);
@@ -391,8 +400,10 @@ export type FeriasInput = {
   id?: string; colaborador: EscalaColaborador; pattern: EnginePattern; unidade: "Botafogo" | "Ipanema";
   inicio: string; fim: string; substituto: EscalaColaborador | null; modalidade: EscalaModalidade | null;
   hora_entrada: string; horas: number; valor: number; observacao: string | null;
+  /** A própria pessoa trabalha como extra nas folgas dela (a freelancer folga nesses dias). */
+  folgasExtra?: { modalidade: EscalaModalidade; hora_entrada: string; horas: number; valor: number } | null;
 };
-export type FeriasResultado = { diasFerias: number; diasCobertura: number; ocupados: string[] };
+export type FeriasResultado = { diasFerias: number; diasCobertura: number; ocupados: string[]; diasExtra: number; coberturasFolgaRemovidas: number };
 
 export function useSalvarFerias() {
   const refresh = useRefreshSchedule();
@@ -410,6 +421,9 @@ export function useSalvarFerias() {
       substituto_id: input.substituto?.id ?? null, modalidade_id: input.substituto ? input.modalidade?.id ?? null : null,
       hora_entrada: input.substituto ? input.hora_entrada : null, horas_contratadas: input.substituto ? input.horas : null,
       valor_combinado: input.substituto ? input.valor : null, observacao: input.observacao,
+      folgas_extra: !!input.folgasExtra, folgas_modalidade_id: input.folgasExtra?.modalidade.id ?? null,
+      folgas_hora_entrada: input.folgasExtra?.hora_entrada ?? null, folgas_horas: input.folgasExtra?.horas ?? null,
+      folgas_valor: input.folgasExtra?.valor ?? null,
     };
     const saved = input.id
       ? await supabase.from("escala_ferias").update(record).eq("id", input.id).select("id").single()
@@ -422,16 +436,40 @@ export function useSalvarFerias() {
       .eq("colaborador_id", input.colaborador.id).gte("data", input.inicio).lte("data", input.fim);
     if (e1) throw e1;
     const atuais = (existentes ?? []) as { data: string; status: EscalaDia["status"]; turno: EscalaTurno }[];
-    const plano = planejarFerias(input.pattern, input.inicio, input.fim, atuais.filter((d) => d.status !== "ferias"));
+    // Folgas já cobertas por freelancer ("Cobertura de folga") contam como folga da pessoa nesses dias
+    const { data: cobFolga, error: eF } = await supabase.from("escala_dias").select("id,data,colaborador_id")
+      .eq("substitui_colaborador_id", input.colaborador.id).eq("status", "extra").like("motivo", `${COBERTURA_FOLGA_PREFIXO}%`)
+      .gte("data", input.inicio).lte("data", input.fim);
+    if (eF) throw eF;
+    const folgaConhecida = new Set((cobFolga ?? []).map((d) => d.data));
+    const base: { data: string; status: EscalaDia["status"] }[] = atuais.filter((d) => d.status !== "ferias")
+      .map((d) => folgaConhecida.has(d.data) ? { data: d.data, status: "folga" as const } : { data: d.data, status: d.status });
+    for (const data of folgaConhecida) if (!base.some((d) => d.data === data)) base.push({ data, status: "folga" });
+    const plano = planejarFerias(input.pattern, input.inicio, input.fim, base);
+    const folgasDaPessoa = plano.diasFerias.filter((d) => !plano.diasCobertura.includes(d));
+    // Durante as férias a freelancer que cobre não faz mais o plantão de folga da pessoa
+    let coberturasFolgaRemovidas = 0;
+    if (input.substituto) {
+      const ids = (cobFolga ?? []).filter((d) => d.colaborador_id === input.substituto!.id).map((d) => d.id);
+      coberturasFolgaRemovidas = await apagarComConferencia(ids);
+    }
     const turnoDe = new Map(atuais.map((d) => [d.data, d.turno]));
     const { data: auth } = await supabase.auth.getUser();
     const by = auth.user?.id ?? null;
-    const diasPessoa = plano.diasFerias.map((data) => ({
-      colaborador_id: input.colaborador.id, unidade: input.unidade, setor: input.colaborador.setor, data,
-      turno: turnoDe.get(data) ?? input.colaborador.turno_padrao ?? "dia", hora_entrada: null, hora_saida: null,
-      status: "ferias" as const, origem: "manual" as const, substitui_colaborador_id: null, motivo: FERIAS_MOTIVO,
-      modalidade_id: null, motivo_chamada: null, horas_contratadas: null, valor_combinado: null, updated_by: by,
-    }));
+    const fx = input.folgasExtra ?? null;
+    const diasPessoa = plano.diasFerias.map((data) => {
+      const extra = !!fx && folgasDaPessoa.includes(data);
+      return {
+        colaborador_id: input.colaborador.id, unidade: input.unidade, setor: input.colaborador.setor, data,
+        turno: turnoDe.get(data) ?? input.colaborador.turno_padrao ?? "dia",
+        hora_entrada: extra ? fx!.hora_entrada : null, hora_saida: extra ? calculateEndTime(fx!.hora_entrada, fx!.horas) : null,
+        status: extra ? "extra" as const : "ferias" as const, origem: "manual" as const,
+        substitui_colaborador_id: extra ? input.substituto?.id ?? null : null,
+        motivo: extra ? `${EXTRA_FERIAS_PREFIXO} — folga de ${input.substituto?.nome ?? "quem cobre"}` : FERIAS_MOTIVO,
+        modalidade_id: extra ? fx!.modalidade.id : null, motivo_chamada: extra ? fx!.modalidade.motivo : null,
+        horas_contratadas: extra ? fx!.horas : null, valor_combinado: extra ? fx!.valor : null, updated_by: by,
+      };
+    });
     const { error: e2 } = await supabase.from("escala_dias").upsert(diasPessoa, { onConflict: "colaborador_id,data,turno" });
     if (e2) throw e2;
 
@@ -455,7 +493,7 @@ export function useSalvarFerias() {
       }
       cobertos = cobertura.length;
     }
-    return { diasFerias: plano.diasFerias.length, diasCobertura: cobertos, ocupados };
+    return { diasFerias: plano.diasFerias.length, diasCobertura: cobertos, ocupados, diasExtra: fx ? folgasDaPessoa.length : 0, coberturasFolgaRemovidas };
   }, onSuccess: refresh });
 }
 
