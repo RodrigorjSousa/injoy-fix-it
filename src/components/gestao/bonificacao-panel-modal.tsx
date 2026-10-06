@@ -448,7 +448,7 @@ function HistoricoTabela({
   return (
     <div className="space-y-3">
       {editando && (
-        <section className="rounded-lg border bg-background p-4 space-y-3" aria-label="Editar avaliação">
+        <section id="bonif-editar" className="rounded-lg border-2 border-primary/40 bg-background p-4 space-y-3 scroll-mt-4" aria-label="Editar avaliação">
           <div className="flex items-center justify-between gap-3">
             <h4 className="font-semibold">Editar avaliação · {unidade}</h4>
             <Button type="button" variant="outline" size="sm" onClick={() => setEditando(null)}>Cancelar</Button>
@@ -466,7 +466,6 @@ function HistoricoTabela({
             <th className="p-2 text-center">Geral</th>
             <th className="p-2 text-center">Elogio</th>
             <th className="p-2 text-right">Valor</th>
-            {(podeEditar || podeExcluir) && <th className="p-2" />}
           </tr>
         </thead>
         <tbody>
@@ -484,6 +483,49 @@ function HistoricoTabela({
                   <div className="font-medium">{r.nome_hospede}</div>
                   {recepcao?.observacao && <div className="text-xs text-muted-foreground">Recepção: {recepcao.observacao}</div>}
                   {camareiras?.observacao && <div className="text-xs text-muted-foreground">Limpeza: {camareiras.observacao}</div>}
+                  {(podeEditar || podeExcluir) && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {podeEditar && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 px-2 text-xs"
+                          aria-label={`Editar avaliação de ${r.nome_hospede}`}
+                          onClick={() => {
+                            setEditando(r);
+                            requestAnimationFrame(() =>
+                              document.getElementById("bonif-editar")?.scrollIntoView({ behavior: "smooth", block: "start" }),
+                            );
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" /> Editar
+                        </Button>
+                      )}
+                      {podeExcluir && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 gap-1 border-red-300 px-2 text-xs text-red-600 hover:bg-red-50"
+                          disabled={excluir.isPending}
+                          aria-label={`Excluir avaliação de ${r.nome_hospede}`}
+                          onClick={() => {
+                            if (!confirm(`Excluir a avaliação de ${r.nome_hospede} (Recepção e Camareiras)?`)) return;
+                            excluir.mutate(
+                              { id: r.id, avaliacaoId: r.avaliacao_id },
+                              {
+                                onSuccess: () => toast.success("Avaliação excluída"),
+                                onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível excluir."),
+                              },
+                            );
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" /> Excluir
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </td>
                 <td className="p-2 text-center">
                   <div className="space-y-2">
@@ -520,31 +562,6 @@ function HistoricoTabela({
                     ))}
                   </div>
                 </td>
-                {(podeEditar || podeExcluir) && (
-                   <td className="p-2 text-right whitespace-nowrap">
-                      {podeEditar && (
-                      <Button type="button" variant="ghost" size="icon" title={`Editar avaliação de ${r.nome_hospede}`} aria-label={`Editar avaliação de ${r.nome_hospede}`} onClick={() => setEditando(r)}>
-                       <Pencil className="h-4 w-4" />
-                     </Button>
-                      )}
-                    {podeExcluir && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                       title={`Excluir avaliação de ${r.nome_hospede}`}
-                       aria-label={`Excluir avaliação de ${r.nome_hospede}`}
-                      onClick={() => {
-                        if (confirm("Excluir esta avaliação dos dois setores?")) {
-                          excluir.mutate({ id: r.id, avaliacaoId: r.avaliacao_id });
-                        }
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4 text-red-500" />
-                    </Button>
-                    )}
-                  </td>
-                )}
               </tr>
             );
           })}
