@@ -232,6 +232,13 @@
       "when": 1791296787022,
       "tag": "0032_escala_ferias",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1791304076154,
+      "tag": "0033_escala_padrao_duas_unidades",
+      "breakpoints": true
     }
   ]
 }
