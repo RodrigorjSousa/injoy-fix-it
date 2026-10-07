@@ -248,11 +248,12 @@ export function useSalvarEscalaColaborador() {
         ativo: input.ativo,
       };
       let colaboradorId = input.id;
+      const client = supabase as SupabaseClient<DatabaseComColaboradoresPendentes>;
       if (input.id) {
-        const { error } = await supabase.from("escala_colaboradores").update(row).eq("id", input.id);
+        const { error } = await client.from("escala_colaboradores").update(row).eq("id", input.id);
         if (error) throw error;
       } else {
-        const { data, error } = await supabase.from("escala_colaboradores").insert(row).select("id").single();
+        const { data, error } = await client.from("escala_colaboradores").insert(row).select("id").single();
         if (error) throw error;
         colaboradorId = data.id;
       }
@@ -543,16 +544,21 @@ export function useLancarBeneficios(){
 }
 
 /** Ajusta o VA e o VT por dia de uma pessoa (null = volta ao padrão do quadro). */
-// Contrato aditivo da migração 0038, sem modificar os tipos gerados do banco.
-type ValesColaborador = { vale_alimentacao: number | null; vale_transporte_dia: number | null };
+// Contrato aditivo das migrações 0038/0039, sem modificar os tipos gerados do banco.
+type CamposColaboradorPendentes = {
+  vale_alimentacao: number | null;
+  vale_transporte_dia: number | null;
+  hora_entrada: string | null;
+  hora_saida: string | null;
+};
 type TabelaColaboradores = Database["public"]["Tables"]["escala_colaboradores"];
-type DatabaseComVales = Omit<Database, "public"> & {
+type DatabaseComColaboradoresPendentes = Omit<Database, "public"> & {
   public: Omit<Database["public"], "Tables"> & {
     Tables: Omit<Database["public"]["Tables"], "escala_colaboradores"> & {
       escala_colaboradores: Omit<TabelaColaboradores, "Row" | "Insert" | "Update"> & {
-        Row: TabelaColaboradores["Row"] & ValesColaborador;
-        Insert: TabelaColaboradores["Insert"] & Partial<ValesColaborador>;
-        Update: TabelaColaboradores["Update"] & Partial<ValesColaborador>;
+        Row: TabelaColaboradores["Row"] & CamposColaboradorPendentes;
+        Insert: TabelaColaboradores["Insert"] & Partial<CamposColaboradorPendentes>;
+        Update: TabelaColaboradores["Update"] & Partial<CamposColaboradorPendentes>;
       };
     };
   };
@@ -560,7 +566,7 @@ type DatabaseComVales = Omit<Database, "public"> & {
 export function useSalvarBeneficioColaborador(){
   const queryClient=useQueryClient();
   return useMutation({mutationFn:async(input:{id:string;vale_alimentacao:number|null;vale_transporte_dia:number|null})=>{
-    const client = supabase as SupabaseClient<DatabaseComVales>;
+    const client = supabase as SupabaseClient<DatabaseComColaboradoresPendentes>;
     const {data,error}=await client.from("escala_colaboradores").update({vale_alimentacao:input.vale_alimentacao,vale_transporte_dia:input.vale_transporte_dia}).eq("id",input.id).select("id");
     if(error)throw error;
     if(!data?.length)throw new Error("Não foi possível salvar. Verifique a permissão de gestor.");
