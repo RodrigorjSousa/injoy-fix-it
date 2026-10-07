@@ -267,6 +267,13 @@
       "when": 1791380212342,
       "tag": "0037_bonus_meta_agendamento",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791393963678,
+      "tag": "0038_apply_existing_0039_bonus_meta_por_setor",
+      "breakpoints": true
     }
   ]
 }
