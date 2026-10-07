@@ -9,6 +9,13 @@ import { atualizarMetaEquipeAgora } from "@/lib/pontomais.functions";
 const db = supabase as any;
 
 export type SituacaoMeta = "ok" | "risco" | "perdeu";
+export type SetorMeta = "recepcao" | "camareiras";
+
+/** Cada setor ganha pela sua nota individual: Recepção → Funcionário; Camareiras/Manutenção → Limpeza. */
+export const SETOR_META: Record<SetorMeta, { rotulo: string; nota: string; chave: "funcionarios" | "limpeza" }> = {
+  recepcao: { rotulo: "Recepção", nota: "Funcionário", chave: "funcionarios" },
+  camareiras: { rotulo: "Camareiras / Manutenção", nota: "Limpeza", chave: "limpeza" },
+};
 
 export interface MetaConfig {
   ativo: boolean;
@@ -23,6 +30,8 @@ export interface MetaPessoa {
   nome: string;
   unidade: "Botafogo" | "Ipanema" | "Ambas";
   ativo: boolean;
+  setor: SetorMeta;
+  setor_definido: boolean;
   sou_eu: boolean | null;
   pontomais: boolean;
   atrasos: number;
@@ -86,18 +95,13 @@ export function useMetaSituacao() {
   });
 }
 
-/** Avalia a meta das 3 notas para uma unidade. */
-export function avaliarMeta(
-  medias: { geral: number | null; funcionarios: number | null; limpeza: number | null },
+/** Meta por setor (a nota Geral não conta). */
+export function avaliarMetaSetores(
+  medias: { funcionarios: number | null; limpeza: number | null },
   notaMinima: number,
-) {
-  const itens = [
-    { nome: "Geral", nota: medias.geral },
-    { nome: "Funcionário", nota: medias.funcionarios },
-    { nome: "Limpeza", nota: medias.limpeza },
-  ];
-  const abaixo = itens.filter((i) => i.nota == null || i.nota < notaMinima);
-  return { atingida: abaixo.length === 0, abaixo };
+): Record<SetorMeta, { nota: number | null; atingida: boolean }> {
+  const avalia = (nota: number | null) => ({ nota, atingida: nota != null && nota >= notaMinima });
+  return { recepcao: avalia(medias.funcionarios), camareiras: avalia(medias.limpeza) };
 }
 
 export function useOcorrenciasMeta(enabled = true) {
@@ -159,9 +163,9 @@ export const useSalvarConfigMeta = rpcMutation<MetaConfig>("bonus_meta_salvar_co
   _max_atrasos: c.max_atrasos,
 }));
 
-export const useSalvarParticipanteMeta = rpcMutation<{ funcionarioId: string; unidade: string; ativo: boolean }>(
+export const useSalvarParticipanteMeta = rpcMutation<{ funcionarioId: string; unidade: string; ativo: boolean; setor: SetorMeta | null }>(
   "bonus_meta_salvar_participante",
-  (i) => ({ _funcionario_id: i.funcionarioId, _unidade: i.unidade, _ativo: i.ativo }),
+  (i) => ({ _funcionario_id: i.funcionarioId, _unidade: i.unidade, _ativo: i.ativo, _setor: i.setor }),
 );
 
 export const useRemoverParticipanteMeta = rpcMutation<string>("bonus_meta_remover_participante", (id) => ({
