@@ -5,12 +5,8 @@ ALTER TABLE public.fin_lancamentos ADD COLUMN IF NOT EXISTS origem_beneficio tex
 CREATE UNIQUE INDEX IF NOT EXISTS fin_lancamentos_origem_beneficio_uidx
   ON public.fin_lancamentos (origem_beneficio) WHERE origem_beneficio IS NOT NULL;
 
-INSERT INTO public.fin_categorias (nome, grupo, tipo, ordem)
-SELECT 'Vale alimentação', 'pessoal', 'despesa', 0
-WHERE NOT EXISTS (SELECT 1 FROM public.fin_categorias WHERE nome = 'Vale alimentação' AND tipo = 'despesa');
-INSERT INTO public.fin_categorias (nome, grupo, tipo, ordem)
-SELECT 'Vale transporte', 'pessoal', 'despesa', 0
-WHERE NOT EXISTS (SELECT 1 FROM public.fin_categorias WHERE nome = 'Vale transporte' AND tipo = 'despesa');
+-- (As categorias "Vale alimentação" e "Vale transporte" são criadas pela própria função, na primeira vez que o VA/VT
+-- é lançado, para a migração não depender de INSERT.)
 
 -- _itens: [{colaborador_id, nome, tipo: 'va'|'vt', unidade, valor, qtd, descricao}]
 -- Cria ou atualiza o lançamento previsto de cada item; não mexe no que já está pago e cancela os
@@ -57,6 +53,14 @@ BEGIN
     SELECT id INTO v_cat FROM public.fin_categorias
     WHERE tipo = 'despesa' AND nome = CASE v_tipo WHEN 'va' THEN 'Vale alimentação' ELSE 'Vale transporte' END
     ORDER BY ordem LIMIT 1;
+    IF v_cat IS NULL THEN
+      INSERT INTO public.fin_categorias (nome, grupo, tipo, ordem)
+      VALUES (CASE v_tipo WHEN 'va' THEN 'Vale alimentação' ELSE 'Vale transporte' END, 'pessoal', 'despesa', 0)
+      ON CONFLICT (nome, tipo) DO NOTHING;
+      SELECT id INTO v_cat FROM public.fin_categorias
+      WHERE tipo = 'despesa' AND nome = CASE v_tipo WHEN 'va' THEN 'Vale alimentação' ELSE 'Vale transporte' END
+      ORDER BY ordem LIMIT 1;
+    END IF;
     IF v_cat IS NULL THEN RAISE EXCEPTION 'Categoria de vale não encontrada'; END IF;
 
     SELECT funcionario_id INTO v_func FROM public.escala_colaboradores WHERE id = (v_item->>'colaborador_id')::uuid;
