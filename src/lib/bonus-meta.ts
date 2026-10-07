@@ -191,6 +191,18 @@ export const useExcluirOcorrencia = rpcMutation<string>("bonus_meta_excluir_ocor
   _ocorrencia_id: id,
 }));
 
+/** Gestor: cria as regras padrão e os participantes iniciais (só na primeira vez). */
+export function usePrepararMeta() {
+  const invalidar = useInvalidarMeta();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await db.rpc("bonus_meta_preparar");
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: invalidar,
+  });
+}
+
 /** Gestor: busca o Pontomais do mês e recalcula. */
 export function useAtualizarMetaAgora() {
   const call = useServerFn(atualizarMetaEquipeAgora);
