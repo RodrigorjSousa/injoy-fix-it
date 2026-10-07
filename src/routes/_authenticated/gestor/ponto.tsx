@@ -9,6 +9,9 @@ import { RelatorioPonto } from "@/components/ponto/relatorio-ponto";
 import { CadastroFacial } from "@/components/ponto/cadastro-facial";
 import { ConfigPonto } from "@/components/ponto/config-ponto";
 import { PessoasPonto } from "@/components/ponto/pessoas-ponto";
+import { BancoHoras } from "@/components/ponto/banco-horas";
+import { AtestadosGestor } from "@/components/ponto/atestados-gestor";
+import { useAtestadosGestor } from "@/lib/ponto-gestao";
 
 export const Route = createFileRoute("/_authenticated/gestor/ponto")({
   beforeLoad: () => requireGestor(),
@@ -17,7 +20,7 @@ export const Route = createFileRoute("/_authenticated/gestor/ponto")({
       { title: "Ponto Facial — Área do Gestor" },
       {
         name: "description",
-        content: "Batidas, pendências, cadastro facial e relatório do ponto interno.",
+        content: "Batidas, pendências, banco de horas, atestados e relatório do ponto interno.",
       },
     ],
   }),
@@ -27,6 +30,8 @@ export const Route = createFileRoute("/_authenticated/gestor/ponto")({
 function GestorPonto() {
   const pend = usePendenciasPonto();
   const qtd = pend.data?.length ?? 0;
+  const atestados = useAtestadosGestor();
+  const qtdAtestados = atestados.data?.filter((a) => a.status === "pendente").length ?? 0;
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-2">
@@ -49,6 +54,10 @@ function GestorPonto() {
         <TabsList className="flex w-full flex-wrap justify-start">
           <TabsTrigger value="pendencias">Pendências{qtd ? ` (${qtd})` : ""}</TabsTrigger>
           <TabsTrigger value="relatorio">Relatório</TabsTrigger>
+          <TabsTrigger value="banco">Banco de horas</TabsTrigger>
+          <TabsTrigger value="atestados">
+            Atestados{qtdAtestados ? ` (${qtdAtestados})` : ""}
+          </TabsTrigger>
           <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
           <TabsTrigger value="cadastro">Cadastro facial</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -58,6 +67,12 @@ function GestorPonto() {
         </TabsContent>
         <TabsContent value="relatorio" className="mt-4">
           <RelatorioPonto />
+        </TabsContent>
+        <TabsContent value="banco" className="mt-4">
+          <BancoHoras />
+        </TabsContent>
+        <TabsContent value="atestados" className="mt-4">
+          <AtestadosGestor />
         </TabsContent>
         <TabsContent value="pessoas" className="mt-4">
           <PessoasPonto />

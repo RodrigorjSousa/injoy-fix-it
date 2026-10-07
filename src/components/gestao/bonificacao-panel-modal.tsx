@@ -21,8 +21,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-import { CalendarDays, FileBarChart2, Lock, Pencil, Settings, Trash2, Trophy, Users } from "lucide-react";
+import { CalendarDays, FileBarChart2, Lock, Pencil, Settings, Target, Trash2, Trophy, Users } from "lucide-react";
 import { BonificacaoAcessos } from "@/components/gestao/bonificacao-acessos";
+import { BonusMetaGestao } from "@/components/gestao/bonus-meta-gestao";
 import type { Unidade } from "@/lib/store";
 import { useMe } from "@/lib/store";
 import {
@@ -96,7 +97,7 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
         )}
 
         <Tabs defaultValue="mes" className="mt-2">
-          <TabsList className={cn("grid w-full", isAdminGestor ? "grid-cols-4" : "grid-cols-1")}>
+          <TabsList className={cn("w-full", isAdminGestor ? "grid h-auto grid-cols-3 sm:grid-cols-5" : "grid grid-cols-1")}>
             <TabsTrigger value="mes">
               <CalendarDays className="h-4 w-4 mr-1" /> Mês Vigente
             </TabsTrigger>
@@ -113,6 +114,11 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
             {isAdminGestor && (
               <TabsTrigger value="acessos">
                 <Users className="h-4 w-4 mr-1" /> Acessos
+              </TabsTrigger>
+            )}
+            {isAdminGestor && (
+              <TabsTrigger value="meta">
+                <Target className="h-4 w-4 mr-1" /> Meta equipe
               </TabsTrigger>
             )}
           </TabsList>
@@ -161,6 +167,12 @@ export function BonificacaoPanelModal({ open, onOpenChange, unidade }: Props) {
           {isAdminGestor && (
             <TabsContent value="acessos" className="mt-4">
               <BonificacaoAcessos />
+            </TabsContent>
+          )}
+
+          {isAdminGestor && (
+            <TabsContent value="meta" className="mt-4">
+              <BonusMetaGestao />
             </TabsContent>
           )}
         </Tabs>

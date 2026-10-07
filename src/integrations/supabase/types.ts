@@ -275,6 +275,134 @@ export type Database = {
         }
         Relationships: []
       }
+      bonus_meta_config: {
+        Row: {
+          ativo: boolean
+          id: number
+          max_atrasos: number
+          nota_minima: number
+          tolerancia_minutos: number
+          updated_at: string
+          valor_por_pessoa: number
+        }
+        Insert: {
+          ativo?: boolean
+          id?: number
+          max_atrasos?: number
+          nota_minima?: number
+          tolerancia_minutos?: number
+          updated_at?: string
+          valor_por_pessoa?: number
+        }
+        Update: {
+          ativo?: boolean
+          id?: number
+          max_atrasos?: number
+          nota_minima?: number
+          tolerancia_minutos?: number
+          updated_at?: string
+          valor_por_pessoa?: number
+        }
+        Relationships: []
+      }
+      bonus_meta_ocorrencias: {
+        Row: {
+          data: string
+          fonte: string | null
+          funcionario_id: string
+          hora_entrada: string | null
+          hora_prevista: string | null
+          id: string
+          justificada: boolean
+          minutos: number | null
+          motivo: string | null
+          origem: string
+          revisado_por: string | null
+          tipo: string
+          updated_at: string
+        }
+        Insert: {
+          data: string
+          fonte?: string | null
+          funcionario_id: string
+          hora_entrada?: string | null
+          hora_prevista?: string | null
+          id?: string
+          justificada?: boolean
+          minutos?: number | null
+          motivo?: string | null
+          origem?: string
+          revisado_por?: string | null
+          tipo: string
+          updated_at?: string
+        }
+        Update: {
+          data?: string
+          fonte?: string | null
+          funcionario_id?: string
+          hora_entrada?: string | null
+          hora_prevista?: string | null
+          id?: string
+          justificada?: boolean
+          minutos?: number | null
+          motivo?: string | null
+          origem?: string
+          revisado_por?: string | null
+          tipo?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_meta_ocorrencias_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bonus_meta_participantes: {
+        Row: {
+          ativo: boolean
+          colaborador_id: string | null
+          created_at: string
+          funcionario_id: string
+          setor: string | null
+          unidade: string
+        }
+        Insert: {
+          ativo?: boolean
+          colaborador_id?: string | null
+          created_at?: string
+          funcionario_id: string
+          setor?: string | null
+          unidade?: string
+        }
+        Update: {
+          ativo?: boolean
+          colaborador_id?: string | null
+          created_at?: string
+          funcionario_id?: string
+          setor?: string | null
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_meta_participantes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bonus_meta_participantes_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: true
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       booking_reviews: {
         Row: {
           cleanliness_score: number | null
@@ -538,8 +666,6 @@ export type Database = {
           turno_padrao: string | null
           unidade: string
           updated_at: string
-          vale_alimentacao: number | null
-          vale_transporte_dia: number | null
           vinculo: string
         }
         Insert: {
@@ -556,8 +682,6 @@ export type Database = {
           turno_padrao?: string | null
           unidade: string
           updated_at?: string
-          vale_alimentacao?: number | null
-          vale_transporte_dia?: number | null
           vinculo: string
         }
         Update: {
@@ -574,8 +698,6 @@ export type Database = {
           turno_padrao?: string | null
           unidade?: string
           updated_at?: string
-          vale_alimentacao?: number | null
-          vale_transporte_dia?: number | null
           vinculo?: string
         }
         Relationships: [
@@ -2886,6 +3008,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas_extras_agenda: {
+        Row: {
+          categoria: string
+          definido_em: string
+          definido_por: string | null
+          proxima_data: string
+          unidade: string
+        }
+        Insert: {
+          categoria: string
+          definido_em?: string
+          definido_por?: string | null
+          proxima_data: string
+          unidade: string
+        }
+        Update: {
+          categoria?: string
+          definido_em?: string
+          definido_por?: string | null
+          proxima_data?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       trocas_turno: {
         Row: {
           caixa_obs: string | null
@@ -3254,6 +3400,50 @@ export type Database = {
         }
         Returns: undefined
       }
+      bonus_meta_apurar: { Args: { _mes?: string }; Returns: number }
+      bonus_meta_excluir_ocorrencia: {
+        Args: { _ocorrencia_id: string }
+        Returns: undefined
+      }
+      bonus_meta_justificar: {
+        Args: { _justificada: boolean; _motivo: string; _ocorrencia_id: string }
+        Returns: undefined
+      }
+      bonus_meta_lancar: {
+        Args: {
+          _data: string
+          _funcionario_id: string
+          _minutos: number
+          _motivo: string
+          _tipo: string
+        }
+        Returns: undefined
+      }
+      bonus_meta_preparar: { Args: never; Returns: undefined }
+      bonus_meta_remover_participante: {
+        Args: { _funcionario_id: string }
+        Returns: undefined
+      }
+      bonus_meta_salvar_config: {
+        Args: {
+          _ativo: boolean
+          _max_atrasos: number
+          _nota: number
+          _tolerancia: number
+          _valor: number
+        }
+        Returns: undefined
+      }
+      bonus_meta_salvar_participante: {
+        Args: {
+          _ativo: boolean
+          _funcionario_id: string
+          _setor: string
+          _unidade: string
+        }
+        Returns: undefined
+      }
+      bonus_meta_situacao: { Args: { _mes?: string }; Returns: Json }
       chat_contacts: {
         Args: never
         Returns: {
@@ -3298,10 +3488,6 @@ export type Database = {
           _unidade: string
         }
         Returns: number
-      }
-      escala_lancar_beneficios: {
-        Args: { _competencia: string; _itens: Json }
-        Returns: Json
       }
       escala_sincronizar_financeiro: {
         Args: { _competencia: string; _unidade: string }

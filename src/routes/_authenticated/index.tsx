@@ -6,6 +6,7 @@ import {
   Snowflake,
   Zap,
   Cpu,
+  BedDouble,
   Droplets,
   Hammer,
   PaintRoller,
@@ -68,6 +69,17 @@ const ICONS: Record<Categoria, typeof Snowflake> = {
   "Alvenaria": Hammer,
   "Pintura": PaintRoller,
   "Marcenaria": Hammer,
+  "Camareira": BedDouble,
+};
+
+// Cor própria por categoria no retângulo de escolha (Camareira em rosa).
+const CORES_CATEGORIA: Partial<Record<Categoria, { base: string; ativo: string; icone: string; iconeAtivo: string }>> = {
+  Camareira: {
+    base: "border-pink-300 bg-pink-50 hover:border-pink-400",
+    ativo: "border-pink-500 ring-2 ring-pink-400/40 bg-pink-100",
+    icone: "bg-pink-100 text-pink-600",
+    iconeAtivo: "bg-pink-500 text-white",
+  },
 };
 
 const AREA_COMUM = "Área comum";
@@ -284,6 +296,7 @@ function NovoChamado() {
           {CATEGORIAS.map((c) => {
             const Icon = ICONS[c];
             const active = categoria === c;
+            const cor = CORES_CATEGORIA[c];
             return (
               <button
                 key={c}
@@ -292,13 +305,16 @@ function NovoChamado() {
                 className={cn(
                   "rounded-2xl border bg-card p-4 flex flex-col items-center gap-2 transition-all",
                   "hover:border-primary/50 hover:shadow-md",
-                  active && "border-primary ring-2 ring-primary/30 bg-primary/5",
+                  cor && cor.base,
+                  active && (cor ? cor.ativo : "border-primary ring-2 ring-primary/30 bg-primary/5"),
                 )}
               >
                 <div
                   className={cn(
                     "h-12 w-12 rounded-xl grid place-items-center transition-colors",
-                    active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
+                    cor
+                      ? active ? cor.iconeAtivo : cor.icone
+                      : active ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground",
                   )}
                 >
                   <Icon className="h-6 w-6" />

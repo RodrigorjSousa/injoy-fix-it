@@ -253,6 +253,34 @@
       "when": 1791372727783,
       "tag": "0035_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791380192122,
+      "tag": "0036_bonus_meta_equipe_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791380212342,
+      "tag": "0037_bonus_meta_agendamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1791393963678,
+      "tag": "0038_apply_existing_0039_bonus_meta_por_setor",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791395488684,
+      "tag": "0039_apply_tarefas_extras_agenda_exact",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { AlertTriangle, Award, Siren } from "lucide-react";
+import { AlertTriangle, Award, Siren, Target } from "lucide-react";
+import { SETOR_META, avaliarMetaSetores, useMetaSituacao, type SetorMeta } from "@/lib/bonus-meta";
+import { formatBRL } from "@/lib/bonificacao";
 import { BonificacaoVisualizacaoDialog } from "@/components/gestao/bonificacao-visualizacao-dialog";
 import {
   calcularMediasBonificacao,
@@ -68,9 +70,19 @@ function CaixaNota({ titulo, nota }: { titulo: string; nota: number | null }) {
 export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
   const { data: registros = [], isLoading } = useRegistrosBonificacaoMes(unidade);
   const medias = calcularMediasBonificacao(registros);
-  const nivelGeral = nivelNota(medias.geral);
+  const { data: meta } = useMetaSituacao();
+  const eu = meta?.pessoas.find((p) => p.sou_eu);
+  // Só a nota individual conta: a do próprio setor para quem participa; para os demais, a pior das duas.
+  const notaIndividual = eu
+    ? medias[SETOR_META[eu.setor].chave]
+    : medias.funcionarios == null || medias.limpeza == null
+      ? (medias.funcionarios ?? medias.limpeza)
+      : Math.min(medias.funcionarios, medias.limpeza);
+  const nivelGeral = nivelNota(notaIndividual);
   const Icone = nivelGeral === "verde" ? Award : nivelGeral === "vermelho" ? Siren : AlertTriangle;
   const [aberto, setAberto] = useState(false);
+  const cfgMeta = meta?.config;
+  const setores = cfgMeta ? avaliarMetaSetores(medias, cfgMeta.nota_minima) : null;
 
   return (
     <>
@@ -88,7 +100,7 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
       </div>
       <div className="relative z-10 space-y-4">
         <div className="grid grid-cols-3 gap-2">
-          <CaixaNota titulo="Geral" nota={medias.geral} />
+          <CaixaNota titulo="Geral (ref.)" nota={medias.geral} />
           <CaixaNota titulo="Funcionário" nota={medias.funcionarios} />
           <CaixaNota titulo="Limpeza" nota={medias.limpeza} />
         </div>
@@ -104,9 +116,55 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
           <p className="text-xs font-semibold leading-snug text-white/90">
             {isLoading ? "Carregando notas…" : mensagem(nivelGeral, unidade)}
           </p>
+          {cfgMeta?.ativo && setores && (
+            <div className="mt-2 space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs text-white/85">
+              <div className="flex items-center gap-1.5 font-bold">
+                <Target className="h-4 w-4 shrink-0" />
+                Meta individual: nota do seu setor em {cfgMeta.nota_minima.toFixed(1)} ou mais = +{formatBRL(cfgMeta.valor_por_pessoa)} para cada um
+              </div>
+              {(Object.keys(SETOR_META) as SetorMeta[]).map((s) => {
+                const r = setores[s];
+                const meu = eu?.setor === s;
+                return (
+                  <div
+                    key={s}
+                    className={cn(
+                      "flex flex-wrap items-center justify-between gap-1 rounded-md px-2 py-1",
+                      r.atingida ? "bg-emerald-500/20 text-emerald-100" : "bg-white/5",
+                      meu && "ring-1 ring-white/50",
+                    )}
+                  >
+                    <span>
+                      {meu ? "Você · " : ""}
+                      <strong>{SETOR_META[s].rotulo}</strong> · nota {SETOR_META[s].nota}{" "}
+                      {r.nota == null ? "—" : r.nota.toFixed(1)}
+                    </span>
+                    <span className="font-semibold">{r.atingida ? "Meta batida 🎉" : `Falta chegar a ${cfgMeta.nota_minima.toFixed(1)}`}</span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          {eu && eu.situacao !== "ok" && (
+            <div
+              className={cn(
+                "mt-2 flex items-start gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold",
+                eu.situacao === "perdeu"
+                  ? "border-rose-400/70 bg-rose-500/25 text-rose-50"
+                  : "border-amber-400/70 bg-amber-500/25 text-amber-50",
+              )}
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                {eu.situacao === "perdeu"
+                  ? `Você perdeu as bonificações deste mês (${eu.atrasos} atraso${eu.atrasos === 1 ? "" : "s"}${eu.faltas ? `, ${eu.faltas} falta${eu.faltas === 1 ? "" : "s"} sem justificativa` : ""}).`
+                  : `Atenção: você já tem ${eu.atrasos} atraso${eu.atrasos === 1 ? "" : "s"} no mês. Com mais de ${cfgMeta?.max_atrasos ?? 3} você perde as bonificações.`}
+              </span>
+            </div>
+          )}
           <p className="text-[10px] text-white/50">
             Média do mês · {medias.avaliacoes} avaliação{medias.avaliacoes === 1 ? "" : "s"} ·{" "}
-            {unidade} · toque para ver as avaliações
+            {unidade} · toque para ver regras e avaliações
           </p>
         </div>
       </div>

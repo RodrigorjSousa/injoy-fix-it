@@ -1,0 +1,1 @@
+-- Substituída pela 0034_bonus_meta_equipe_v2.sql (esta versão não foi aplicada).

@@ -64,6 +64,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - A ferramenta de leitura SQL do Lovable não é um usuário logado: funções só com `GRANT authenticated`
   dão "permission denied" ali. Isso é esperado.
 - plpgsql: `text[] || 'literal'` dá erro; use `array_append`.
+- A ferramenta de migração do Lovable **recusa INSERT de dados no nível do arquivo e FK para
+  `auth.users`**. Dados iniciais vão dentro de uma função (ex.: `bonus_meta_preparar()`) chamada pelo
+  app. Agendamentos com `cron.schedule` ficam em migração separada.
 - `.maybeSingle()` dá erro com 2 linhas: em `funcionarios` use `.order("nome").limit(1).maybeSingle()`.
 - RLS em DELETE apaga 0 linhas sem erro: use `.select("id")` e confira se apagou.
 - Permissões: uma única fonte no banco (RPC) usada pela rota, pelo menu e pela tela. Nada de
@@ -77,6 +80,15 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Bonificação: lançamento conjunto Recepção + Camareiras, aba **Acessos** (tabela
   `bonificacao_acessos`, RPC `minha_permissao_bonificacao`), botões Editar e Excluir, e notas
   Geral/Funcionário/Limpeza na tela inicial com janela só de visualização (0003–0005, 0026–0032).
+- Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa pela nota do próprio setor (0039): Recepção → nota Funcionário; Camareiras/Manutenção → nota Limpeza; Geral não conta. A pessoa perde
+  as duas bonificações com mais de 3 atrasos (tolerância de 10 min contra a Escala) ou com falta
+  sem justificativa.
+  - Atrasos e faltas vêm do Pontomais (`registro_ponto_pontomais`) ou do ponto do app
+    (`ponto_batidas`).
+  - O gestor justifica em Bonificação › Meta equipe.
+  - Atualização automática 3x/dia: cron chama `private.run_bonus_meta_sync`, que chama
+    `/api/public/bonus-meta`.
+  - Participantes: Raquel, Julia, Mayara, Gleidiane, Lucivaldo e Flavio.
 
 ## Conversas do PROJETO INJOY
 Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do assunto:

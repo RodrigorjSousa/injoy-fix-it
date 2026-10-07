@@ -1,5 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database, Json } from "@/integrations/supabase/types";
 import { calculateEndTime, formatCivilDate, planejarFerias, worksOnDate, type EnginePattern, type GeneratedDay } from "@/lib/escala-engine";
 
 export type EscalaSetor = "manutencao" | "recepcao" | "camareiras";
@@ -520,19 +522,46 @@ export function useExcluirFerias() {
 }
 
 /** Lança o VA e o VT do mês no Financeiro (um lançamento por pessoa, benefício e unidade). */
+// Contrato da migração 0037 enquanto ela aguarda aplicação e regeneração dos tipos.
+type DatabaseComBeneficios = Database & {
+  public: {
+    Functions: {
+      escala_lancar_beneficios: {
+        Args: { _competencia: string; _itens: Json };
+        Returns: Json;
+      };
+    };
+  };
+};
 export function useLancarBeneficios(){
   return useMutation({mutationFn:async(input:{competencia:string;itens:{colaborador_id:string;nome:string;tipo:"va"|"vt";unidade:string;valor:number;qtd:number;descricao:string}[]})=>{
-    const {data,error}=await supabase.rpc("escala_lancar_beneficios",{_competencia:input.competencia,_itens:input.itens});
+    const client = supabase as SupabaseClient<DatabaseComBeneficios>;
+    const {data,error}=await client.rpc("escala_lancar_beneficios",{_competencia:input.competencia,_itens:input.itens});
     if(error)throw error;
     return data as unknown as {criados:number;atualizados:number;ja_pagos:number;cancelados:number};
   }});
 }
 
 /** Ajusta o VA e o VT por dia de uma pessoa (null = volta ao padrão do quadro). */
+// Contrato aditivo da migração 0038, sem modificar os tipos gerados do banco.
+type ValesColaborador = { vale_alimentacao: number | null; vale_transporte_dia: number | null };
+type TabelaColaboradores = Database["public"]["Tables"]["escala_colaboradores"];
+type DatabaseComVales = Omit<Database, "public"> & {
+  public: Omit<Database["public"], "Tables"> & {
+    Tables: Omit<Database["public"]["Tables"], "escala_colaboradores"> & {
+      escala_colaboradores: Omit<TabelaColaboradores, "Row" | "Insert" | "Update"> & {
+        Row: TabelaColaboradores["Row"] & ValesColaborador;
+        Insert: TabelaColaboradores["Insert"] & Partial<ValesColaborador>;
+        Update: TabelaColaboradores["Update"] & Partial<ValesColaborador>;
+      };
+    };
+  };
+};
 export function useSalvarBeneficioColaborador(){
   const queryClient=useQueryClient();
   return useMutation({mutationFn:async(input:{id:string;vale_alimentacao:number|null;vale_transporte_dia:number|null})=>{
-    const {data,error}=await supabase.from("escala_colaboradores").update({vale_alimentacao:input.vale_alimentacao,vale_transporte_dia:input.vale_transporte_dia}).eq("id",input.id).select("id");
+    const client = supabase as SupabaseClient<DatabaseComVales>;
+    const {data,error}=await client.from("escala_colaboradores").update({vale_alimentacao:input.vale_alimentacao,vale_transporte_dia:input.vale_transporte_dia}).eq("id",input.id).select("id");
     if(error)throw error;
     if(!data?.length)throw new Error("Não foi possível salvar. Verifique a permissão de gestor.");
   },onSuccess:()=>queryClient.invalidateQueries({queryKey:["escala-colaboradores"]})});
