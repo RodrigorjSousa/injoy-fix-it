@@ -367,6 +367,7 @@ export type Database = {
           colaborador_id: string | null
           created_at: string
           funcionario_id: string
+          setor: string | null
           unidade: string
         }
         Insert: {
@@ -374,6 +375,7 @@ export type Database = {
           colaborador_id?: string | null
           created_at?: string
           funcionario_id: string
+          setor?: string | null
           unidade?: string
         }
         Update: {
@@ -381,6 +383,7 @@ export type Database = {
           colaborador_id?: string | null
           created_at?: string
           funcionario_id?: string
+          setor?: string | null
           unidade?: string
         }
         Relationships: [
@@ -3402,7 +3405,12 @@ export type Database = {
         Returns: undefined
       }
       bonus_meta_salvar_participante: {
-        Args: { _ativo: boolean; _funcionario_id: string; _unidade: string }
+        Args: {
+          _ativo: boolean
+          _funcionario_id: string
+          _setor: string
+          _unidade: string
+        }
         Returns: undefined
       }
       bonus_meta_situacao: { Args: { _mes?: string }; Returns: Json }
