@@ -48,6 +48,7 @@ import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authent
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as AuthenticatedGestorPontoRouteImport } from './routes/_authenticated/gestor/ponto'
 import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
+import { Route as ApiPublicBonusMetaRouteImport } from './routes/api/public/bonus-meta'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
@@ -267,6 +268,11 @@ const AuthenticatedGestorPrevisaoCargaRoute =
     path: '/previsao-carga',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const ApiPublicBonusMetaRoute = ApiPublicBonusMetaRouteImport.update({
+  id: '/api/public/bonus-meta',
+  path: '/api/public/bonus-meta',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicCloudbedsWebhookRoute =
   ApiPublicCloudbedsWebhookRouteImport.update({
     id: '/api/public/cloudbeds-webhook',
@@ -327,6 +333,7 @@ export interface FileRoutesByFullPath {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -369,6 +376,7 @@ export interface FileRoutesByTo {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -415,6 +423,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/_authenticated/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
@@ -461,6 +470,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
@@ -503,6 +513,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
@@ -548,6 +559,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/financeiro'
     | '/_authenticated/gestor/ponto'
     | '/_authenticated/gestor/previsao-carga'
+    | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
@@ -559,6 +571,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ManutencaoRoute: typeof ManutencaoRoute
+  ApiPublicBonusMetaRoute: typeof ApiPublicBonusMetaRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
@@ -840,6 +853,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorPrevisaoCargaRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/api/public/bonus-meta': {
+      id: '/api/public/bonus-meta'
+      path: '/api/public/bonus-meta'
+      fullPath: '/api/public/bonus-meta'
+      preLoaderRoute: typeof ApiPublicBonusMetaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/cloudbeds-webhook': {
       id: '/api/public/cloudbeds-webhook'
       path: '/api/public/cloudbeds-webhook'
@@ -977,6 +997,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ManutencaoRoute: ManutencaoRoute,
+  ApiPublicBonusMetaRoute: ApiPublicBonusMetaRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
