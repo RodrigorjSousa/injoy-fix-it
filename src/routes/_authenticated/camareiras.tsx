@@ -125,6 +125,8 @@ function corLegenda(c: string | null) {
 
 function PainelCamareiras() {
   const { data: me } = useMe();
+  // Remover "Não Perturbe" é exclusivo da gestão/administração.
+  const podeRemoverDnd = !!me && (me.isGestor || me.isAdmin);
   const nomeAutomatico = useMemo(() => {
     if (!me?.isCamareira) return null;
     return me.funcionario?.nome ?? null;
@@ -494,6 +496,10 @@ function PainelCamareiras() {
 
   const removerDnd = useCallback(
     async (q: RoomRow) => {
+      if (!podeRemoverDnd) {
+        toast.error("Somente a gestão pode remover o Não Perturbe.");
+        return;
+      }
       if (!window.confirm(`Remover o "Não Perturbe" e a foto do quarto ${q.room_number}?`)) return;
       const t = toast.loading("Removendo Não Perturbe...");
       const { error } = await supabase
@@ -515,7 +521,7 @@ function PainelCamareiras() {
       toast.success(`Não Perturbe removido do quarto ${q.room_number}`, { id: t });
       await carregar();
     },
-    [carregar],
+    [carregar, podeRemoverDnd],
   );
 
 
@@ -882,6 +888,7 @@ function PainelCamareiras() {
                         Faxina bloqueada para este quarto hoje.
                       </p>
                     </div>
+                    {podeRemoverDnd && (
                     <button
                       onClick={() => removerDnd(q)}
                       className="p-2 rounded-lg bg-white border border-red-300 text-red-600 hover:bg-red-100 transition-colors"
@@ -890,7 +897,9 @@ function PainelCamareiras() {
                     >
                       <Trash2 size={16} />
                     </button>
+                    )}
                   </div>
+                  {podeRemoverDnd ? (
                   <button
                     onClick={() => removerDnd(q)}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white border-2 border-red-500 text-red-600 hover:bg-red-50 font-black text-sm uppercase tracking-wider transition-colors"
@@ -898,6 +907,11 @@ function PainelCamareiras() {
                     <Trash2 size={16} />
                     Remover Não Perturbe
                   </button>
+                  ) : (
+                    <p className="text-center text-[11px] text-red-600/80">
+                      Somente a gestão pode remover o Não Perturbe.
+                    </p>
+                  )}
 
                 </div>
               ) : (
