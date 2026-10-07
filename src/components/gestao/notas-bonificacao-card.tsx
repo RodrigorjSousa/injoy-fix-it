@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { AlertTriangle, Award, Siren } from "lucide-react";
+import { AlertTriangle, Award, Siren, Target } from "lucide-react";
+import { avaliarMeta, useMetaSituacao } from "@/lib/bonus-meta";
+import { formatBRL } from "@/lib/bonificacao";
 import { BonificacaoVisualizacaoDialog } from "@/components/gestao/bonificacao-visualizacao-dialog";
 import {
   calcularMediasBonificacao,
@@ -71,6 +73,10 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
   const nivelGeral = nivelNota(medias.geral);
   const Icone = nivelGeral === "verde" ? Award : nivelGeral === "vermelho" ? Siren : AlertTriangle;
   const [aberto, setAberto] = useState(false);
+  const { data: meta } = useMetaSituacao();
+  const cfgMeta = meta?.config;
+  const avaliacao = cfgMeta ? avaliarMeta(medias, cfgMeta.nota_minima) : null;
+  const eu = meta?.pessoas.find((p) => p.sou_eu);
 
   return (
     <>
@@ -104,9 +110,45 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
           <p className="text-xs font-semibold leading-snug text-white/90">
             {isLoading ? "Carregando notas…" : mensagem(nivelGeral, unidade)}
           </p>
+          {cfgMeta?.ativo && avaliacao && (
+            <div
+              className={cn(
+                "mt-2 flex items-start gap-2 rounded-lg border px-2.5 py-2 text-xs",
+                avaliacao.atingida
+                  ? "border-emerald-400/60 bg-emerald-500/20 text-emerald-100"
+                  : "border-white/15 bg-white/5 text-white/85",
+              )}
+            >
+              <Target className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                <strong>Meta da equipe:</strong> as 3 notas em {cfgMeta.nota_minima.toFixed(1)} ou mais ={" "}
+                <strong>+{formatBRL(cfgMeta.valor_por_pessoa)} para cada um</strong>.{" "}
+                {avaliacao.atingida
+                  ? "Meta batida até agora! 🎉"
+                  : `Falta subir: ${avaliacao.abaixo.map((a) => a.nome).join(", ")}.`}
+              </span>
+            </div>
+          )}
+          {eu && eu.situacao !== "ok" && (
+            <div
+              className={cn(
+                "mt-2 flex items-start gap-2 rounded-lg border px-2.5 py-2 text-xs font-semibold",
+                eu.situacao === "perdeu"
+                  ? "border-rose-400/70 bg-rose-500/25 text-rose-50"
+                  : "border-amber-400/70 bg-amber-500/25 text-amber-50",
+              )}
+            >
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                {eu.situacao === "perdeu"
+                  ? `Você perdeu as bonificações deste mês (${eu.atrasos} atraso${eu.atrasos === 1 ? "" : "s"}${eu.faltas ? `, ${eu.faltas} falta${eu.faltas === 1 ? "" : "s"} sem justificativa` : ""}).`
+                  : `Atenção: você já tem ${eu.atrasos} atraso${eu.atrasos === 1 ? "" : "s"} no mês. Com mais de ${cfgMeta?.max_atrasos ?? 3} você perde as bonificações.`}
+              </span>
+            </div>
+          )}
           <p className="text-[10px] text-white/50">
             Média do mês · {medias.avaliacoes} avaliação{medias.avaliacoes === 1 ? "" : "s"} ·{" "}
-            {unidade} · toque para ver as avaliações
+            {unidade} · toque para ver regras e avaliações
           </p>
         </div>
       </div>
