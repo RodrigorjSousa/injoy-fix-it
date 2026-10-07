@@ -3287,10 +3287,6 @@ export type Database = {
         }
         Returns: number
       }
-      escala_lancar_beneficios: {
-        Args: { _competencia: string; _itens: Json }
-        Returns: Json
-      }
       escala_sincronizar_financeiro: {
         Args: { _competencia: string; _unidade: string }
         Returns: number
