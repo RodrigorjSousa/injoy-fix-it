@@ -20,6 +20,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
+import { MeusAtestados } from "@/components/ponto/meus-atestados";
 import { useMe } from "@/lib/store";
 import { getDeviceId, getPosition } from "@/lib/ponto-face";
 import {
@@ -349,6 +350,8 @@ function MeuPonto() {
           Usa câmera e localização somente no momento da batida.
         </p>
       </Card>
+
+      <MeusAtestados />
 
       {!!s.batidas_recentes?.length && (
         <Card className="p-4">
