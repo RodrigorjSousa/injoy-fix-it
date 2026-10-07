@@ -15,6 +15,8 @@ export type EnginePattern = {
   /** Proporção mensal desejada (ex.: 12 Botafogo : 10 Ipanema). Vazio = só os dias da semana. */
   proporcao_botafogo?: number | null;
   proporcao_ipanema?: number | null;
+  /** 'semana' (padrão): segue os dias da semana. 'bloco': os primeiros N dias de trabalho do mês em Botafogo e o resto em Ipanema. */
+  distribuicao?: "semana" | "bloco" | null;
 };
 export type GeneratedDay = { data: string; status: "trabalho" | "folga" };
 export type ValidationPerson = {
@@ -161,7 +163,8 @@ export function planejarFerias(pattern:EnginePattern,inicio:string,fim:string,ex
 }
 
 export type Unidade="Botafogo"|"Ipanema";
-export const isDuasUnidades=(p:Pick<EnginePattern,"dias_ipanema">)=>Array.isArray(p.dias_ipanema)&&p.dias_ipanema.length>0;
+export const isBloco=(p:Pick<EnginePattern,"distribuicao"|"proporcao_botafogo">)=>p.distribuicao==="bloco"&&(p.proporcao_botafogo??0)>0;
+export const isDuasUnidades=(p:Pick<EnginePattern,"dias_ipanema"|"distribuicao"|"proporcao_botafogo">)=>isBloco(p)||(Array.isArray(p.dias_ipanema)&&p.dias_ipanema.length>0);
 /** Unidade "da casa" para as folgas: a de maior proporção (empate ou sem proporção: Botafogo). */
 export const unidadePrincipal=(p:Pick<EnginePattern,"proporcao_botafogo"|"proporcao_ipanema">):Unidade=>(p.proporcao_ipanema??0)>(p.proporcao_botafogo??0)?"Ipanema":"Botafogo";
 /**
@@ -171,6 +174,12 @@ export const unidadePrincipal=(p:Pick<EnginePattern,"proporcao_botafogo"|"propor
  */
 export function distribuirUnidades(pattern:EnginePattern,diasTrabalho:string[]):Map<string,Unidade>{
   const result=new Map<string,Unidade>();
+  if(isBloco(pattern)){
+    // Em bloco: os N primeiros dias de trabalho do mês em Botafogo, o restante em Ipanema.
+    const n=pattern.proporcao_botafogo as number;
+    [...diasTrabalho].sort().forEach((d,i)=>result.set(d,i<n?"Botafogo":"Ipanema"));
+    return result;
+  }
   const ipaDow=new Set(pattern.dias_ipanema??[]);
   const sorted=[...diasTrabalho].sort();
   for(const d of sorted)result.set(d,ipaDow.has(civilDow(d))?"Ipanema":"Botafogo");

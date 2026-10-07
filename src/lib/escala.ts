@@ -37,6 +37,7 @@ export interface EscalaPadrao {
   dias_ipanema?: number[] | null;
   proporcao_botafogo?: number | null;
   proporcao_ipanema?: number | null;
+  distribuicao?: "semana" | "bloco" | null;
   vigente_desde: string;
   vigente_ate: string | null;
 }
@@ -257,8 +258,9 @@ export function useSalvarEscalaColaborador() {
           folga_semana_a: input.padrao.folga_semana_a,
           folga_semana_b: input.padrao.folga_semana_b,
           dias_ipanema: input.padrao.dias_ipanema?.length ? input.padrao.dias_ipanema : null,
-          proporcao_botafogo: input.padrao.dias_ipanema?.length ? input.padrao.proporcao_botafogo ?? null : null,
-          proporcao_ipanema: input.padrao.dias_ipanema?.length ? input.padrao.proporcao_ipanema ?? null : null,
+          proporcao_botafogo: input.padrao.dias_ipanema?.length || input.padrao.distribuicao === "bloco" ? input.padrao.proporcao_botafogo ?? null : null,
+          proporcao_ipanema: input.padrao.dias_ipanema?.length || input.padrao.distribuicao === "bloco" ? input.padrao.proporcao_ipanema ?? null : null,
+          distribuicao: input.padrao.distribuicao === "bloco" ? "bloco" : null,
           vigente_desde: input.padrao.vigente_desde,
         };
         if (existing) {

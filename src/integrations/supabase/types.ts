@@ -858,6 +858,7 @@ export type Database = {
           created_at: string
           data_base: string | null
           dias_ipanema: number[] | null
+          distribuicao: string | null
           folga_semana_a: number | null
           folga_semana_b: number | null
           folgas_fixas: number[]
@@ -876,6 +877,7 @@ export type Database = {
           created_at?: string
           data_base?: string | null
           dias_ipanema?: number[] | null
+          distribuicao?: string | null
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -894,6 +896,7 @@ export type Database = {
           created_at?: string
           data_base?: string | null
           dias_ipanema?: number[] | null
+          distribuicao?: string | null
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]

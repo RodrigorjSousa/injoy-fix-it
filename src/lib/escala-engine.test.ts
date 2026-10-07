@@ -45,4 +45,13 @@ describe("escala-engine",()=>{
   const fixo=generatePatternMonthUnits({...flavio,proporcao_botafogo:null,proporcao_ipanema:null},2026,9).filter(d=>d.status==="trabalho");
   expect(fixo.filter(d=>d.unidade==="Ipanema")).toHaveLength(9);
  });
+  it("distribuição em blocos: 12 primeiros dias de trabalho em Botafogo e o resto em Ipanema (out/2026)",()=>{
+    const f={...p("5x2_fixo",null,[0,6]),distribuicao:"bloco" as const,proporcao_botafogo:12,proporcao_ipanema:null};
+    const m=generatePatternMonthUnits(f,2026,9);
+    const w=m.filter(d=>d.status==="trabalho");
+    expect(w.filter(d=>d.unidade==="Botafogo").length).toBe(12);
+    expect(w.filter(d=>d.unidade==="Ipanema").length).toBe(10);
+    expect(w.filter(d=>d.unidade==="Botafogo").at(-1)?.data).toBe("2026-10-16");
+    expect(w.filter(d=>d.unidade==="Ipanema")[0].data).toBe("2026-10-19");
+  });
 });
