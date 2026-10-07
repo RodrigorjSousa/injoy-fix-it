@@ -656,8 +656,6 @@ export type Database = {
           ativo: boolean
           created_at: string
           funcionario_id: string | null
-          hora_entrada: string | null
-          hora_saida: string | null
           id: string
           nome: string
           ponto_habilitado: boolean
@@ -672,8 +670,6 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           funcionario_id?: string | null
-          hora_entrada?: string | null
-          hora_saida?: string | null
           id?: string
           nome: string
           ponto_habilitado?: boolean
@@ -688,8 +684,6 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           funcionario_id?: string | null
-          hora_entrada?: string | null
-          hora_saida?: string | null
           id?: string
           nome?: string
           ponto_habilitado?: boolean
