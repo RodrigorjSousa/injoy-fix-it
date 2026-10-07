@@ -9,4 +9,4 @@ Generate monthly financial entries from recurring templates through the role-che
 Treat the database as the schedule source of truth, and anchor work cycles to continuous base dates instead of restarting them each month; this preserves patterns across month boundaries.
 Publish schedules through manager-only atomic operations, sync freelancer costs by stable schedule identifiers, and expose employee schedules only through a value-free published-schedule RPC; this prevents duplication, partial updates, and financial leakage.
 Keep housekeeping load forecasts as immutable manager-only snapshots calculated server-side from Cloudbeds and the published schedule; this preserves audit history and protects operational data.
-Model pending additive schedule-benefit columns with a narrow local database contract until their migration is applied; this keeps generated types untouched without bypassing migration order.
+Model pending additive schedule collaborator columns with a narrow local database contract until their migrations are applied; this keeps generated types untouched without bypassing migration order.
