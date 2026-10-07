@@ -23,6 +23,7 @@ import {
   useLancarOcorrencia,
   useMetaSituacao,
   useOcorrenciasMeta,
+  usePrepararMeta,
   useRemoverParticipanteMeta,
   useSalvarConfigMeta,
   useSalvarParticipanteMeta,
@@ -219,13 +220,19 @@ function Ocorrencias() {
 export function BonusMetaGestao() {
   const { data: meta, isLoading, error } = useMetaSituacao();
   const atualizar = useAtualizarMetaAgora();
+  const preparar = usePrepararMeta();
+  const precisaPreparar = !!meta && meta.gestor && meta.pessoas.length === 0;
+  useEffect(() => {
+    if (precisaPreparar && preparar.isIdle) preparar.mutate(undefined, { onError: erro });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [precisaPreparar]);
 
   if (isLoading) return <Loader2 className="mx-auto h-5 w-5 animate-spin" />;
   if (error) return <p className="text-sm text-destructive">{(error as Error).message}</p>;
   if (!meta)
     return (
       <p className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-        O banco ainda não recebeu a migração da Meta da equipe (0033). Peça ao Lovable para aplicá-la e publique o app.
+        O banco ainda não recebeu a migração da Meta da equipe. Peça ao Lovable para aplicar a migração 0034 e publique o app.
       </p>
     );
 
