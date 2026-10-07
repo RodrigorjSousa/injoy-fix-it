@@ -69,6 +69,10 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - Valores pagos a freelancers escondidos no calendário e no resumo; botão "Mostrar valores"
     (lembrado por aparelho). Funcionários não veem valores: escala_dias, modalidades, férias e
     Financeiro são só gestor/admin (RLS) e `minha_escala_publicada` não devolve valor.
+- Distribuição em blocos (branch `feat/escala-flavio-blocos`, migração `0036_escala_padrao_distribuicao.sql`):
+  - Cadastro "Trabalha nas duas unidades" ganhou a opção **Em blocos**: os N primeiros dias de trabalho do
+    mês (campo "Dias em Botafogo") ficam em Botafogo e o resto em Ipanema; folgas em Botafogo. Out/2026
+    do Flavio: 01–16 Botafogo (12) e 19–30 Ipanema (10). Coluna `escala_padroes.distribuicao` ('semana'|'bloco').
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
