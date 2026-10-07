@@ -508,3 +508,12 @@ export function useExcluirFerias() {
     if (!data?.length) throw new Error("As férias não foram apagadas. Verifique a permissão de gestor.");
   }, onSuccess: refresh });
 }
+
+/** Lança o VA e o VT do mês no Financeiro (um lançamento por pessoa, benefício e unidade). */
+export function useLancarBeneficios(){
+  return useMutation({mutationFn:async(input:{competencia:string;itens:{colaborador_id:string;nome:string;tipo:"va"|"vt";unidade:string;valor:number;qtd:number;descricao:string}[]})=>{
+    const {data,error}=await supabase.rpc("escala_lancar_beneficios",{_competencia:input.competencia,_itens:input.itens});
+    if(error)throw error;
+    return data as unknown as {criados:number;atualizados:number;ja_pagos:number;cancelados:number};
+  }});
+}
