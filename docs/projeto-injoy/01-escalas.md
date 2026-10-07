@@ -73,6 +73,11 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - Cadastro "Trabalha nas duas unidades" ganhou a opção **Em blocos**: os N primeiros dias de trabalho do
     mês (campo "Dias em Botafogo") ficam em Botafogo e o resto em Ipanema; folgas em Botafogo. Out/2026
     do Flavio: 01–16 Botafogo (12) e 19–30 Ipanema (10). Coluna `escala_padroes.distribuicao` ('semana'|'bloco').
+- Vale alimentação e transporte (branch `feat/escala-vale-beneficios`, sem migração):
+  - Botão **Vale alimentação e transporte** na Escala (gestor): quadro do mês por funcionário fixo ativo, com
+    subtotal por setor e total geral. VA R$ 385,00 por mês (cheio, não muda com férias/faltas); VT R$ 18,80 por
+    dia com trabalho ou extra na escala (folga, férias, atestado e falta não contam). Freelancers ficam de fora.
+    Valores editáveis na tela (salvos só no aparelho). Código em `src/lib/escala-beneficios.ts` (com testes).
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
