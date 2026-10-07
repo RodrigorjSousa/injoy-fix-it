@@ -78,6 +78,15 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     subtotal por setor e total geral. VA R$ 385,00 por mês (cheio, não muda com férias/faltas); VT R$ 18,80 por
     dia com trabalho ou extra na escala (folga, férias, atestado e falta não contam). Freelancers ficam de fora.
     Valores editáveis na tela (salvos só no aparelho). Código em `src/lib/escala-beneficios.ts` (com testes).
+- VA/VT no Financeiro, planilha, PDF e avisos (branch `feat/escala-vale-extras`, migração `0037_escala_beneficios_financeiro.sql`):
+  - Quadro do VA/VT ganhou: **Baixar planilha (Excel/CSV)**, **Baixar PDF**, **Lançar no Financeiro**, campo
+    **Valor separado no mês** (aviso vermelho se o total passar; salvo só no aparelho) e aviso amarelo de fixos
+    sem escala gerada. O botão da Escala mostra "acima do separado" e "N sem escala".
+  - RPC `escala_lancar_beneficios(_competencia, _itens)`: um lançamento *previsto* por pessoa, benefício e
+    unidade (VA na unidade da pessoa; VT por unidade pelos dias trabalhados em cada uma). Idempotente: atualiza
+    o que não está pago, não mexe no pago e cancela previstos que saíram do cálculo. Usa a coluna nova
+    `fin_lancamentos.origem_beneficio` (não `origem_escala`, para a sincronização dos freelancers não cancelar).
+    Cria as categorias "Vale alimentação" e "Vale transporte" (grupo pessoal) se não existirem.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
