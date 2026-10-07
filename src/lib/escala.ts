@@ -21,6 +21,9 @@ export interface EscalaColaborador {
   turno_padrao: EscalaTurno | null;
   telefone: string | null;
   ativo: boolean;
+  /** Horário habitual do freelancer (sugestão ao escalar); os fixos usam o horário do padrão. */
+  hora_entrada?: string | null;
+  hora_saida?: string | null;
   /** Vale alimentação do mês e vale transporte por dia desta pessoa (vazio = valor padrão do quadro; 0 = não recebe). */
   vale_alimentacao?: number | null;
   vale_transporte_dia?: number | null;
@@ -96,6 +99,8 @@ export interface ColaboradorInput {
   turno_padrao: EscalaTurno | null;
   telefone: string | null;
   ativo: boolean;
+  hora_entrada?: string | null;
+  hora_saida?: string | null;
   padrao?: Omit<EscalaPadrao, "id" | "colaborador_id" | "vigente_ate">;
 }
 
@@ -236,7 +241,9 @@ export function useSalvarEscalaColaborador() {
         setor: input.setor,
         unidade: input.unidade,
         vinculo: input.vinculo,
-        turno_padrao: input.vinculo === "freelance" ? null : input.turno_padrao,
+        turno_padrao: input.turno_padrao,
+        hora_entrada: input.vinculo === "freelance" ? input.hora_entrada || null : null,
+        hora_saida: input.vinculo === "freelance" ? input.hora_saida || null : null,
         telefone: input.telefone?.trim() || null,
         ativo: input.ativo,
       };

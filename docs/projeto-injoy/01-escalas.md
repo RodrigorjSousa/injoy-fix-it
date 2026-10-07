@@ -95,6 +95,11 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   - `escala_colaboradores.vale_alimentacao` (R$/mês) e `vale_transporte_dia` (R$/dia): vazio = padrão do quadro,
     0 = não recebe. Editáveis direto nas linhas do quadro (salvam ao sair do campo; campo verde = valor próprio).
     O cálculo, o Financeiro, o CSV e o PDF usam o valor da pessoa; o padrão do quadro continua só neste aparelho.
+- Turno e horário do freelancer (branch `feat/escala-horario-freelancer`, migração `0039_escala_horario_freelancer.sql`):
+  - O cadastro do freelancer agora tem **Turno** (manhã/dia/noite) e **entrada/saída habituais**
+    (`escala_colaboradores.hora_entrada/hora_saida`). O turno passa a ser gravado também para freelancers
+    (antes ficava nulo e o calendário usava "dia"); a entrada vira a sugestão em + Freelancer, Cobrir folgas
+    e Férias. A saída ao escalar continua calculada pelas horas da modalidade.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
