@@ -253,6 +253,20 @@
       "when": 1791372727783,
       "tag": "0035_migration",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1791380192122,
+      "tag": "0036_bonus_meta_equipe_v2",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1791380212342,
+      "tag": "0037_bonus_meta_agendamento",
+      "breakpoints": true
     }
   ]
 }
