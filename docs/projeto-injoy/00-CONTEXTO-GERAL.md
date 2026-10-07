@@ -80,7 +80,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Bonificação: lançamento conjunto Recepção + Camareiras, aba **Acessos** (tabela
   `bonificacao_acessos`, RPC `minha_permissao_bonificacao`), botões Editar e Excluir, e notas
   Geral/Funcionário/Limpeza na tela inicial com janela só de visualização (0003–0005, 0026–0032).
-- Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa quando as 3 médias ficam em 9 ou mais. A pessoa perde
+- Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa pela nota do próprio setor (0039): Recepção → nota Funcionário; Camareiras/Manutenção → nota Limpeza; Geral não conta. A pessoa perde
   as duas bonificações com mais de 3 atrasos (tolerância de 10 min contra a Escala) ou com falta
   sem justificativa.
   - Atrasos e faltas vêm do Pontomais (`registro_ponto_pontomais`) ou do ponto do app

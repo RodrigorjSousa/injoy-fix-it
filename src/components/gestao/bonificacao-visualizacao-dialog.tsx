@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { Eye, ListChecks, Target, Trophy } from "lucide-react";
-import { SITUACAO_INFO, avaliarMeta, useMetaSituacao } from "@/lib/bonus-meta";
+import { SETOR_META, SITUACAO_INFO, avaliarMetaSetores, useMetaSituacao, type SetorMeta } from "@/lib/bonus-meta";
 import {
   Dialog,
   DialogContent,
@@ -80,7 +80,7 @@ export function BonificacaoVisualizacaoDialog({
   const totalRecepcao = registros.filter((r) => r.setor !== "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0);
   const { data: meta } = useMetaSituacao();
   const cfgMeta = meta?.config;
-  const avaliacaoMeta = cfgMeta ? avaliarMeta(medias, cfgMeta.nota_minima) : null;
+  const setoresMeta = cfgMeta ? avaliarMetaSetores(medias, cfgMeta.nota_minima) : null;
   const totalCamareiras = registros.filter((r) => r.setor === "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0);
 
   return (
@@ -113,18 +113,24 @@ export function BonificacaoVisualizacaoDialog({
           <Nota titulo="Limpeza" nota={medias.limpeza} />
         </div>
 
-        {cfgMeta?.ativo && avaliacaoMeta && (
+        {cfgMeta?.ativo && setoresMeta && (
           <section className="space-y-2 rounded-lg border-2 border-emerald-300 bg-emerald-50/60 p-3">
             <h3 className="flex items-center gap-1.5 text-sm font-black text-emerald-900">
-              <Target className="h-4 w-4" /> Meta da equipe: +{formatBRL(cfgMeta.valor_por_pessoa)} por pessoa
+              <Target className="h-4 w-4" /> Meta individual por setor: +{formatBRL(cfgMeta.valor_por_pessoa)} por pessoa
             </h3>
-            <p className="text-sm">
-              {avaliacaoMeta.atingida ? (
-                <strong className="text-emerald-700">As 3 notas estão em {cfgMeta.nota_minima.toFixed(1)} ou mais. Meta batida até agora!</strong>
-              ) : (
-                <>Ainda falta chegar a {cfgMeta.nota_minima.toFixed(1)} em: <strong>{avaliacaoMeta.abaixo.map((a) => `${a.nome} (${a.nota == null ? "—" : a.nota.toFixed(1)})`).join(", ")}</strong>.</>
-              )}
-            </p>
+            <ul className="space-y-1 text-sm">
+              {(Object.keys(SETOR_META) as SetorMeta[]).map((s) => {
+                const r = setoresMeta[s];
+                return (
+                  <li key={s} className={cn("flex flex-wrap justify-between gap-2 rounded-md px-2 py-1", r.atingida ? "bg-emerald-100 text-emerald-900" : "bg-white")}>
+                    <span>
+                      <strong>{SETOR_META[s].rotulo}</strong> · nota {SETOR_META[s].nota}: {r.nota == null ? "—" : r.nota.toFixed(1)}
+                    </span>
+                    <strong>{r.atingida ? "Meta batida!" : `Falta chegar a ${cfgMeta.nota_minima.toFixed(1)}`}</strong>
+                  </li>
+                );
+              })}
+            </ul>
           </section>
         )}
 
@@ -134,8 +140,10 @@ export function BonificacaoVisualizacaoDialog({
           </h3>
           <ol className="list-decimal space-y-1 pl-5 text-sm">
             <li>
-              <strong>Meta da equipe:</strong> as 3 médias do mês (Geral, Funcionário e Limpeza) precisam ficar em{" "}
-              {(cfgMeta?.nota_minima ?? 9).toFixed(1)} ou mais. Aí cada participante ganha +{formatBRL(cfgMeta?.valor_por_pessoa ?? 100)}.
+              <strong>Meta individual:</strong> cada setor depende só da sua nota do mês, em{" "}
+              {(cfgMeta?.nota_minima ?? 9).toFixed(1)} ou mais. <strong>Recepção</strong> → nota Funcionário;{" "}
+              <strong>Camareiras e Manutenção</strong> → nota Limpeza. Quem bater ganha +{formatBRL(cfgMeta?.valor_por_pessoa ?? 100)}. A
+              nota Geral não conta.
             </li>
             <li>
               <strong>Atrasos:</strong> no máximo {cfgMeta?.max_atrasos ?? 3} no mês. Conta como atraso chegar mais de{" "}
@@ -157,7 +165,7 @@ export function BonificacaoVisualizacaoDialog({
               <ul className="space-y-1">
                 {meta.pessoas.filter((p) => p.ativo).map((p) => (
                   <li key={p.funcionario_id} className={cn("flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs", SITUACAO_INFO[p.situacao].classe)}>
-                    <span className="font-semibold">{p.nome}</span>
+                    <span className="font-semibold">{p.nome} <span className="font-normal opacity-75">· {SETOR_META[p.setor]?.rotulo ?? "—"}</span></span>
                     <span>
                       {p.atrasos} atraso{p.atrasos === 1 ? "" : "s"} · {p.faltas} falta{p.faltas === 1 ? "" : "s"} · {SITUACAO_INFO[p.situacao].rotulo}
                     </span>

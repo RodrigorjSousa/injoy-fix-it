@@ -28,6 +28,7 @@ import {
   useSalvarConfigMeta,
   useSalvarParticipanteMeta,
   type MetaConfig,
+  type SetorMeta,
   type MetaOcorrencia,
 } from "@/lib/bonus-meta";
 import { cn } from "@/lib/utils";
@@ -52,7 +53,7 @@ function ConfigMeta({ cfg }: { cfg: MetaConfig }) {
       </div>
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div><Label className="text-xs">Valor por pessoa (R$)</Label><Input type="number" min={0} value={form.valor_por_pessoa} onChange={num("valor_por_pessoa")} /></div>
-        <div><Label className="text-xs">Nota mínima (as 3)</Label><Input type="number" step="0.1" min={0} max={10} value={form.nota_minima} onChange={num("nota_minima")} /></div>
+        <div><Label className="text-xs">Nota mínima do setor</Label><Input type="number" step="0.1" min={0} max={10} value={form.nota_minima} onChange={num("nota_minima")} /></div>
         <div><Label className="text-xs">Tolerância (min)</Label><Input type="number" min={0} value={form.tolerancia_minutos} onChange={num("tolerancia_minutos")} /></div>
         <div><Label className="text-xs">Máx. de atrasos no mês</Label><Input type="number" min={0} value={form.max_atrasos} onChange={num("max_atrasos")} /></div>
       </div>
@@ -70,6 +71,7 @@ function Participantes() {
   const remover = useRemoverParticipanteMeta();
   const [novo, setNovo] = useState("");
   const [unidadeNovo, setUnidadeNovo] = useState("Botafogo");
+  const [setorNovo, setSetorNovo] = useState<SetorMeta>("recepcao");
   const pessoas = meta?.pessoas ?? [];
   const disponiveis = funcionarios.filter((f) => !pessoas.some((p) => p.funcionario_id === f.id));
 
@@ -77,13 +79,14 @@ function Participantes() {
     <section className="space-y-3 rounded-lg border p-3">
       <h4 className="font-bold">Participantes</h4>
       <p className="text-xs text-muted-foreground">
-        A meta vale pelas notas da unidade de cada pessoa. Para quem atende as duas ("Ambas"), confira as duas
+        Cada pessoa ganha pela nota do seu setor: Recepção → Funcionário; Camareiras e Manutenção → Limpeza (notas da
+        unidade dela). Para quem atende as duas ("Ambas"), confira as duas
         unidades. Atraso e falta vêm do Pontomais (quem tem CPF lá) ou do ponto do app, comparados com a Escala.
       </p>
       <div className="overflow-x-auto rounded-md border">
         <table className="w-full text-sm">
           <thead className="bg-muted/50 text-xs uppercase text-muted-foreground">
-            <tr><th className="p-2 text-left">Pessoa</th><th className="p-2">Unidade</th><th className="p-2">Atrasos</th><th className="p-2">Faltas</th><th className="p-2">Situação</th><th className="p-2" /></tr>
+            <tr><th className="p-2 text-left">Pessoa</th><th className="p-2">Unidade</th><th className="p-2">Setor (nota)</th><th className="p-2">Atrasos</th><th className="p-2">Faltas</th><th className="p-2">Situação</th><th className="p-2" /></tr>
           </thead>
           <tbody>
             {pessoas.map((p) => (
@@ -93,7 +96,7 @@ function Participantes() {
                   <div className="text-[11px] text-muted-foreground">{p.pontomais ? "Pontomais" : "Ponto do app"}</div>
                 </td>
                 <td className="p-2">
-                  <Select value={p.unidade} onValueChange={(v) => salvar.mutate({ funcionarioId: p.funcionario_id, unidade: v, ativo: p.ativo }, { onError: erro })}>
+                  <Select value={p.unidade} onValueChange={(v) => salvar.mutate({ funcionarioId: p.funcionario_id, unidade: v, ativo: p.ativo, setor: p.setor }, { onError: erro })}>
                     <SelectTrigger className="h-8 w-28"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="Botafogo">Botafogo</SelectItem>
@@ -102,11 +105,21 @@ function Participantes() {
                     </SelectContent>
                   </Select>
                 </td>
+                <td className="p-2">
+                  <Select value={p.setor} onValueChange={(v) => salvar.mutate({ funcionarioId: p.funcionario_id, unidade: p.unidade, ativo: p.ativo, setor: v as SetorMeta }, { onError: erro })}>
+                    <SelectTrigger className={cn("h-8 w-44", !p.setor_definido && "border-amber-400")}><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="recepcao">Recepção (Funcionário)</SelectItem>
+                      <SelectItem value="camareiras">Camareiras / Manutenção (Limpeza)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {!p.setor_definido && <div className="text-[10px] text-amber-700">pela escala — confirme</div>}
+                </td>
                 <td className="p-2 text-center font-mono">{p.atrasos}</td>
                 <td className="p-2 text-center font-mono">{p.faltas}</td>
                 <td className="p-2 text-center"><Badge variant="outline" className={SITUACAO_INFO[p.situacao].classe}>{SITUACAO_INFO[p.situacao].rotulo}</Badge></td>
                 <td className="p-2 text-right whitespace-nowrap">
-                  <Switch checked={p.ativo} onCheckedChange={(v) => salvar.mutate({ funcionarioId: p.funcionario_id, unidade: p.unidade, ativo: v }, { onError: erro })} aria-label="Ativo" />
+                  <Switch checked={p.ativo} onCheckedChange={(v) => salvar.mutate({ funcionarioId: p.funcionario_id, unidade: p.unidade, ativo: v, setor: p.setor }, { onError: erro })} aria-label="Ativo" />
                   <Button variant="ghost" size="icon" aria-label={`Remover ${p.nome}`} onClick={() => confirm(`Remover ${p.nome} da meta?`) && remover.mutate(p.funcionario_id, { onError: erro })}>
                     <UserMinus className="h-4 w-4 text-rose-600" />
                   </Button>
@@ -132,7 +145,14 @@ function Participantes() {
             <SelectItem value="Ambas">Ambas</SelectItem>
           </SelectContent>
         </Select>
-        <Button size="sm" className="gap-1" disabled={!novo || salvar.isPending} onClick={() => salvar.mutate({ funcionarioId: novo, unidade: unidadeNovo, ativo: true }, { onSuccess: () => { setNovo(""); toast.success("Participante incluído"); }, onError: erro })}>
+        <Select value={setorNovo} onValueChange={(v) => setSetorNovo(v as SetorMeta)}>
+          <SelectTrigger className="w-52"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="recepcao">Recepção (Funcionário)</SelectItem>
+            <SelectItem value="camareiras">Camareiras / Manutenção (Limpeza)</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button size="sm" className="gap-1" disabled={!novo || salvar.isPending} onClick={() => salvar.mutate({ funcionarioId: novo, unidade: unidadeNovo, ativo: true, setor: setorNovo }, { onSuccess: () => { setNovo(""); toast.success("Participante incluído"); }, onError: erro })}>
           <Plus className="h-4 w-4" /> Incluir
         </Button>
       </div>
