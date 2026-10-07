@@ -3002,6 +3002,30 @@ export type Database = {
         }
         Relationships: []
       }
+      tarefas_extras_agenda: {
+        Row: {
+          categoria: string
+          definido_em: string
+          definido_por: string | null
+          proxima_data: string
+          unidade: string
+        }
+        Insert: {
+          categoria: string
+          definido_em?: string
+          definido_por?: string | null
+          proxima_data: string
+          unidade: string
+        }
+        Update: {
+          categoria?: string
+          definido_em?: string
+          definido_por?: string | null
+          proxima_data?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       trocas_turno: {
         Row: {
           caixa_obs: string | null

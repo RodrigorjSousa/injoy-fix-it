@@ -274,6 +274,13 @@
       "when": 1791393963678,
       "tag": "0038_apply_existing_0039_bonus_meta_por_setor",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1791395488684,
+      "tag": "0039_apply_tarefas_extras_agenda_exact",
+      "breakpoints": true
     }
   ]
 }
