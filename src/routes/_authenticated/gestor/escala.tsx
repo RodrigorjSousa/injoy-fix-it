@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState, useSyncExternalStore } from "react";
-import { AlertTriangle, CalendarDays, Eye, EyeOff, Palmtree, UserCheck, CheckCircle2, ChevronLeft, ChevronRight, FileDown, Grid3X3, List, MessageCircle, Pencil, Plus, Send, Sparkles, Users } from "lucide-react";
+import { AlertTriangle, CalendarDays, Eye, EyeOff, Palmtree, UserCheck, CheckCircle2, ChevronLeft, ChevronRight, FileDown, Grid3X3, List, MessageCircle, Pencil, Wallet, Plus, Send, Sparkles, Users } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { BeneficiosDialog } from "@/components/escala/beneficios-dialog";
 import { EquipeEscalaDialog, ImportarEquipeLocalPrompt } from "@/components/escala/equipe-escala-dialog";
 import { requireGestor } from "@/lib/require-gestor";
 import { cn } from "@/lib/utils";
@@ -67,7 +68,7 @@ function exportSchedulePdf(year:number,month:number,unit:UnitFilter,sector:Escal
 function EscalaPage(){
   const search=Route.useSearch();
   const now=todaySP(); const [year,setYear]=useState(Number(now.slice(0,4))); const [month,setMonth]=useState(Number(now.slice(5,7))-1);
-  const [unit,setUnit]=useState<UnitFilter>(search.reforcoUnidade??"Botafogo"); const [sector,setSector]=useState<EscalaSetor>(search.reforcoData?"camareiras":"recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false);
+  const [unit,setUnit]=useState<UnitFilter>(search.reforcoUnidade??"Botafogo"); const [sector,setSector]=useState<EscalaSetor>(search.reforcoData?"camareiras":"recepcao"); const [view,setView]=useState<ViewMode>("calendar"); const [teamOpen,setTeamOpen]=useState(false); const [vaOpen,setVaOpen]=useState(false);
   const bounds=monthBounds(year,month); const queryStart=addCivilDays(bounds.start,-7); const queryEnd=addCivilDays(bounds.end,7);
   const peopleQuery=useEscalaColaboradores(); const daysQuery=useEscalaDias(queryStart,queryEnd); const holidaysQuery=useEscalaFeriados(); const monthsQuery=useEscalaMeses(bounds.start);
   const people=peopleQuery.data??[]; const allDays=daysQuery.data??[]; const visibleUnits: ("Botafogo"|"Ipanema")[]=unit==="Ambas"?["Botafogo","Ipanema"]:[unit];
@@ -78,7 +79,7 @@ function EscalaPage(){
   const loading=peopleQuery.isLoading||daysQuery.isLoading;
   const changeMonth=(delta:number)=>{let m=month+delta,y=year;if(m<0){m=11;y--;}if(m>11){m=0;y++;}setMonth(m);setYear(y);};
   return <div className="space-y-5 print:space-y-2">
-    <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between print:hidden"><div><Badge variant="secondary" className="mb-2 rounded-full"><CalendarDays className="mr-1 h-3 w-3"/>Gestão</Badge><h1 className="text-2xl font-bold sm:text-3xl">Escala de Funcionários</h1><p className="mt-1 text-sm text-muted-foreground">Ciclos contínuos, validação e publicação mensal.</p></div><div className="flex flex-wrap gap-2"><ToggleValores/><Button variant="outline" onClick={()=>exportSchedulePdf(year,month,unit,sector,people,allDays,holidaysQuery.data??[])}><FileDown className="mr-2 h-4 w-4"/>Baixar PDF</Button><WhatsApp days={visibleDays} people={sectionPeople} label={`${MONTHS[month]}/${year}`}/><Button variant="outline" onClick={()=>setTeamOpen(true)}><Users className="mr-2 h-4 w-4"/>Equipe da Escala</Button></div></header>
+    <header className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between print:hidden"><div><Badge variant="secondary" className="mb-2 rounded-full"><CalendarDays className="mr-1 h-3 w-3"/>Gestão</Badge><h1 className="text-2xl font-bold sm:text-3xl">Escala de Funcionários</h1><p className="mt-1 text-sm text-muted-foreground">Ciclos contínuos, validação e publicação mensal.</p></div><div className="flex flex-wrap gap-2"><ToggleValores/><Button variant="outline" onClick={()=>setVaOpen(true)}><Wallet className="mr-2 h-4 w-4"/>Vale alimentação e transporte</Button><Button variant="outline" onClick={()=>exportSchedulePdf(year,month,unit,sector,people,allDays,holidaysQuery.data??[])}><FileDown className="mr-2 h-4 w-4"/>Baixar PDF</Button><WhatsApp days={visibleDays} people={sectionPeople} label={`${MONTHS[month]}/${year}`}/><Button variant="outline" onClick={()=>setTeamOpen(true)}><Users className="mr-2 h-4 w-4"/>Equipe da Escala</Button></div></header>
     <Card className="p-4 sm:p-5 print:border-0 print:p-0">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex items-center gap-2"><Button size="icon" variant="outline" onClick={()=>changeMonth(-1)} aria-label="Mês anterior"><ChevronLeft className="h-4 w-4"/></Button><div className="min-w-36 rounded-md border bg-muted/40 px-3 py-2 text-center text-sm font-medium">{MONTHS[month]} / {year}</div><Button size="icon" variant="outline" onClick={()=>changeMonth(1)} aria-label="Próximo mês"><ChevronRight className="h-4 w-4"/></Button></div>
@@ -88,6 +89,7 @@ function EscalaPage(){
         <TabsContent value={sector} className="mt-4"><ScheduleWorkspace year={year} month={month} unit={unit} sector={sector} view={view} people={sectionPeople} allPeople={people} days={visibleDays} contextDays={allDays} months={months} issues={issues} holidays={holidaysQuery.data??[]} loading={loading} initialFree={search.reforcoData&&search.reforcoUnidade?{date:search.reforcoData,unit:search.reforcoUnidade}:null}/></TabsContent>
       </Tabs>
     </Card>
+    {vaOpen&&<BeneficiosDialog open onClose={()=>setVaOpen(false)} people={people} days={allDays} start={bounds.start} end={bounds.end} label={`${MONTHS[month]}/${year}`}/>}
     <EquipeEscalaDialog open={teamOpen} onOpenChange={setTeamOpen}/><ImportarEquipeLocalPrompt/>
   </div>;
 }
