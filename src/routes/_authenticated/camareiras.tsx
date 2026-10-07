@@ -16,6 +16,7 @@ import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
+import { TarefasExtrasPainel } from "@/components/camareiras/tarefas-extras-painel";
 import { TarefasExtrasModal, useTarefasExtrasItems, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
@@ -155,77 +156,7 @@ function PainelCamareiras() {
   const [estoqueGeralOpen, setEstoqueGeralOpen] = useState(false);
   const [tarefasExtrasOpen, setTarefasExtrasOpen] = useState(false);
   const [tarefasExtrasInitial, setTarefasExtrasInitial] = useState<TarefaExtraKey | null>(null);
-  const [tarefasExtrasOverdue, setTarefasExtrasOverdue] = useState<Set<TarefaExtraKey>>(new Set());
-
-  useEffect(() => {
-    let cancelled = false;
-    const carregar = async () => {
-      const cats = TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
-        TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
-      );
-      const [{ data: cfg }, { data: logs }] = await Promise.all([
-        supabase
-          .from("app_settings" as never)
-          .select("value")
-          .eq("key", "tarefas_extras_periodicity")
-          .maybeSingle(),
-        supabase
-          .from("extra_tasks_logs")
-          .select("completed_tasks, created_at")
-          .eq("property", unidadeAtiva)
-          .order("created_at", { ascending: false })
-          .limit(300),
-      ]);
-      if (cancelled) return;
-      let periodicity: Partial<Record<TarefaExtraKey, number>> = {};
-      const raw = (cfg as { value?: string } | null)?.value;
-      if (raw) {
-        try {
-          const parsed = JSON.parse(raw);
-          if (parsed && typeof parsed === "object") periodicity = parsed;
-        } catch {
-          // ignore
-        }
-      }
-      const lastByCat = new Map<TarefaExtraKey, number>();
-      for (const row of (logs ?? []) as Array<{ completed_tasks: unknown; created_at: string }>) {
-        const arr = Array.isArray(row.completed_tasks) ? (row.completed_tasks as string[]) : [];
-        const ts = new Date(row.created_at).getTime();
-        for (const c of cats) {
-          const prefix = `[${c.label}]`;
-          if (arr.some((t) => typeof t === "string" && t.startsWith(prefix))) {
-            if (!lastByCat.has(c.key)) lastByCat.set(c.key, ts);
-          }
-        }
-      }
-      const now = Date.now();
-      const overdue = new Set<TarefaExtraKey>();
-      for (const c of cats) {
-        const days = typeof periodicity[c.key] === "number" && periodicity[c.key]! > 0 ? periodicity[c.key]! : 7;
-        const last = lastByCat.get(c.key);
-        if (last === undefined || now - last > days * 86_400_000) overdue.add(c.key);
-      }
-      setTarefasExtrasOverdue(overdue);
-    };
-    carregar();
-    const channel = supabase
-      .channel(`extra_tasks_overdue_${unidadeAtiva}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "extra_tasks_logs" },
-        () => carregar(),
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "app_settings" },
-        () => carregar(),
-      )
-      .subscribe();
-    return () => {
-      cancelled = true;
-      supabase.removeChannel(channel);
-    };
-  }, [unidadeAtiva]);
+  // Situação das Tarefas Extras agora fica no TarefasExtrasPainel.
 
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
 
@@ -695,45 +626,14 @@ function PainelCamareiras() {
 
       {/* Tarefas Extras — sempre visível para lembrar as camareiras das áreas comuns */}
       <div className="px-4 pt-4">
-      <section className="rounded-2xl p-4 sm:p-5 bg-gradient-to-br from-fuchsia-600 via-purple-600 to-indigo-700 shadow-xl ring-1 ring-white/10">
-
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2 text-white">
-            <div className="p-2 rounded-lg bg-white/20 backdrop-blur-sm">
-              <Sparkles size={18} />
-            </div>
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-widest text-fuchsia-100">
-                Áreas comuns · INJOY {unidadeAtiva}
-              </p>
-              <h3 className="text-base sm:text-lg font-black leading-tight">
-                Tarefas Extras
-              </h3>
-            </div>
-          </div>
-          <span className="hidden sm:inline text-[11px] font-semibold text-fuchsia-100/90">
-            Toque para abrir o checklist
-          </span>
-        </div>
-
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-          {TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
-            TAREFAS_EXTRAS_BY_UNIDADE[unidadeAtiva].includes(c.key),
-          ).map((c) => (
-            <TarefaExtraCard
-              key={c.key}
-              cat={c}
-              unidade={unidadeAtiva}
-              overdue={tarefasExtrasOverdue.has(c.key)}
-              onClick={() => {
-                setTarefasExtrasInitial(c.key);
-                setTarefasExtrasOpen(true);
-              }}
-            />
-          ))}
-
-        </div>
-      </section>
+        <TarefasExtrasPainel
+          unidade={unidadeAtiva}
+          podeEditar={!!me && (me.isGestor || me.isAdmin)}
+          onAbrir={(key) => {
+            setTarefasExtrasInitial(key);
+            setTarefasExtrasOpen(true);
+          }}
+        />
       </div>
 
 
