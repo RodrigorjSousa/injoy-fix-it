@@ -87,6 +87,10 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     o que não está pago, não mexe no pago e cancela previstos que saíram do cálculo. Usa a coluna nova
     `fin_lancamentos.origem_beneficio` (não `origem_escala`, para a sincronização dos freelancers não cancelar).
     Cria as categorias "Vale alimentação" e "Vale transporte" (grupo pessoal) se não existirem.
+- Fixo como extra (branch `feat/escala-fixo-como-extra`, sem migração): o botão **+ Freelancer** de um dia
+  agora também lista os fixos do setor que estão de **folga** nesse dia (em qualquer unidade). Escolher um fixo
+  transforma a folga dele em dia `extra` pago (valor/horas editáveis; vai para o Financeiro como os freelancers e
+  conta VT). Para desfazer: editar o dia e voltar para Folga.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
