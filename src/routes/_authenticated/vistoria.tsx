@@ -86,6 +86,7 @@ const CATEGORIAS_SERVICO: { label: string; backend: Categoria }[] = [
   { label: "Alvenaria / Mobiliário", backend: "Alvenaria" },
   { label: "Pintura", backend: "Pintura" },
   { label: "Marcenaria", backend: "Marcenaria" },
+  { label: "Camareira", backend: "Camareira" },
 ];
 
 function VistoriaPage() {

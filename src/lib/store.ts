@@ -16,7 +16,8 @@ export type Categoria =
   | "Hidráulica"
   | "Alvenaria"
   | "Pintura"
-  | "Marcenaria";
+  | "Marcenaria"
+  | "Camareira";
 export type Status = "Aberto" | "Em Andamento" | "Concluído";
 
 export const UNIDADES: Unidade[] = ["Botafogo", "Ipanema"];
@@ -28,6 +29,7 @@ export const CATEGORIAS: Categoria[] = [
   "Alvenaria",
   "Pintura",
   "Marcenaria",
+  "Camareira",
 ];
 
 // Chave = slug de rota em src/routes/_authenticated/*.tsx. Lista derivada
