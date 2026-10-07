@@ -16,6 +16,7 @@ import {
   PlusCircle,
   Package,
   ShoppingBag,
+  BedDouble,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useChamados, useFuncionarios, useMe, type Chamado, type Funcionario } from "@/lib/store";
@@ -118,6 +119,18 @@ const SERVICOS: Servico[] = [
     dot: "bg-orange-600",
     btn: "bg-orange-600 hover:bg-orange-700 focus-visible:ring-orange-600 active:bg-orange-800 text-white",
     categoria: "Marcenaria",
+  },
+  {
+    key: "camareira",
+    label: "Camareiras",
+    desc: "Enxoval, amenities, limpeza extra e pedidos para as camareiras.",
+    icon: BedDouble,
+    to: "/painel",
+    search: { categoria: "Camareira" },
+    tone: "from-pink-500/15 to-pink-500/0 text-pink-600 border-pink-500/30",
+    dot: "bg-pink-500",
+    btn: "bg-pink-500 hover:bg-pink-600 focus-visible:ring-pink-500 active:bg-pink-700 text-white",
+    categoria: "Camareira",
   },
 ];
 
