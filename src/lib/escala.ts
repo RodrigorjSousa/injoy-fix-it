@@ -19,6 +19,9 @@ export interface EscalaColaborador {
   turno_padrao: EscalaTurno | null;
   telefone: string | null;
   ativo: boolean;
+  /** Vale alimentação do mês e vale transporte por dia desta pessoa (vazio = valor padrão do quadro; 0 = não recebe). */
+  vale_alimentacao?: number | null;
+  vale_transporte_dia?: number | null;
   created_at: string;
   updated_at: string;
   escala_padroes?: EscalaPadrao[];
@@ -516,4 +519,14 @@ export function useLancarBeneficios(){
     if(error)throw error;
     return data as unknown as {criados:number;atualizados:number;ja_pagos:number;cancelados:number};
   }});
+}
+
+/** Ajusta o VA e o VT por dia de uma pessoa (null = volta ao padrão do quadro). */
+export function useSalvarBeneficioColaborador(){
+  const queryClient=useQueryClient();
+  return useMutation({mutationFn:async(input:{id:string;vale_alimentacao:number|null;vale_transporte_dia:number|null})=>{
+    const {data,error}=await supabase.from("escala_colaboradores").update({vale_alimentacao:input.vale_alimentacao,vale_transporte_dia:input.vale_transporte_dia}).eq("id",input.id).select("id");
+    if(error)throw error;
+    if(!data?.length)throw new Error("Não foi possível salvar. Verifique a permissão de gestor.");
+  },onSuccess:()=>queryClient.invalidateQueries({queryKey:["escala-colaboradores"]})});
 }

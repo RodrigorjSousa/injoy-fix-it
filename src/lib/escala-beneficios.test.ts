@@ -34,10 +34,24 @@ describe("lançamento e planilha", () => {
     const flavio = { id: "f", nome: "FLAVIO", vinculo: "fixo", ativo: true, setor: "manutencao", unidade: "Ambas" } as unknown as EscalaColaborador;
     const d = (data: string, unidade: string) => ({ colaborador_id: "f", data, status: "trabalho", turno: "dia", unidade }) as unknown as EscalaDia;
     const linhas = calcularBeneficios([flavio], [d("2026-10-01", "Botafogo"), d("2026-10-02", "Botafogo"), d("2026-10-19", "Ipanema")], "2026-10-01", "2026-10-31");
-    const it = montarLancamentos(linhas, 385, 18.8, "10/2026");
+    const it = montarLancamentos(linhas, "10/2026");
     expect(it.map((x) => `${x.tipo}:${x.unidade}:${x.valor}`)).toEqual(["va:Ambas:385", "vt:Botafogo:37.6", "vt:Ipanema:18.8"]);
     const csv = gerarCsvBeneficios(linhas, (s) => s);
-    expect(csv).toContain("FLAVIO;Ambas;3;385,00;56,40;441,40");
-    expect(csv.split("\r\n").at(-1)).toBe("TOTAL;;;3;385,00;56,40;441,40");
+    expect(csv).toContain("FLAVIO;Ambas;3;385,00;18,80;56,40;441,40");
+    expect(csv.split("\r\n").at(-1)).toBe("TOTAL;;;3;385,00;;56,40;441,40");
+  });
+});
+
+describe("valores por funcionário", () => {
+  it("usa o VA e o VT próprios da pessoa; 0 = não recebe; vazio = padrão", () => {
+    const mk = (id: string, nome: string, va: number | null, vt: number | null) => ({ ...pessoa(id, nome), vale_alimentacao: va, vale_transporte_dia: vt }) as unknown as EscalaColaborador;
+    const people = [mk("a", "ANA", null, null), mk("b", "BIA", 300, 12.5), mk("c", "CLA", 0, 0)];
+    const days = ["01", "02"].flatMap((x) => ["a", "b", "c"].map((id) => dia(id, `2026-10-${x}`, "trabalho")));
+    const r = calcularBeneficios(people, days, "2026-10-01", "2026-10-31");
+    const g = (n: string) => r.find((x) => x.nome === n)!;
+    expect(g("ANA")).toMatchObject({ va: 385, vtDia: 18.8, vt: 37.6, total: 422.6, vaProprio: false });
+    expect(g("BIA")).toMatchObject({ va: 300, vtDia: 12.5, vt: 25, total: 325, vaProprio: true, vtProprio: true });
+    expect(g("CLA")).toMatchObject({ va: 0, vt: 0, total: 0 });
+    expect(montarLancamentos(r, "10/2026").filter((i) => i.nome === "CLA")).toEqual([]);
   });
 });
