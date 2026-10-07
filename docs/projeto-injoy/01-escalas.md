@@ -91,6 +91,10 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   agora também lista os fixos do setor que estão de **folga** nesse dia (em qualquer unidade). Escolher um fixo
   transforma a folga dele em dia `extra` pago (valor/horas editáveis; vai para o Financeiro como os freelancers e
   conta VT). Para desfazer: editar o dia e voltar para Folga.
+- VA/VT por funcionário (branch `feat/escala-beneficio-por-funcionario`, migração `0038_escala_beneficio_por_funcionario.sql`):
+  - `escala_colaboradores.vale_alimentacao` (R$/mês) e `vale_transporte_dia` (R$/dia): vazio = padrão do quadro,
+    0 = não recebe. Editáveis direto nas linhas do quadro (salvam ao sair do campo; campo verde = valor próprio).
+    O cálculo, o Financeiro, o CSV e o PDF usam o valor da pessoa; o padrão do quadro continua só neste aparelho.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
