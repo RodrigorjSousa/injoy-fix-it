@@ -10,7 +10,9 @@ type EventKind =
   | "escala_publicada"
   | "escala_alterada"
   | "previsao_carga"
-  | "ponto_pendente";
+  | "ponto_pendente"
+  | "ponto_atestado"
+  | "ponto_atestado_resposta";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
@@ -66,6 +68,27 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         body: `${d.nome ?? "Colaborador"} · ${({ entrada: "entrada", saida_almoco: "saída para almoço", volta_almoco: "volta do almoço", saida: "saída" } as Record<string, string>)[String(d.tipo)] ?? "batida"} em ${d.unidade ?? ""} precisa de conferência.`,
         url: "/gestor/ponto",
         tag: `ponto-${d.id}`,
+      };
+    case "ponto_atestado":
+      return {
+        title: "Atestado médico recebido",
+        body: `${d.nome ?? "Colaborador"} enviou atestado de ${String(d.data_inicio ?? "")
+          .split("-")
+          .reverse()
+          .join(
+            "/",
+          )}${d.data_fim && d.data_fim !== d.data_inicio ? ` a ${String(d.data_fim).split("-").reverse().join("/")}` : ""}. Confira e aprove.`,
+        url: "/gestor/ponto",
+        tag: `atestado-${d.id}`,
+      };
+    case "ponto_atestado_resposta":
+      return {
+        title: d.aprovado ? "Atestado aprovado" : "Atestado recusado",
+        body: d.aprovado
+          ? "Seu atestado foi aprovado pelo gestor."
+          : `Seu atestado foi recusado${d.resposta ? `: ${String(d.resposta).slice(0, 120)}` : "."}`,
+        url: "/ponto",
+        tag: `atestado-resposta-${d.id}`,
       };
     case "escala_publicada": {
       const date = String(d.competencia ?? "");
@@ -135,7 +158,9 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     case "finance_due":
     case "previsao_carga":
     case "ponto_pendente":
+    case "ponto_atestado":
       return byRoles(["admin", "gestor"]);
+    case "ponto_atestado_resposta":
     case "escala_alterada":
       return typeof d.user_id === "string" ? [d.user_id] : [];
     case "escala_publicada": {
