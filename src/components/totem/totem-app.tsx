@@ -1,20 +1,30 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Check, CornerDownLeft, Delete, DoorOpen, KeyRound, Loader2, LogOut, Phone, ScanLine, Star, UserRound } from "lucide-react";
+import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanLine, Star, UserRound, Wallet } from "lucide-react";
 import {
   totemAvaliar,
+  totemDocumentoEnviar,
+  totemPagamentoCancelar,
+  totemPagamentoIniciar,
+  totemPagamentoStatus,
   totemCheckinConfirmar,
   totemCheckinConsultar,
   totemCheckoutConfirmar,
   totemCheckoutConsultar,
   totemInfo,
   totemParear,
+  type Comprovante,
+  type DocumentosPendentes,
+  type MetodoPagamento,
+  type PagamentoPendente,
   type PortaTotem,
   type RespostaCheckin,
+  type SituacaoPagamento,
   type RespostaCheckout,
   type TotemInfo,
 } from "@/lib/totem.functions";
 import { formatadores, IDIOMAS, TEXTOS, type Idioma } from "@/lib/totem/i18n";
-import type { Motivo } from "@/lib/totem/regras";
+import { documentosFaltando, type Motivo } from "@/lib/totem/regras";
+import { imprimirRawBT, montarEscPos } from "@/lib/totem/escpos";
 import { cn } from "@/lib/utils";
 import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 
@@ -52,6 +62,20 @@ export type TotemApi = {
   checkoutConsultar: (token: string, quarto: string, sobrenome: string) => Promise<RespostaCheckout>;
   checkoutConfirmar: (token: string, quarto: string, sobrenome: string) => Promise<RespostaCheckout>;
   avaliar: (token: string, a: { reservationID: string; quarto: string; nota: number; comentario: string }) => Promise<unknown>;
+  pagamentoIniciar: (token: string, ticket: string, metodo: MetodoPagamento) => Promise<SituacaoPagamento | { status: "nada_a_pagar" }>;
+  pagamentoStatus: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
+  pagamentoCancelar: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
+  documentoEnviar: (token: string, d: DocumentoEnvio) => Promise<unknown>;
+};
+
+export type DocumentoEnvio = {
+  ticket: string;
+  ordem: number;
+  nome: string;
+  tipo: "rg" | "cnh" | "passaporte" | "outro";
+  numero: string;
+  lado: "frente" | "verso";
+  foto: string;
 };
 
 const API_SERVIDOR: TotemApi = {
@@ -62,24 +86,42 @@ const API_SERVIDOR: TotemApi = {
   checkoutConsultar: (token, quarto, sobrenome) => totemCheckoutConsultar({ data: { token, quarto, sobrenome } }),
   checkoutConfirmar: (token, quarto, sobrenome) => totemCheckoutConfirmar({ data: { token, quarto, sobrenome } }),
   avaliar: (token, a) => totemAvaliar({ data: { token, ...a } }),
+  pagamentoIniciar: (token, ticket, metodo) => totemPagamentoIniciar({ data: { token, ticket, metodo } }),
+  pagamentoStatus: (token, cobrancaId) => totemPagamentoStatus({ data: { token, cobrancaId } }),
+  pagamentoCancelar: (token, cobrancaId) => totemPagamentoCancelar({ data: { token, cobrancaId } }),
+  documentoEnviar: (token, d) => totemDocumentoEnviar({ data: { token, ...d } }),
 };
 
 type SenhaTela = Extract<RespostaCheckin, { estado: "senha" }>;
 type Fluxo = "checkin" | "checkout";
+
+type CtxCheckin = {
+  ident: Ident;
+  ticket: string;
+  nome: string;
+  quartos: string[];
+  checkOut: string;
+  pagamento: PagamentoPendente | null;
+  documentos: DocumentosPendentes | null;
+};
+type CtxCheckout = { quarto: string; sobrenome: string; ticket: string; nome: string; reservationID: string; pagamento: PagamentoPendente | null };
 
 type Tela =
   | { t: "carregando" }
   | { t: "parear" }
   | { t: "inicio" }
   | { t: "checkin"; modo: Ident["modo"] }
-  | { t: "checkin_resumo"; nome: string; quartos: string[]; checkOut: string; ident: Ident }
+  | { t: "checkin_resumo"; ctx: CtxCheckin }
+  | { t: "pagamento"; fluxo: "checkin"; ctx: CtxCheckin }
+  | { t: "pagamento"; fluxo: "checkout"; ctx: CtxCheckout }
+  | { t: "documentos"; ctx: CtxCheckin }
   | { t: "senha"; r: SenhaTela }
   | { t: "impedido"; fluxo: Fluxo; nome: string; motivos: Motivo[] }
   | { t: "nao_encontrado"; fluxo: Fluxo; voltar: Tela }
   | { t: "bloqueado"; fluxo: Fluxo }
   | { t: "checkout" }
-  | { t: "checkout_resumo"; nome: string; quarto: string; sobrenome: string }
-  | { t: "checkout_feito"; nome: string; quarto: string; reservationID: string }
+  | { t: "checkout_resumo"; ctx: CtxCheckout }
+  | { t: "checkout_feito"; nome: string; quarto: string; reservationID: string; comprovante: Comprovante }
   | { t: "avaliado" }
   | { t: "erro"; fluxo: Fluxo; mensagem: string };
 
@@ -87,6 +129,8 @@ type Tela =
 const OCIOSO_MS: Partial<Record<Tela["t"], number>> = {
   checkin: 75_000,
   checkin_resumo: 60_000,
+  pagamento: 180_000,
+  documentos: 120_000,
   impedido: 45_000,
   nao_encontrado: 45_000,
   bloqueado: 45_000,
@@ -114,17 +158,22 @@ function fluxoDe(tela: Tela, modo: TotemInfo["modo"] | undefined): Fluxo {
 
 function passoDe(tela: Tela): number {
   switch (tela.t) {
-    case "checkin_resumo":
-    case "checkout_resumo":
+    case "pagamento":
       return 1;
+    case "documentos":
+    case "checkout_resumo":
+      return 2;
     case "senha":
     case "checkout_feito":
     case "avaliado":
-      return 2;
+      return 3;
     default:
       return 0;
   }
 }
+
+const faltaDocumento = (ctx: CtxCheckin) =>
+  !!ctx.documentos && documentosFaltando(ctx.documentos.adultos.length, ctx.documentos.enviados) > 0;
 
 // ======================================================================= app
 
@@ -195,12 +244,37 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     tela.t === "inicio" && modo === "ambos" ? t.subtituloAmbos : fluxo === "checkout" ? t.subtituloCheckout : t.subtituloCheckin;
   const mostraPassos = tela.t !== "parear" && tela.t !== "carregando" && !(tela.t === "inicio" && modo === "ambos");
 
+  // ------------------------------------------------------------ impressão
+  const imprimir = useCallback(
+    (c: Comprovante) => {
+      try {
+        imprimirRawBT(montarEscPos(c, t.rc, { dataHora: fmt.dataHora, valor: fmt.valor, metodo: (m) => t.metodos[m] }));
+      } catch (e) {
+        console.error("[totem] falha ao imprimir", e);
+      }
+    },
+    [t, fmt],
+  );
+  // Imprime sozinho uma vez ao chegar na senha (check-in) ou ao concluir o check-out.
+  const impresso = useRef<object | null>(null);
+  useEffect(() => {
+    if (info?.impressora !== "rawbt") return;
+    const c = tela.t === "senha" ? tela.r.comprovante : tela.t === "checkout_feito" ? tela.comprovante : null;
+    if (!c || impresso.current === c) return;
+    impresso.current = c;
+    imprimir(c);
+  }, [tela, info?.impressora, imprimir]);
+
   // --------------------------------------------------------------- ações
   const consultarCheckin = async (ident: Ident) => {
     if (!token) return;
     try {
       const r = await api.checkinConsultar(token, ident);
-      if (r.estado === "pronto") setTela({ t: "checkin_resumo", nome: r.nome, quartos: r.quartos, checkOut: r.checkOut, ident });
+      if (r.estado === "pronto")
+        setTela({
+          t: "checkin_resumo",
+          ctx: { ident, ticket: r.ticket, nome: r.nome, quartos: r.quartos, checkOut: r.checkOut, pagamento: r.pagamento, documentos: r.documentos },
+        });
       else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkin", nome: r.nome, motivos: r.motivos });
       else if (r.estado === "nao_encontrado") setTela({ t: "nao_encontrado", fluxo: "checkin", voltar: { t: "checkin", modo: ident.modo } });
       else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkin" });
@@ -223,11 +297,21 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     }
   };
 
+  /** Depois de cada etapa do check-in, vai para a próxima que faltar (pagamento → documentos → senha). */
+  const avancarCheckin = async (ctx: CtxCheckin, depoisDe: "resumo" | "pagamento" | "documentos") => {
+    if (depoisDe === "resumo" && ctx.pagamento) return setTela({ t: "pagamento", fluxo: "checkin", ctx });
+    if (depoisDe !== "documentos" && faltaDocumento(ctx)) return setTela({ t: "documentos", ctx });
+    await confirmarCheckin(ctx.ident);
+  };
+
   const consultarCheckout = async (quarto: string, sobrenome: string) => {
     if (!token) return;
     try {
       const r = await api.checkoutConsultar(token, quarto, sobrenome);
-      if (r.estado === "pronto") setTela({ t: "checkout_resumo", nome: r.nome, quarto: r.quarto, sobrenome });
+      if (r.estado === "pronto") {
+        const ctx: CtxCheckout = { quarto: r.quarto, sobrenome, ticket: r.ticket, nome: r.nome, reservationID: r.reservationID, pagamento: r.pagamento };
+        setTela(r.pagamento ? { t: "pagamento", fluxo: "checkout", ctx } : { t: "checkout_resumo", ctx });
+      }
       else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkout", nome: r.nome, motivos: r.motivos });
       else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkout" });
       else setTela({ t: "nao_encontrado", fluxo: "checkout", voltar: { t: "checkout" } });
@@ -240,7 +324,8 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     if (!token) return;
     try {
       const r = await api.checkoutConfirmar(token, quarto, sobrenome);
-      if (r.estado === "concluido") setTela({ t: "checkout_feito", nome: r.nome, quarto: r.quarto, reservationID: r.reservationID });
+      if (r.estado === "concluido")
+        setTela({ t: "checkout_feito", nome: r.nome, quarto: r.quarto, reservationID: r.reservationID, comprovante: r.comprovante });
       else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkout", nome: r.nome, motivos: r.motivos });
       else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkout" });
       else setTela({ t: "nao_encontrado", fluxo: "checkout", voltar: { t: "checkout" } });
@@ -283,21 +368,71 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     case "checkin":
       painel = <FormCheckin key={tela.modo} t={t} modo={tela.modo} onTrocarModo={(m) => setTela({ t: "checkin", modo: m })} onEnviar={consultarCheckin} />;
       break;
-    case "checkin_resumo":
+    case "checkin_resumo": {
+      const ctx = tela.ctx;
+      const temEtapas = !!ctx.pagamento || faltaDocumento(ctx);
       painel = (
         <Resumo
           t={t}
-          titulo={t.ola(tela.nome)}
-          linhas={[t.seuQuarto(tela.quartos), tela.checkOut ? t.saidaEm(fmt.data(tela.checkOut)) : ""]}
-          acao={t.confirmarCheckin}
-          carregando={t.gerandoSenha}
-          icone={<KeyRound className="h-7 w-7" />}
-          onConfirmar={() => confirmarCheckin(tela.ident)}
+          titulo={t.ola(ctx.nome)}
+          linhas={[
+            t.seuQuarto(ctx.quartos),
+            ctx.checkOut ? t.saidaEm(fmt.data(ctx.checkOut)) : "",
+            ctx.pagamento ? `${t.valorAPagar}: ${fmt.valor(ctx.pagamento.valor)}` : "",
+          ]}
+          acao={temEtapas ? t.continuar2 : t.confirmarCheckin}
+          carregando={temEtapas ? t.conferindo : t.gerandoSenha}
+          icone={temEtapas ? <CornerDownLeft className="h-7 w-7" /> : <KeyRound className="h-7 w-7" />}
+          onConfirmar={() => avancarCheckin(ctx, "resumo")}
         />
       );
       break;
+    }
+    case "pagamento": {
+      const ctx = tela.ctx;
+      const valor = ctx.pagamento?.valor ?? 0;
+      const aposPagar = () => {
+        if (tela.fluxo === "checkin") void avancarCheckin({ ...tela.ctx, pagamento: null }, "pagamento");
+        else setTela({ t: "checkout_resumo", ctx: { ...tela.ctx, pagamento: null } });
+      };
+      painel = (
+        <EtapaPagamento
+          key={ctx.ticket}
+          t={t}
+          valorTexto={fmt.valor(valor)}
+          iniciar={(m) => api.pagamentoIniciar(token ?? "", ctx.ticket, m)}
+          status={(id) => api.pagamentoStatus(token ?? "", id)}
+          cancelar={(id) => api.pagamentoCancelar(token ?? "", id)}
+          onPago={aposPagar}
+          onErro={(e) => tratarErro(e, tela.fluxo)}
+        />
+      );
+      break;
+    }
+    case "documentos": {
+      const ctx = tela.ctx;
+      painel = (
+        <EtapaDocumentos
+          key={ctx.ticket}
+          t={t}
+          adultos={ctx.documentos?.adultos ?? []}
+          enviados={ctx.documentos?.enviados ?? []}
+          enviar={(d) => api.documentoEnviar(token ?? "", { ...d, ticket: ctx.ticket })}
+          onConcluir={() => void avancarCheckin({ ...ctx, documentos: null }, "documentos")}
+        />
+      );
+      break;
+    }
     case "senha":
-      painel = <TelaSenha t={t} r={tela.r} validaAte={fmt.dataHora(tela.r.validaAte)} onFim={irInicio} />;
+      painel = (
+        <TelaSenha
+          t={t}
+          r={tela.r}
+          validaAte={fmt.dataHora(tela.r.validaAte)}
+          onFim={irInicio}
+          imprimir={info?.impressora === "rawbt" ? () => imprimir(tela.r.comprovante) : null}
+        />
+      );
       break;
     case "impedido":
       painel = (
@@ -347,12 +482,12 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       painel = (
         <Resumo
           t={t}
-          titulo={t.ola(tela.nome)}
-          linhas={[t.seuQuarto([tela.quarto])]}
+          titulo={t.ola(tela.ctx.nome)}
+          linhas={[t.seuQuarto([tela.ctx.quarto])]}
           acao={t.confirmarCheckout}
           carregando={t.saindo}
           icone={<LogOut className="h-7 w-7" />}
-          onConfirmar={() => confirmarCheckout(tela.quarto, tela.sobrenome)}
+          onConfirmar={() => confirmarCheckout(tela.ctx.quarto, tela.ctx.sobrenome)}
         />
       );
       break;
@@ -386,7 +521,7 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       break;
   }
 
-  const passos = fluxo === "checkout" ? t.passosCheckout : t.passosCheckin;
+  const passos = fluxo === "checkout" ? t.passosCheckout4 : t.passosCheckin4;
 
   return (
     <div
@@ -1082,7 +1217,7 @@ function Teclas({ senha, grande = true }: { senha: string; grande?: boolean }) {
   );
 }
 
-function TelaSenha({ t, r, validaAte, onFim }: { t: T; r: SenhaTela; validaAte: string; onFim: () => void }) {
+function TelaSenha({ t, r, validaAte, onFim, imprimir }: { t: T; r: SenhaTela; validaAte: string; onFim: () => void; imprimir: (() => void) | null }) {
   const entrada = r.portas.filter((p) => p.tipo !== "quarto");
   return (
     <div className="flex h-full flex-col gap-5">
@@ -1119,9 +1254,18 @@ function TelaSenha({ t, r, validaAte, onFim }: { t: T; r: SenhaTela; validaAte: 
           </ul>
         </div>
       )}
-      <div className="mt-auto flex flex-wrap items-center gap-6">
-        <p className="min-w-[14rem] flex-1 text-lg text-[var(--tinta-suave)]">{t.anoteSenha}</p>
-        <BotaoPrincipal onClick={onFim} className="w-auto min-w-[16rem]">
+      <div className="mt-auto flex flex-wrap items-center gap-4">
+        <p className="min-w-[12rem] flex-1 text-lg text-[var(--tinta-suave)]">{imprimir ? t.pegueComprovante : t.anoteSenha}</p>
+        {imprimir && (
+          <button
+            type="button"
+            onClick={imprimir}
+            className="inline-flex min-h-[4.5rem] items-center gap-3 rounded-2xl border-2 border-[var(--tinta)]/15 bg-white px-6 text-lg font-bold focus-visible:outline-4 focus-visible:outline-[var(--teal)]"
+          >
+            <Printer className="h-6 w-6" /> {t.imprimirDeNovo}
+          </button>
+        )}
+        <BotaoPrincipal onClick={onFim} className="w-auto min-w-[10rem]">
           {t.pronto}
         </BotaoPrincipal>
       </div>
@@ -1239,6 +1383,426 @@ function AvisoInativo({ t, segundos, onContinuar }: { t: T; segundos: number; on
         <BotaoPrincipal className="mt-8" onClick={onContinuar}>
           {t.inativoContinuar}
         </BotaoPrincipal>
+      </div>
+    </div>
+  );
+}
+
+// ============================================================= pagamento
+
+function EtapaPagamento({
+  t,
+  valorTexto,
+  iniciar,
+  status,
+  cancelar,
+  onPago,
+  onErro,
+}: {
+  t: T;
+  valorTexto: string;
+  iniciar: (m: MetodoPagamento) => Promise<SituacaoPagamento | { status: "nada_a_pagar" }>;
+  status: (id: string) => Promise<SituacaoPagamento>;
+  cancelar: (id: string) => Promise<SituacaoPagamento>;
+  onPago: () => void;
+  onErro: (e: unknown) => void;
+}) {
+  type Fase = { f: "escolher"; aviso?: string } | { f: "iniciando"; metodo: MetodoPagamento } | { f: "aguardando"; c: SituacaoPagamento } | { f: "aprovado" };
+  const [fase, setFase] = useState<Fase>({ f: "escolher" });
+  const pendente = useRef<string | null>(null);
+  // Funções do pai mudam a cada renderização: guardadas em ref para não reiniciar efeitos.
+  const fns = useRef({ status, cancelar, onPago });
+  fns.current = { status, cancelar, onPago };
+
+  // Saiu da tela no meio (inatividade, "Início"): tira a cobrança da maquininha.
+  useEffect(
+    () => () => {
+      if (pendente.current) void fns.current.cancelar(pendente.current).catch(() => undefined);
+    },
+    [],
+  );
+
+  const cobrancaAguardando = fase.f === "aguardando" ? fase.c.cobrancaId : null;
+  const textoFalhou = t.pagamentoNaoConcluido;
+  useEffect(() => {
+    if (!cobrancaAguardando) return;
+    let ativo = true;
+    const iv = window.setInterval(async () => {
+      try {
+        const s = await fns.current.status(cobrancaAguardando);
+        if (!ativo) return;
+        if (s.status === "pago") {
+          pendente.current = null;
+          setFase({ f: "aprovado" });
+          window.setTimeout(() => fns.current.onPago(), 1800);
+        } else if (s.status !== "pendente") {
+          pendente.current = null;
+          setFase({ f: "escolher", aviso: textoFalhou });
+        }
+      } catch {
+        /* rede instável: tenta de novo no próximo ciclo */
+      }
+    }, 2500);
+    return () => {
+      ativo = false;
+      window.clearInterval(iv);
+    };
+  }, [cobrancaAguardando, textoFalhou]);
+
+  const escolher = async (m: MetodoPagamento) => {
+    setFase({ f: "iniciando", metodo: m });
+    try {
+      const r = await iniciar(m);
+      if (r.status === "nada_a_pagar") return onPago();
+      pendente.current = r.cobrancaId;
+      setFase({ f: "aguardando", c: r });
+    } catch (e) {
+      onErro(e);
+    }
+  };
+
+  if (fase.f === "aprovado") {
+    return (
+      <div className="flex h-full flex-col justify-center">
+        <span className="grid h-24 w-24 place-items-center rounded-full bg-[var(--teal)] text-white">
+          <Check className="h-12 w-12" />
+        </span>
+        <h2 className="mt-8 text-5xl font-extrabold tracking-tight">{t.pagamentoAprovado}</h2>
+        <p className="mt-3 text-3xl font-bold text-[var(--teal)]">{valorTexto}</p>
+      </div>
+    );
+  }
+
+  if (fase.f === "aguardando") {
+    const m = fase.c.metodo;
+    return (
+      <div className="flex h-full flex-col">
+        <p className="text-xl font-semibold text-[var(--madeira)]">
+          {t.metodos[m]} · {valorTexto}
+        </p>
+        <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.naMaquininha}</h2>
+        <div className="mt-10 flex items-center gap-8">
+          {/* A maquininha fica à direita do tablet no balcão */}
+          <div className="relative grid h-44 w-32 shrink-0 place-items-center rounded-[1.75rem] border-[3px] border-[var(--tinta)] bg-white">
+            {m === "pix" ? <QrCode className="h-14 w-14 text-[var(--teal)]" /> : <CreditCard className="h-14 w-14 text-[var(--teal)]" />}
+            <span aria-hidden className="absolute -right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-ping rounded-full bg-[var(--luz)]" />
+          </div>
+          <p className="max-w-md text-2xl leading-snug">{t.maquininhaTexto(m)}</p>
+        </div>
+        <p className="mt-10 flex items-center gap-3 text-xl text-[var(--tinta-suave)]">
+          <Loader2 className="h-6 w-6 animate-spin" /> {t.aguardandoPagamento}
+        </p>
+        <div className="mt-auto">
+          <BotaoSecundario
+            className="w-auto px-8 text-xl"
+            onClick={async () => {
+              const id = fase.c.cobrancaId;
+              pendente.current = null;
+              setFase({ f: "escolher" });
+              try {
+                const r = await cancelar(id);
+                if (r.status === "pago") {
+                  setFase({ f: "aprovado" });
+                  window.setTimeout(onPago, 1800);
+                }
+              } catch (e) {
+                onErro(e);
+              }
+            }}
+          >
+            {t.trocarMetodo}
+          </BotaoSecundario>
+        </div>
+      </div>
+    );
+  }
+
+  const opcoes: Array<{ m: MetodoPagamento; icone: ReactNode }> = [
+    { m: "credito", icone: <CreditCard className="h-8 w-8" /> },
+    { m: "debito", icone: <Wallet className="h-8 w-8" /> },
+    { m: "pix", icone: <QrCode className="h-8 w-8" /> },
+  ];
+  return (
+    <div className="flex h-full flex-col">
+      <h2 className="text-4xl font-extrabold tracking-tight">{t.pagarTitulo}</h2>
+      <p className="mt-2 text-xl text-[var(--tinta-suave)]">{t.pagarTexto(valorTexto)}</p>
+      <div className="mt-6 rounded-[1.75rem] bg-[var(--pedra)] px-8 py-6">
+        <p className="text-lg font-semibold text-[var(--tinta-suave)]">{t.valorAPagar}</p>
+        <p className="text-6xl font-extrabold tabular-nums tracking-tight">{valorTexto}</p>
+      </div>
+      {fase.f === "escolher" && fase.aviso && (
+        <p role="alert" className="mt-4 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]">
+          {fase.aviso}
+        </p>
+      )}
+      <h3 className="mt-8 text-2xl font-bold">{t.escolhaMetodo}</h3>
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        {opcoes.map(({ m, icone }) => (
+          <button
+            key={m}
+            type="button"
+            disabled={fase.f === "iniciando"}
+            onClick={() => void escolher(m)}
+            className="flex min-h-[8.5rem] flex-col justify-between rounded-[1.5rem] bg-white p-6 text-left shadow-[0_0_0_1px_rgba(43,38,34,0.08)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-[0.99] disabled:opacity-50"
+          >
+            <span className="flex items-center justify-between text-[var(--teal)]">
+              {icone}
+              {fase.f === "iniciando" && fase.metodo === m && <Loader2 className="h-6 w-6 animate-spin" />}
+            </span>
+            <span>
+              <span className="block text-2xl font-extrabold">{t.metodos[m]}</span>
+              <span className="mt-1 block text-base leading-snug text-[var(--tinta-suave)]">{t.metodosSub[m]}</span>
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ============================================================ documentos
+
+type TipoDoc = DocumentoEnvio["tipo"];
+
+function EtapaDocumentos({
+  t,
+  adultos,
+  enviados,
+  enviar,
+  onConcluir,
+}: {
+  t: T;
+  adultos: Array<{ ordem: number; nome: string | null }>;
+  enviados: Array<{ hospede_ordem: number; lado: string }>;
+  enviar: (d: Omit<DocumentoEnvio, "ticket">) => Promise<unknown>;
+  onConcluir: () => void;
+}) {
+  const prontos = useMemo(() => new Set(enviados.filter((d) => d.lado === "frente").map((d) => d.hospede_ordem)), [enviados]);
+  const fila = useMemo(() => adultos.filter((a) => !prontos.has(a.ordem)), [adultos, prontos]);
+  const [pos, setPos] = useState(0);
+  const atual = fila[pos];
+  const [fase, setFase] = useState<"dados" | "frente" | "verso">("dados");
+  const [nome, setNome] = useState(atual?.nome ?? "");
+  const [tipo, setTipo] = useState<TipoDoc>("rg");
+  const [numero, setNumero] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+
+  const concluiu = useRef(false);
+  const concluir = useRef(onConcluir);
+  concluir.current = onConcluir;
+  useEffect(() => {
+    if (!atual && !concluiu.current) {
+      concluiu.current = true;
+      concluir.current();
+    }
+  }, [atual]);
+  if (!atual) {
+    return (
+      <div className="flex h-full flex-col justify-center gap-6">
+        <Loader2 className="h-12 w-12 animate-spin text-[var(--teal)]" />
+        <p className="text-3xl font-bold">{t.gerandoSenha}</p>
+      </div>
+    );
+  }
+
+  const proximo = () => {
+    setFase("dados");
+    setErro(null);
+    setNumero("");
+    setTipo("rg");
+    const seguinte = fila[pos + 1];
+    setNome(seguinte?.nome ?? "");
+    setPos(pos + 1);
+  };
+
+  const cabecalho = (
+    <div className="mb-5">
+      <div className="flex items-baseline justify-between gap-4">
+        <h2 className="text-[2.1rem] font-extrabold tracking-tight">{t.docsTitulo}</h2>
+        <span className="text-xl font-bold text-[var(--madeira)]">{t.adulto(atual.ordem, adultos.length)}</span>
+      </div>
+      {pos === 0 && fase === "dados" && (
+        <p className="mt-1 text-lg leading-snug text-[var(--tinta-suave)]">
+          {t.docsTexto(adultos.length)} {t.docsPorque}
+        </p>
+      )}
+    </div>
+  );
+
+  if (fase === "dados") {
+    return (
+      <FormTeclado
+        key={`dados-${atual.ordem}`}
+        t={t}
+        cabecalho={
+          <>
+            {cabecalho}
+            <p className="text-lg font-semibold">{t.tipoDocumento}</p>
+            <div className="mb-5 mt-2 grid grid-cols-4 gap-2">
+              {(Object.keys(t.tipos) as TipoDoc[]).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setTipo(k)}
+                  aria-pressed={tipo === k}
+                  className={cn(
+                    "min-h-14 rounded-xl px-3 text-base font-semibold leading-tight focus-visible:outline-2 focus-visible:outline-[var(--teal)]",
+                    tipo === k ? "bg-[var(--tinta)] text-white" : "bg-white text-[var(--tinta)] shadow-[0_0_0_1px_rgba(43,38,34,0.1)]",
+                  )}
+                >
+                  {t.tipos[k]}
+                </button>
+              ))}
+            </div>
+          </>
+        }
+        campos={[
+          { id: "nome", rotulo: t.nome, valor: nome, teclado: "texto", max: 80, valido: (x) => x.trim().split(/\s+/).length >= 2 },
+          { id: "numero", rotulo: t.numeroDocumento, valor: numero, teclado: "texto", max: 30, valido: (x) => x.replace(/[^A-Za-z0-9]/g, "").length >= 4 },
+        ]}
+        onChange={(id, v) => (id === "nome" ? setNome(v) : setNumero(v))}
+        acao={t.tirarFoto}
+        carregando={t.tirarFoto}
+        onEnviar={async () => setFase("frente")}
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-full flex-col">
+      {cabecalho}
+      <CameraDocumento
+        key={`${atual.ordem}-${fase}`}
+        t={t}
+        titulo={fase === "frente" ? t.ladoFrente : t.ladoVerso}
+        erro={erro}
+        onFoto={async (foto) => {
+          setErro(null);
+          try {
+            await enviar({ ordem: atual.ordem, nome: nome.trim(), tipo, numero: numero.trim(), lado: fase, foto });
+          } catch (e) {
+            setErro(mensagemDe(e));
+            return false;
+          }
+          if (fase === "frente" && tipo === "rg") setFase("verso");
+          else proximo();
+          return true;
+        }}
+      />
+    </div>
+  );
+}
+
+/** Câmera frontal do tablet com moldura de documento; devolve JPEG em base64. */
+function CameraDocumento({
+  t,
+  titulo,
+  erro,
+  onFoto,
+}: {
+  t: T;
+  titulo: string;
+  erro: string | null;
+  onFoto: (jpegBase64: string) => Promise<boolean>;
+}) {
+  const video = useRef<HTMLVideoElement | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const [foto, setFoto] = useState<string | null>(null);
+  const [tentativa, setTentativa] = useState(0);
+  const { enviando, enviar } = useEnvio();
+
+  useEffect(() => {
+    let stream: MediaStream | null = null;
+    let ativo = true;
+    setFalha(null);
+    (async () => {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1920 }, height: { ideal: 1080 } },
+          audio: false,
+        });
+        if (!ativo) return stream.getTracks().forEach((tr) => tr.stop());
+        if (video.current) {
+          video.current.srcObject = stream;
+          await video.current.play().catch(() => undefined);
+        }
+      } catch (e) {
+        setFalha(mensagemDe(e));
+      }
+    })();
+    return () => {
+      ativo = false;
+      stream?.getTracks().forEach((tr) => tr.stop());
+    };
+  }, [tentativa]);
+
+  const capturar = () => {
+    const v = video.current;
+    if (!v || !v.videoWidth) return;
+    const escala = Math.min(1, 1600 / v.videoWidth);
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(v.videoWidth * escala);
+    canvas.height = Math.round(v.videoHeight * escala);
+    canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
+    setFoto(canvas.toDataURL("image/jpeg", 0.85));
+  };
+
+  if (falha) {
+    return (
+      <div className="flex flex-1 flex-col justify-center gap-4">
+        <p className="text-2xl font-bold">{t.cameraErro}</p>
+        <p className="text-base text-[var(--tinta-suave)]">{falha}</p>
+        <BotaoPrincipal onClick={() => setTentativa((n) => n + 1)} className="w-auto self-start px-10">
+          <RotateCcw className="h-6 w-6" /> {t.tentarDeNovo}
+        </BotaoPrincipal>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col">
+      <p className="text-xl font-bold">{titulo}</p>
+      <p className="text-base text-[var(--tinta-suave)]">{t.posicione}</p>
+      <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[1.5rem] bg-[var(--tinta)]">
+        {foto ? (
+          <img src={foto} alt="" className="h-full w-full object-contain" />
+        ) : (
+          <>
+            <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
+            {/* Moldura no formato de um documento (85,6 × 54 mm) */}
+            <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+              <div className="aspect-[1.586] w-[62%] rounded-2xl border-4 border-[var(--luz)] shadow-[0_0_0_100vmax_rgba(43,38,34,0.45)]" />
+            </div>
+          </>
+        )}
+      </div>
+      {erro && (
+        <p role="alert" className="mt-3 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]">
+          {erro}
+        </p>
+      )}
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {foto ? (
+          <>
+            <BotaoSecundario onClick={() => setFoto(null)}>{t.tirarOutra}</BotaoSecundario>
+            <BotaoPrincipal
+              disabled={enviando}
+              onClick={() =>
+                void enviar(async () => {
+                  const ok = await onFoto(foto);
+                  if (!ok) setFoto(null);
+                })
+              }
+            >
+              {enviando ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-6 w-6" />}
+              {enviando ? t.enviando : t.usarFoto}
+            </BotaoPrincipal>
+          </>
+        ) : (
+          <BotaoPrincipal onClick={capturar} className="sm:col-span-2">
+            <Camera className="h-7 w-7" /> {t.tirarFoto}
+          </BotaoPrincipal>
+        )}
       </div>
     </div>
   );
