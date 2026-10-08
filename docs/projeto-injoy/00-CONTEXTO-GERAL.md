@@ -92,6 +92,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Totem (0041): check-in com senha Tuya, check-out e avaliação em `/totem`; gestão em Área do Gestor ›
   Totem — ver `04-totem.md`.
 
+- Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
+  — ver `03-lavanderia.md`.
+
 ## Conversas do PROJETO INJOY
 Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do assunto:
 1. Escalas — `01-escalas.md`
