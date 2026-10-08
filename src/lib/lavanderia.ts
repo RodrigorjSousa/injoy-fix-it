@@ -390,26 +390,55 @@ export function nomeMes(mes: string) {
   return `${MESES[m - 1]} de ${y}`;
 }
 
-/** Valida as linhas do retorno antes de enviar: toda peça que saiu precisa das 3 contagens. */
+export type LinhaRetornoForm = {
+  peca_id: string;
+  saida_hotel: number;
+  ent_lav: string;
+  saida_lav: string;
+  guardado: string;
+};
+
+const vazio = (s: string) => s.trim() === "";
+const inteiro = (s: string) => (vazio(s) ? null : parseInt(s, 10));
+
+/**
+ * Regras do retorno (o talão nem sempre vem com tudo preenchido):
+ *  - Ent. Lav. em branco  = a lavanderia não anotou diferença: vale a Saída Hotel.
+ *  - Saída Lav. em branco = nada anotado como devolvido: 0.
+ *  - Contei em branco     = 0, mas só é aceito se a Saída Lav. também estiver em branco/0
+ *    (se a lavanderia anotou que devolveu, a camareira precisa contar).
+ */
+export function linhaIncompleta(l: LinhaRetornoForm) {
+  return (inteiro(l.saida_lav) ?? 0) > 0 && vazio(l.guardado);
+}
+
+/** Mensagem do que falta, ou null se dá para registrar. */
 export function validarRetorno(
-  linhas: {
-    peca_id: string;
-    saida_hotel: number;
-    ent_lav: string;
-    saida_lav: string;
-    guardado: string;
-  }[],
+  linhas: LinhaRetornoForm[],
   nomePeca: (id: string) => string,
 ): string | null {
-  const vazio = (s: string) => s.trim() === "";
-  const incompletas = linhas.filter(
-    (l) =>
-      (l.saida_hotel > 0 || !vazio(l.ent_lav) || !vazio(l.saida_lav) || !vazio(l.guardado)) &&
-      (vazio(l.ent_lav) || vazio(l.saida_lav) || vazio(l.guardado)),
-  );
+  const incompletas = linhas.filter(linhaIncompleta);
   if (incompletas.length)
-    return `Preencha as três contagens (use 0 quando não houver): ${incompletas
+    return `Falta a sua contagem (coluna "Contei") de: ${incompletas
       .map((l) => nomePeca(l.peca_id))
       .join(", ")}.`;
+  const algo = linhas.some(
+    (l) => (inteiro(l.guardado) ?? 0) > 0 || (inteiro(l.saida_lav) ?? 0) > 0,
+  );
+  if (!algo) return 'Digite na coluna "Contei" quantas peças voltaram.';
   return null;
+}
+
+/** Converte o formulário no que o banco grava, aplicando as regras acima. */
+export function normalizarRetorno(linhas: LinhaRetornoForm[]) {
+  return linhas
+    .filter(
+      (l) => l.saida_hotel > 0 || !vazio(l.ent_lav) || !vazio(l.saida_lav) || !vazio(l.guardado),
+    )
+    .map((l) => ({
+      peca_id: l.peca_id,
+      ent_lav: inteiro(l.ent_lav) ?? l.saida_hotel,
+      saida_lav: inteiro(l.saida_lav) ?? 0,
+      guardado: inteiro(l.guardado) ?? 0,
+    }));
 }

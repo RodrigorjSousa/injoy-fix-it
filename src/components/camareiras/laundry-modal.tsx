@@ -20,6 +20,8 @@ import {
   DIAS_ALERTA_ABERTO,
   INICIO_SALDO,
   validarRetorno,
+  linhaIncompleta,
+  normalizarRetorno,
   type Peca,
   type Talao,
   type UnidadeLav,
@@ -732,16 +734,7 @@ function RetornoForm({
         data,
         foto: path,
         obs,
-        itens: linhas
-          .filter(
-            (l) => l.saida_hotel > 0 || l.ent_lav !== "" || l.saida_lav !== "" || l.guardado !== "",
-          )
-          .map((l) => ({
-            peca_id: l.peca_id,
-            ent_lav: num(l.ent_lav) ?? 0,
-            saida_lav: num(l.saida_lav) ?? 0,
-            guardado: num(l.guardado) ?? 0,
-          })),
+        itens: normalizarRetorno(linhas),
       });
       if (path && talao.retorno_foto && talao.retorno_foto !== path)
         await apagarFotos([talao.retorno_foto]);
@@ -779,21 +772,25 @@ function RetornoForm({
       </div>
       <div className="overflow-auto flex-1">
         <div className="mx-3 mt-3 bg-sky-500/10 border border-sky-500/40 rounded-lg p-3 text-[11px] text-sky-100 leading-snug">
-          Copie do talão as colunas <b>Ent. Lav.</b> e <b>Saída Lav.</b> Na última coluna,{" "}
-          <b>conte você</b> a roupa ao guardar. Se não tiver, digite 0.
+          Copie do talão o que estiver escrito em <b>Ent. Lav.</b> e <b>Saída Lav.</b> (pode deixar
+          em branco o que não estiver anotado). Em <b>Contei</b>, conte você a roupa ao guardar.
         </div>
         <div className="p-3 space-y-2">
           {linhas.map((l) => {
             const ent = num(l.ent_lav);
             const sai = num(l.saida_lav);
             const gua = num(l.guardado);
+            const incompleta = linhaIncompleta(l);
             const falta = sai !== null && gua !== null && gua < sai ? sai - gua : 0;
             const difColeta =
               ent !== null && l.saida_hotel > 0 && ent !== l.saida_hotel ? ent - l.saida_hotel : 0;
             return (
               <div
                 key={l.peca_id}
-                className="bg-slate-800/60 border border-slate-800 rounded-xl p-2.5"
+                className={cn(
+                  "bg-slate-800/60 border rounded-xl p-2.5",
+                  incompleta ? "border-red-500" : "border-slate-800",
+                )}
               >
                 <p className="text-sm font-bold text-slate-100 mb-1.5">{nomePeca(l.peca_id)}</p>
                 <div className="grid grid-cols-4 gap-1.5 text-center">
@@ -820,11 +817,18 @@ function RetornoForm({
                         inputMode="numeric"
                         value={l[campo]}
                         onChange={(e) => set(l.peca_id, campo, e.target.value)}
-                        placeholder="—"
+                        placeholder={
+                          campo === "ent_lav"
+                            ? String(l.saida_hotel)
+                            : campo === "saida_lav"
+                              ? "0"
+                              : "?"
+                        }
                         aria-label={`${nomePeca(l.peca_id)} ${campo}`}
                         className={cn(
                           inputNum,
                           campo === "guardado" && "border-emerald-700 focus:border-emerald-400",
+                          campo === "guardado" && incompleta && "border-red-500 bg-red-500/10",
                         )}
                       />
                     </label>
@@ -905,9 +909,14 @@ function RetornoForm({
       <div className="p-4 border-t border-slate-800 space-y-2 shrink-0">
         {erro && <ErroBox texto={erro} />}
         {!salvando && (pendencia || (precisaFoto && !foto)) && (
-          <p className="text-[11px] text-slate-400 text-center">
-            {pendencia ?? "Falta a foto do talão."}
-          </p>
+          <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/50 rounded-lg p-2.5 text-xs font-bold text-amber-200">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0" />
+            <span>
+              {[pendencia, precisaFoto && !foto ? "Falta a foto do talão." : null]
+                .filter(Boolean)
+                .join(" ")}
+            </span>
+          </div>
         )}
         <button
           onClick={enviar}
