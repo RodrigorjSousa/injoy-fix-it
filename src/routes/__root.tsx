@@ -148,6 +148,8 @@ function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s: { location: { pathname: string } }) => s.location.pathname });
   const isAuthPage = pathname.startsWith("/auth");
+  // O totem é a tela do hóspede: sem menu nem cabeçalho da equipe.
+  const isTotem = pathname === "/totem" || pathname.startsWith("/totem/");
 
   useEffect(() => {
     return installChunkRecovery();
@@ -165,7 +167,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <UnidadeProvider>
-        {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+        {isAuthPage || isTotem ? <Outlet /> : <AppShell><Outlet /></AppShell>}
       </UnidadeProvider>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>
