@@ -42,12 +42,20 @@ export type Totem = {
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
   modo: ModoTotem;
+  pagamento_habilitado: boolean;
+  pos_serial: string | null;
+  pede_documentos: boolean;
+  impressora: "nenhuma" | "rawbt";
+  wifi_rede: string | null;
+  wifi_senha: string | null;
+  mensagem_comprovante: string | null;
 };
 
 export type ModoTotem = "ambos" | "checkin" | "checkout";
 
-const CAMPOS_TOTEM =
-  "id,nome,unidade,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte,modo";
+// "*" de propósito: se uma migração nova ainda não foi aplicada, o totem segue
+// funcionando com os valores padrão em vez de quebrar por coluna inexistente.
+const CAMPOS_TOTEM = "*";
 
 function normalizarTotem(row: Record<string, unknown>): Totem {
   return {
@@ -60,6 +68,13 @@ function normalizarTotem(row: Record<string, unknown>): Totem {
     bloqueia_saldo_aberto: row.bloqueia_saldo_aberto !== false,
     telefone_suporte: (row.telefone_suporte as string | null) ?? null,
     modo: row.modo === "checkin" || row.modo === "checkout" ? row.modo : "ambos",
+    pagamento_habilitado: row.pagamento_habilitado === true,
+    pos_serial: ((row.pos_serial as string | null) ?? "").trim() || null,
+    pede_documentos: row.pede_documentos !== false,
+    impressora: row.impressora === "rawbt" ? "rawbt" : "nenhuma",
+    wifi_rede: (row.wifi_rede as string | null) ?? null,
+    wifi_senha: (row.wifi_senha as string | null) ?? null,
+    mensagem_comprovante: (row.mensagem_comprovante as string | null) ?? null,
   };
 }
 
@@ -197,7 +212,7 @@ async function listarReservas(property: CloudbedsProperty, filtros: Record<strin
   return out;
 }
 
-async function buscarReservaPorId(property: CloudbedsProperty, id: string): Promise<Raw | null> {
+export async function buscarReservaPorId(property: CloudbedsProperty, id: string): Promise<Raw | null> {
   const res = await cloudbedsFetch(property, `/getReservation?reservationID=${encodeURIComponent(id)}`);
   if (!res.ok) return null;
   const json = (await res.json().catch(() => null)) as { success?: boolean; data?: Raw } | null;
@@ -566,4 +581,10 @@ export async function salvarAvaliacao(
     comentario: a.comentario,
   });
   if (error && !/duplicate|unique/i.test(error.message)) throw new Error(`Falha ao salvar avaliação: ${error.message}`);
+}
+
+/** E-mail do hóspede na reserva (opcional; vai para o comprovante da Stone). */
+export function emailDe(rec: Raw): string | null {
+  const e = String(rec.guestEmail ?? rec.email ?? "").trim();
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : null;
 }

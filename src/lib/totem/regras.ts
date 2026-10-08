@@ -300,7 +300,8 @@ export type Motivo =
   | { codigo: "quarto_nao_limpo"; quarto: string }
   | { codigo: "sem_fechadura"; quarto: string }
   | { codigo: "saldo_aberto"; valor: number }
-  | { codigo: "nao_hospedado" };
+  | { codigo: "nao_hospedado" }
+  | { codigo: "documentos_pendentes"; faltam: number };
 
 const CANCELADAS = new Set(["canceled", "cancelled", "cancelada", "no_show", "noshow"]);
 const HOSPEDADAS = new Set(["checked_in", "in_house", "inhouse"]);
@@ -400,4 +401,37 @@ export function tentativasEsgotadas(
     else if (ev.tipo === "identificacao_ok") break;
   }
   return falhas >= MAX_TENTATIVAS;
+}
+
+// ------------------------------------------------------------------ adultos
+
+export type AdultoReserva = { ordem: number; nome: string | null };
+
+/**
+ * Adultos que precisam mostrar documento. Usa o número de adultos da reserva
+ * (ou dos quartos que chegam) e preenche os nomes conhecidos no Cloudbeds,
+ * titular primeiro. Sempre pelo menos 1.
+ */
+export function adultosDaReserva(rec: Raw, quartos: QuartoReserva[] = []): AdultoReserva[] {
+  const nums: number[] = [];
+  const topo = Number(rec.adults ?? rec.numberOfAdults);
+  if (Number.isFinite(topo) && topo > 0) nums.push(topo);
+  const salas = Array.isArray(rec.rooms) ? (rec.rooms as Raw[]) : [];
+  const nomesChegando = new Set(quartos.map((q) => q.nome).filter(Boolean));
+  const somaSalas = salas
+    .filter((r) => nomesChegando.size === 0 || nomesChegando.has(texto(r.roomName ?? r.roomNumber)))
+    .reduce((s, r) => s + (Number(r.adults) || 0), 0);
+  if (somaSalas > 0) nums.push(somaSalas);
+  const hospedes = extrairHospedes(rec);
+  const total = Math.min(Math.max(1, nums.length ? Math.max(...nums) : hospedes.length || 1), 12);
+  const ordenados = [...hospedes].sort((a, b) => Number(b.principal) - Number(a.principal));
+  return Array.from({ length: total }, (_, i) => ({ ordem: i + 1, nome: ordenados[i]?.nomeCompleto ?? null }));
+}
+
+/** Quantos adultos ainda não têm a FRENTE do documento enviada. */
+export function documentosFaltando(adultos: number, enviados: Array<{ hospede_ordem: number; lado: string }>): number {
+  const ok = new Set(enviados.filter((d) => d.lado === "frente").map((d) => d.hospede_ordem));
+  let faltam = 0;
+  for (let i = 1; i <= adultos; i++) if (!ok.has(i)) faltam++;
+  return faltam;
 }

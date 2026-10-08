@@ -54,6 +54,7 @@ import { Route as AuthenticatedGestorTarefasExtrasRouteImport } from './routes/_
 import { Route as AuthenticatedGestorTotemRouteImport } from './routes/_authenticated/gestor/totem'
 import { Route as ApiPublicBonusMetaRouteImport } from './routes/api/public/bonus-meta'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
+import { Route as ApiPublicPagarmeWebhookRouteImport } from './routes/api/public/pagarme-webhook'
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
@@ -306,6 +307,11 @@ const ApiPublicCloudbedsWebhookRoute =
     path: '/api/public/cloudbeds-webhook',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicPagarmeWebhookRoute = ApiPublicPagarmeWebhookRouteImport.update({
+  id: '/api/public/pagarme-webhook',
+  path: '/api/public/pagarme-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicPrevisaoCargaRoute = ApiPublicPrevisaoCargaRouteImport.update({
   id: '/api/public/previsao-carga',
   path: '/api/public/previsao-carga',
@@ -366,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
@@ -413,6 +420,7 @@ export interface FileRoutesByTo {
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
@@ -464,6 +472,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
+  '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
@@ -515,6 +524,7 @@ export interface FileRouteTypes {
     | '/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
@@ -562,6 +572,7 @@ export interface FileRouteTypes {
     | '/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
@@ -612,6 +623,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
+    | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/tuya-cleanup'
@@ -625,6 +637,7 @@ export interface RootRouteChildren {
   TotemRoute: typeof TotemRoute
   ApiPublicBonusMetaRoute: typeof ApiPublicBonusMetaRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
+  ApiPublicPagarmeWebhookRoute: typeof ApiPublicPagarmeWebhookRoute
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
@@ -947,6 +960,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicCloudbedsWebhookRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/pagarme-webhook': {
+      id: '/api/public/pagarme-webhook'
+      path: '/api/public/pagarme-webhook'
+      fullPath: '/api/public/pagarme-webhook'
+      preLoaderRoute: typeof ApiPublicPagarmeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/previsao-carga': {
       id: '/api/public/previsao-carga'
       path: '/api/public/previsao-carga'
@@ -1087,6 +1107,7 @@ const rootRouteChildren: RootRouteChildren = {
   TotemRoute: TotemRoute,
   ApiPublicBonusMetaRoute: ApiPublicBonusMetaRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
+  ApiPublicPagarmeWebhookRoute: ApiPublicPagarmeWebhookRoute,
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,

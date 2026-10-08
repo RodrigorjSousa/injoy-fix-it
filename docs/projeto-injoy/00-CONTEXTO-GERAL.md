@@ -89,8 +89,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   - Atualização automática 3x/dia: cron chama `private.run_bonus_meta_sync`, que chama
     `/api/public/bonus-meta`.
   - Participantes: Raquel, Julia, Mayara, Gleidiane, Lucivaldo e Flavio.
-- Totem (0041): check-in com senha Tuya, check-out e avaliação em `/totem`; gestão em Área do Gestor ›
-  Totem — ver `04-totem.md`.
+- Totem (0041, 0042, 0045, 0046): check-in com senha Tuya, check-out, avaliação, pagamento na
+  maquininha Stone (Connect 2.0), fotos de documentos e comprovante térmico em `/totem`; gestão em Área
+  do Gestor › Totem. Ver `04-totem.md`.
 
 - Previsão de Carga (0015/0016 + 0048): tela `/previsao-carga` para a Recepção (ou quem tiver
   `previsao-carga` em Equipe › Telas; regra no banco `private.pode_ver_previsao_carga`). A Recepção pede
