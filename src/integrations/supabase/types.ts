@@ -3026,6 +3026,151 @@ export type Database = {
         }
         Relationships: []
       }
+      totem_avaliacoes: {
+        Row: {
+          comentario: string | null
+          criado_em: string
+          hospede: string | null
+          id: string
+          nota: number
+          quarto: string | null
+          reservation_id: string
+          totem_id: string | null
+          unidade: string
+        }
+        Insert: {
+          comentario?: string | null
+          criado_em?: string
+          hospede?: string | null
+          id?: string
+          nota: number
+          quarto?: string | null
+          reservation_id: string
+          totem_id?: string | null
+          unidade: string
+        }
+        Update: {
+          comentario?: string | null
+          criado_em?: string
+          hospede?: string | null
+          id?: string
+          nota?: number
+          quarto?: string | null
+          reservation_id?: string
+          totem_id?: string | null
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "totem_avaliacoes_totem_id_fkey"
+            columns: ["totem_id"]
+            isOneToOne: false
+            referencedRelation: "totem_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      totem_dispositivos: {
+        Row: {
+          ativo: boolean
+          bloqueia_saldo_aberto: boolean
+          criado_em: string
+          criado_por: string | null
+          exige_quarto_limpo: boolean
+          hora_checkin: string
+          hora_checkout: string
+          id: string
+          nome: string
+          pareado_em: string | null
+          pareamento_expira: string | null
+          pareamento_hash: string | null
+          telefone_suporte: string | null
+          token_hash: string | null
+          ultimo_uso: string | null
+          unidade: string
+        }
+        Insert: {
+          ativo?: boolean
+          bloqueia_saldo_aberto?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          exige_quarto_limpo?: boolean
+          hora_checkin?: string
+          hora_checkout?: string
+          id?: string
+          nome: string
+          pareado_em?: string | null
+          pareamento_expira?: string | null
+          pareamento_hash?: string | null
+          telefone_suporte?: string | null
+          token_hash?: string | null
+          ultimo_uso?: string | null
+          unidade: string
+        }
+        Update: {
+          ativo?: boolean
+          bloqueia_saldo_aberto?: boolean
+          criado_em?: string
+          criado_por?: string | null
+          exige_quarto_limpo?: boolean
+          hora_checkin?: string
+          hora_checkout?: string
+          id?: string
+          nome?: string
+          pareado_em?: string | null
+          pareamento_expira?: string | null
+          pareamento_hash?: string | null
+          telefone_suporte?: string | null
+          token_hash?: string | null
+          ultimo_uso?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
+      totem_eventos: {
+        Row: {
+          criado_em: string
+          detalhe: string | null
+          hospede: string | null
+          id: string
+          quarto: string | null
+          reservation_id: string | null
+          tipo: string
+          totem_id: string | null
+          unidade: string | null
+        }
+        Insert: {
+          criado_em?: string
+          detalhe?: string | null
+          hospede?: string | null
+          id?: string
+          quarto?: string | null
+          reservation_id?: string | null
+          tipo: string
+          totem_id?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          criado_em?: string
+          detalhe?: string | null
+          hospede?: string | null
+          id?: string
+          quarto?: string | null
+          reservation_id?: string | null
+          tipo?: string
+          totem_id?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "totem_eventos_totem_id_fkey"
+            columns: ["totem_id"]
+            isOneToOne: false
+            referencedRelation: "totem_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trocas_turno: {
         Row: {
           caixa_obs: string | null
@@ -3174,6 +3319,7 @@ export type Database = {
           guest_name: string
           id: string
           password: string
+          reservation_id: string | null
           revoke_reason: string | null
           revoked_at: string | null
           revoked_by_name: string | null
@@ -3191,6 +3337,7 @@ export type Database = {
           guest_name: string
           id?: string
           password: string
+          reservation_id?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by_name?: string | null
@@ -3208,6 +3355,7 @@ export type Database = {
           guest_name?: string
           id?: string
           password?: string
+          reservation_id?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null
           revoked_by_name?: string | null
@@ -3636,6 +3784,7 @@ export type Database = {
         Args: { _issue_id: string }
         Returns: undefined
       }
+      totem_gerar_pareamento: { Args: { p_totem: string }; Returns: Json }
     }
     Enums: {
       app_role:
