@@ -41,10 +41,13 @@ export type Totem = {
   exige_quarto_limpo: boolean;
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
+  modo: ModoTotem;
 };
 
+export type ModoTotem = "ambos" | "checkin" | "checkout";
+
 const CAMPOS_TOTEM =
-  "id,nome,unidade,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte";
+  "id,nome,unidade,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte,modo";
 
 function normalizarTotem(row: Record<string, unknown>): Totem {
   return {
@@ -56,6 +59,7 @@ function normalizarTotem(row: Record<string, unknown>): Totem {
     exige_quarto_limpo: row.exige_quarto_limpo !== false,
     bloqueia_saldo_aberto: row.bloqueia_saldo_aberto !== false,
     telefone_suporte: (row.telefone_suporte as string | null) ?? null,
+    modo: row.modo === "checkin" || row.modo === "checkout" ? row.modo : "ambos",
   };
 }
 
@@ -108,6 +112,13 @@ export async function parearTotem(codigo: string): Promise<{ token: string; tote
   if (upErr) throw new Error(`Falha ao parear: ${upErr.message}`);
   await registrarEvento(totem, "pareamento", {});
   return { token, totem };
+}
+
+/** Garante que o tablet só faz a função para a qual foi configurado. */
+export function exigirModo(totem: Totem, acao: "checkin" | "checkout") {
+  if (totem.modo !== "ambos" && totem.modo !== acao) {
+    throw new Error(acao === "checkin" ? "Este totem é só para check-out." : "Este totem é só para check-in.");
+  }
 }
 
 export async function autenticarTotem(token: string): Promise<Totem> {

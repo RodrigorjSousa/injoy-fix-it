@@ -23,6 +23,7 @@ import { UnidadeProvider } from "@/lib/unidade-context";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 
 function NotFoundComponent() {
   return (
@@ -154,6 +155,20 @@ function RootComponent() {
   useEffect(() => {
     return installChunkRecovery();
   }, []);
+
+  // Tablet do totem: depois de pareado, o aparelho só abre a tela do totem.
+  // Qualquer outro endereço (login da equipe, painel...) volta para /totem.
+  // Para liberar o aparelho, o gestor usa "Desconectar tablet" em Área do Gestor › Totem.
+  useEffect(() => {
+    if (isTotem) return;
+    let pareado = false;
+    try {
+      pareado = !!window.localStorage.getItem(CHAVE_TOKEN_TOTEM);
+    } catch {
+      pareado = false;
+    }
+    if (pareado) window.location.replace("/totem");
+  }, [isTotem]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {

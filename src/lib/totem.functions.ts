@@ -33,6 +33,7 @@ export type TotemInfo = {
   unidade: "Botafogo" | "Ipanema";
   telefoneSuporte: string | null;
   horaCheckin: string;
+  modo: "ambos" | "checkin" | "checkout";
 };
 
 export type PortaTotem = { label: string; tipo: string; senha: string | null; mesma: boolean };
@@ -60,7 +61,7 @@ export type RespostaCheckout =
   | { estado: "concluido"; nome: string; quarto: string; reservationID: string };
 
 function info(t: import("@/lib/totem/totem.server").Totem): TotemInfo {
-  return { nome: t.nome, unidade: t.unidade, telefoneSuporte: t.telefone_suporte, horaCheckin: t.hora_checkin };
+  return { nome: t.nome, unidade: t.unidade, telefoneSuporte: t.telefone_suporte, horaCheckin: t.hora_checkin, modo: t.modo };
 }
 
 export const totemParear = createServerFn({ method: "POST" })
@@ -89,6 +90,7 @@ async function executarCheckin(
   const S = await import("@/lib/totem/totem.server");
   const R = await import("@/lib/totem/regras");
   const totem = await S.autenticarTotem(input.token);
+  S.exigirModo(totem, "checkin");
   if (await S.totemBloqueado(totem)) return { estado: "bloqueado" };
 
   const achada = await S.identificarReservaCheckin(totem, input.ident);
@@ -194,6 +196,7 @@ async function executarCheckout(
   const S = await import("@/lib/totem/totem.server");
   const R = await import("@/lib/totem/regras");
   const totem = await S.autenticarTotem(input.token);
+  S.exigirModo(totem, "checkout");
   if (await S.totemBloqueado(totem)) return { estado: "bloqueado" };
 
   const achada = await S.identificarReservaCheckout(totem, input.quarto, input.sobrenome);
@@ -279,6 +282,7 @@ export const totemAvaliar = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const S = await import("@/lib/totem/totem.server");
     const totem = await S.autenticarTotem(data.token);
+    S.exigirModo(totem, "checkout");
     await S.salvarAvaliacao(totem, {
       reservationID: data.reservationID,
       quarto: data.quarto,

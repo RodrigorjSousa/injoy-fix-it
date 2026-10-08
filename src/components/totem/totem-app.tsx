@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
-import { ArrowLeft, DoorOpen, KeyRound, Loader2, LogOut, Phone, Star } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowLeft, Check, CornerDownLeft, Delete, DoorOpen, KeyRound, Loader2, LogOut, Phone, ScanLine, Star, UserRound } from "lucide-react";
 import {
   totemAvaliar,
   totemCheckinConfirmar,
@@ -16,8 +16,12 @@ import {
 import { formatadores, IDIOMAS, TEXTOS, type Idioma } from "@/lib/totem/i18n";
 import type { Motivo } from "@/lib/totem/regras";
 import { cn } from "@/lib/utils";
+import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 
-const CHAVE_TOKEN = "injoy.totem.token";
+// Tela do hóspede no tablet do balcão "Express" (pensada para 12" em paisagem,
+// funciona também em retrato). Não usa o teclado do Android: o teclado é
+// desenhado aqui, grande, para não cobrir metade da tela.
+
 
 function ler(chave: string): string | null {
   try {
@@ -31,7 +35,7 @@ function gravar(chave: string, valor: string | null) {
     if (valor === null) window.localStorage.removeItem(chave);
     else window.localStorage.setItem(chave, valor);
   } catch {
-    /* modo privado: segue sem guardar */
+    /* sem armazenamento: segue sem guardar */
   }
 }
 
@@ -61,42 +65,68 @@ const API_SERVIDOR: TotemApi = {
 };
 
 type SenhaTela = Extract<RespostaCheckin, { estado: "senha" }>;
+type Fluxo = "checkin" | "checkout";
 
 type Tela =
   | { t: "carregando" }
   | { t: "parear" }
   | { t: "inicio" }
-  | { t: "checkin" }
+  | { t: "checkin"; modo: Ident["modo"] }
   | { t: "checkin_resumo"; nome: string; quartos: string[]; checkOut: string; ident: Ident }
   | { t: "senha"; r: SenhaTela }
-  | { t: "impedido"; nome: string; quartos: string[]; motivos: Motivo[] }
-  | { t: "nao_encontrado"; fluxo: "checkin" | "checkout" }
-  | { t: "bloqueado" }
+  | { t: "impedido"; fluxo: Fluxo; nome: string; motivos: Motivo[] }
+  | { t: "nao_encontrado"; fluxo: Fluxo; voltar: Tela }
+  | { t: "bloqueado"; fluxo: Fluxo }
   | { t: "checkout" }
   | { t: "checkout_resumo"; nome: string; quarto: string; sobrenome: string }
   | { t: "checkout_feito"; nome: string; quarto: string; reservationID: string }
   | { t: "avaliado" }
-  | { t: "erro"; mensagem: string };
+  | { t: "erro"; fluxo: Fluxo; mensagem: string };
 
+/** Quanto tempo sem toque até perguntar "Ainda está aí?" (a tela inicial não tem limite). */
 const OCIOSO_MS: Partial<Record<Tela["t"], number>> = {
-  checkin: 90_000,
-  checkin_resumo: 90_000,
-  impedido: 60_000,
+  checkin: 75_000,
+  checkin_resumo: 60_000,
+  impedido: 45_000,
   nao_encontrado: 45_000,
-  bloqueado: 60_000,
-  checkout: 90_000,
-  checkout_resumo: 90_000,
-  checkout_feito: 90_000,
-  avaliado: 8_000,
-  erro: 60_000,
-  senha: 180_000,
+  bloqueado: 45_000,
+  checkout: 75_000,
+  checkout_resumo: 60_000,
+  checkout_feito: 60_000,
+  avaliado: 6_000,
+  erro: 45_000,
+  senha: 150_000,
 };
+const AVISO_S = 15;
 
 function mensagemDe(e: unknown): string {
   if (e instanceof Error) return e.message;
   if (typeof e === "string") return e;
   return "Erro desconhecido";
 }
+
+function fluxoDe(tela: Tela, modo: TotemInfo["modo"] | undefined): Fluxo {
+  if ("fluxo" in tela) return tela.fluxo;
+  if (tela.t.startsWith("checkout") || tela.t === "avaliado") return "checkout";
+  if (tela.t === "inicio" && modo === "checkout") return "checkout";
+  return "checkin";
+}
+
+function passoDe(tela: Tela): number {
+  switch (tela.t) {
+    case "checkin_resumo":
+    case "checkout_resumo":
+      return 1;
+    case "senha":
+    case "checkout_feito":
+    case "avaliado":
+      return 2;
+    default:
+      return 0;
+  }
+}
+
+// ======================================================================= app
 
 export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   const [token, setToken] = useState<string | null>(null);
@@ -106,32 +136,42 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   const t = TEXTOS[idioma];
   const fmt = useMemo(() => formatadores(idioma), [idioma]);
 
-  const tratarErro = useCallback((e: unknown) => {
+  const tratarErro = useCallback((e: unknown, fluxo: Fluxo = "checkin") => {
     const msg = mensagemDe(e);
     if (msg.includes("TOTEM_NAO_AUTORIZADO")) {
-      gravar(CHAVE_TOKEN, null);
+      gravar(CHAVE_TOKEN_TOTEM, null);
       setToken(null);
       setInfo(null);
       setTela({ t: "parear" });
       return;
     }
-    setTela({ t: "erro", mensagem: msg });
+    setTela({ t: "erro", fluxo, mensagem: msg });
   }, []);
 
-  // Início: recupera token e idioma do aparelho
   useEffect(() => {
-    const salvo = ler(CHAVE_TOKEN);
+    const salvo = ler(CHAVE_TOKEN_TOTEM);
     if (!salvo) {
       setTela({ t: "parear" });
       return;
     }
     setToken(salvo);
-    api.info(salvo)
+    api
+      .info(salvo)
       .then((i) => {
         setInfo(i);
         setTela({ t: "inicio" });
       })
-      .catch(tratarErro);
+      .catch((e) => tratarErro(e));
+    // Revalida o aparelho a cada 10 min (desconectar no painel do gestor tem efeito rápido).
+    const iv = window.setInterval(() => {
+      api
+        .info(salvo)
+        .then(setInfo)
+        .catch((e) => {
+          if (mensagemDe(e).includes("TOTEM_NAO_AUTORIZADO")) tratarErro(e);
+        });
+    }, 10 * 60_000);
+    return () => window.clearInterval(iv);
   }, [api, tratarErro]);
 
   const irInicio = useCallback(() => {
@@ -140,11 +180,388 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     setIdioma("pt");
   }, []);
 
-  // Volta sozinho ao início depois de um tempo sem toque
-  const ultimoToque = useRef(Date.now());
+  useModoQuiosque(!!token);
+  const restante = useOcioso(OCIOSO_MS[tela.t], tela, irInicio);
+
+  const modo = info?.modo ?? "ambos";
+  const fluxo = fluxoDe(tela, modo);
+  const titulo =
+    tela.t === "inicio" && modo === "ambos"
+      ? t.expressAmbos
+      : fluxo === "checkout"
+        ? t.expressCheckout
+        : t.expressCheckin;
+  const subtitulo =
+    tela.t === "inicio" && modo === "ambos" ? t.subtituloAmbos : fluxo === "checkout" ? t.subtituloCheckout : t.subtituloCheckin;
+  const mostraPassos = tela.t !== "parear" && tela.t !== "carregando" && !(tela.t === "inicio" && modo === "ambos");
+
+  // --------------------------------------------------------------- ações
+  const consultarCheckin = async (ident: Ident) => {
+    if (!token) return;
+    try {
+      const r = await api.checkinConsultar(token, ident);
+      if (r.estado === "pronto") setTela({ t: "checkin_resumo", nome: r.nome, quartos: r.quartos, checkOut: r.checkOut, ident });
+      else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkin", nome: r.nome, motivos: r.motivos });
+      else if (r.estado === "nao_encontrado") setTela({ t: "nao_encontrado", fluxo: "checkin", voltar: { t: "checkin", modo: ident.modo } });
+      else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkin" });
+      else if (r.estado === "senha") setTela({ t: "senha", r });
+    } catch (e) {
+      tratarErro(e, "checkin");
+    }
+  };
+
+  const confirmarCheckin = async (ident: Ident) => {
+    if (!token) return;
+    try {
+      const r = await api.checkinConfirmar(token, ident);
+      if (r.estado === "senha") setTela({ t: "senha", r });
+      else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkin", nome: r.nome, motivos: r.motivos });
+      else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkin" });
+      else setTela({ t: "nao_encontrado", fluxo: "checkin", voltar: { t: "checkin", modo: ident.modo } });
+    } catch (e) {
+      tratarErro(e, "checkin");
+    }
+  };
+
+  const consultarCheckout = async (quarto: string, sobrenome: string) => {
+    if (!token) return;
+    try {
+      const r = await api.checkoutConsultar(token, quarto, sobrenome);
+      if (r.estado === "pronto") setTela({ t: "checkout_resumo", nome: r.nome, quarto: r.quarto, sobrenome });
+      else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkout", nome: r.nome, motivos: r.motivos });
+      else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkout" });
+      else setTela({ t: "nao_encontrado", fluxo: "checkout", voltar: { t: "checkout" } });
+    } catch (e) {
+      tratarErro(e, "checkout");
+    }
+  };
+
+  const confirmarCheckout = async (quarto: string, sobrenome: string) => {
+    if (!token) return;
+    try {
+      const r = await api.checkoutConfirmar(token, quarto, sobrenome);
+      if (r.estado === "concluido") setTela({ t: "checkout_feito", nome: r.nome, quarto: r.quarto, reservationID: r.reservationID });
+      else if (r.estado === "impedido") setTela({ t: "impedido", fluxo: "checkout", nome: r.nome, motivos: r.motivos });
+      else if (r.estado === "bloqueado") setTela({ t: "bloqueado", fluxo: "checkout" });
+      else setTela({ t: "nao_encontrado", fluxo: "checkout", voltar: { t: "checkout" } });
+    } catch (e) {
+      tratarErro(e, "checkout");
+    }
+  };
+
+  const voltarInicioVisivel = !(tela.t === "inicio" || tela.t === "parear" || tela.t === "carregando" || (tela.t === "checkout" && modo === "checkout"));
+
+  // ------------------------------------------------------------- conteúdo
+  let painel: ReactNode = null;
+  switch (tela.t) {
+    case "carregando":
+      painel = (
+        <div className="grid h-full place-items-center">
+          <Loader2 className="h-10 w-10 animate-spin text-[var(--teal)]" aria-label="…" />
+        </div>
+      );
+      break;
+    case "parear":
+      painel = (
+        <Parear
+          t={t}
+          parear={api.parear}
+          onPareado={(tok, i) => {
+            gravar(CHAVE_TOKEN_TOTEM, tok);
+            setToken(tok);
+            setInfo(i);
+            setTela({ t: "inicio" });
+          }}
+        />
+      );
+      break;
+    case "inicio":
+      if (modo === "checkout") painel = <FormCheckout t={t} onEnviar={consultarCheckout} />;
+      else if (modo === "checkin") painel = <EscolherMetodo t={t} onEscolher={(m) => setTela({ t: "checkin", modo: m })} />;
+      else painel = <EscolherFluxo t={t} onEscolher={(f) => setTela(f === "checkin" ? { t: "checkin", modo: "codigo" } : { t: "checkout" })} />;
+      break;
+    case "checkin":
+      painel = <FormCheckin key={tela.modo} t={t} modo={tela.modo} onTrocarModo={(m) => setTela({ t: "checkin", modo: m })} onEnviar={consultarCheckin} />;
+      break;
+    case "checkin_resumo":
+      painel = (
+        <Resumo
+          t={t}
+          titulo={t.ola(tela.nome)}
+          linhas={[t.seuQuarto(tela.quartos), tela.checkOut ? t.saidaEm(fmt.data(tela.checkOut)) : ""]}
+          acao={t.confirmarCheckin}
+          carregando={t.gerandoSenha}
+          icone={<KeyRound className="h-7 w-7" />}
+          onConfirmar={() => confirmarCheckin(tela.ident)}
+        />
+      );
+      break;
+    case "senha":
+      painel = <TelaSenha t={t} r={tela.r} validaAte={fmt.dataHora(tela.r.validaAte)} onFim={irInicio} />;
+      break;
+    case "impedido":
+      painel = (
+        <Aviso t={t} titulo={tela.nome ? `${t.ola(tela.nome)} ${t.naoDeuCerto}.` : t.naoDeuCerto} telefone={info?.telefoneSuporte ?? null} onFim={irInicio}>
+          <ul className="mt-8 space-y-3">
+            {tela.motivos.map((m) => (
+              <li key={JSON.stringify(m)} className="flex gap-4 rounded-2xl bg-[var(--pedra)] px-6 py-5 text-xl font-medium">
+                <span aria-hidden className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--madeira)]" />
+                {t.motivo(m, fmt.data, fmt.valor)}
+              </li>
+            ))}
+          </ul>
+        </Aviso>
+      );
+      break;
+    case "nao_encontrado":
+      painel = (
+        <Aviso
+          t={t}
+          titulo={tela.fluxo === "checkin" ? t.naoEncontrada : t.naoEncontradaCheckout}
+          telefone={info?.telefoneSuporte ?? null}
+          onFim={irInicio}
+          tentar={() => setTela(tela.voltar)}
+        >
+          <p className="mt-5 max-w-xl text-xl leading-relaxed text-[var(--tinta-suave)]">{t.naoEncontradaDica}</p>
+        </Aviso>
+      );
+      break;
+    case "bloqueado":
+      painel = (
+        <Aviso t={t} titulo={t.bloqueado} telefone={info?.telefoneSuporte ?? null} onFim={irInicio}>
+          <p className="mt-5 text-xl text-[var(--tinta-suave)]">{t.bloqueadoDica}</p>
+        </Aviso>
+      );
+      break;
+    case "erro":
+      painel = (
+        <Aviso t={t} titulo={t.erro} telefone={info?.telefoneSuporte ?? null} onFim={irInicio}>
+          <p className="mt-6 rounded-2xl bg-[var(--pedra)] px-6 py-5 text-lg">{tela.mensagem}</p>
+        </Aviso>
+      );
+      break;
+    case "checkout":
+      painel = <FormCheckout t={t} onEnviar={consultarCheckout} />;
+      break;
+    case "checkout_resumo":
+      painel = (
+        <Resumo
+          t={t}
+          titulo={t.ola(tela.nome)}
+          linhas={[t.seuQuarto([tela.quarto])]}
+          acao={t.confirmarCheckout}
+          carregando={t.saindo}
+          icone={<LogOut className="h-7 w-7" />}
+          onConfirmar={() => confirmarCheckout(tela.quarto, tela.sobrenome)}
+        />
+      );
+      break;
+    case "checkout_feito":
+      painel = (
+        <Avaliacao
+          t={t}
+          onPular={irInicio}
+          onEnviar={async (nota, comentario) => {
+            if (!token) return;
+            try {
+              await api.avaliar(token, { reservationID: tela.reservationID, quarto: tela.quarto, nota, comentario });
+              setTela({ t: "avaliado" });
+            } catch (e) {
+              tratarErro(e, "checkout");
+            }
+          }}
+        />
+      );
+      break;
+    case "avaliado":
+      painel = (
+        <div className="flex h-full flex-col justify-center">
+          <span className="grid h-20 w-20 place-items-center rounded-full bg-[var(--teal)] text-white">
+            <Check className="h-10 w-10" />
+          </span>
+          <h2 className="mt-8 text-5xl font-extrabold tracking-tight">{t.avaliacaoEnviada}</h2>
+          <p className="mt-4 text-2xl text-[var(--tinta-suave)]">{t.obrigado}</p>
+        </div>
+      );
+      break;
+  }
+
+  const passos = fluxo === "checkout" ? t.passosCheckout : t.passosCheckin;
+
+  return (
+    <div
+      className="totem-quiosque relative min-h-[100dvh] select-none bg-[var(--pedra)] text-[var(--tinta)] antialiased lg:h-[100dvh] lg:overflow-hidden"
+      lang={idioma === "pt" ? "pt-BR" : idioma}
+      style={
+        {
+          "--pedra": "#ECE6DD",
+          "--linho": "#FBF8F4",
+          "--tinta": "#2B2622",
+          "--tinta-suave": "#2B2622B3",
+          "--madeira": "#B08356",
+          "--luz": "#F2C98A",
+          "--teal": "#0C5A64",
+          "--teal-escuro": "#08434B",
+        } as CSSProperties
+      }
+    >
+      <div className="grid min-h-[100dvh] lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,37fr)_minmax(0,63fr)] lg:grid-rows-[100%]">
+        {/* Coluna da marca: quem somos, onde estamos e em que etapa o hóspede está */}
+        <aside className="relative flex min-h-0 flex-col gap-6 px-8 py-7 lg:px-11 lg:py-9">
+          <div className="flex items-start justify-between gap-4">
+            <Marca unidade={info?.unidade} />
+            <Relogio idioma={idioma} />
+          </div>
+
+          <div className="lg:mt-2">
+            <h1 className="text-[2.6rem] font-extrabold leading-[1.04] tracking-tight xl:text-[2.9rem]">{titulo}</h1>
+            <p className="mt-3 max-w-md text-lg leading-snug text-[var(--tinta-suave)]">{subtitulo}</p>
+          </div>
+
+          {mostraPassos && (
+            <ol className="hidden space-y-1 lg:block" aria-label="Etapas">
+              {passos.map((p, i) => {
+                const atual = passoDe(tela);
+                const feito = i < atual;
+                const ativo = i === atual;
+                return (
+                  <li key={p} className="flex items-center gap-4 py-1.5">
+                    <span
+                      className={cn(
+                        "grid h-10 w-10 shrink-0 place-items-center rounded-full text-base font-bold transition-colors",
+                        feito && "bg-[var(--teal)] text-white",
+                        ativo && "bg-[var(--tinta)] text-white",
+                        !feito && !ativo && "border-2 border-[var(--tinta)]/20 text-[var(--tinta)]/40",
+                      )}
+                    >
+                      {feito ? <Check className="h-5 w-5" /> : i + 1}
+                    </span>
+                    <span className={cn("text-xl", ativo ? "font-bold" : feito ? "font-medium text-[var(--tinta-suave)]" : "text-[var(--tinta)]/45")}>{p}</span>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
+
+          <div className="mt-auto space-y-5">
+            {voltarInicioVisivel && (
+              <button
+                type="button"
+                onClick={irInicio}
+                className="inline-flex min-h-14 items-center gap-3 rounded-full bg-white/70 px-6 text-lg font-semibold text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
+              >
+                <ArrowLeft className="h-6 w-6" /> {t.inicio}
+              </button>
+            )}
+            {info?.telefoneSuporte && tela.t !== "parear" && (
+              <p className="flex items-center gap-3 text-lg">
+                <Phone className="h-5 w-5 text-[var(--madeira)]" />
+                <span>
+                  <span className="text-[var(--tinta-suave)]">{t.ajuda} </span>
+                  <span className="font-semibold">{info.telefoneSuporte}</span>
+                </span>
+              </p>
+            )}
+            <nav aria-label="Idioma / Language / Idioma" className="flex w-fit gap-1 rounded-full bg-white/70 p-1">
+                {IDIOMAS.map((i) => (
+                  <button
+                    key={i.id}
+                    type="button"
+                    onClick={() => setIdioma(i.id)}
+                    aria-pressed={idioma === i.id}
+                    className={cn(
+                      "min-h-12 rounded-full px-5 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--teal)]",
+                      idioma === i.id ? "bg-[var(--tinta)] text-white" : "text-[var(--tinta-suave)]",
+                    )}
+                  >
+                    {i.rotulo}
+                  </button>
+                ))}
+            </nav>
+          </div>
+          {/* Linha de luz, como o LED do balcão */}
+          <span aria-hidden className="pointer-events-none absolute inset-x-12 bottom-0 hidden h-px bg-gradient-to-r from-transparent via-[var(--luz)] to-transparent lg:block" />
+        </aside>
+
+        {/* Painel de interação */}
+        <main className="relative min-h-0 bg-[var(--linho)] px-8 py-8 shadow-[-24px_0_60px_-40px_rgba(43,38,34,0.35)] lg:rounded-l-[2.5rem] lg:px-12 lg:py-9">
+          <div className="h-full">{painel}</div>
+        </main>
+      </div>
+
+      {restante !== null && (
+        <AvisoInativo t={t} segundos={restante} onContinuar={() => window.dispatchEvent(new Event("pointerdown"))} />
+      )}
+    </div>
+  );
+}
+
+// =================================================================== quiosque
+
+/**
+ * Comportamento de quiosque no tablet pareado: tela sempre acesa, tela cheia ao
+ * primeiro toque, sem menu de toque longo, sem zoom de pinça e sem "voltar".
+ */
+function useModoQuiosque(ativo: boolean) {
+  useEffect(() => {
+    if (!ativo) return;
+    const bloquear = (e: Event) => e.preventDefault();
+    document.addEventListener("contextmenu", bloquear);
+    document.addEventListener("gesturestart", bloquear);
+
+    // Impede o "voltar" do navegador/Android de sair do totem.
+    window.history.pushState(null, "", window.location.href);
+    const naoVoltar = () => window.history.pushState(null, "", window.location.href);
+    window.addEventListener("popstate", naoVoltar);
+
+    // Mantém a tela acesa enquanto o totem está aberto.
+    type WakeLock = { release: () => Promise<void> };
+    let trava: WakeLock | null = null;
+    const pedirTela = async () => {
+      try {
+        const wl = (navigator as unknown as { wakeLock?: { request: (t: "screen") => Promise<WakeLock> } }).wakeLock;
+        if (wl && document.visibilityState === "visible") trava = await wl.request("screen");
+      } catch {
+        /* navegador sem suporte: a configuração do Android cuida disso */
+      }
+    };
+    void pedirTela();
+    const aoVoltarVisivel = () => document.visibilityState === "visible" && void pedirTela();
+    document.addEventListener("visibilitychange", aoVoltarVisivel);
+
+    // Tela cheia no primeiro toque (o navegador exige um gesto do usuário).
+    const telaCheia = () => {
+      if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen({ navigationUI: "hide" }).catch(() => undefined);
+      }
+    };
+    window.addEventListener("pointerdown", telaCheia);
+
+    const viewport = document.querySelector('meta[name="viewport"]');
+    const viewportAntes = viewport?.getAttribute("content") ?? null;
+    viewport?.setAttribute("content", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no");
+
+    return () => {
+      document.removeEventListener("contextmenu", bloquear);
+      document.removeEventListener("gesturestart", bloquear);
+      window.removeEventListener("popstate", naoVoltar);
+      document.removeEventListener("visibilitychange", aoVoltarVisivel);
+      window.removeEventListener("pointerdown", telaCheia);
+      if (viewport && viewportAntes) viewport.setAttribute("content", viewportAntes);
+      void trava?.release().catch(() => undefined);
+    };
+  }, [ativo]);
+}
+
+/** Depois de `limite` ms sem toque, mostra a contagem; ao zerar, volta ao início. */
+function useOcioso(limite: number | undefined, tela: Tela, aoExpirar: () => void): number | null {
+  const ultimo = useRef(Date.now());
+  const [restante, setRestante] = useState<number | null>(null);
+
   useEffect(() => {
     const marcar = () => {
-      ultimoToque.current = Date.now();
+      ultimo.current = Date.now();
+      setRestante(null);
     };
     window.addEventListener("pointerdown", marcar);
     window.addEventListener("keydown", marcar);
@@ -153,273 +570,82 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       window.removeEventListener("keydown", marcar);
     };
   }, []);
+
   useEffect(() => {
-    const limite = OCIOSO_MS[tela.t];
+    ultimo.current = Date.now();
+    setRestante(null);
     if (!limite) return;
-    ultimoToque.current = Date.now();
     const iv = window.setInterval(() => {
-      if (Date.now() - ultimoToque.current > limite) irInicio();
-    }, 1000);
+      const parado = Date.now() - ultimo.current;
+      if (parado < limite) return;
+      const falta = AVISO_S - Math.floor((parado - limite) / 1000);
+      if (falta <= 0 || tela.t === "avaliado") {
+        setRestante(null);
+        aoExpirar();
+      } else setRestante(falta);
+    }, 500);
     return () => window.clearInterval(iv);
-  }, [tela, irInicio]);
+  }, [limite, tela, aoExpirar]);
 
-  const escolherIdioma = (i: Idioma) => setIdioma(i);
+  return restante;
+}
 
+// ===================================================================== peças
+
+type T = (typeof TEXTOS)["pt"];
+
+function Marca({ unidade }: { unidade?: string }) {
+  // Mesmo desenho da placa do hall: IN / JOY dentro do quadrado, com o ponto.
   return (
-    <div className="totem min-h-screen bg-[#EAF2F1] text-[#0B2E33] antialiased" lang={idioma === "pt" ? "pt-BR" : idioma}>
-      <header className="mx-auto flex max-w-3xl items-center justify-between gap-4 px-5 pt-6 sm:px-8">
-        <button type="button" onClick={irInicio} className="text-left focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#0C5A64]">
-          <span className="block text-2xl font-extrabold tracking-tight text-[#0C5A64]">IN.JOY</span>
-          {info && <span className="block text-sm font-medium text-[#0B2E33]/60">{info.unidade}</span>}
-        </button>
-        <nav aria-label="Idioma / Language" className="flex rounded-full bg-white p-1 shadow-[inset_0_0_0_1px_rgba(12,90,100,0.15)]">
-          {IDIOMAS.map((i) => (
-            <button
-              key={i.id}
-              type="button"
-              onClick={() => escolherIdioma(i.id)}
-              aria-pressed={idioma === i.id}
-              className={cn(
-                "min-h-11 rounded-full px-3 text-sm font-semibold sm:px-4 transition-colors focus-visible:outline-2 focus-visible:outline-[#0C5A64]",
-                idioma === i.id ? "bg-[#0C5A64] text-white" : "text-[#0B2E33]/70",
-              )}
-            >
-              <span className="hidden sm:inline">{i.rotulo}</span>
-              <span className="sm:hidden" aria-label={i.rotulo}>{i.curto}</span>
-            </button>
-          ))}
-        </nav>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-5 pb-16 pt-10 sm:px-8">
-        {tela.t === "carregando" && <Carregando />}
-
-        {tela.t === "parear" && (
-          <Parear
-            t={t}
-            parear={api.parear}
-            onPareado={(tok, i) => {
-              gravar(CHAVE_TOKEN, tok);
-              setToken(tok);
-              setInfo(i);
-              setTela({ t: "inicio" });
-            }}
-          />
-        )}
-
-        {tela.t === "inicio" && (
-          <section>
-            <h1 className="text-4xl font-extrabold leading-tight tracking-tight sm:text-5xl">{t.boasVindas}</h1>
-            <p className="mt-3 text-xl text-[#0B2E33]/70">{t.oQueFazer}</p>
-            <div className="mt-10 grid gap-4">
-              <button
-                type="button"
-                onClick={() => setTela({ t: "checkin" })}
-                className="group flex min-h-36 items-center gap-6 rounded-3xl bg-[#0C5A64] px-8 py-6 text-left text-white shadow-[0_12px_30px_-12px_rgba(12,90,100,0.6)] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#F2C14E] active:scale-[0.99]"
-              >
-                <KeyRound className="h-12 w-12 shrink-0 text-[#F2C14E]" strokeWidth={1.75} />
-                <span>
-                  <span className="block text-3xl font-extrabold">{t.checkin}</span>
-                  <span className="mt-1 block text-lg text-white/80">{t.checkinSub}</span>
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setTela({ t: "checkout" })}
-                className="flex min-h-28 items-center gap-6 rounded-2xl bg-white px-8 py-5 text-left shadow-[inset_0_0_0_2px_rgba(12,90,100,0.25)] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#0C5A64] active:scale-[0.99]"
-              >
-                <LogOut className="h-10 w-10 shrink-0 text-[#0C5A64]" strokeWidth={1.75} />
-                <span>
-                  <span className="block text-2xl font-bold">{t.checkout}</span>
-                  <span className="mt-1 block text-base text-[#0B2E33]/65">{t.checkoutSub}</span>
-                </span>
-              </button>
-            </div>
-          </section>
-        )}
-
-        {tela.t === "checkin" && token && (
-          <FormCheckin
-            t={t}
-            onVoltar={irInicio}
-            onEnviar={async (ident) => {
-              try {
-                const r = await api.checkinConsultar(token, ident);
-                if (r.estado === "pronto") setTela({ t: "checkin_resumo", nome: r.nome, quartos: r.quartos, checkOut: r.checkOut, ident });
-                else if (r.estado === "impedido") setTela({ t: "impedido", nome: r.nome, quartos: r.quartos, motivos: r.motivos });
-                else if (r.estado === "nao_encontrado") setTela({ t: "nao_encontrado", fluxo: "checkin" });
-                else if (r.estado === "bloqueado") setTela({ t: "bloqueado" });
-                else if (r.estado === "senha") setTela({ t: "senha", r });
-              } catch (e) {
-                tratarErro(e);
-              }
-            }}
-          />
-        )}
-
-        {tela.t === "checkin_resumo" && token && (
-          <Resumo
-            t={t}
-            titulo={t.ola(tela.nome)}
-            linhas={[t.seuQuarto(tela.quartos), tela.checkOut ? t.saidaEm(fmt.data(tela.checkOut)) : ""]}
-            acao={t.confirmarCheckin}
-            carregando={t.gerandoSenha}
-            onVoltar={irInicio}
-            onConfirmar={async () => {
-              try {
-                const r = await api.checkinConfirmar(token, tela.ident);
-                if (r.estado === "senha") setTela({ t: "senha", r });
-                else if (r.estado === "impedido") setTela({ t: "impedido", nome: r.nome, quartos: r.quartos, motivos: r.motivos });
-                else if (r.estado === "bloqueado") setTela({ t: "bloqueado" });
-                else setTela({ t: "nao_encontrado", fluxo: "checkin" });
-              } catch (e) {
-                tratarErro(e);
-              }
-            }}
-          />
-        )}
-
-        {tela.t === "senha" && <TelaSenha t={t} r={tela.r} validaAte={fmt.dataHora(tela.r.validaAte)} onFim={irInicio} />}
-
-        {tela.t === "impedido" && (
-          <Aviso
-            titulo={t.naoDeuCerto}
-            telefone={info?.telefoneSuporte ?? null}
-            t={t}
-            onFim={irInicio}
-          >
-            <ul className="mt-6 space-y-3">
-              {tela.motivos.map((m) => (
-                <li key={JSON.stringify(m)} className="rounded-2xl bg-white px-6 py-4 text-xl font-medium">
-                  {t.motivo(m, fmt.data, fmt.valor)}
-                </li>
-              ))}
-            </ul>
-          </Aviso>
-        )}
-
-        {tela.t === "nao_encontrado" && (
-          <Aviso
-            titulo={tela.fluxo === "checkin" ? t.naoEncontrada : t.naoEncontradaCheckout}
-            telefone={info?.telefoneSuporte ?? null}
-            t={t}
-            onFim={irInicio}
-            tentar={() => setTela({ t: tela.fluxo })}
-          >
-            <p className="mt-4 text-lg text-[#0B2E33]/70">{t.naoEncontradaDica}</p>
-          </Aviso>
-        )}
-
-        {tela.t === "bloqueado" && (
-          <Aviso titulo={t.bloqueado} telefone={info?.telefoneSuporte ?? null} t={t} onFim={irInicio}>
-            <p className="mt-4 text-lg text-[#0B2E33]/70">{t.bloqueadoDica}</p>
-          </Aviso>
-        )}
-
-        {tela.t === "erro" && (
-          <Aviso titulo={t.erro} telefone={info?.telefoneSuporte ?? null} t={t} onFim={irInicio}>
-            <p className="mt-4 rounded-2xl bg-white px-6 py-4 text-lg">{tela.mensagem}</p>
-          </Aviso>
-        )}
-
-        {tela.t === "checkout" && token && (
-          <FormCheckout
-            t={t}
-            onVoltar={irInicio}
-            onEnviar={async (quarto, sobrenome) => {
-              try {
-                const r = await api.checkoutConsultar(token, quarto, sobrenome);
-                if (r.estado === "pronto") setTela({ t: "checkout_resumo", nome: r.nome, quarto: r.quarto, sobrenome });
-                else if (r.estado === "impedido") setTela({ t: "impedido", nome: r.nome, quartos: [r.quarto], motivos: r.motivos });
-                else if (r.estado === "bloqueado") setTela({ t: "bloqueado" });
-                else setTela({ t: "nao_encontrado", fluxo: "checkout" });
-              } catch (e) {
-                tratarErro(e);
-              }
-            }}
-          />
-        )}
-
-        {tela.t === "checkout_resumo" && token && (
-          <Resumo
-            t={t}
-            titulo={t.ola(tela.nome)}
-            linhas={[t.seuQuarto([tela.quarto])]}
-            acao={t.confirmarCheckout}
-            carregando={t.saindo}
-            onVoltar={irInicio}
-            onConfirmar={async () => {
-              try {
-                const r = await api.checkoutConfirmar(token, tela.quarto, tela.sobrenome);
-                if (r.estado === "concluido") setTela({ t: "checkout_feito", nome: r.nome, quarto: r.quarto, reservationID: r.reservationID });
-                else if (r.estado === "impedido") setTela({ t: "impedido", nome: r.nome, quartos: [r.quarto], motivos: r.motivos });
-                else if (r.estado === "bloqueado") setTela({ t: "bloqueado" });
-                else setTela({ t: "nao_encontrado", fluxo: "checkout" });
-              } catch (e) {
-                tratarErro(e);
-              }
-            }}
-          />
-        )}
-
-        {tela.t === "checkout_feito" && token && (
-          <Avaliacao
-            t={t}
-            onPular={irInicio}
-            onEnviar={async (nota, comentario) => {
-              try {
-                await api.avaliar(token, { reservationID: tela.reservationID, quarto: tela.quarto, nota, comentario });
-                setTela({ t: "avaliado" });
-              } catch (e) {
-                tratarErro(e);
-              }
-            }}
-          />
-        )}
-
-        {tela.t === "avaliado" && (
-          <section className="pt-10">
-            <h1 className="text-4xl font-extrabold tracking-tight">{t.avaliacaoEnviada}</h1>
-            <BotaoPrincipal onClick={irInicio} className="mt-10">{t.inicio}</BotaoPrincipal>
-          </section>
-        )}
-      </main>
+    <div className="flex items-center gap-4">
+      <div className="relative border-[2.5px] border-[var(--tinta)] px-3 pb-2 pt-1.5 text-[1.35rem] font-extrabold leading-[1.05] tracking-[0.06em]">
+        <span className="block">IN</span>
+        <span className="block">
+          JOY<span aria-hidden className="ml-0.5 inline-block h-2 w-2 rounded-full bg-[var(--teal)] align-baseline" />
+        </span>
+      </div>
+      {unidade && <span className="text-lg font-medium text-[var(--tinta-suave)]">{unidade}</span>}
     </div>
   );
 }
 
-// ---------------------------------------------------------------- peças
-
-type T = (typeof TEXTOS)["pt"];
-
-function Carregando() {
+function Relogio({ idioma }: { idioma: Idioma }) {
+  const [agora, setAgora] = useState(() => new Date());
+  useEffect(() => {
+    const iv = window.setInterval(() => setAgora(new Date()), 20_000);
+    return () => window.clearInterval(iv);
+  }, []);
+  const locale = idioma === "pt" ? "pt-BR" : idioma === "en" ? "en-GB" : "es-ES";
   return (
-    <div className="grid min-h-[50vh] place-items-center">
-      <Loader2 className="h-10 w-10 animate-spin text-[#0C5A64]" aria-label="…" />
-    </div>
+    <p className="text-right leading-tight">
+      <span className="block text-2xl font-bold tabular-nums">
+        {agora.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
+      </span>
+      <span className="block text-sm text-[var(--tinta-suave)] first-letter:uppercase">
+        {agora.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "America/Sao_Paulo" })}
+      </span>
+    </p>
   );
 }
 
 function BotaoPrincipal({
   children,
   onClick,
-  type = "button",
   disabled,
   className,
 }: {
   children: ReactNode;
   onClick?: () => void;
-  type?: "button" | "submit";
   disabled?: boolean;
   className?: string;
 }) {
   return (
     <button
-      type={type}
+      type="button"
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex min-h-16 w-full items-center justify-center gap-3 rounded-2xl bg-[#0C5A64] px-6 text-xl font-bold text-white focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[#F2C14E] disabled:opacity-60",
+        "flex min-h-[4.5rem] w-full items-center justify-center gap-3 rounded-2xl bg-[var(--teal)] px-8 text-2xl font-bold text-white transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--luz)] active:scale-[0.99] disabled:opacity-50",
         className,
       )}
     >
@@ -428,51 +654,18 @@ function BotaoPrincipal({
   );
 }
 
-function BotaoVoltar({ onClick, children }: { onClick: () => void; children: ReactNode }) {
+function BotaoSecundario({ children, onClick, className }: { children: ReactNode; onClick: () => void; className?: string }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="inline-flex min-h-12 items-center gap-2 rounded-xl pr-4 text-lg font-semibold text-[#0C5A64] focus-visible:outline-2 focus-visible:outline-[#0C5A64]"
+      className={cn(
+        "min-h-[4.5rem] w-full rounded-2xl border-2 border-[var(--tinta)]/15 bg-white text-2xl font-bold text-[var(--tinta)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-[0.99]",
+        className,
+      )}
     >
-      <ArrowLeft className="h-5 w-5" /> {children}
+      {children}
     </button>
-  );
-}
-
-function Campo({
-  label,
-  ajuda,
-  value,
-  onChange,
-  autoFocus,
-  inputMode,
-  autoCapitalize = "words",
-}: {
-  label: string;
-  ajuda?: string;
-  value: string;
-  onChange: (v: string) => void;
-  autoFocus?: boolean;
-  inputMode?: "text" | "numeric";
-  autoCapitalize?: "words" | "characters" | "none";
-}) {
-  return (
-    <label className="block">
-      <span className="block text-lg font-semibold">{label}</span>
-      {ajuda && <span className="mt-0.5 block text-base text-[#0B2E33]/60">{ajuda}</span>}
-      <input
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        autoFocus={autoFocus}
-        inputMode={inputMode}
-        autoCapitalize={autoCapitalize}
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        className="mt-2 block min-h-16 w-full rounded-2xl border-2 border-[#0C5A64]/20 bg-white px-5 text-2xl font-semibold outline-none focus:border-[#0C5A64]"
-      />
-    </label>
   );
 }
 
@@ -490,125 +683,343 @@ function useEnvio() {
   return { enviando, enviar };
 }
 
+// ------------------------------------------------------- teclado da tela
+
+type Campo = {
+  id: string;
+  rotulo: string;
+  ajuda?: string;
+  valor: string;
+  teclado: "texto" | "numerico";
+  max: number;
+  valido: (v: string) => boolean;
+};
+
+const LINHAS_TEXTO = ["1234567890", "QWERTYUIOP", "ASDFGHJKL-", "ZXCVBNM'"];
+
+/**
+ * Formulário com campos grandes + teclado próprio. Também aceita teclado físico
+ * (útil para a equipe testar no computador). Nenhum <input>: o teclado do
+ * Android nunca abre.
+ */
+function FormTeclado({
+  t,
+  campos,
+  onChange,
+  acao,
+  carregando,
+  onEnviar,
+  cabecalho,
+}: {
+  t: T;
+  campos: Campo[];
+  onChange: (id: string, valor: string) => void;
+  acao: string;
+  carregando: string;
+  onEnviar: () => Promise<void>;
+  cabecalho?: ReactNode;
+}) {
+  const [ativo, setAtivo] = useState(campos[0]?.id);
+  const { enviando, enviar } = useEnvio();
+  const campo = campos.find((c) => c.id === ativo) ?? campos[0];
+  const tudoValido = campos.every((c) => c.valido(c.valor));
+
+  const digitar = useCallback(
+    (ch: string) => {
+      if (!campo || campo.valor.length >= campo.max) return;
+      if (campo.teclado === "numerico" && !/[0-9A-Za-z]/.test(ch)) return;
+      onChange(campo.id, campo.valor + ch);
+    },
+    [campo, onChange],
+  );
+  const apagar = useCallback(() => campo && onChange(campo.id, campo.valor.slice(0, -1)), [campo, onChange]);
+  const confirmar = useCallback(() => {
+    // "Continuar" leva ao próximo campo vazio; com tudo preenchido, envia.
+    const pendente = campos.find((c) => !c.valido(c.valor));
+    if (pendente) {
+      setAtivo(pendente.id);
+      return;
+    }
+    void enviar(onEnviar);
+  }, [campos, enviar, onEnviar]);
+
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return;
+      if (e.key === "Backspace") apagar();
+      else if (e.key === "Enter") confirmar();
+      else if (e.key === "Tab") {
+        e.preventDefault();
+        const i = campos.findIndex((c) => c.id === ativo);
+        setAtivo(campos[(i + 1) % campos.length].id);
+      } else if (e.key.length === 1 && /[\p{L}\p{N} '\-.]/u.test(e.key)) digitar(e.key.toUpperCase());
+      else return;
+      e.preventDefault();
+    };
+    window.addEventListener("keydown", tecla);
+    return () => window.removeEventListener("keydown", tecla);
+  }, [apagar, confirmar, digitar, campos, ativo]);
+
+  return (
+    <div className="flex h-full flex-col">
+      {cabecalho}
+      <div className={cn("grid gap-4", campos.length > 1 && "sm:grid-cols-2")}>
+        {campos.map((c) => {
+          const sel = c.id === campo?.id;
+          return (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => setAtivo(c.id)}
+              aria-pressed={sel}
+              className="block self-start text-left focus-visible:outline-none"
+            >
+              <span className="block text-lg font-semibold">{c.rotulo}</span>
+              <span
+                className={cn(
+                  "mt-2 flex min-h-[4.5rem] items-center rounded-2xl border-2 bg-white px-5 text-[1.75rem] font-bold tracking-wide transition-colors",
+                  sel ? "border-[var(--teal)] shadow-[0_0_0_4px_rgba(12,90,100,0.12)]" : "border-[var(--tinta)]/10",
+                )}
+              >
+                <span className="truncate">{c.valor}</span>
+                {sel && <span aria-hidden className="ml-0.5 inline-block h-8 w-[3px] animate-pulse rounded bg-[var(--teal)]" />}
+              </span>
+              {c.ajuda && <span className="mt-1.5 block text-[0.95rem] leading-snug text-[var(--tinta-suave)]">{c.ajuda}</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="pt-6 lg:mt-auto lg:pt-5">
+        {campo?.teclado === "numerico" ? (
+          <TecladoNumerico t={t} onDigito={digitar} onApagar={apagar} onConfirmar={confirmar} acao={enviando ? carregando : acao} enviando={enviando} pronto={tudoValido} />
+        ) : (
+          <TecladoTexto t={t} onDigito={digitar} onApagar={apagar} onConfirmar={confirmar} acao={enviando ? carregando : acao} enviando={enviando} pronto={tudoValido} />
+        )}
+      </div>
+    </div>
+  );
+}
+
+type PropsTeclado = {
+  t: T;
+  onDigito: (ch: string) => void;
+  onApagar: () => void;
+  onConfirmar: () => void;
+  acao: string;
+  enviando: boolean;
+  pronto: boolean;
+};
+
+const classeTecla =
+  "grid min-h-[3.6rem] place-items-center rounded-xl bg-white text-[1.45rem] font-bold text-[var(--tinta)] shadow-[inset_0_-3px_0_rgba(43,38,34,0.12),0_0_0_1px_rgba(43,38,34,0.06)] active:translate-y-px active:bg-[var(--pedra)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]";
+
+function TeclaAcao({ acao, enviando, pronto, onConfirmar, className }: { acao: string; enviando: boolean; pronto: boolean; onConfirmar: () => void; className?: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onConfirmar}
+      disabled={enviando}
+      className={cn(
+        "flex min-h-[3.6rem] items-center justify-center gap-2 rounded-xl px-4 text-xl font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--luz)]",
+        pronto ? "bg-[var(--teal)] text-white" : "bg-[var(--tinta)]/80 text-white",
+        className,
+      )}
+    >
+      {enviando ? <Loader2 className="h-6 w-6 animate-spin" /> : <CornerDownLeft className="h-6 w-6" />}
+      <span className="truncate">{acao}</span>
+    </button>
+  );
+}
+
+function TecladoTexto({ t, onDigito, onApagar, onConfirmar, acao, enviando, pronto }: PropsTeclado) {
+  return (
+    <div className="space-y-2" aria-label="Teclado">
+      {LINHAS_TEXTO.map((linha, i) => (
+        <div key={linha} className="grid grid-cols-10 gap-2">
+          {linha.split("").map((ch) => (
+            <button key={ch} type="button" onClick={() => onDigito(ch)} className={classeTecla}>
+              {ch}
+            </button>
+          ))}
+          {i === 3 && (
+            <button type="button" onClick={onApagar} className={cn(classeTecla, "col-span-2 text-base")} aria-label={t.apagar}>
+              <Delete className="h-7 w-7" />
+            </button>
+          )}
+        </div>
+      ))}
+      <div className="grid grid-cols-10 gap-2">
+        <button type="button" onClick={() => onDigito(" ")} className={cn(classeTecla, "col-span-5 text-lg font-semibold text-[var(--tinta-suave)]")}>
+          {t.espaco}
+        </button>
+        <TeclaAcao acao={acao} enviando={enviando} pronto={pronto} onConfirmar={onConfirmar} className="col-span-5" />
+      </div>
+    </div>
+  );
+}
+
+function TecladoNumerico({ t, onDigito, onApagar, onConfirmar, acao, enviando, pronto }: PropsTeclado) {
+  return (
+    <div className="mx-auto grid max-w-xl grid-cols-3 gap-2.5" aria-label="Teclado">
+      {"123456789".split("").map((d) => (
+        <button key={d} type="button" onClick={() => onDigito(d)} className={cn(classeTecla, "min-h-[4.25rem] text-[2rem]")}>
+          {d}
+        </button>
+      ))}
+      <button type="button" onClick={onApagar} className={cn(classeTecla, "min-h-[4.25rem]")} aria-label={t.apagar}>
+        <Delete className="h-8 w-8" />
+      </button>
+      <button type="button" onClick={() => onDigito("0")} className={cn(classeTecla, "min-h-[4.25rem] text-[2rem]")}>
+        0
+      </button>
+      <TeclaAcao acao={acao} enviando={enviando} pronto={pronto} onConfirmar={onConfirmar} className="min-h-[4.25rem]" />
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------- telas
+
 function Parear({ t, parear, onPareado }: { t: T; parear: TotemApi["parear"]; onPareado: (token: string, info: TotemInfo) => void }) {
   const [codigo, setCodigo] = useState("");
   const [erro, setErro] = useState<string | null>(null);
-  const { enviando, enviar } = useEnvio();
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    setErro(null);
-    void enviar(async () => {
-      try {
-        const r = await parear(codigo);
-        onPareado(r.token, r.totem);
-      } catch (err) {
-        setErro(mensagemDe(err));
+  const limpo = codigo.replace(/[^A-Za-z0-9]/g, "");
+  return (
+    <FormTeclado
+      t={t}
+      cabecalho={
+        <div className="mb-8">
+          <h2 className="text-4xl font-extrabold tracking-tight">{t.pareamentoTitulo}</h2>
+          <p className="mt-3 text-xl text-[var(--tinta-suave)]">{t.pareamentoAjuda}</p>
+          {erro && (
+            <p role="alert" className="mt-5 rounded-2xl bg-[#A3342B]/10 px-5 py-4 text-lg font-medium text-[#7E2720]">
+              {erro}
+            </p>
+          )}
+        </div>
       }
-    });
-  };
-  return (
-    <form onSubmit={submit} className="space-y-6">
-      <h1 className="text-4xl font-extrabold tracking-tight">{t.pareamentoTitulo}</h1>
-      <p className="text-lg text-[#0B2E33]/70">{t.pareamentoAjuda}</p>
-      <Campo label={t.pareamentoCodigo} value={codigo} onChange={(v) => setCodigo(v.toUpperCase())} autoFocus autoCapitalize="characters" />
-      {erro && <p role="alert" className="rounded-2xl bg-[#B4232C]/10 px-5 py-4 text-lg font-medium text-[#8E1B22]">{erro}</p>}
-      <BotaoPrincipal type="submit" disabled={enviando || codigo.replace(/[^A-Za-z0-9]/g, "").length !== 8}>
-        {enviando && <Loader2 className="h-6 w-6 animate-spin" />} {t.parear}
-      </BotaoPrincipal>
-    </form>
+      campos={[{ id: "codigo", rotulo: t.pareamentoCodigo, valor: codigo, teclado: "texto", max: 9, valido: () => limpo.length === 8 }]}
+      onChange={(_, v) => setCodigo(v.toUpperCase())}
+      acao={t.parear}
+      carregando={t.conferindo}
+      onEnviar={async () => {
+        setErro(null);
+        try {
+          const r = await parear(codigo);
+          onPareado(r.token, r.totem);
+        } catch (e) {
+          setErro(mensagemDe(e));
+        }
+      }}
+    />
   );
 }
 
-function FormCheckin({ t, onVoltar, onEnviar }: { t: T; onVoltar: () => void; onEnviar: (i: Ident) => Promise<void> }) {
-  const [modo, setModo] = useState<"codigo" | "documento">("codigo");
-  const [codigo, setCodigo] = useState("");
-  const [sobrenome, setSobrenome] = useState("");
-  const [nome, setNome] = useState("");
-  const [documento, setDocumento] = useState("");
-  const { enviando, enviar } = useEnvio();
-  const valido =
-    modo === "codigo"
-      ? codigo.trim().length >= 4 && sobrenome.trim().length >= 2
-      : nome.trim().split(/\s+/).length >= 2 && documento.trim().length >= 5;
-  const submit = (e: FormEvent) => {
-    e.preventDefault();
-    if (!valido) return;
-    void enviar(() =>
-      onEnviar(modo === "codigo" ? { modo, codigo: codigo.trim(), sobrenome: sobrenome.trim() } : { modo, nome: nome.trim(), documento: documento.trim() }),
-    );
-  };
+function CartaoEscolha({ icone, titulo, texto, onClick, destaque }: { icone: ReactNode; titulo: string; texto: string; onClick: () => void; destaque?: boolean }) {
   return (
-    <form onSubmit={submit} className="space-y-7">
-      <BotaoVoltar onClick={onVoltar}>{t.voltar}</BotaoVoltar>
-      <h1 className="text-4xl font-extrabold tracking-tight">{t.checkin}</h1>
-      <div role="tablist" className="grid grid-cols-2 gap-2 rounded-2xl bg-white p-1.5 shadow-[inset_0_0_0_1px_rgba(12,90,100,0.15)]">
-        {(["codigo", "documento"] as const).map((m) => (
-          <button
-            key={m}
-            type="button"
-            role="tab"
-            aria-selected={modo === m}
-            onClick={() => setModo(m)}
-            className={cn(
-              "min-h-14 rounded-xl px-3 text-base font-semibold focus-visible:outline-2 focus-visible:outline-[#0C5A64]",
-              modo === m ? "bg-[#0C5A64] text-white" : "text-[#0B2E33]/70",
-            )}
-          >
-            {m === "codigo" ? t.porCodigo : t.porDocumento}
-          </button>
-        ))}
-      </div>
-      {modo === "codigo" ? (
-        <>
-          <Campo label={t.codigo} ajuda={t.codigoAjuda} value={codigo} onChange={setCodigo} autoFocus autoCapitalize="characters" />
-          <Campo label={t.sobrenome} ajuda={t.sobrenomeAjuda} value={sobrenome} onChange={setSobrenome} />
-        </>
-      ) : (
-        <>
-          <Campo label={t.nome} value={nome} onChange={setNome} autoFocus />
-          <Campo label={t.documento} ajuda={t.documentoAjuda} value={documento} onChange={setDocumento} autoCapitalize="characters" />
-        </>
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group flex min-h-[12rem] flex-col justify-between rounded-[1.75rem] p-8 text-left transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--teal)] active:scale-[0.99]",
+        destaque ? "bg-[var(--teal)] text-white shadow-[0_24px_50px_-28px_rgba(12,90,100,0.9)]" : "bg-white shadow-[0_0_0_1px_rgba(43,38,34,0.08)]",
       )}
-      <BotaoPrincipal type="submit" disabled={!valido || enviando}>
-        {enviando ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin" /> {t.conferindo}
-          </>
-        ) : (
-          t.continuar
-        )}
-      </BotaoPrincipal>
-    </form>
+    >
+      <span className={cn("grid h-16 w-16 place-items-center rounded-2xl", destaque ? "bg-white/15 text-[var(--luz)]" : "bg-[var(--pedra)] text-[var(--teal)]")}>{icone}</span>
+      <span>
+        <span className="block text-3xl font-extrabold tracking-tight">{titulo}</span>
+        <span className={cn("mt-2 block text-lg leading-snug", destaque ? "text-white/80" : "text-[var(--tinta-suave)]")}>{texto}</span>
+      </span>
+    </button>
   );
 }
 
-function FormCheckout({ t, onVoltar, onEnviar }: { t: T; onVoltar: () => void; onEnviar: (quarto: string, sobrenome: string) => Promise<void> }) {
+function EscolherFluxo({ t, onEscolher }: { t: T; onEscolher: (f: Fluxo) => void }) {
+  return (
+    <div className="flex h-full flex-col justify-center gap-5">
+      <h2 className="text-4xl font-extrabold tracking-tight">{t.oQueFazer}</h2>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <CartaoEscolha destaque icone={<KeyRound className="h-8 w-8" />} titulo={t.checkin} texto={t.checkinSub} onClick={() => onEscolher("checkin")} />
+        <CartaoEscolha icone={<LogOut className="h-8 w-8" />} titulo={t.checkout} texto={t.checkoutSub} onClick={() => onEscolher("checkout")} />
+      </div>
+    </div>
+  );
+}
+
+function EscolherMetodo({ t, onEscolher }: { t: T; onEscolher: (m: Ident["modo"]) => void }) {
+  return (
+    <div className="flex h-full flex-col justify-center gap-6">
+      <div>
+        <p className="text-2xl font-semibold text-[var(--madeira)]">{t.boasVindas}</p>
+        <h2 className="mt-2 text-4xl font-extrabold tracking-tight">{t.comoEncontrar}</h2>
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2">
+        <CartaoEscolha destaque icone={<ScanLine className="h-8 w-8" />} titulo={t.porCodigo} texto={t.porCodigoSub} onClick={() => onEscolher("codigo")} />
+        <CartaoEscolha icone={<UserRound className="h-8 w-8" />} titulo={t.porDocumento} texto={t.porDocumentoSub} onClick={() => onEscolher("documento")} />
+      </div>
+    </div>
+  );
+}
+
+function FormCheckin({ t, modo, onTrocarModo, onEnviar }: { t: T; modo: Ident["modo"]; onTrocarModo: (m: Ident["modo"]) => void; onEnviar: (i: Ident) => Promise<void> }) {
+  const [v, setV] = useState<Record<string, string>>({});
+  const set = (id: string, valor: string) => setV((a) => ({ ...a, [id]: valor }));
+  const campos: Campo[] =
+    modo === "codigo"
+      ? [
+          { id: "codigo", rotulo: t.codigo, ajuda: t.codigoAjuda, valor: v.codigo ?? "", teclado: "texto", max: 30, valido: (x) => x.replace(/[^A-Za-z0-9]/g, "").length >= 4 },
+          { id: "sobrenome", rotulo: t.sobrenome, ajuda: t.sobrenomeAjuda, valor: v.sobrenome ?? "", teclado: "texto", max: 60, valido: (x) => x.trim().length >= 2 },
+        ]
+      : [
+          { id: "nome", rotulo: t.nome, valor: v.nome ?? "", teclado: "texto", max: 80, valido: (x) => x.trim().split(/\s+/).length >= 2 },
+          { id: "documento", rotulo: t.documento, ajuda: t.documentoAjuda, valor: v.documento ?? "", teclado: "texto", max: 30, valido: (x) => x.replace(/[^A-Za-z0-9]/g, "").length >= 5 },
+        ];
+  return (
+    <FormTeclado
+      t={t}
+      cabecalho={
+        <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
+          <h2 className="text-[2.1rem] font-extrabold tracking-tight">{modo === "codigo" ? t.porCodigo : t.porDocumento}</h2>
+          <button
+            type="button"
+            onClick={() => onTrocarModo(modo === "codigo" ? "documento" : "codigo")}
+            className="min-h-12 rounded-full bg-[var(--pedra)] px-5 text-base font-semibold text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
+          >
+            {modo === "codigo" ? t.porDocumento : t.porCodigo}
+          </button>
+        </div>
+      }
+      campos={campos}
+      onChange={set}
+      acao={t.continuar}
+      carregando={t.conferindo}
+      onEnviar={() =>
+        onEnviar(
+          modo === "codigo"
+            ? { modo, codigo: (v.codigo ?? "").trim(), sobrenome: (v.sobrenome ?? "").trim() }
+            : { modo, nome: (v.nome ?? "").trim(), documento: (v.documento ?? "").trim() },
+        )
+      }
+    />
+  );
+}
+
+function FormCheckout({ t, onEnviar }: { t: T; onEnviar: (quarto: string, sobrenome: string) => Promise<void> }) {
   const [quarto, setQuarto] = useState("");
   const [sobrenome, setSobrenome] = useState("");
-  const { enviando, enviar } = useEnvio();
-  const valido = quarto.trim().length >= 1 && sobrenome.trim().length >= 2;
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        if (valido) void enviar(() => onEnviar(quarto.trim(), sobrenome.trim()));
-      }}
-      className="space-y-7"
-    >
-      <BotaoVoltar onClick={onVoltar}>{t.voltar}</BotaoVoltar>
-      <h1 className="text-4xl font-extrabold tracking-tight">{t.checkout}</h1>
-      <Campo label={t.quarto} value={quarto} onChange={setQuarto} autoFocus inputMode="numeric" autoCapitalize="none" />
-      <Campo label={t.sobrenome} value={sobrenome} onChange={setSobrenome} />
-      <BotaoPrincipal type="submit" disabled={!valido || enviando}>
-        {enviando ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin" /> {t.conferindo}
-          </>
-        ) : (
-          t.continuar
-        )}
-      </BotaoPrincipal>
-    </form>
+    <FormTeclado
+      t={t}
+      cabecalho={<h2 className="mb-7 text-[2.1rem] font-extrabold tracking-tight">{t.checkout}</h2>}
+      campos={[
+        { id: "quarto", rotulo: t.quarto, valor: quarto, teclado: "numerico", max: 6, valido: (x) => x.trim().length >= 1 },
+        { id: "sobrenome", rotulo: t.sobrenome, valor: sobrenome, teclado: "texto", max: 60, valido: (x) => x.trim().length >= 2 },
+      ]}
+      onChange={(id, valor) => (id === "quarto" ? setQuarto(valor) : setSobrenome(valor))}
+      acao={t.continuar}
+      carregando={t.conferindo}
+      onEnviar={() => onEnviar(quarto.trim(), sobrenome.trim())}
+    />
   );
 }
 
@@ -618,7 +1029,7 @@ function Resumo({
   linhas,
   acao,
   carregando,
-  onVoltar,
+  icone,
   onConfirmar,
 }: {
   t: T;
@@ -626,48 +1037,42 @@ function Resumo({
   linhas: string[];
   acao: string;
   carregando: string;
-  onVoltar: () => void;
+  icone: ReactNode;
   onConfirmar: () => Promise<void>;
 }) {
   const { enviando, enviar } = useEnvio();
   return (
-    <section className="space-y-8">
-      <BotaoVoltar onClick={onVoltar}>{t.voltar}</BotaoVoltar>
-      <div>
-        <h1 className="text-4xl font-extrabold tracking-tight">{titulo}</h1>
-        {linhas.filter(Boolean).map((l) => (
-          <p key={l} className="mt-2 text-2xl text-[#0B2E33]/75 first-letter:uppercase">
+    <div className="flex h-full flex-col justify-center">
+      <h2 className="text-6xl font-extrabold tracking-tight">{titulo}</h2>
+      <div className="mt-8 space-y-3">
+        {linhas.filter(Boolean).map((l, i) => (
+          <p key={l} className={cn("first-letter:uppercase", i === 0 ? "text-4xl font-bold text-[var(--teal)]" : "text-2xl text-[var(--tinta-suave)]")}>
             {l}
           </p>
         ))}
       </div>
-      <BotaoPrincipal onClick={() => void enviar(onConfirmar)} disabled={enviando}>
-        {enviando ? (
-          <>
-            <Loader2 className="h-6 w-6 animate-spin" /> {carregando}
-          </>
-        ) : (
-          acao
-        )}
+      <BotaoPrincipal className="mt-14" onClick={() => void enviar(onConfirmar)} disabled={enviando}>
+        {enviando ? <Loader2 className="h-7 w-7 animate-spin" /> : icone}
+        {enviando ? carregando : acao}
       </BotaoPrincipal>
-    </section>
+    </div>
   );
 }
 
 /** A senha aparece como as teclas que o hóspede vai apertar na porta, terminando em #. */
 function Teclas({ senha, grande = true }: { senha: string; grande?: boolean }) {
   return (
-    <div className="flex flex-wrap gap-2.5" aria-label={`${senha.split("").join(" ")} #`}>
+    <div className="flex flex-wrap gap-3" aria-label={`${senha.split("").join(" ")} #`}>
       {[...senha.split(""), "#"].map((d, i) => (
         <span
           key={i}
           aria-hidden="true"
           className={cn(
-            "grid place-items-center rounded-2xl font-extrabold tabular-nums",
-            grande ? "h-24 w-[4.25rem] text-5xl sm:h-28 sm:w-20 sm:text-6xl" : "h-12 w-10 text-2xl",
+            "grid place-items-center font-extrabold tabular-nums",
+            grande ? "h-24 w-[4.5rem] rounded-[1.1rem] text-[3.4rem]" : "h-12 w-10 rounded-xl text-2xl",
             d === "#"
-              ? "bg-[#F2C14E] text-[#0B2E33] shadow-[inset_0_-4px_0_rgba(11,46,51,0.18)]"
-              : "bg-white text-[#0C5A64] shadow-[inset_0_-4px_0_rgba(12,90,100,0.18),0_0_0_1px_rgba(12,90,100,0.12)]",
+              ? "bg-[var(--luz)] text-[var(--tinta)] shadow-[inset_0_-5px_0_rgba(43,38,34,0.18)]"
+              : "bg-white text-[var(--teal)] shadow-[inset_0_-5px_0_rgba(12,90,100,0.16),0_0_0_1px_rgba(12,90,100,0.1)]",
           )}
         >
           {d}
@@ -680,43 +1085,47 @@ function Teclas({ senha, grande = true }: { senha: string; grande?: boolean }) {
 function TelaSenha({ t, r, validaAte, onFim }: { t: T; r: SenhaTela; validaAte: string; onFim: () => void }) {
   const entrada = r.portas.filter((p) => p.tipo !== "quarto");
   return (
-    <section className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-extrabold tracking-tight">{t.ola(r.nome)}</h1>
-        <p className="mt-2 text-2xl text-[#0B2E33]/75">{t.seuQuarto(r.quartos)}</p>
+    <div className="flex h-full flex-col gap-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-x-6">
+        <h2 className="text-4xl font-extrabold tracking-tight">{t.ola(r.nome)}</h2>
+        <p className="text-3xl font-bold text-[var(--teal)]">{t.seuQuarto(r.quartos)}</p>
       </div>
-      <div className="rounded-[2rem] bg-[#0C5A64] p-6 text-white sm:p-8">
-        <p className="text-lg font-semibold text-white/80">{t.suaSenha}</p>
-        <div className="mt-4">
+      <div className="rounded-[2rem] bg-[var(--teal)] px-8 py-7 text-white">
+        <p className="text-lg font-semibold text-white/75">{t.suaSenha}</p>
+        <div className="mt-3">
           <Teclas senha={r.senha} />
         </div>
-        <p className="mt-6 text-xl font-semibold">{t.comoAbrir}</p>
-        <p className="mt-2 text-base text-white/75">
+        <p className="mt-5 text-[1.4rem] font-semibold leading-snug">{t.comoAbrir}</p>
+        <p className="mt-1.5 text-base text-white/75">
           {t.ativacao} {t.validaAte(validaAte)}
         </p>
       </div>
       {entrada.length > 0 && (
         <div>
-          <h2 className="text-xl font-bold">{t.outrasPortas}</h2>
-          <ul className="mt-3 divide-y divide-[#0C5A64]/10 rounded-2xl bg-white">
+          <h3 className="text-xl font-bold">{t.outrasPortas}</h3>
+          <ul className="mt-3 divide-y divide-[var(--tinta)]/10 rounded-2xl bg-white">
             {entrada.map((p: PortaTotem) => (
-              <li key={p.label} className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-                <span className="flex items-center gap-3 text-lg font-semibold">
-                  <DoorOpen className="h-6 w-6 text-[#0C5A64]" /> {p.label}
+              <li key={p.label} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
+                <span className="flex items-center gap-3 text-xl font-semibold">
+                  <DoorOpen className="h-6 w-6 text-[var(--madeira)]" /> {p.label}
                 </span>
                 {p.senha ? (
                   <Teclas senha={p.senha} grande={false} />
                 ) : (
-                  <span className="text-base text-[#0B2E33]/60">{p.mesma ? t.mesmaSenha : t.portaSemSenha}</span>
+                  <span className="text-lg text-[var(--tinta-suave)]">{p.mesma ? t.mesmaSenha : t.portaSemSenha}</span>
                 )}
               </li>
             ))}
           </ul>
         </div>
       )}
-      <p className="text-lg text-[#0B2E33]/70">{t.anoteSenha}</p>
-      <BotaoPrincipal onClick={onFim}>{t.pronto}</BotaoPrincipal>
-    </section>
+      <div className="mt-auto flex flex-wrap items-center gap-6">
+        <p className="min-w-[14rem] flex-1 text-lg text-[var(--tinta-suave)]">{t.anoteSenha}</p>
+        <BotaoPrincipal onClick={onFim} className="w-auto min-w-[16rem]">
+          {t.pronto}
+        </BotaoPrincipal>
+      </div>
+    </div>
   );
 }
 
@@ -736,41 +1145,58 @@ function Aviso({
   tentar?: () => void;
 }) {
   return (
-    <section>
-      <h1 className="text-3xl font-extrabold leading-tight tracking-tight sm:text-4xl">{titulo}</h1>
+    <div className="flex h-full flex-col">
+      <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight">{titulo}</h2>
       {children}
       {telefone && (
-        <p className="mt-8 flex items-center gap-3 text-xl font-semibold text-[#0C5A64]">
-          <Phone className="h-6 w-6" /> {t.ligar(telefone)}
+        <p className="mt-8 flex items-center gap-3 text-2xl font-semibold text-[var(--teal)]">
+          <Phone className="h-7 w-7" /> {t.ligar(telefone)}
         </p>
       )}
-      <div className="mt-10 grid gap-3">
+      <div className="mt-auto grid gap-4 pt-8 sm:grid-cols-2">
         {tentar && <BotaoPrincipal onClick={tentar}>{t.tentarDeNovo}</BotaoPrincipal>}
-        <button
-          type="button"
-          onClick={onFim}
-          className="min-h-16 rounded-2xl bg-white text-xl font-bold text-[#0C5A64] shadow-[inset_0_0_0_2px_rgba(12,90,100,0.25)] focus-visible:outline-4 focus-visible:outline-[#0C5A64]"
-        >
+        {/* Em paisagem o botão "Início" já fica na coluna da esquerda. */}
+        <BotaoSecundario onClick={onFim} className="lg:hidden">
           {t.inicio}
-        </button>
+        </BotaoSecundario>
       </div>
-    </section>
+    </div>
   );
 }
 
 function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, comentario: string) => Promise<void>; onPular: () => void }) {
   const [nota, setNota] = useState(0);
   const [comentario, setComentario] = useState("");
+  const [escrevendo, setEscrevendo] = useState(false);
   const { enviando, enviar } = useEnvio();
+  const enviarAvaliacao = () => void enviar(() => onEnviar(nota, comentario.trim()));
+
+  if (escrevendo) {
+    return (
+      <FormTeclado
+        t={t}
+        cabecalho={<h2 className="mb-6 text-3xl font-extrabold tracking-tight">{t.comoFoi}</h2>}
+        campos={[{ id: "comentario", rotulo: t.comentario, valor: comentario, teclado: "texto", max: 300, valido: () => true }]}
+        onChange={(_, v) => setComentario(v)}
+        acao={t.enviar}
+        carregando={t.conferindo}
+        onEnviar={() => onEnviar(nota, comentario.trim())}
+      />
+    );
+  }
+
   return (
-    <section className="space-y-8">
-      <div>
-        <h1 className="text-4xl font-extrabold tracking-tight">{t.checkoutFeito}</h1>
-        <p className="mt-3 text-xl text-[#0B2E33]/75">{t.obrigado}</p>
+    <div className="flex h-full flex-col">
+      <div className="flex items-center gap-4">
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--teal)] text-white">
+          <Check className="h-8 w-8" />
+        </span>
+        <h2 className="text-4xl font-extrabold tracking-tight">{t.checkoutFeito}</h2>
       </div>
-      <fieldset>
-        <legend className="text-2xl font-bold">{t.comoFoi}</legend>
-        <div className="mt-4 flex gap-2">
+      <p className="mt-4 text-xl text-[var(--tinta-suave)]">{t.obrigado}</p>
+      <fieldset className="mt-12">
+        <legend className="text-3xl font-bold">{t.comoFoi}</legend>
+        <div className="mt-6 flex flex-wrap gap-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
               key={n}
@@ -778,30 +1204,42 @@ function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, co
               onClick={() => setNota(n)}
               aria-label={`${n}/5`}
               aria-pressed={nota === n}
-              className="grid h-20 w-20 place-items-center rounded-2xl bg-white focus-visible:outline-4 focus-visible:outline-[#0C5A64]"
+              className="grid h-24 w-24 place-items-center rounded-2xl bg-white shadow-[0_0_0_1px_rgba(43,38,34,0.08)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-95"
             >
-              <Star className={cn("h-11 w-11", n <= nota ? "fill-[#F2C14E] text-[#D9A520]" : "text-[#0B2E33]/25")} />
+              <Star className={cn("h-12 w-12 transition-colors", n <= nota ? "fill-[var(--luz)] text-[#C9963F]" : "text-[var(--tinta)]/20")} />
             </button>
           ))}
         </div>
       </fieldset>
-      <label className="block">
-        <span className="block text-lg font-semibold">{t.comentario}</span>
-        <textarea
-          value={comentario}
-          onChange={(e) => setComentario(e.target.value.slice(0, 500))}
-          rows={3}
-          className="mt-2 block w-full rounded-2xl border-2 border-[#0C5A64]/20 bg-white px-5 py-4 text-xl outline-none focus:border-[#0C5A64]"
-        />
-      </label>
-      <div className="grid gap-3">
-        <BotaoPrincipal disabled={!nota || enviando} onClick={() => void enviar(() => onEnviar(nota, comentario.trim()))}>
+      <button
+        type="button"
+        onClick={() => setEscrevendo(true)}
+        disabled={!nota}
+        className="mt-8 min-h-16 w-full max-w-xl rounded-2xl border-2 border-dashed border-[var(--tinta)]/20 px-6 text-left text-xl text-[var(--tinta-suave)] disabled:opacity-40"
+      >
+        {comentario || t.comentario}
+      </button>
+      <div className="mt-auto grid gap-4 pt-8 sm:grid-cols-[2fr_1fr]">
+        <BotaoPrincipal disabled={!nota || enviando} onClick={enviarAvaliacao}>
           {enviando && <Loader2 className="h-6 w-6 animate-spin" />} {t.enviar}
         </BotaoPrincipal>
-        <button type="button" onClick={onPular} className="min-h-14 text-lg font-semibold text-[#0C5A64]">
-          {t.pular}
-        </button>
+        <BotaoSecundario onClick={onPular}>{t.pular}</BotaoSecundario>
       </div>
-    </section>
+    </div>
+  );
+}
+
+function AvisoInativo({ t, segundos, onContinuar }: { t: T; segundos: number; onContinuar: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--tinta)]/45 p-6 backdrop-blur-sm" role="alertdialog" aria-live="assertive">
+      <div className="w-full max-w-lg rounded-[2rem] bg-[var(--linho)] p-10 text-center shadow-2xl">
+        <p className="text-7xl font-extrabold tabular-nums text-[var(--teal)]">{segundos}</p>
+        <h2 className="mt-4 text-3xl font-extrabold">{t.inativoTitulo}</h2>
+        <p className="mt-3 text-xl text-[var(--tinta-suave)]">{t.inativoTexto(segundos)}</p>
+        <BotaoPrincipal className="mt-8" onClick={onContinuar}>
+          {t.inativoContinuar}
+        </BotaoPrincipal>
+      </div>
+    </div>
   );
 }

@@ -35,7 +35,14 @@ type TotemRow = {
   exige_quarto_limpo: boolean;
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
+  modo: "ambos" | "checkin" | "checkout";
 };
+
+const MODOS: Array<{ id: TotemRow["modo"]; rotulo: string }> = [
+  { id: "checkin", rotulo: "Só check-in" },
+  { id: "checkout", rotulo: "Só check-out" },
+  { id: "ambos", rotulo: "Os dois" },
+];
 
 type Evento = {
   id: string;
@@ -104,7 +111,7 @@ function TotemGestor() {
     const [t, e, a] = await Promise.all([
       sb
         .from("totem_dispositivos")
-        .select("id,nome,unidade,ativo,token_hash,pareado_em,ultimo_uso,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte")
+        .select("id,nome,unidade,ativo,token_hash,pareado_em,ultimo_uso,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte,modo")
         .order("criado_em"),
       sb.from("totem_eventos").select("id,unidade,tipo,quarto,hospede,detalhe,criado_em").order("criado_em", { ascending: false }).limit(60),
       sb.from("totem_avaliacoes").select("id,unidade,quarto,hospede,nota,comentario,criado_em").order("criado_em", { ascending: false }).limit(50),
@@ -113,7 +120,7 @@ function TotemGestor() {
     if (falha) {
       setErro(
         /does not exist|schema cache/i.test(falha.message)
-          ? "As tabelas do totem ainda não existem. Aplique a migração drizzle/migrations/0041_totem_checkin_checkout.sql no Lovable."
+          ? "As tabelas do totem ainda não estão completas. Aplique no Lovable as migrações drizzle/migrations/0041_totem_checkin_checkout.sql e 0042_totem_modo.sql."
           : falha.message,
       );
       setTotens([]);
@@ -257,6 +264,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     bloqueia_saldo_aberto: totem.bloqueia_saldo_aberto,
     telefone_suporte: totem.telefone_suporte ?? "",
     ativo: totem.ativo,
+    modo: totem.modo ?? "ambos",
   });
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
@@ -300,12 +308,28 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
         <div>
           <p className="text-lg font-black text-slate-900">{totem.nome}</p>
           <p className="text-xs text-slate-500">
-            {totem.unidade} · último uso {dataHora(totem.ultimo_uso)}
+            {totem.unidade} · {MODOS.find((m) => m.id === totem.modo)?.rotulo ?? "Os dois"} · último uso {dataHora(totem.ultimo_uso)}
           </p>
         </div>
         <Badge variant={conectado && totem.ativo ? "default" : "secondary"}>
           {!totem.ativo ? "Desativado" : conectado ? "Tablet conectado" : "Sem tablet"}
         </Badge>
+      </div>
+
+      <div>
+        <p className="mb-1 text-sm font-medium">Função deste tablet</p>
+        <div className="grid grid-cols-3 gap-1 rounded-md border p-1">
+          {MODOS.map((m) => (
+            <button
+              key={m.id}
+              type="button"
+              onClick={() => setForm({ ...form, modo: m.id })}
+              className={`min-h-9 rounded px-2 text-sm font-semibold ${form.modo === m.id ? "bg-blue-900 text-white" : "text-slate-600"}`}
+            >
+              {m.rotulo}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
