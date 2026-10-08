@@ -288,6 +288,13 @@
       "when": 1791486863924,
       "tag": "0040_apply_0041_totem_checkin_checkout_exact",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1791488170560,
+      "tag": "0041_totem_checkin_checkout_verified_exact",
+      "breakpoints": true
     }
   ]
 }
