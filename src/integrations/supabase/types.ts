@@ -3080,6 +3080,7 @@ export type Database = {
           hora_checkin: string
           hora_checkout: string
           id: string
+          modo: string
           nome: string
           pareado_em: string | null
           pareamento_expira: string | null
@@ -3098,6 +3099,7 @@ export type Database = {
           hora_checkin?: string
           hora_checkout?: string
           id?: string
+          modo?: string
           nome: string
           pareado_em?: string | null
           pareamento_expira?: string | null
@@ -3116,6 +3118,7 @@ export type Database = {
           hora_checkin?: string
           hora_checkout?: string
           id?: string
+          modo?: string
           nome?: string
           pareado_em?: string | null
           pareamento_expira?: string | null
