@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -131,6 +131,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/almoxarifado", label: "ALMOXARIFADO", icon: Package },
       { to: "/frigobar", label: "FRIGOBAR", icon: GlassWater },
       { to: "/check-in-digital", label: "CHECK IN DIGITAL", icon: Key },
+      { to: "/gestor/totem", label: "TOTEM", icon: TabletSmartphone },
       { to: "/gestao-boas-vindas", label: "BOAS-VINDAS", icon: LayoutGrid },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
       { to: "/gestor/escala", label: "ESCALA", icon: CalendarDays },

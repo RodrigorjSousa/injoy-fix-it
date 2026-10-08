@@ -23,6 +23,7 @@ import { UnidadeProvider } from "@/lib/unidade-context";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
+import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 
 function NotFoundComponent() {
   return (
@@ -148,10 +149,26 @@ function RootComponent() {
   const router = useRouter();
   const pathname = useRouterState({ select: (s: { location: { pathname: string } }) => s.location.pathname });
   const isAuthPage = pathname.startsWith("/auth");
+  // O totem é a tela do hóspede: sem menu nem cabeçalho da equipe.
+  const isTotem = pathname === "/totem" || pathname.startsWith("/totem/");
 
   useEffect(() => {
     return installChunkRecovery();
   }, []);
+
+  // Tablet do totem: depois de pareado, o aparelho só abre a tela do totem.
+  // Qualquer outro endereço (login da equipe, painel...) volta para /totem.
+  // Para liberar o aparelho, o gestor usa "Desconectar tablet" em Área do Gestor › Totem.
+  useEffect(() => {
+    if (isTotem) return;
+    let pareado = false;
+    try {
+      pareado = !!window.localStorage.getItem(CHAVE_TOKEN_TOTEM);
+    } catch {
+      pareado = false;
+    }
+    if (pareado) window.location.replace("/totem");
+  }, [isTotem]);
 
   useEffect(() => {
     const { data: sub } = supabase.auth.onAuthStateChange((event) => {
@@ -165,7 +182,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <UnidadeProvider>
-        {isAuthPage ? <Outlet /> : <AppShell><Outlet /></AppShell>}
+        {isAuthPage || isTotem ? <Outlet /> : <AppShell><Outlet /></AppShell>}
       </UnidadeProvider>
       <Toaster richColors position="top-center" />
     </QueryClientProvider>

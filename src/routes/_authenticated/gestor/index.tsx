@@ -21,6 +21,7 @@ import {
   Wrench,
   Gauge,
   Fingerprint,
+  TabletSmartphone,
 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
 import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
@@ -59,7 +60,8 @@ type HubPath =
   | "/historico-caixa"
   | "/relatorios-turno"
   | "/gestor/previsao-carga"
-  | "/gestor/ponto";
+  | "/gestor/ponto"
+  | "/gestor/totem";
 
 type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
@@ -75,6 +77,7 @@ const sections: { title: string; items: HubItem[] }[] = [
       { label: "Estoque Geral", description: "Consulta consolidada", to: "/estoque-geral", icon: ClipboardList, tone: "bg-indigo-600" },
       { label: "Frigobar", description: "Produtos, vendas e reposição", to: "/frigobar", icon: GlassWater, tone: "bg-emerald-600" },
       { label: "Check-in Digital", description: "Fechaduras e acessos", to: "/check-in-digital", icon: Key, tone: "bg-teal-600" },
+      { label: "Totem", description: "Check-in e check-out do hóspede no tablet", to: "/gestor/totem", icon: TabletSmartphone, tone: "bg-teal-800" },
       { label: "Boas-vindas", description: "Organização da tela inicial", to: "/gestao-boas-vindas", icon: Settings2, tone: "bg-slate-700" },
     ],
   },

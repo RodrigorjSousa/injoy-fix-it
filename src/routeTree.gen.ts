@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ManutencaoRouteImport } from './routes/manutencao'
+import { Route as TotemRouteImport } from './routes/totem'
 import { Route as AuthenticatedIndexRouteImport } from './routes/_authenticated/index'
 import { Route as AuthenticatedAlmoxarifadoRouteImport } from './routes/_authenticated/almoxarifado'
 import { Route as AuthenticatedBoasVindasRouteImport } from './routes/_authenticated/boas-vindas'
@@ -48,6 +49,7 @@ import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authent
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as AuthenticatedGestorPontoRouteImport } from './routes/_authenticated/gestor/ponto'
 import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
+import { Route as AuthenticatedGestorTotemRouteImport } from './routes/_authenticated/gestor/totem'
 import { Route as ApiPublicBonusMetaRouteImport } from './routes/api/public/bonus-meta'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
@@ -66,6 +68,11 @@ const AuthRoute = AuthRouteImport.update({
 const ManutencaoRoute = ManutencaoRouteImport.update({
   id: '/manutencao',
   path: '/manutencao',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TotemRoute = TotemRouteImport.update({
+  id: '/totem',
+  path: '/totem',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedIndexRoute = AuthenticatedIndexRouteImport.update({
@@ -268,6 +275,12 @@ const AuthenticatedGestorPrevisaoCargaRoute =
     path: '/previsao-carga',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorTotemRoute =
+  AuthenticatedGestorTotemRouteImport.update({
+    id: '/totem',
+    path: '/totem',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const ApiPublicBonusMetaRoute = ApiPublicBonusMetaRouteImport.update({
   id: '/api/public/bonus-meta',
   path: '/api/public/bonus-meta',
@@ -299,6 +312,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthRouteWithChildren
   '/manutencao': typeof ManutencaoRoute
+  '/totem': typeof TotemRoute
   '/gestor': typeof AuthenticatedGestorRouteRouteWithChildren
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
@@ -333,6 +347,7 @@ export interface FileRoutesByFullPath {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -342,6 +357,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/manutencao': typeof ManutencaoRoute
+  '/totem': typeof TotemRoute
   '/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/boas-vindas': typeof AuthenticatedBoasVindasRoute
   '/bonificacao': typeof AuthenticatedBonificacaoRoute
@@ -376,6 +392,7 @@ export interface FileRoutesByTo {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -388,6 +405,7 @@ export interface FileRoutesById {
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/auth': typeof AuthRouteWithChildren
   '/manutencao': typeof ManutencaoRoute
+  '/totem': typeof TotemRoute
   '/_authenticated/gestor': typeof AuthenticatedGestorRouteRouteWithChildren
   '/_authenticated/almoxarifado': typeof AuthenticatedAlmoxarifadoRoute
   '/_authenticated/boas-vindas': typeof AuthenticatedBoasVindasRoute
@@ -423,6 +441,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/_authenticated/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/_authenticated/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
@@ -436,6 +455,7 @@ export interface FileRouteTypes {
     | '/'
     | '/auth'
     | '/manutencao'
+    | '/totem'
     | '/gestor'
     | '/almoxarifado'
     | '/boas-vindas'
@@ -470,6 +490,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -479,6 +500,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/manutencao'
+    | '/totem'
     | '/almoxarifado'
     | '/boas-vindas'
     | '/bonificacao'
@@ -513,6 +535,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -524,6 +547,7 @@ export interface FileRouteTypes {
     | '/_authenticated'
     | '/auth'
     | '/manutencao'
+    | '/totem'
     | '/_authenticated/gestor'
     | '/_authenticated/almoxarifado'
     | '/_authenticated/boas-vindas'
@@ -559,6 +583,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/financeiro'
     | '/_authenticated/gestor/ponto'
     | '/_authenticated/gestor/previsao-carga'
+    | '/_authenticated/gestor/totem'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/previsao-carga'
@@ -571,6 +596,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ManutencaoRoute: typeof ManutencaoRoute
+  TotemRoute: typeof TotemRoute
   ApiPublicBonusMetaRoute: typeof ApiPublicBonusMetaRoute
   ApiPublicCloudbedsWebhookRoute: typeof ApiPublicCloudbedsWebhookRoute
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
@@ -599,6 +625,13 @@ declare module '@tanstack/react-router' {
       path: '/manutencao'
       fullPath: '/manutencao'
       preLoaderRoute: typeof ManutencaoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/totem': {
+      id: '/totem'
+      path: '/totem'
+      fullPath: '/totem'
+      preLoaderRoute: typeof TotemRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/': {
@@ -853,6 +886,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorPrevisaoCargaRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/totem': {
+      id: '/_authenticated/gestor/totem'
+      path: '/totem'
+      fullPath: '/gestor/totem'
+      preLoaderRoute: typeof AuthenticatedGestorTotemRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/api/public/bonus-meta': {
       id: '/api/public/bonus-meta'
       path: '/api/public/bonus-meta'
@@ -896,6 +936,7 @@ interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
   AuthenticatedGestorPontoRoute: typeof AuthenticatedGestorPontoRoute
   AuthenticatedGestorPrevisaoCargaRoute: typeof AuthenticatedGestorPrevisaoCargaRoute
+  AuthenticatedGestorTotemRoute: typeof AuthenticatedGestorTotemRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
 
@@ -906,6 +947,7 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
     AuthenticatedGestorPontoRoute: AuthenticatedGestorPontoRoute,
     AuthenticatedGestorPrevisaoCargaRoute:
       AuthenticatedGestorPrevisaoCargaRoute,
+    AuthenticatedGestorTotemRoute: AuthenticatedGestorTotemRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
   }
 
@@ -997,6 +1039,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ManutencaoRoute: ManutencaoRoute,
+  TotemRoute: TotemRoute,
   ApiPublicBonusMetaRoute: ApiPublicBonusMetaRoute,
   ApiPublicCloudbedsWebhookRoute: ApiPublicCloudbedsWebhookRoute,
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,

@@ -89,6 +89,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   - Atualização automática 3x/dia: cron chama `private.run_bonus_meta_sync`, que chama
     `/api/public/bonus-meta`.
   - Participantes: Raquel, Julia, Mayara, Gleidiane, Lucivaldo e Flavio.
+- Totem (0041): check-in com senha Tuya, check-out e avaliação em `/totem`; gestão em Área do Gestor ›
+  Totem — ver `04-totem.md`.
 
 ## Conversas do PROJETO INJOY
 Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do assunto:
