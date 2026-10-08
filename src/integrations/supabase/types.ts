@@ -1891,6 +1891,189 @@ export type Database = {
         }
         Relationships: []
       }
+      lav_faturas: {
+        Row: {
+          aprovado_em: string | null
+          aprovado_por: string | null
+          aprovado_por_nome: string | null
+          competencia: string
+          created_at: string
+          id: string
+          obs: string | null
+          qtd_fatura: Json
+          status: string
+          unidade: string
+          updated_at: string
+          valor_esperado: number | null
+          valor_fatura: number | null
+        }
+        Insert: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          competencia: string
+          created_at?: string
+          id?: string
+          obs?: string | null
+          qtd_fatura?: Json
+          status?: string
+          unidade: string
+          updated_at?: string
+          valor_esperado?: number | null
+          valor_fatura?: number | null
+        }
+        Update: {
+          aprovado_em?: string | null
+          aprovado_por?: string | null
+          aprovado_por_nome?: string | null
+          competencia?: string
+          created_at?: string
+          id?: string
+          obs?: string | null
+          qtd_fatura?: Json
+          status?: string
+          unidade?: string
+          updated_at?: string
+          valor_esperado?: number | null
+          valor_fatura?: number | null
+        }
+        Relationships: []
+      }
+      lav_pecas: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          grupo_fatura: string
+          id: string
+          nome: string
+          ordem: number
+          preco: number
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          grupo_fatura: string
+          id?: string
+          nome: string
+          ordem?: number
+          preco?: number
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          grupo_fatura?: string
+          id?: string
+          nome?: string
+          ordem?: number
+          preco?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      lav_talao_itens: {
+        Row: {
+          ent_lav: number | null
+          guardado: number | null
+          peca_id: string
+          saida_hotel: number
+          saida_lav: number | null
+          talao_id: string
+        }
+        Insert: {
+          ent_lav?: number | null
+          guardado?: number | null
+          peca_id: string
+          saida_hotel?: number
+          saida_lav?: number | null
+          talao_id: string
+        }
+        Update: {
+          ent_lav?: number | null
+          guardado?: number | null
+          peca_id?: string
+          saida_hotel?: number
+          saida_lav?: number | null
+          talao_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lav_talao_itens_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "lav_pecas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lav_talao_itens_talao_id_fkey"
+            columns: ["talao_id"]
+            isOneToOne: false
+            referencedRelation: "lav_taloes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lav_taloes: {
+        Row: {
+          coleta_em: string
+          coleta_foto: string
+          coleta_obs: string | null
+          coleta_por: string | null
+          coleta_por_nome: string
+          created_at: string
+          data_coleta: string
+          id: string
+          numero: string
+          retorno_data: string | null
+          retorno_em: string | null
+          retorno_foto: string | null
+          retorno_obs: string | null
+          retorno_por: string | null
+          retorno_por_nome: string | null
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          coleta_em?: string
+          coleta_foto: string
+          coleta_obs?: string | null
+          coleta_por?: string | null
+          coleta_por_nome: string
+          created_at?: string
+          data_coleta: string
+          id?: string
+          numero: string
+          retorno_data?: string | null
+          retorno_em?: string | null
+          retorno_foto?: string | null
+          retorno_obs?: string | null
+          retorno_por?: string | null
+          retorno_por_nome?: string | null
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          coleta_em?: string
+          coleta_foto?: string
+          coleta_obs?: string | null
+          coleta_por?: string | null
+          coleta_por_nome?: string
+          created_at?: string
+          data_coleta?: string
+          id?: string
+          numero?: string
+          retorno_data?: string | null
+          retorno_em?: string | null
+          retorno_foto?: string | null
+          retorno_obs?: string | null
+          retorno_por?: string | null
+          retorno_por_nome?: string | null
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       mensagens: {
         Row: {
           conteudo: string
@@ -3650,6 +3833,36 @@ export type Database = {
         Returns: {
           user_id: string
         }[]
+      }
+      lav_aprovar_fatura: {
+        Args: { p_aprovar?: boolean; p_fatura_id: string }
+        Returns: undefined
+      }
+      lav_desfazer_retorno: { Args: { p_talao_id: string }; Returns: string }
+      lav_excluir_talao: { Args: { p_talao_id: string }; Returns: string[] }
+      lav_minha_permissao: { Args: never; Returns: Json }
+      lav_preparar: { Args: never; Returns: undefined }
+      lav_registrar_coleta: {
+        Args: {
+          p_data: string
+          p_foto: string
+          p_itens: Json
+          p_numero: string
+          p_obs?: string
+          p_talao_id?: string
+          p_unidade: string
+        }
+        Returns: string
+      }
+      lav_registrar_retorno: {
+        Args: {
+          p_data: string
+          p_foto: string
+          p_itens: Json
+          p_obs?: string
+          p_talao_id: string
+        }
+        Returns: undefined
       }
       list_camareiras: {
         Args: never
