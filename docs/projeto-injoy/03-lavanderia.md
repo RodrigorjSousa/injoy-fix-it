@@ -19,9 +19,10 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
 
 - **Camareiras** (botão "Lavanderia" em Camareiras, `src/components/camareiras/laundry-modal.tsx`):
   - 📤 Coleta: número do talão, quantidade por peça e **foto do talão obrigatória**.
-  - 📥 Retorno: escolhe o talão aberto e lança Ent. Lav., Saída Lav. e "Contei". As três são obrigatórias
-    (0 é válido; campo vazio não vira 0). Pode incluir uma peça que voltou sem ter saído naquele talão.
-    A foto é obrigatória.
+  - 📥 Retorno: escolhe o talão aberto e copia o que estiver escrito no papel. Ent. Lav. em branco vale a
+    Saída Hotel; Saída Lav. em branco vale 0. "Contei" é obrigatório quando a lavanderia anotou devolução
+    (o campo fica vermelho e um aviso diz o que falta). Pode incluir uma peça que voltou sem ter saído naquele
+    talão. Foto obrigatória. (Correção de 08/10: antes as três colunas eram obrigatórias e o botão não habilitava.)
   - Camareira só lança com a data de hoje e não corrige depois. Em Ipanema quem lança é a própria camareira.
 - **Gestor** (menu LAVANDERIA, `src/routes/_authenticated/relatorio-operacoes.tsx`):
   - Saldo: na lavanderia agora, em talões abertos, pendente de talões já devolvidos, faltas na entrega e alertas

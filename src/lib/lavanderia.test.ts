@@ -8,6 +8,7 @@ import {
   numerosFaltando,
   resumoTalao,
   validarRetorno,
+  normalizarRetorno,
   type Peca,
   type Talao,
 } from "./lavanderia";
@@ -272,27 +273,36 @@ describe("fechamento do mês", () => {
 
 describe("validação do retorno", () => {
   const nome = (id: string) => id;
-  it("exige as 3 contagens das peças que saíram", () => {
-    expect(
-      validarRetorno(
-        [
-          { peca_id: "Fronha", saida_hotel: 10, ent_lav: "10", saida_lav: "16", guardado: "" },
-          { peca_id: "Piso", saida_hotel: 0, ent_lav: "", saida_lav: "", guardado: "" },
-        ],
-        nome,
-      ),
-    ).toContain("Fronha");
+  const L = (
+    peca_id: string,
+    saida_hotel: number,
+    ent_lav = "",
+    saida_lav = "",
+    guardado = "",
+  ) => ({
+    peca_id,
+    saida_hotel,
+    ent_lav,
+    saida_lav,
+    guardado,
   });
-  it("aceita zero explícito e peça extra completa", () => {
-    expect(
-      validarRetorno(
-        [
-          { peca_id: "Fronha", saida_hotel: 10, ent_lav: "10", saida_lav: "0", guardado: "0" },
-          { peca_id: "Edredom", saida_hotel: 0, ent_lav: "0", saida_lav: "1", guardado: "1" },
-        ],
-        nome,
-      ),
-    ).toBeNull();
+  it("só exige a contagem da camareira quando a lavanderia anotou devolução", () => {
+    expect(validarRetorno([L("Fronha", 10, "10", "16", "")], nome)).toContain("Fronha");
+  });
+  it("aceita campos em branco: Ent. Lav. = saída, Saída Lav. = 0", () => {
+    const linhas = [L("Fronha", 10, "", "", "9"), L("Piso", 6), L("Edredom", 0, "", "1", "1")];
+    expect(validarRetorno(linhas, nome)).toBeNull();
+    expect(normalizarRetorno(linhas)).toEqual([
+      { peca_id: "Fronha", ent_lav: 10, saida_lav: 0, guardado: 9 },
+      { peca_id: "Piso", ent_lav: 6, saida_lav: 0, guardado: 0 },
+      { peca_id: "Edredom", ent_lav: 0, saida_lav: 1, guardado: 1 },
+    ]);
+  });
+  it("não deixa registrar retorno vazio", () => {
+    expect(validarRetorno([L("Fronha", 10), L("Piso", 6)], nome)).toContain("Contei");
+  });
+  it("ignora peça extra que ficou toda em branco", () => {
+    expect(normalizarRetorno([L("Fronha", 10, "", "10", "10"), L("Piso", 0)])).toHaveLength(1);
   });
 });
 
