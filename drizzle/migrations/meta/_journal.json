@@ -295,6 +295,13 @@
       "when": 1791488170560,
       "tag": "0041_totem_checkin_checkout_verified_exact",
       "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1791488190976,
+      "tag": "0042_totem_modo_verified_exact",
+      "breakpoints": true
     }
   ]
 }
