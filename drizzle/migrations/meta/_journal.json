@@ -302,6 +302,20 @@
       "when": 1791488190976,
       "tag": "0042_totem_modo_verified_exact",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1791489542238,
+      "tag": "0043_lavanderia_conta_corrente_exact",
+      "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "7",
+      "when": 1791489561629,
+      "tag": "0044_lavanderia_fotos_storage_policies_exact",
+      "breakpoints": true
     }
   ]
 }
