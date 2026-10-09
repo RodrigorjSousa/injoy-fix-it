@@ -17,7 +17,6 @@ import {
   Shirt,
   Tags,
   Trash2,
-  ListChecks,
   Undo2,
   Pencil,
   PackageCheck,
@@ -33,7 +32,6 @@ import {
   useLavanderiaBase,
   type EdicaoLavanderia,
 } from "@/components/camareiras/laundry-modal";
-import { TarefasExtrasManager } from "@/components/lavanderia/tarefas-extras-manager";
 import {
   brl,
   calcularFechamento,
@@ -169,9 +167,6 @@ function LavanderiaGestor() {
               <TabsTrigger value="pecas">
                 <Tags size={14} className="mr-1" /> Peças e preços
               </TabsTrigger>
-              <TabsTrigger value="extras">
-                <ListChecks size={14} className="mr-1" /> Tarefas extras
-              </TabsTrigger>
             </TabsList>
             <TabsContent value="saldo" className="mt-4">
               <SaldoTab taloes={taloes} pecas={pecas} hoje={hoje} unidade={unidade} />
@@ -193,9 +188,6 @@ function LavanderiaGestor() {
                 pecas={pecas}
                 onChanged={() => qc.invalidateQueries({ queryKey: ["lav_pecas"] })}
               />
-            </TabsContent>
-            <TabsContent value="extras" className="mt-4 max-w-xl">
-              <TarefasExtrasManager />
             </TabsContent>
           </Tabs>
         )}

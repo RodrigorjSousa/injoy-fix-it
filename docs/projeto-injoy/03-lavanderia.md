@@ -32,7 +32,6 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
     digita as quantidades e o valor da fatura, e o app mostra a diferença, os talões sem retorno, os números
     pulados e o que foi anotado e não entregue. Tem "Aprovar pagamento" e "Imprimir/PDF".
   - Peças e preços: catálogo com o grupo da fatura e o preço (editável).
-  - Tarefas extras: catálogo das tarefas extras (veio da tela antiga).
   - O gestor pode lançar com data retroativa ("Lançar coleta" e "Registrar retorno").
 - Regras puras e testes: `src/lib/lavanderia.ts` e `.test.ts` (o teste reproduz a fatura de agosto: R$ 4.560,31).
   Acesso ao banco: `src/lib/lavanderia-api.ts`.
