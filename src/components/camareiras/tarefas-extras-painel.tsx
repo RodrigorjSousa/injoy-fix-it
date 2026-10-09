@@ -37,7 +37,7 @@ function useDadosTarefasExtras(unidade: Unidade) {
 
   useEffect(() => {
     const channel = supabase
-      .channel(`tarefas_extras_painel_${unidade}`)
+      .channel(`tarefas_extras_painel_${unidade}_${Math.random().toString(36).slice(2)}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "extra_tasks_logs" }, () =>
         qc.invalidateQueries({ queryKey: chave }),
       )

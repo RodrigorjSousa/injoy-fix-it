@@ -139,18 +139,30 @@ export function registroDaCategoria(tarefa: string, c: Pick<CategoriaTE, "nomes"
   return c.nomes.some((n) => tarefa.startsWith(`[${n}]`));
 }
 
+// Uma única assinatura Realtime para o app inteiro. Vários componentes usam este hook ao
+// mesmo tempo; criar o mesmo canal várias vezes quebra ("cannot add callbacks after subscribe").
+const ouvintes = new Set<() => void>();
+let assinado = false;
+function assinarConfig() {
+  if (assinado) return;
+  assinado = true;
+  supabase
+    .channel(`tarefas-extras-categorias-${Math.random().toString(36).slice(2)}`)
+    .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, (p) => {
+      const row = (p.new || p.old) as { key?: string } | null;
+      if (row?.key === CONFIG_KEY) ouvintes.forEach((fn) => fn());
+    })
+    .subscribe();
+}
+
 export function useConfigCategorias() {
   const qc = useQueryClient();
   useEffect(() => {
-    const ch = supabase
-      .channel("tarefas-extras-categorias")
-      .on("postgres_changes", { event: "*", schema: "public", table: "app_settings" }, (p) => {
-        const row = (p.new || p.old) as { key?: string } | null;
-        if (row?.key === CONFIG_KEY) void qc.invalidateQueries({ queryKey: ["tarefas_extras_categorias"] });
-      })
-      .subscribe();
+    assinarConfig();
+    const fn = () => void qc.invalidateQueries({ queryKey: ["tarefas_extras_categorias"] });
+    ouvintes.add(fn);
     return () => {
-      supabase.removeChannel(ch);
+      ouvintes.delete(fn);
     };
   }, [qc]);
   return useQuery({
