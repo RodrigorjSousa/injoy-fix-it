@@ -21,6 +21,7 @@ import { TarefasExtrasModal, useTarefasExtrasItems, CATEGORIES as TAREFAS_EXTRAS
 import { InspectionImage } from "@/components/InspectionImage";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { supabase } from "@/integrations/supabase/client";
+import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
@@ -439,9 +440,7 @@ function PainelCamareiras() {
     setSyncing(true);
     const t = toast.loading("Sincronizando com Cloudbeds...");
     try {
-      const { data, error } = await supabase.functions.invoke("consolidar-dados", { body: {} });
-      if (error) throw error;
-      if (data && (data as any).success === false) throw new Error((data as any).error);
+      await sincronizarCloudbeds();
       await carregar();
       toast.success("Mapa atualizado", { id: t });
     } catch (err) {

@@ -22,6 +22,7 @@ import {
   Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import type { Unidade } from "@/lib/store";
@@ -338,11 +339,11 @@ function BoasVindas() {
     // Sincroniza com Cloudbeds ao entrar e a cada 15 minutos
     const sincronizar = async () => {
       try {
-        await supabase.functions.invoke("consolidar-dados", { body: {} });
+        await sincronizarCloudbeds();
       } catch (e) {
         console.error("[BoasVindas] erro ao sincronizar Cloudbeds:", e);
       } finally {
-        await buscarStatus();
+        await carregar();
       }
     };
 

@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { todaySP } from "@/lib/tz";
+import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 
 export type HotelMetricRow = {
   property: Unidade;
@@ -78,13 +79,7 @@ export function useHotelMetrics() {
     setError(null);
     const t = toast.loading("Sincronizando com Cloudbeds...");
     try {
-      const { data, error: fnErr } = await supabase.functions.invoke("consolidar-dados", {
-        body: {},
-      });
-      if (fnErr) throw fnErr;
-      if (data && (data as { success?: boolean }).success === false) {
-        throw new Error((data as { error?: string }).error || "Falha na sincronização");
-      }
+      await sincronizarCloudbeds();
       await fetchMetrics();
       toast.success("Dados atualizados do Cloudbeds", { id: t });
     } catch (err) {
