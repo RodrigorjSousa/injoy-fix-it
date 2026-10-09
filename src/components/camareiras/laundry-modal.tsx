@@ -8,6 +8,7 @@ import {
   Loader2,
   PackageCheck,
   Plus,
+  Search,
   Send,
   X,
 } from "lucide-react";
@@ -20,6 +21,7 @@ import {
   DIAS_ALERTA_ABERTO,
   INICIO_SALDO,
   validarRetorno,
+  filtrarPecas,
   linhaIncompleta,
   normalizarRetorno,
   type Peca,
@@ -401,6 +403,9 @@ function ColetaForm({
     [pecas, qtd],
   );
   const total = visiveis.reduce((s, p) => s + (parseInt(qtd[p.id] || "0", 10) || 0), 0);
+  const [busca, setBusca] = useState("");
+  const listadas = useMemo(() => filtrarPecas(visiveis, busca), [visiveis, busca]);
+  const preenchidas = visiveis.filter((p) => (parseInt(qtd[p.id] || "0", 10) || 0) > 0);
   const precisaFoto = !talao;
   const pode = numero.length > 0 && total > 0 && (!precisaFoto || !!foto) && !salvando;
 
@@ -502,8 +507,26 @@ function ColetaForm({
           Conte a roupa e digite a quantidade de cada peça <b>antes</b> de entregar para a
           lavanderia.
         </p>
+        <div className="sticky top-0 z-10 bg-slate-900 px-3 pt-3 pb-2 border-b border-slate-800">
+          <CampoBusca
+            value={busca}
+            onChange={setBusca}
+            placeholder="Buscar peça (ex.: fronha)"
+            onEnter={() => listadas[0] && document.getElementById(`qtd-${listadas[0].id}`)?.focus()}
+          />
+          {busca && (
+            <p className="text-[11px] text-slate-400 mt-1.5">
+              {listadas.length === 0
+                ? `Nenhuma peça com “${busca}”.`
+                : `Mostrando ${listadas.length} de ${visiveis.length} peças.`}{" "}
+              <button onClick={() => setBusca("")} className="text-sky-300 font-bold underline">
+                Ver todas
+              </button>
+            </p>
+          )}
+        </div>
         <div className="p-2">
-          {visiveis.map((p, i) => (
+          {listadas.map((p, i) => (
             <div
               key={p.id}
               className={cn(
@@ -518,6 +541,7 @@ function ColetaForm({
                 value={qtd[p.id] ?? ""}
                 onChange={(e) => setQtd((s) => ({ ...s, [p.id]: soNumero(e.target.value) }))}
                 placeholder="0"
+                id={`qtd-${p.id}`}
                 aria-label={p.nome}
                 className={cn(inputNum, "w-20")}
               />
@@ -525,6 +549,14 @@ function ColetaForm({
           ))}
         </div>
         <div className="p-4 border-t border-slate-800 space-y-3">
+          {preenchidas.length > 0 && (
+            <div className="bg-sky-500/10 border border-sky-500/30 rounded-lg p-2.5 text-xs text-sky-100">
+              <p className="font-black uppercase text-[10px] tracking-wider text-sky-300 mb-1">
+                Conferência · {total} peças
+              </p>
+              {preenchidas.map((p) => `${p.nome} ${qtd[p.id]}`).join(" · ")}
+            </div>
+          )}
           <FotoTalao arquivo={foto} onChange={setFoto} obrigatoria={precisaFoto} jaTem={!!talao} />
           <label className="block">
             <span className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-amber-300 mb-1.5">
@@ -709,11 +741,28 @@ function RetornoForm({
   const [data, setData] = useState(talao.retorno_data ?? todaySP());
   const [foto, setFoto] = useState<File | null>(null);
   const [obs, setObs] = useState(talao.retorno_obs ?? "");
-  const [extra, setExtra] = useState("");
+  const [destaque, setDestaque] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
-  const disponiveis = pecas.filter((p) => p.ativo && !linhas.some((l) => l.peca_id === p.id));
+  const ativas = pecas.filter((p) => p.ativo || linhas.some((l) => l.peca_id === p.id));
+  const irPara = (id: string) => {
+    setDestaque(id);
+    setTimeout(() => {
+      const campo = document.getElementById(`contei-${id}`) as HTMLInputElement | null;
+      campo?.scrollIntoView({ behavior: "smooth", block: "center" });
+      campo?.focus({ preventScroll: true });
+    }, 50);
+    setTimeout(() => setDestaque((d) => (d === id ? null : d)), 2500);
+  };
+  const escolherPeca = (p: Peca) => {
+    if (!linhas.some((l) => l.peca_id === p.id))
+      setLinhas((ls) => [
+        ...ls,
+        { peca_id: p.id, saida_hotel: 0, ent_lav: "", saida_lav: "", guardado: "" },
+      ]);
+    irPara(p.id);
+  };
   const set = (id: string, campo: "ent_lav" | "saida_lav" | "guardado", v: string) =>
     setLinhas((ls) => ls.map((l) => (l.peca_id === id ? { ...l, [campo]: soNumero(v) } : l)));
   const num = (s: string) => (s.trim() === "" ? null : parseInt(s, 10));
@@ -789,7 +838,11 @@ function RetornoForm({
                 key={l.peca_id}
                 className={cn(
                   "bg-slate-800/60 border rounded-xl p-2.5",
-                  incompleta ? "border-red-500" : "border-slate-800",
+                  incompleta
+                    ? "border-red-500"
+                    : destaque === l.peca_id
+                      ? "border-emerald-400 ring-2 ring-emerald-400/50"
+                      : "border-slate-800",
                 )}
               >
                 <p className="text-sm font-bold text-slate-100 mb-1.5">{nomePeca(l.peca_id)}</p>
@@ -824,6 +877,7 @@ function RetornoForm({
                               ? "0"
                               : "?"
                         }
+                        id={campo === "guardado" ? `contei-${l.peca_id}` : undefined}
                         aria-label={`${nomePeca(l.peca_id)} ${campo}`}
                         className={cn(
                           inputNum,
@@ -853,36 +907,11 @@ function RetornoForm({
               </div>
             );
           })}
-          {disponiveis.length > 0 && (
-            <div className="flex gap-2 pt-1">
-              <select
-                value={extra}
-                onChange={(e) => setExtra(e.target.value)}
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-2 py-2 text-sm text-slate-200"
-              >
-                <option value="">Voltou peça que não saiu neste talão?</option>
-                {disponiveis.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.nome}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                disabled={!extra}
-                onClick={() => {
-                  setLinhas((ls) => [
-                    ...ls,
-                    { peca_id: extra, saida_hotel: 0, ent_lav: "0", saida_lav: "", guardado: "" },
-                  ]);
-                  setExtra("");
-                }}
-                className="px-3 rounded-lg bg-slate-700 text-white font-bold text-sm disabled:opacity-40 flex items-center gap-1"
-              >
-                <Plus size={14} /> Incluir
-              </button>
-            </div>
-          )}
+          <BuscaPeca
+            pecas={ativas}
+            naLista={new Set(linhas.map((l) => l.peca_id))}
+            onEscolher={escolherPeca}
+          />
         </div>
         <div className="p-4 border-t border-slate-800 space-y-3">
           {gestor && <CampoData value={data} onChange={setData} min={talao.data_coleta} />}
@@ -933,5 +962,109 @@ function RetornoForm({
         </button>
       </div>
     </>
+  );
+}
+
+function CampoBusca({
+  value,
+  onChange,
+  placeholder,
+  onEnter,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  placeholder: string;
+  onEnter?: () => void;
+}) {
+  return (
+    <div className="relative">
+      <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <input
+        type="text"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            onEnter?.();
+          }
+        }}
+        placeholder={placeholder}
+        autoComplete="off"
+        enterKeyHint="go"
+        aria-label={placeholder}
+        className="w-full bg-slate-800 border-2 border-slate-700 focus:border-sky-500 rounded-xl pl-9 pr-9 py-2.5 text-base text-white outline-none placeholder:text-slate-500"
+      />
+      {value && (
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          aria-label="Limpar busca"
+          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-white"
+        >
+          <X size={16} />
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Busca no catálogo inteiro: escolher uma peça já listada leva até ela; uma nova é incluída. */
+function BuscaPeca({
+  pecas,
+  naLista,
+  onEscolher,
+}: {
+  pecas: Peca[];
+  naLista: Set<string>;
+  onEscolher: (p: Peca) => void;
+}) {
+  const [termo, setTermo] = useState("");
+  const resultados = useMemo(() => filtrarPecas(pecas, termo), [pecas, termo]);
+  const escolher = (p: Peca) => {
+    onEscolher(p);
+    setTermo("");
+  };
+  return (
+    <div className="bg-slate-800/40 border border-dashed border-slate-600 rounded-xl p-3 space-y-2">
+      <p className="text-xs font-bold text-slate-200">
+        Voltou outra peça? Procure pelo nome e toque nela.
+      </p>
+      <CampoBusca
+        value={termo}
+        onChange={setTermo}
+        placeholder="Buscar peça (ex.: fronha)"
+        onEnter={() => resultados[0] && termo && escolher(resultados[0])}
+      />
+      {termo && (
+        <div className="grid gap-1.5">
+          {resultados.length === 0 && (
+            <p className="text-xs text-slate-400 px-1">Nenhuma peça com “{termo}”.</p>
+          )}
+          {resultados.slice(0, 8).map((p) => {
+            const ja = naLista.has(p.id);
+            return (
+              <button
+                key={p.id}
+                type="button"
+                onClick={() => escolher(p)}
+                className="flex items-center justify-between gap-2 text-left bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg px-3 py-2.5"
+              >
+                <span className="text-sm font-bold text-white">{p.nome}</span>
+                {ja ? (
+                  <span className="text-[10px] font-black uppercase text-sky-300 shrink-0">
+                    já está acima · ir
+                  </span>
+                ) : (
+                  <span className="text-[10px] font-black uppercase text-emerald-300 shrink-0 flex items-center gap-1">
+                    <Plus size={12} /> incluir
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }

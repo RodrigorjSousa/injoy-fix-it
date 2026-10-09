@@ -8,6 +8,7 @@ import {
   numerosFaltando,
   resumoTalao,
   validarRetorno,
+  filtrarPecas,
   normalizarRetorno,
   type Peca,
   type Talao,
@@ -309,5 +310,23 @@ describe("validação do retorno", () => {
 describe("meses", () => {
   it("lista de outubro/2026 até hoje, mais recente primeiro", () => {
     expect(mesesDesdeInicio("2027-01-15")).toEqual(["2027-01", "2026-12", "2026-11", "2026-10"]);
+  });
+});
+
+describe("busca de peças", () => {
+  const nomes = (termo: string) => filtrarPecas(PECAS, termo).map((p) => p.nome);
+  it("acha pelo começo do nome", () => {
+    expect(nomes("fro")).toEqual(["Fronha"]);
+  });
+  it("ignora acento e maiúscula", () => {
+    expect(nomes("LENCOL SOL")).toEqual(["Lençol Solteiro", "Lençol Solteiro Elástico"]);
+  });
+  it("palavra do meio também acha, mas o começo vem primeiro", () => {
+    expect(nomes("toalha")).toEqual(["Toalha Banho", "Toalha Rosto"]);
+    expect(nomes("rosto")).toEqual(["Toalha Rosto"]);
+    expect(nomes("tapete")[0]).toBe("Tapete 1,50 x 2,00");
+  });
+  it("sem termo devolve tudo na ordem do talão", () => {
+    expect(nomes("")).toHaveLength(PECAS.length);
   });
 });
