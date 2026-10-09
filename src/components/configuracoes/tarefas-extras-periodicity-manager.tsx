@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Save, Timer } from "lucide-react";
+import { useCategoriasDaUnidade } from "@/lib/tarefas-extras-categorias";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -64,13 +65,7 @@ export function TarefasExtrasPeriodicityManager() {
     carregar();
   }, [carregar]);
 
-  const cats = useMemo(
-    () =>
-      TAREFAS_EXTRAS_CATEGORIES.filter((c) =>
-        TAREFAS_EXTRAS_BY_UNIDADE[unidade].includes(c.key),
-      ),
-    [unidade],
-  );
+  const cats = useCategoriasDaUnidade(unidade);
 
   const salvar = async () => {
     setSaving(true);
