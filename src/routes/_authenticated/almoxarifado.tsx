@@ -193,7 +193,11 @@ function AlmoxarifadoAdmin() {
       return (data as unknown as Sector[]) ?? [];
     },
   });
-  const SETORES = useMemo(() => setores.map((s) => s.name), [setores]);
+  // "Escritório" sempre disponível para cadastrar itens (aparece na retirada ao lado de Limpeza).
+  const SETORES = useMemo(() => {
+    const nomes = setores.map((s) => s.name);
+    return nomes.includes("Escritório") ? nomes : [...nomes, "Escritório"].sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [setores]);
 
   const { data: itens = [], isLoading } = useQuery({
     queryKey: ["inv_items", unidade],
