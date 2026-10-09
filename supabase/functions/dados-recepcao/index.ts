@@ -1,5 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  analisarRoomBlocks,
+  bloqueioDoHousekeeping,
+  cloudbedsGet,
+  emptyEciLco,
+  flagsVazias,
+  hojeNoHotel,
+  mergeEciLco,
+  scanEciLco,
+  somarDias,
+  type TipoBloqueio,
+} from "../_shared/cloudbeds-quarto.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,106 +19,6 @@ const corsHeaders = {
 }
 
 const API_BASE = "https://hotels.cloudbeds.com/api/v1.2"
-
-type EciLcoInfo = {
-  eci: boolean
-  lco: boolean
-  eciTime: string | null
-  lcoTime: string | null
-}
-
-const emptyEciLco = (): EciLcoInfo => ({ eci: false, lco: false, eciTime: null, lcoTime: null })
-
-const collectTextDeep = (value: unknown, parts: string[], seen = new WeakSet<object>(), depth = 0) => {
-  if (value === null || value === undefined || depth > 6) return
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    const text = String(value).trim()
-    if (text) parts.push(text)
-    return
-  }
-  if (typeof value !== 'object') return
-  if (seen.has(value)) return
-  seen.add(value)
-  if (Array.isArray(value)) {
-    for (const item of value) collectTextDeep(item, parts, seen, depth + 1)
-    return
-  }
-  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    parts.push(key)
-    collectTextDeep(val, parts, seen, depth + 1)
-  }
-}
-
-const normalizeEciLcoTime = (hour: string, minute?: string) => {
-  const hhParsed = parseInt(hour, 10)
-  if (!Number.isFinite(hhParsed)) return null
-  const hh = Math.min(23, Math.max(0, hhParsed))
-  const mmParsed = minute ? parseInt(minute, 10) : 0
-  const mm = Number.isFinite(mmParsed) ? Math.min(59, Math.max(0, mmParsed)) : 0
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-}
-
-const scanEciLco = (...sources: unknown[]): EciLcoInfo => {
-  const parts: string[] = []
-  for (const source of sources) collectTextDeep(source, parts)
-  const blob = parts.join(' | ')
-  if (!blob) return emptyEciLco()
-
-  const siglaPattern = (sigla: 'ECI' | 'LCO') => new RegExp(`(?:^|[^A-Z0-9])${sigla}(?:[^A-Z0-9]|$)`, 'i')
-  const eci = siglaPattern('ECI').test(blob) || /early\s*check[-\s]*in/i.test(blob)
-  const lco = siglaPattern('LCO').test(blob) || /late\s*check[-\s]*out/i.test(blob)
-
-  const extractTime = (kind: 'ECI' | 'LCO'): string | null => {
-    const labels = kind === 'ECI'
-      ? ['ECI', 'early\\s*check[-\\s]*in']
-      : ['LCO', 'late\\s*check[-\\s]*out']
-    for (const label of labels) {
-      const after = new RegExp(`(?:^|[^A-Z0-9])(?:${label})[^0-9]{0,30}(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?`, 'i')
-      const afterMatch = blob.match(after)
-      if (afterMatch) return normalizeEciLcoTime(afterMatch[1], afterMatch[2])
-
-      const before = new RegExp(`(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?[^A-Z0-9]{0,30}(?:${label})(?:[^A-Z0-9]|$)`, 'i')
-      const beforeMatch = blob.match(before)
-      if (beforeMatch) return normalizeEciLcoTime(beforeMatch[1], beforeMatch[2])
-    }
-    return null
-  }
-
-  return {
-    eci,
-    lco,
-    eciTime: eci ? extractTime('ECI') : null,
-    lcoTime: lco ? extractTime('LCO') : null,
-  }
-}
-
-const mergeEciLco = (...items: EciLcoInfo[]): EciLcoInfo => ({
-  eci: items.some((item) => item.eci),
-  lco: items.some((item) => item.lco),
-  eciTime: items.find((item) => item.eciTime)?.eciTime ?? null,
-  lcoTime: items.find((item) => item.lcoTime)?.lcoTime ?? null,
-})
-
-const buildRoomBlockEciLcoMap = (roomBlocksJson: any) => {
-  const map = new Map<string, EciLcoInfo>()
-  const blocks = Array.isArray(roomBlocksJson?.data?.roomBlocks)
-    ? roomBlocksJson.data.roomBlocks
-    : []
-
-  for (const block of blocks) {
-    if (String(block?.roomBlockType ?? '').toLowerCase() !== 'blocked_dates') continue
-    const info = scanEciLco(block?.roomBlockReason, block)
-    if (!info.eci && !info.lco) continue
-
-    for (const room of Array.isArray(block?.rooms) ? block.rooms : []) {
-      const roomId = String(room?.roomID ?? '').trim()
-      if (!roomId) continue
-      map.set(roomId, mergeEciLco(map.get(roomId) ?? emptyEciLco(), info))
-    }
-  }
-
-  return map
-}
 
 async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
   const authHeader = req.headers.get('authorization') ?? ''
@@ -135,18 +47,9 @@ async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: n
   return { ok: true }
 }
 
-async function cb(path: string, apiKey: string) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { Authorization: `Bearer ${apiKey}` },
-  })
-  const raw = await res.text()
-  try {
-    return JSON.parse(raw)
-  } catch {
-    console.error(`[dados-recepcao] non-JSON ${path}:`, raw.slice(0, 500))
-    return null
-  }
-}
+// Com nova tentativa; se o Cloudbeds falhar, a função devolve erro (a tela mantém o último dado)
+// em vez de mostrar quartos vazios / sem bloqueio.
+const cb = (path: string, apiKey: string) => cloudbedsGet(`${API_BASE}${path}`, apiKey)
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -170,14 +73,11 @@ serve(async (req) => {
       : Deno.env.get('CLOUDBEDS_API_KEY_BOTAFOGO')
     if (!apiKey) throw new Error(`Chave de API para ${propriedade} não configurada.`)
 
-    const hoje = new Date().toISOString().split('T')[0]
+    // Data do HOTEL (Rio), não UTC.
+    const hoje = hojeNoHotel()
     // Janela ampla para pegar hóspedes já hospedados (check-in em dias anteriores)
-    const janelaInicio = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
-    const janelaFim = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
+    const janelaInicio = somarDias(hoje, -60)
+    const janelaFim = somarDias(hoje, 1)
 
     // Cloudbeds limita pageSize a 100. Sem paginação, hóspedes de estadia longa
     // (checkin > 100 reservas atrás) somem da lista e o quarto aparece como Livre.
@@ -195,7 +95,6 @@ serve(async (req) => {
 
     const fetchTodasReservas = async (from: string, to: string, statusFilter = '') => {
       const p1 = await fetchReservasPag(1, from, to, statusFilter)
-      if (!p1?.success) return [] as any[]
       const total = Number(p1.total ?? p1.count ?? 0)
       const acc: any[] = Array.isArray(p1.data) ? [...p1.data] : []
       const totalPaginas = Math.min(Math.ceil(total / 100), 50)
@@ -206,15 +105,13 @@ serve(async (req) => {
           ),
         )
         for (const p of rest) {
-          if (p?.success && Array.isArray(p.data)) acc.push(...p.data)
+          if (Array.isArray(p?.data)) acc.push(...p.data)
         }
       }
       return acc
     }
 
-    const janelaLonga = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000)
-      .toISOString()
-      .split('T')[0]
+    const janelaLonga = somarDias(hoje, -365)
 
     // Cliente Supabase para ler o painel das camareiras (fonte de verdade da limpeza)
     const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? ''
@@ -243,10 +140,10 @@ serve(async (req) => {
       fetchTodasReservas(janelaInicio, janelaFim),
       fetchTodasReservas(janelaLonga, janelaFim, '&status=checked_in'),
       cb(`/getHousekeepingStatus`, apiKey),
-      cb(`/getRoomBlocks?startDate=${hoje}&endDate=${hoje}`, apiKey),
+      cb(`/getRoomBlocks?startDate=${somarDias(hoje, -1)}&endDate=${somarDias(hoje, 1)}`, apiKey),
       fetchRoomHousekeeping(),
     ])
-    const eciLcoPorRoomId = buildRoomBlockEciLcoMap(roomBlocksJson)
+    const flagsPorRoomId = analisarRoomBlocks(roomBlocksJson, hoje)
 
     // Deduplica reservas
     const mapaReservas = new Map<string, any>()
@@ -302,10 +199,15 @@ serve(async (req) => {
       tipoQuarto: string
       statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza'
       bloqueado: boolean
+      bloqueioTipo: TipoBloqueio | null
+      bloqueioMotivo: string | null
     }
     const quartosFisicos: Record<string, HKRoom> = {}
     const hkList = hkJson?.data ?? []
-    if (Array.isArray(hkList)) {
+    if (!Array.isArray(hkList) || hkList.length === 0) {
+      throw new Error(`Cloudbeds não retornou os quartos de ${propriedade}. Tente novamente em instantes.`)
+    }
+    {
       for (const room of hkList) {
         const num = String(room.roomName ?? room.roomNumber ?? '').trim()
         if (!num) continue
@@ -313,24 +215,26 @@ serve(async (req) => {
         let statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza' = 'Em Limpeza'
         if (cond === 'clean' || cond === 'inspected') statusLimpeza = 'Limpo'
         else if (cond === 'dirty') statusLimpeza = 'Sujo'
-        // Cloudbeds retorna roomBlocked=true também para quartos com reserva
-        // atribuída (in-house / chegando). Só tratamos como bloqueio de fato
-        // quando o roomCondition indica manutenção/fora de serviço.
-        const bloqueado =
-          cond === 'out_of_service' || cond === 'maintenance'
+        // Bloqueio real = bloqueio ativo HOJE em getRoomBlocks ou roomCondition fora de serviço.
+        // (roomBlocked=true do housekeeping também aparece para quarto com reserva — não usamos.)
+        const roomId = String(room.roomID ?? '').trim()
+        const flags = flagsPorRoomId.get(roomId) ?? flagsVazias()
+        const bloqueioTipo = flags.bloqueio ?? bloqueioDoHousekeeping(room)
         quartosFisicos[num] = {
           quarto: num,
-          roomId: String(room.roomID ?? '').trim(),
+          roomId,
           tipoQuarto: room.roomTypeName || room.roomType || 'Standard',
           statusLimpeza,
-          bloqueado,
+          bloqueado: !!bloqueioTipo,
+          bloqueioTipo,
+          bloqueioMotivo: bloqueioTipo ? flags.motivoBloqueio : null,
         }
       }
     }
 
     // Reservas ativas do dia agrupadas por quarto — separando hóspede atual (in-house) e próximo (chegando hoje)
     const reservasPorQuarto: Record<string, { atual?: any; proximo?: any }> = {}
-    if (reservasJson?.success) {
+    {
       const ativos = (reservasJson.data ?? []).filter((r: any) => {
         const s = String(r.status ?? '').toLowerCase()
         if (s === 'canceled' || s === 'cancelled' || s === 'no_show') return false
@@ -471,7 +375,7 @@ serve(async (req) => {
         // ECI/LCO no Cloudbeds são BLOQUEIOS TEMPORÁRIOS (`blocked_dates`).
         // A fonte principal é getRoomBlocks por roomID; o scan da reserva fica
         // como fallback para textos extras que o Cloudbeds possa retornar.
-        const roomBlockEciLco = eciLcoPorRoomId.get(String(roomInfo?.roomID ?? '').trim()) ?? emptyEciLco()
+        const roomBlockEciLco = flagsPorRoomId.get(String(roomInfo?.roomID ?? '').trim()) ?? emptyEciLco()
         const eciLco = mergeEciLco(roomBlockEciLco, scanEciLco(res, roomInfo, g))
 
         const registro = {
@@ -515,8 +419,6 @@ serve(async (req) => {
         }
       }
 
-    } else if (reservasJson) {
-      console.error(`[dados-recepcao] Cloudbeds reservas ${propriedade}:`, reservasJson)
     }
 
     // Monta lista final: TODOS os quartos físicos, com dados da reserva quando existir
@@ -526,7 +428,7 @@ serve(async (req) => {
       const prox = bucket.atual ? bucket.proximo : undefined
       const cam = camareiraPorQuarto[normalizeKey(hk.quarto)]
       const statusLimpeza = cam?.status ?? hk.statusLimpeza
-      const roomBlockEciLco = eciLcoPorRoomId.get(hk.roomId) ?? emptyEciLco()
+      const roomBlockEciLco = flagsPorRoomId.get(hk.roomId) ?? emptyEciLco()
 
       // Fonte da verdade do bloqueio: Cloudbeds (getHousekeepingStatus).
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
@@ -547,6 +449,8 @@ serve(async (req) => {
         assignedCamareira: cam?.assignedCamareira ?? null,
         isDnd: cam?.isDnd ?? false,
         ocupacao,
+        bloqueioTipo: hk.bloqueioTipo,
+        bloqueioMotivo: hk.bloqueioMotivo,
         hospede: r?.hospede ?? '',
         pax: r?.pax ?? 0,
         chegadaHora: r?.chegadaHora ?? '',

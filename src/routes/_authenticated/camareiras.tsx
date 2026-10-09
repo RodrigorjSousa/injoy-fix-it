@@ -19,6 +19,7 @@ import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal
 import { TarefasExtrasPainel } from "@/components/camareiras/tarefas-extras-painel";
 import { TarefasExtrasModal, useTarefasExtrasItems, CATEGORIES as TAREFAS_EXTRAS_CATEGORIES, CATEGORIES_BY_UNIDADE as TAREFAS_EXTRAS_BY_UNIDADE, type CategoryKey as TarefaExtraKey } from "@/components/camareiras/tarefas-extras-modal";
 import { InspectionImage } from "@/components/InspectionImage";
+import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-quarto";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { supabase } from "@/integrations/supabase/client";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
@@ -73,6 +74,8 @@ type RoomRow = {
   has_lco: boolean | null;
   eci_time: string | null;
   lco_time: string | null;
+  block_kind?: "manutencao" | "bloqueado" | null;
+  block_reason?: string | null;
 
   blink_troca: boolean | null;
   service_status: string | null;
@@ -440,15 +443,27 @@ function PainelCamareiras() {
     setSyncing(true);
     const t = toast.loading("Sincronizando com Cloudbeds...");
     try {
-      await sincronizarCloudbeds();
+      const r = (await sincronizarCloudbeds()) as {
+        avisos?: string[];
+        resumo?: { unidade: string; bloqueio: string | null; eci: unknown; lco: unknown }[];
+      } | null;
       await carregar();
-      toast.success("Mapa atualizado", { id: t });
+      const daUnidade = (r?.resumo ?? []).filter((x) => x.unidade === unidadeAtiva);
+      const n = (f: (x: (typeof daUnidade)[number]) => unknown) => daUnidade.filter(f).length;
+      const partes = [
+        n((x) => x.bloqueio === "manutencao") && `${n((x) => x.bloqueio === "manutencao")} em manutenção`,
+        n((x) => x.bloqueio === "bloqueado") && `${n((x) => x.bloqueio === "bloqueado")} bloqueado(s)`,
+        n((x) => x.eci) && `${n((x) => x.eci)} entrada antecipada`,
+        n((x) => x.lco) && `${n((x) => x.lco)} saída atrasada`,
+      ].filter(Boolean);
+      toast.success(`Mapa atualizado${partes.length ? ` · Cloudbeds: ${partes.join(", ")}` : ""}`, { id: t });
+      if (r?.avisos?.length) toast.warning(`Uma unidade não respondeu agora: ${r.avisos.join(" | ")}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao sincronizar", { id: t });
     } finally {
       setSyncing(false);
     }
-  }, [carregar, syncing]);
+  }, [carregar, syncing, unidadeAtiva]);
 
   const resetarServicosTurno = useCallback(async () => {
     const senha = window.prompt("Digite a senha para resetar os serviços do turno:");
@@ -679,8 +694,9 @@ function PainelCamareiras() {
           filtrados.map((q) => {
             const bloqueado = q.condition === "maintenance";
             const motivoBloqueio =
+              (q.block_reason && q.block_reason.trim()) ||
               (q.room_comment && q.room_comment.trim()) ||
-              "Quarto em manutenção / fora de operação";
+              null;
             return (
             <div
               key={`${q.property}-${q.room_number}`}
@@ -730,21 +746,15 @@ function PainelCamareiras() {
                 </div>
               </div>
 
-              {bloqueado && (
-                <div className="rounded-xl border-2 border-red-500 bg-red-50 p-3 flex items-start gap-3 shadow-inner">
-                  <div className="shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
-                    <Ban size={22} strokeWidth={3} className="text-white" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[10px] font-black uppercase tracking-widest text-red-700">
-                      Quarto Bloqueado
-                    </p>
-                    <p className="text-sm font-bold text-red-900 leading-snug break-words">
-                      {motivoBloqueio}
-                    </p>
-                  </div>
-                </div>
-              )}
+              <AvisosCloudbedsQuarto
+                bloqueado={bloqueado}
+                tipoBloqueio={q.block_kind ?? "manutencao"}
+                motivo={motivoBloqueio}
+                eci={q.has_eci}
+                lco={q.has_lco}
+                eciTime={q.eci_time}
+                lcoTime={q.lco_time}
+              />
 
               <RecadosDoQuartoSection
                 unidade={q.property}

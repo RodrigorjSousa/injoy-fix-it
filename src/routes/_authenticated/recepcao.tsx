@@ -44,6 +44,7 @@ import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
 import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
+import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-quarto";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import {
@@ -105,6 +106,8 @@ interface QuartoRecepcao {
   hasLco?: boolean;
   eciTime?: string | null;
   lcoTime?: string | null;
+  bloqueioTipo?: "manutencao" | "bloqueado" | null;
+  bloqueioMotivo?: string | null;
 }
 
 const OCUPACAO_STYLE: Record<
@@ -212,14 +215,21 @@ function RecepcaoPage() {
       } else if (data?.error) {
         throw new Error(String(data.error));
       } else {
-        setQuartos([]);
+        throw new Error("Resposta vazia do Cloudbeds");
       }
     } catch (err) {
       const msg = friendlyError(err, "Falha ao carregar dados do Cloudbeds");
       console.error("[recepcao] erro ao buscar:", err);
       setErro(msg);
-      setQuartos([]);
-      toast.error(msg);
+      // Mantém o último dado bom na tela (não apaga bloqueios/hóspedes por uma falha momentânea).
+      setQuartos((anteriores) => {
+        if (anteriores.length && anteriores[0]?.unidade === unidade) {
+          toast.warning("Cloudbeds não respondeu agora. Mostrando os últimos dados; nova tentativa em instantes.");
+          return anteriores;
+        }
+        toast.error(msg);
+        return [];
+      });
     } finally {
       setCarregando(false);
     }
@@ -227,7 +237,17 @@ function RecepcaoPage() {
 
   useEffect(() => {
     carregar(unidadeAtiva);
+    // Atualiza sozinho a cada 3 min (bloqueios, ECI/LCO e hóspedes vêm do Cloudbeds).
+    const t = setInterval(() => carregar(unidadeAtiva), 3 * 60_000);
+    return () => clearInterval(t);
   }, [unidadeAtiva, carregar]);
+
+  // Se a última busca falhou, tenta de novo em 30 s.
+  useEffect(() => {
+    if (!erro) return;
+    const t = setTimeout(() => carregar(unidadeAtiva), 30_000);
+    return () => clearTimeout(t);
+  }, [erro, unidadeAtiva, carregar]);
 
   useEffect(() => {
     const channel = supabase
@@ -434,7 +454,7 @@ function RecepcaoPage() {
           quartosFiltrados.map((q) => {
             const ocupStyle = OCUPACAO_STYLE[q.ocupacao];
             const bloqueado = q.ocupacao === "Bloqueado";
-            const motivoBloqueio = "Quarto em manutenção / fora de operação";
+            const motivoBloqueio = q.bloqueioMotivo ?? null;
             return (
               <div
                 key={q.id}
@@ -500,21 +520,15 @@ function RecepcaoPage() {
                   </div>
                 </div>
 
-                {bloqueado && (
-                  <div className="rounded-xl border-2 border-red-500 bg-red-50 p-3 flex items-start gap-3 shadow-inner">
-                    <div className="shrink-0 w-10 h-10 rounded-full bg-red-600 flex items-center justify-center">
-                      <Ban size={22} strokeWidth={3} className="text-white" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-red-700">
-                        Quarto Bloqueado
-                      </p>
-                      <p className="text-sm font-bold text-red-900 leading-snug break-words">
-                        {motivoBloqueio}
-                      </p>
-                    </div>
-                  </div>
-                )}
+                <AvisosCloudbedsQuarto
+                  bloqueado={bloqueado}
+                  tipoBloqueio={q.bloqueioTipo ?? "manutencao"}
+                  motivo={motivoBloqueio}
+                  eci={q.hasEci}
+                  lco={q.hasLco}
+                  eciTime={q.eciTime}
+                  lcoTime={q.lcoTime}
+                />
 
 
                 {q.blinkTroca && (

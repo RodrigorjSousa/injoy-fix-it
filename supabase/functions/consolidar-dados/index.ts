@@ -1,5 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
+import {
+  analisarRoomBlocks,
+  bloqueioDoHousekeeping,
+  CloudbedsIndisponivel,
+  cloudbedsGet,
+  emptyEciLco,
+  flagsVazias,
+  hojeNoHotel,
+  mergeEciLco,
+  scanEciLco,
+  somarDias,
+} from "../_shared/cloudbeds-quarto.ts"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -7,106 +19,6 @@ const corsHeaders = {
 }
 
 const API_BASE = 'https://hotels.cloudbeds.com/api/v1.2'
-
-type EciLcoInfo = {
-  eci: boolean
-  lco: boolean
-  eciTime: string | null
-  lcoTime: string | null
-}
-
-const emptyEciLco = (): EciLcoInfo => ({ eci: false, lco: false, eciTime: null, lcoTime: null })
-
-const collectTextDeep = (value: unknown, parts: string[], seen = new WeakSet<object>(), depth = 0) => {
-  if (value === null || value === undefined || depth > 6) return
-  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-    const text = String(value).trim()
-    if (text) parts.push(text)
-    return
-  }
-  if (typeof value !== 'object') return
-  if (seen.has(value)) return
-  seen.add(value)
-  if (Array.isArray(value)) {
-    for (const item of value) collectTextDeep(item, parts, seen, depth + 1)
-    return
-  }
-  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    parts.push(key)
-    collectTextDeep(val, parts, seen, depth + 1)
-  }
-}
-
-const normalizeEciLcoTime = (hour: string, minute?: string) => {
-  const hhParsed = parseInt(hour, 10)
-  if (!Number.isFinite(hhParsed)) return null
-  const hh = Math.min(23, Math.max(0, hhParsed))
-  const mmParsed = minute ? parseInt(minute, 10) : 0
-  const mm = Number.isFinite(mmParsed) ? Math.min(59, Math.max(0, mmParsed)) : 0
-  return `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`
-}
-
-const scanEciLco = (...sources: unknown[]): EciLcoInfo => {
-  const parts: string[] = []
-  for (const source of sources) collectTextDeep(source, parts)
-  const blob = parts.join(' | ')
-  if (!blob) return emptyEciLco()
-
-  const siglaPattern = (sigla: 'ECI' | 'LCO') => new RegExp(`(?:^|[^A-Z0-9])${sigla}(?:[^A-Z0-9]|$)`, 'i')
-  const eci = siglaPattern('ECI').test(blob) || /early\s*check[-\s]*in/i.test(blob)
-  const lco = siglaPattern('LCO').test(blob) || /late\s*check[-\s]*out/i.test(blob)
-
-  const extractTime = (kind: 'ECI' | 'LCO'): string | null => {
-    const labels = kind === 'ECI'
-      ? ['ECI', 'early\\s*check[-\\s]*in']
-      : ['LCO', 'late\\s*check[-\\s]*out']
-    for (const label of labels) {
-      const after = new RegExp(`(?:^|[^A-Z0-9])(?:${label})[^0-9]{0,30}(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?`, 'i')
-      const afterMatch = blob.match(after)
-      if (afterMatch) return normalizeEciLcoTime(afterMatch[1], afterMatch[2])
-
-      const before = new RegExp(`(\\d{1,2})(?:\\s*(?:[:hH.]|horas?|hrs?)\\s*(\\d{2})?)?[^A-Z0-9]{0,30}(?:${label})(?:[^A-Z0-9]|$)`, 'i')
-      const beforeMatch = blob.match(before)
-      if (beforeMatch) return normalizeEciLcoTime(beforeMatch[1], beforeMatch[2])
-    }
-    return null
-  }
-
-  return {
-    eci,
-    lco,
-    eciTime: eci ? extractTime('ECI') : null,
-    lcoTime: lco ? extractTime('LCO') : null,
-  }
-}
-
-const mergeEciLco = (...items: EciLcoInfo[]): EciLcoInfo => ({
-  eci: items.some((item) => item.eci),
-  lco: items.some((item) => item.lco),
-  eciTime: items.find((item) => item.eciTime)?.eciTime ?? null,
-  lcoTime: items.find((item) => item.lcoTime)?.lcoTime ?? null,
-})
-
-const buildRoomBlockEciLcoMap = (roomBlocksJson: any) => {
-  const map = new Map<string, EciLcoInfo>()
-  const blocks = Array.isArray(roomBlocksJson?.data?.roomBlocks)
-    ? roomBlocksJson.data.roomBlocks
-    : []
-
-  for (const block of blocks) {
-    if (String(block?.roomBlockType ?? '').toLowerCase() !== 'blocked_dates') continue
-    const info = scanEciLco(block?.roomBlockReason, block)
-    if (!info.eci && !info.lco) continue
-
-    for (const room of Array.isArray(block?.rooms) ? block.rooms : []) {
-      const roomId = String(room?.roomID ?? '').trim()
-      if (!roomId) continue
-      map.set(roomId, mergeEciLco(map.get(roomId) ?? emptyEciLco(), info))
-    }
-  }
-
-  return map
-}
 
 async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: number; message?: string }> {
   const cronSecret = Deno.env.get('CRON_SHARED_SECRET')
@@ -160,19 +72,15 @@ serve(async (req) => {
     const apiKeyIpanema = Deno.env.get('CLOUDBEDS_API_KEY_IPANEMA')
     const apiKeyBotafogo = Deno.env.get('CLOUDBEDS_API_KEY_BOTAFOGO')
 
-    const hojeStr = new Date().toISOString().split('T')[0]
+    // Data do HOTEL (Rio). Antes era UTC: depois das 21h o app achava que já era amanhã
+    // e perdia saídas, chegadas, ECI/LCO e bloqueios do dia.
+    const hojeStr = hojeNoHotel()
 
     const processarPropriedade = async (apiKey: string | undefined, nomeUnidade: string) => {
       if (!apiKey) return { quartos: [] as any[], dashboard: null as any }
 
-      const janelaInicio = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0]
-      const janelaFim = new Date(Date.now() + 1 * 24 * 60 * 60 * 1000)
-        .toISOString()
-        .split('T')[0]
-
-      const authHeaders = { Authorization: `Bearer ${apiKey}` }
+      const janelaInicio = somarDias(hojeStr, -60)
+      const janelaFim = somarDias(hojeStr, 1)
 
       // Busca reservas paginadas — Cloudbeds limita pageSize a 100.
       // Sem paginação, hóspedes de estadia longa (checkin > 100 reservas atrás)
@@ -189,9 +97,8 @@ serve(async (req) => {
           pageNumber: String(pageNumber),
         })
         if (status) params.set('status', status)
-        const url = `https://hotels.cloudbeds.com/api/v1.2/getReservations?${params.toString()}`
-        const r = await fetch(url, { headers: authHeaders })
-        return r.json().catch(() => ({}))
+        // Com nova tentativa; se falhar, interrompe a unidade (não grava quartos "vazios").
+        return cloudbedsGet(`${API_BASE}/getReservations?${params.toString()}`, apiKey)
       }
 
       const fetchTodasReservas = async (
@@ -199,7 +106,6 @@ serve(async (req) => {
         status = '',
       ) => {
         const primeira = await fetchReservasPagina(1, dateParams, status)
-        if (!primeira?.success) return [] as any[]
         const total = Number(primeira.total ?? primeira.count ?? 0)
         const acc: any[] = Array.isArray(primeira.data) ? [...primeira.data] : []
         const totalPaginas = Math.min(Math.ceil(total / 100), 50) // hard cap de segurança
@@ -210,16 +116,19 @@ serve(async (req) => {
             ),
           )
           for (const p of pags) {
-            if (p?.success && Array.isArray(p.data)) acc.push(...p.data)
+            if (Array.isArray(p?.data)) acc.push(...p.data)
           }
         }
         return acc
       }
 
-      const [roomsRes, dashRes, roomBlocksRes, reservasWindow, reservasSaindoHoje, reservasCheckedIn] = await Promise.all([
-        fetch(`${API_BASE}/getHousekeepingStatus`, { headers: authHeaders }),
-        fetch(`${API_BASE}/getDashboard`, { headers: authHeaders }),
-        fetch(`${API_BASE}/getRoomBlocks?startDate=${hojeStr}&endDate=${hojeStr}`, { headers: authHeaders }),
+      const [roomsJson, dashJson, roomBlocksJson, reservasWindow, reservasSaindoHoje, reservasCheckedIn] = await Promise.all([
+        cloudbedsGet(`${API_BASE}/getHousekeepingStatus`, apiKey),
+        // Dashboard é só para métricas: se falhar, segue sem ele.
+        cloudbedsGet(`${API_BASE}/getDashboard`, apiKey).catch(() => ({})),
+        // Bloqueios (manutenção, bloqueado, ECI, LCO): janela de ontem a amanhã e filtro do dia
+        // feito aqui — evita perder bloqueio que começou antes ou termina hoje.
+        cloudbedsGet(`${API_BASE}/getRoomBlocks?startDate=${somarDias(hojeStr, -1)}&endDate=${somarDias(hojeStr, 1)}`, apiKey),
         // Janela padrão: reservas do dia (arrivals/departures/short-stay)
         fetchTodasReservas({ checkInFrom: janelaInicio, checkInTo: janelaFim }),
         // Consulta independente por CHECK-OUT. Sem ela, uma estadia antiga que
@@ -229,17 +138,14 @@ serve(async (req) => {
         // Hóspedes atualmente hospedados — checkin nos últimos 365 dias, filtro status
         fetchTodasReservas(
           {
-            checkInFrom: new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+            checkInFrom: somarDias(hojeStr, -365),
             checkInTo: janelaFim,
           },
           'checked_in',
         ),
       ])
 
-      const roomsJson = await roomsRes.json().catch(() => ({}))
-      const dashJson = await dashRes.json().catch(() => ({}))
-      const roomBlocksJson = await roomBlocksRes.json().catch(() => ({}))
-      const eciLcoPorRoomId = buildRoomBlockEciLcoMap(roomBlocksJson)
+      const flagsPorRoomId = analisarRoomBlocks(roomBlocksJson, hojeStr)
 
       const houseData = roomsJson?.data
       const todosQuartos: any[] = Array.isArray(houseData)
@@ -247,6 +153,9 @@ serve(async (req) => {
         : Array.isArray(houseData?.rooms)
           ? houseData.rooms
           : []
+      if (todosQuartos.length === 0) {
+        throw new CloudbedsIndisponivel(`Cloudbeds não retornou os quartos de ${nomeUnidade}`)
+      }
 
       // Deduplica por reservationID unindo as duas consultas
       const mapReservas = new Map<string, any>()
@@ -489,10 +398,12 @@ serve(async (req) => {
 
 
         const cond = String(room.roomCondition ?? '').toLowerCase()
-        // Cloudbeds marca `roomBlocked=true` para qualquer quarto com reserva
-        // atribuída (ocupado, chegada hoje, etc.), não apenas manutenção.
-        // Só consideramos bloqueio real quando o roomCondition indica isso.
-        const blocked = cond === 'out_of_service' || cond === 'maintenance'
+        // Bloqueio real = bloqueio ativo HOJE em getRoomBlocks (manutenção / bloqueado) ou
+        // roomCondition fora de serviço. `roomBlocked=true` do housekeeping NÃO é usado:
+        // o Cloudbeds marca isso também para quarto com reserva atribuída.
+        const flagsBloco = flagsPorRoomId.get(String(room.roomID ?? '').trim()) ?? flagsVazias()
+        const tipoBloqueio = flagsBloco.bloqueio ?? bloqueioDoHousekeeping(room)
+        const blocked = !!tipoBloqueio
 
         let status = 'dirty'
         if (blocked) status = 'maintenance'
@@ -560,7 +471,7 @@ serve(async (req) => {
         // ECI/LCO no Cloudbeds são BLOQUEIOS TEMPORÁRIOS (`blocked_dates`).
         // A fonte principal é getRoomBlocks por roomID; mantemos o scan da
         // reserva/housekeeping só como fallback para campos textuais extras.
-        const roomBlockEciLco = eciLcoPorRoomId.get(String(room.roomID ?? '').trim()) ?? emptyEciLco()
+        const roomBlockEciLco = flagsBloco
         const fallbackEciLco = resAtiva ? scanEciLco(resAtiva, (resAtiva as any)._roomInfo, room) : scanEciLco(room)
         const eciLcoScan = mergeEciLco(roomBlockEciLco, fallbackEciLco)
 
@@ -596,6 +507,8 @@ serve(async (req) => {
           room_type: String(room.roomTypeName ?? room.roomType ?? ''),
           status,
           condition: blocked ? 'maintenance' : 'normal',
+          block_kind: tipoBloqueio,
+          block_reason: blocked ? flagsBloco.motivoBloqueio : null,
           assigned_task: tarefaSugerida,
           color_code: corLegenda,
           guest_name: guestName,
@@ -623,9 +536,22 @@ serve(async (req) => {
 
 
 
+    // Se o Cloudbeds falhar numa unidade, NÃO gravamos nada dela (fica o último dado bom),
+    // em vez de apagar hóspedes, bloqueios e ECI/LCO com uma resposta vazia.
+    const erros: string[] = []
+    const seguro = async (apiKey: string | undefined, nome: string) => {
+      try {
+        return await processarPropriedade(apiKey, nome)
+      } catch (e) {
+        const msg = `${nome}: ${(e as Error).message}`
+        console.error('[consolidar-dados] unidade ignorada nesta rodada —', msg)
+        erros.push(msg)
+        return { quartos: [] as any[], dashboard: null as any, reservas: [] as any[], falhou: true }
+      }
+    }
     const [ipanema, botafogo] = await Promise.all([
-      processarPropriedade(apiKeyIpanema, 'Ipanema'),
-      processarPropriedade(apiKeyBotafogo, 'Botafogo'),
+      seguro(apiKeyIpanema, 'Ipanema'),
+      seguro(apiKeyBotafogo, 'Botafogo'),
     ])
 
     const nowIso = new Date().toISOString()
@@ -679,6 +605,7 @@ serve(async (req) => {
       ['Ipanema', ipanema] as const,
       ['Botafogo', botafogo] as const,
     ]) {
+      if ((dados as any).falhou || dados.quartos.length === 0) continue
       const d = dados.dashboard?.data ?? {}
       console.log(`[consolidar-dados] dashboard ${unidade} keys:`, Object.keys(d))
 
@@ -743,16 +670,44 @@ serve(async (req) => {
       )
     }
 
-    for (const q of finais) {
-      await supabaseClient.from('room_housekeeping').upsert(
-        { ...q, updated_at: nowIso },
-        { onConflict: 'property,room_number' },
+    // Grava tudo de uma vez. Se o banco ainda não tiver as colunas novas (block_kind /
+    // block_reason — migração 0046), grava sem elas para não parar a sincronização.
+    const linhas = finais.map((q) => ({ ...q, updated_at: nowIso }))
+    if (linhas.length) {
+      let { error: upErr } = await supabaseClient
+        .from('room_housekeeping')
+        .upsert(linhas, { onConflict: 'property,room_number' })
+      if (upErr && /block_kind|block_reason/i.test(upErr.message)) {
+        console.warn('[consolidar-dados] colunas block_* ausentes; gravando sem elas')
+        const semColunas = linhas.map(({ block_kind, block_reason, ...resto }: any) => resto)
+        ;({ error: upErr } = await supabaseClient
+          .from('room_housekeeping')
+          .upsert(semColunas, { onConflict: 'property,room_number' }))
+      }
+      if (upErr) throw new Error(`Falha ao gravar quartos: ${upErr.message}`)
+    }
+
+    if (erros.length === 2 || (erros.length && linhas.length === 0)) {
+      return new Response(
+        JSON.stringify({ success: false, error: `Cloudbeds indisponível agora. Mantidos os últimos dados. (${erros.join(' | ')})` }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 },
       )
     }
 
+    // Resumo para conferência na tela (o que o Cloudbeds informou agora).
+    const resumo = linhas
+      .filter((q: any) => q.block_kind || q.has_eci || q.has_lco)
+      .map((q: any) => ({
+        unidade: q.property,
+        quarto: q.room_number,
+        bloqueio: q.block_kind ?? null,
+        motivo: q.block_reason ?? null,
+        eci: q.has_eci ? (q.eci_time ?? true) : false,
+        lco: q.has_lco ? (q.lco_time ?? true) : false,
+      }))
 
     return new Response(
-      JSON.stringify({ success: true, count: consolidados.length }),
+      JSON.stringify({ success: true, count: linhas.length, hoje: hojeStr, avisos: erros, resumo }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {

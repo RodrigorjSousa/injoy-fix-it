@@ -106,3 +106,15 @@ Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do ass
 Pendências gerais: Fase 3 (licenças e vistorias obrigatórias: bombeiros, vigilância sanitária,
 caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começou; limpeza automática
 das selfies antigas do ponto foi oferecida.
+
+## Cloudbeds → card do quarto (bloqueio, manutenção, ECI, LCO)
+- Regras únicas em `supabase/functions/_shared/cloudbeds-quarto.ts`, usadas por `consolidar-dados`
+  (Camareiras/Gestão, grava `room_housekeeping`) e `dados-recepcao` (Recepção). Testes em
+  `src/lib/cloudbeds/cloudbeds-quarto.test.ts`.
+- "Hoje" é a data do hotel (America/Sao_Paulo). Usar UTC quebrava tudo depois das 21h.
+- Bloqueios vêm de `getRoomBlocks` (consulta de ontem a amanhã, filtrada pelo dia):
+  - `out_of_service` ou motivo de manutenção → MANUTENÇÃO;
+  - outros bloqueios → BLOQUEADO;
+  - motivo com ECI/LCO (também "early check-in", "saída atrasada" etc.) → só aviso, não bloqueia.
+- Se o Cloudbeds falhar (com 3 tentativas), a unidade NÃO é regravada: fica o último dado bom.
+- Sincronização automática a cada 5 min (migração 0046).
