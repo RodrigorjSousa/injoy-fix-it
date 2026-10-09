@@ -22,6 +22,7 @@ import {
   Gauge,
   Fingerprint,
   TabletSmartphone,
+  Sparkles,
 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
 import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
@@ -61,7 +62,8 @@ type HubPath =
   | "/relatorios-turno"
   | "/gestor/previsao-carga"
   | "/gestor/ponto"
-  | "/gestor/totem";
+  | "/gestor/totem"
+  | "/gestor/tarefas-extras";
 
 type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
@@ -73,6 +75,7 @@ const sections: { title: string; items: HubItem[] }[] = [
       { label: "Previsão de Carga", description: "Sinalizador de reforço da limpeza", to: "/gestor/previsao-carga", icon: Gauge, tone: "bg-amber-600" },
       { label: "Lavanderia", description: "Operações e conta corrente", to: "/relatorio-operacoes", icon: Shirt, tone: "bg-sky-600" },
       { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },
+      { label: "Tarefas Extras", description: "Cards das áreas comuns: criar e editar", to: "/gestor/tarefas-extras", icon: Sparkles, tone: "bg-fuchsia-600" },
       { label: "Almoxarifado", description: "Estoque e movimentações", to: "/almoxarifado", icon: Package, tone: "bg-violet-600" },
       { label: "Estoque Geral", description: "Consulta consolidada", to: "/estoque-geral", icon: ClipboardList, tone: "bg-indigo-600" },
       { label: "Frigobar", description: "Produtos, vendas e reposição", to: "/frigobar", icon: GlassWater, tone: "bg-emerald-600" },

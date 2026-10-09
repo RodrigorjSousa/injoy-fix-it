@@ -10,6 +10,7 @@ import {
   useTarefasExtrasItems,
   type CategoryKey,
 } from "@/components/camareiras/tarefas-extras-modal";
+import { useCategoriasDaUnidade } from "@/lib/tarefas-extras-categorias";
 
 type Unidade = "Botafogo" | "Ipanema";
 
@@ -24,13 +25,10 @@ export function TarefasExtrasChecklistManager() {
   const [salvandoTudo, setSalvandoTudo] = useState(false);
 
 
-  const cats = useMemo(
-    () => CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)),
-    [unidade],
-  );
+  const cats = useCategoriasDaUnidade(unidade);
   const activeCat = useMemo(
-    () => CATEGORIES.find((c) => c.key === active) ?? null,
-    [active],
+    () => cats.find((c) => c.key === active) ?? null,
+    [active, cats],
   );
 
   useEffect(() => {
@@ -327,7 +325,7 @@ function CategoryButton({
   isActive,
   onClick,
 }: {
-  cat: (typeof CATEGORIES)[number];
+  cat: { key: CategoryKey; label: string; icon: (typeof CATEGORIES)[number]["icon"]; gradient: string; ring: string; accent: string; defaults: string[] };
   unidade: "Botafogo" | "Ipanema";
   isActive: boolean;
   onClick: () => void;

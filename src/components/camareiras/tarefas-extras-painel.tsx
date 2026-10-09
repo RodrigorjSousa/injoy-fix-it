@@ -9,12 +9,9 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import { todaySP } from "@/lib/tz";
-import {
-  CATEGORIES,
-  CATEGORIES_BY_UNIDADE,
-  useTarefasExtrasItems,
-  type CategoryKey,
-} from "@/components/camareiras/tarefas-extras-modal";
+import { Link } from "@tanstack/react-router";
+import { useTarefasExtrasItems, type CategoryKey } from "@/components/camareiras/tarefas-extras-modal";
+import { registroDaCategoria, useCategoriasDaUnidade, type CategoriaTE } from "@/lib/tarefas-extras-categorias";
 import {
   calcularSituacaoTarefa,
   dataBR,
@@ -24,13 +21,13 @@ import {
 
 const PERIODICITY_KEY = "tarefas_extras_periodicity";
 type Unidade = "Botafogo" | "Ipanema";
-type Categoria = (typeof CATEGORIES)[number];
+type Categoria = CategoriaTE;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const db = supabase as any;
 
 interface Dados {
   periodicidade: Partial<Record<CategoryKey, number>>;
-  ultima: Partial<Record<CategoryKey, { em: string; quem: string | null }>>;
+  logs: Array<{ tarefas: string[]; em: string; quem: string | null }>;
   agenda: Partial<Record<CategoryKey, AgendaManual>>;
 }
 
@@ -60,7 +57,6 @@ function useDadosTarefasExtras(unidade: Unidade) {
   return useQuery({
     queryKey: chave,
     queryFn: async (): Promise<Dados> => {
-      const cats = CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key));
       const [cfgRes, logsRes, agendaRes] = await Promise.all([
         db.from("app_settings").select("value").eq("key", PERIODICITY_KEY).maybeSingle(),
         supabase
@@ -81,16 +77,11 @@ function useDadosTarefasExtras(unidade: Unidade) {
         /* ignora */
       }
 
-      const ultima: Dados["ultima"] = {};
-      for (const row of (logsRes.data ?? []) as Array<{ completed_tasks: unknown; created_at: string; camareira_name: string | null }>) {
-        const tarefas = Array.isArray(row.completed_tasks) ? (row.completed_tasks as string[]) : [];
-        for (const c of cats) {
-          if (ultima[c.key]) continue;
-          if (tarefas.some((t) => typeof t === "string" && t.startsWith(`[${c.label}]`))) {
-            ultima[c.key] = { em: row.created_at, quem: row.camareira_name?.trim() || null };
-          }
-        }
-      }
+      const logs: Dados["logs"] = ((logsRes.data ?? []) as Array<{ completed_tasks: unknown; created_at: string; camareira_name: string | null }>).map((row) => ({
+        tarefas: (Array.isArray(row.completed_tasks) ? row.completed_tasks : []).filter((t): t is string => typeof t === "string"),
+        em: row.created_at,
+        quem: row.camareira_name?.trim() || null,
+      }));
 
       // Antes da migração 0040 a tabela não existe: segue só com o cálculo automático.
       const agenda: Dados["agenda"] = {};
@@ -99,7 +90,7 @@ function useDadosTarefasExtras(unidade: Unidade) {
           agenda[a.categoria] = { proxima_data: a.proxima_data, definido_em: a.definido_em };
         }
       }
-      return { periodicidade, ultima, agenda };
+      return { periodicidade, logs, agenda };
     },
   });
 }
@@ -332,28 +323,38 @@ export function TarefasExtrasPainel({
   onAbrir: (key: CategoryKey) => void;
 }) {
   const { data, error } = useDadosTarefasExtras(unidade);
+  const cats = useCategoriasDaUnidade(unidade);
   const [editando, setEditando] = useState<{ cat: Categoria; s: SituacaoTarefa } | null>(null);
+  const [filtro, setFiltro] = useState<"todos" | "em_dia" | "a_fazer">("todos");
   const hoje = todaySP();
 
   const lista = useMemo(() => {
-    const cats = CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key));
     const ordem = { atrasada: 0, hoje: 1, nunca: 2, em_dia: 3 } as const;
     return cats
-      .map((cat) => ({
+      .map((cat) => {
+        // logs vêm do mais recente para o mais antigo
+        const ultimo = data?.logs.find((l) => l.tarefas.some((t) => registroDaCategoria(t, cat)));
+        return { cat, ultimo };
+      })
+      .map(({ cat, ultimo }) => ({
         cat,
         s: calcularSituacaoTarefa({
-          ultimaEm: data?.ultima[cat.key]?.em ?? null,
-          quem: data?.ultima[cat.key]?.quem ?? null,
+          ultimaEm: ultimo?.em ?? null,
+          quem: ultimo?.quem ?? null,
           periodo: data?.periodicidade[cat.key],
           agenda: data?.agenda[cat.key] ?? null,
           hoje,
         }),
       }))
       .sort((a, b) => ordem[a.s.status] - ordem[b.s.status] || a.s.proxima.localeCompare(b.s.proxima));
-  }, [data, unidade, hoje]);
+  }, [data, cats, hoje]);
 
   const emDia = lista.filter((x) => x.s.status === "em_dia").length;
   const pendentes = lista.length - emDia;
+  const visiveis = lista.filter((x) =>
+    filtro === "todos" ? true : filtro === "em_dia" ? x.s.status === "em_dia" : x.s.status !== "em_dia",
+  );
+  const alternar = (f: typeof filtro) => setFiltro((atual) => (atual === f && f !== "todos" ? "todos" : f));
 
   return (
     <section className="space-y-3 rounded-2xl border bg-slate-50 p-4 sm:p-5">
@@ -367,27 +368,58 @@ export function TarefasExtrasPainel({
             <h3 className="text-lg font-black leading-tight text-slate-900">Tarefas Extras</h3>
           </div>
         </div>
+        {podeEditar && (
+          <Link
+            to="/gestor/tarefas-extras"
+            className="inline-flex items-center gap-1 rounded-lg border bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            <Pencil className="h-3.5 w-3.5" /> Gerenciar cards
+          </Link>
+        )}
       </div>
 
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <div className="rounded-xl border-2 border-teal-600 bg-white p-3">
-          <span className="rounded-full bg-teal-50 px-2 py-0.5 text-[11px] font-semibold text-teal-800">Total</span>
-          <p className="mt-1 text-2xl font-black">{lista.length}</p>
-        </div>
-        <div className="rounded-xl border-2 border-emerald-300 bg-white p-3">
-          <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">Em dia</span>
-          <p className="mt-1 text-2xl font-black">{emDia}</p>
-        </div>
-        <div className="rounded-xl border-2 border-red-300 bg-white p-3">
-          <span className="rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-700">A fazer</span>
-          <p className="mt-1 text-2xl font-black">{pendentes}</p>
-        </div>
+        {(
+          [
+            { f: "todos", rotulo: "Total", n: lista.length, borda: "border-teal-600", ativo: "bg-teal-50 ring-2 ring-teal-600", chip: "bg-teal-50 text-teal-800" },
+            { f: "em_dia", rotulo: "Em dia", n: emDia, borda: "border-emerald-300", ativo: "bg-emerald-50 ring-2 ring-emerald-500", chip: "bg-emerald-50 text-emerald-700" },
+            { f: "a_fazer", rotulo: "A fazer", n: pendentes, borda: "border-red-300", ativo: "bg-red-50 ring-2 ring-red-500", chip: "bg-red-50 text-red-700" },
+          ] as const
+        ).map((t) => (
+          <button
+            key={t.f}
+            type="button"
+            onClick={() => alternar(t.f)}
+            aria-pressed={filtro === t.f}
+            className={cn(
+              "rounded-xl border-2 bg-white p-3 text-left transition hover:shadow-md",
+              t.borda,
+              filtro === t.f && t.ativo,
+            )}
+          >
+            <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", t.chip)}>{t.rotulo}</span>
+            <p className="mt-1 text-2xl font-black">{t.n}</p>
+          </button>
+        ))}
       </div>
+      {filtro !== "todos" && (
+        <p className="text-xs text-slate-500">
+          Mostrando só <strong>{filtro === "em_dia" ? "em dia" : "a fazer"}</strong>.{" "}
+          <button type="button" className="font-semibold text-teal-700 underline" onClick={() => setFiltro("todos")}>
+            Ver todas
+          </button>
+        </p>
+      )}
 
       {error && <p className="text-sm text-red-600">{(error as Error).message}</p>}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {lista.map(({ cat, s }) => (
+        {visiveis.length === 0 && (
+          <p className="col-span-full rounded-xl border border-dashed bg-white p-6 text-center text-sm text-slate-500">
+            {filtro === "em_dia" ? "Nenhuma área em dia." : filtro === "a_fazer" ? "Nada a fazer. Tudo em dia! 🎉" : "Nenhuma área cadastrada."}
+          </p>
+        )}
+        {visiveis.map(({ cat, s }) => (
           <CartaoTarefa
             key={cat.key}
             cat={cat}

@@ -15,6 +15,7 @@ import {
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
+import { useCategoriasDaUnidade } from "@/lib/tarefas-extras-categorias";
 
 interface Props {
   open: boolean;
@@ -25,7 +26,10 @@ interface Props {
 }
 
 
+// Chaves dos cards padrão; cards criados pelo gestor usam outras chaves (texto livre).
 export type CategoryKey =
+  // eslint-disable-next-line @typescript-eslint/ban-types
+  | (string & {})
   | "cozinha"
   | "patio"
   | "salas_terreo"
@@ -36,7 +40,7 @@ export type CategoryKey =
   | "escadas_corredores_ipanema";
 
 
-interface Category {
+export interface Category {
   key: CategoryKey;
   label: string;
   icon: typeof ChefHat;
@@ -357,6 +361,7 @@ export function useTarefasExtrasItems(
 }
 
 export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, initialCategory = null }: Props) {
+  const categoriasUnidade = useCategoriasDaUnidade(unidade);
   const [active, setActive] = useState<CategoryKey | null>(initialCategory);
   const [items, setItems] = useState<string[]>([]);
   const [checked, setChecked] = useState<boolean[]>([]);
@@ -365,8 +370,8 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
   const [salvando, setSalvando] = useState(false);
 
   const activeCat = useMemo(
-    () => CATEGORIES.find((c) => c.key === active) ?? null,
-    [active],
+    () => categoriasUnidade.find((c) => c.key === active) ?? null,
+    [active, categoriasUnidade],
   );
 
   useEffect(() => {
@@ -491,7 +496,7 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
         <div className="overflow-y-auto flex-1 p-4 bg-slate-50">
           {!activeCat ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {CATEGORIES.filter((c) => CATEGORIES_BY_UNIDADE[unidade].includes(c.key)).map((c) => {
+              {categoriasUnidade.map((c) => {
                 const Icon = c.icon;
                 return (
                   <button
@@ -514,7 +519,7 @@ export function TarefasExtrasModal({ open, onClose, unidade, camareiraName, init
                         <p className="text-base font-black leading-tight">
                           {c.label}
                         </p>
-                        <p className="text-[11px] opacity-90">10 itens editáveis</p>
+                        <p className="text-[11px] opacity-90">Toque para abrir o checklist</p>
                       </div>
                     </div>
                   </button>
