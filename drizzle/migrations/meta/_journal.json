@@ -316,6 +316,13 @@
       "when": 1791489561629,
       "tag": "0044_lavanderia_fotos_storage_policies_exact",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1791547357874,
+      "tag": "0045_aplicar_lavanderia_catalogo_completo_0045",
+      "breakpoints": true
     }
   ]
 }

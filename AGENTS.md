@@ -10,3 +10,4 @@ Treat the database as the schedule source of truth, and anchor work cycles to co
 Publish schedules through manager-only atomic operations, sync freelancer costs by stable schedule identifiers, and expose employee schedules only through a value-free published-schedule RPC; this prevents duplication, partial updates, and financial leakage.
 Keep housekeeping load forecasts as immutable manager-only snapshots calculated server-side from Cloudbeds and the published schedule; this preserves audit history and protects operational data.
 Model pending additive schedule collaborator columns with a narrow local database contract until their migrations are applied; this keeps generated types untouched without bypassing migration order.
+Use the shared Cloudbeds sync helper to send the user token and refresh a rejected session at most once; this avoids public-key fallback and unbounded authentication retries.

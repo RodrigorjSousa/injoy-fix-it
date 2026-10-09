@@ -35,6 +35,7 @@ import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-tur
 import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
+import { buscarRecepcaoCloudbeds } from "@/lib/cloudbeds-sync";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
@@ -205,11 +206,7 @@ function RecepcaoPage() {
     setCarregando(true);
     setErro(null);
     try {
-      const { data, error } = await supabase.functions.invoke(
-        `dados-recepcao?property=${unidade}`,
-        { method: "GET" },
-      );
-      if (error) throw error;
+      const data = await buscarRecepcaoCloudbeds(unidade);
       if (data?.success && Array.isArray(data.data)) {
         setQuartos(data.data as QuartoRecepcao[]);
       } else if (data?.error) {
