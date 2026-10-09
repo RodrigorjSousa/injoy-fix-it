@@ -193,10 +193,14 @@ function AlmoxarifadoAdmin() {
       return (data as unknown as Sector[]) ?? [];
     },
   });
-  // "Escritório" sempre disponível para cadastrar itens (aparece na retirada ao lado de Limpeza).
+  // Um setor de escritório sempre disponível para cadastrar itens (aparece no botão ESCRITÓRIO da
+  // retirada). Se já existir um como "Material de Escritório", usamos ele e não criamos outro.
   const SETORES = useMemo(() => {
     const nomes = setores.map((s) => s.name);
-    return nomes.includes("Escritório") ? nomes : [...nomes, "Escritório"].sort((a, b) => a.localeCompare(b, "pt-BR"));
+    const temEscritorio = nomes.some((n) =>
+      n.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().includes("escritorio"),
+    );
+    return temEscritorio ? nomes : [...nomes, "Escritório"].sort((a, b) => a.localeCompare(b, "pt-BR"));
   }, [setores]);
 
   const { data: itens = [], isLoading } = useQuery({
