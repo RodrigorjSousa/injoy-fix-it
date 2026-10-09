@@ -32,6 +32,20 @@ const SETORES_BASE: { key: Setor; icon: typeof Package; color: string }[] = [
   { key: "Cozinha", icon: Coffee, color: "from-orange-500 to-orange-600" },
 ];
 
+// Normaliza nomes de setor (sem acento/maiúsculas) para casar "Material de Escritório" com ESCRITÓRIO.
+const normalizar = (t: string) =>
+  t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
+/** O item/setor do estoque pertence a este botão? */
+export function pertenceAoSetor(sectorDoItem: string, botao: Setor): boolean {
+  const a = normalizar(sectorDoItem ?? "");
+  const b = normalizar(botao);
+  if (a === b) return true;
+  // ESCRITÓRIO agrupa "Material de Escritório", "Escritório", etc.
+  if (b === "escritorio") return a.includes("escritorio");
+  return false;
+}
+
 type InventoryItem = {
   id: string;
   property: string;
@@ -89,7 +103,7 @@ export function RetiradaAlmoxarifadoModal({ open, onClose, unidade, funcionarioN
         ...(((setoresRes.data as unknown as { name: string }[]) ?? []).map((x) => x.name)),
         ...lista.map((i) => i.sector).filter(Boolean),
       ]);
-      setSetoresExtras([...nomes].filter((n) => !SETORES_BASE.some((b) => b.key === n)).sort());
+      setSetoresExtras([...nomes].filter((n) => !SETORES_BASE.some((b) => pertenceAoSetor(n, b.key))).sort());
     })();
     return () => {
       alive = false;
@@ -107,7 +121,7 @@ export function RetiradaAlmoxarifadoModal({ open, onClose, unidade, funcionarioN
   const itensDoSetor = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return itens
-      .filter((i) => i.sector === setor)
+      .filter((i) => pertenceAoSetor(i.sector, setor))
       .filter((i) => !q || i.name.toLowerCase().includes(q));
   }, [itens, setor, busca]);
 
