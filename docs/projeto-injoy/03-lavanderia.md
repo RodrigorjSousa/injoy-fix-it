@@ -53,6 +53,14 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
   a 0044; (4) Publicar → Atualizar.
 - Rodrigo vai lançar os talões de 01/10 a 08/10 como gestor (data retroativa). As camareiras começam em 09/10.
 
+### Catálogo completo e busca (0045, 09/10/2026)
+- `lav_preparar()` completa o catálogo com todas as linhas do talão (35 peças), uma vez por versão
+  (`lav_config.catalogo_versao = 2`), sem recriar nem alterar o que o gestor editou ou excluiu. Peças sem preço
+  na tabela da Clean Soft entram a R$ 0,00 no grupo "Outros (sem preço na tabela)".
+- Coleta: busca no topo da lista ("fro" → Fronha; ignora acento) + quadro "Conferência" com o que foi digitado.
+- Retorno: "Voltou outra peça?" virou busca no catálogo inteiro. Peça já listada → leva até ela; nova → inclui
+  e já põe o cursor em "Contei".
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",

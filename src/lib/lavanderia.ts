@@ -442,3 +442,42 @@ export function normalizarRetorno(linhas: LinhaRetornoForm[]) {
       guardado: inteiro(l.guardado) ?? 0,
     }));
 }
+
+/** Texto sem acento e em minúsculas, para a busca ("lencol" acha "Lençol"). */
+export function semAcento(texto: string) {
+  return texto
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+/**
+ * Busca de peças pelo nome: ignora acento e maiúsculas; todas as palavras digitadas
+ * precisam aparecer. Quem começa com o termo vem primeiro ("fro" → Fronha).
+ */
+export function filtrarPecas<T extends { nome: string; ordem: number }>(
+  pecas: T[],
+  termo: string,
+): T[] {
+  const t = semAcento(termo);
+  if (!t) return [...pecas].sort((a, b) => a.ordem - b.ordem);
+  const palavras = t.split(/\s+/);
+  return pecas
+    .map((p) => ({ p, nome: semAcento(p.nome) }))
+    .filter(({ nome }) => palavras.every((w) => nome.includes(w)))
+    .sort((a, b) => {
+      const ia = a.nome.startsWith(t)
+        ? 0
+        : a.nome.split(/[^a-z0-9]+/).some((w) => w.startsWith(palavras[0]))
+          ? 1
+          : 2;
+      const ib = b.nome.startsWith(t)
+        ? 0
+        : b.nome.split(/[^a-z0-9]+/).some((w) => w.startsWith(palavras[0]))
+          ? 1
+          : 2;
+      return ia - ib || a.p.ordem - b.p.ordem;
+    })
+    .map(({ p }) => p);
+}

@@ -25,24 +25,25 @@ export async function buscarPermissaoLavanderia(): Promise<PermissaoLavanderia> 
   return { gestor: !!d.gestor, podeLancar: !!d.pode_lancar };
 }
 
-/** Busca o catálogo; na primeira vez cria as peças com os preços da Clean Soft. */
+let catalogoConferido = false;
+
+/**
+ * Busca o catálogo. Uma vez por abertura do app pede ao banco para completar o catálogo
+ * (lav_preparar: cria as peças que faltam, só uma vez por versão, sem mexer nas editadas).
+ */
 export async function buscarPecas(): Promise<Peca[]> {
-  const ler = async () => {
-    const { data, error } = await db
-      .from("lav_pecas")
-      .select("id, nome, grupo_fatura, preco, ordem, ativo")
-      .order("ordem")
-      .order("nome");
-    if (error) throw erro(error);
-    return ((data ?? []) as Peca[]).map((p) => ({ ...p, preco: Number(p.preco) }));
-  };
-  let pecas = await ler();
-  if (pecas.length === 0) {
+  if (!catalogoConferido) {
     const { error } = await db.rpc("lav_preparar");
     if (error) throw erro(error);
-    pecas = await ler();
+    catalogoConferido = true;
   }
-  return pecas;
+  const { data, error } = await db
+    .from("lav_pecas")
+    .select("id, nome, grupo_fatura, preco, ordem, ativo")
+    .order("ordem")
+    .order("nome");
+  if (error) throw erro(error);
+  return ((data ?? []) as Peca[]).map((p) => ({ ...p, preco: Number(p.preco) }));
 }
 
 type TalaoRow = Omit<Talao, "itens"> & { lav_talao_itens: Talao["itens"] | null };
