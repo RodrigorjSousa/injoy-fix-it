@@ -1891,6 +1891,24 @@ export type Database = {
         }
         Relationships: []
       }
+      lav_config: {
+        Row: {
+          catalogo_versao: number
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          catalogo_versao?: number
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          catalogo_versao?: number
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       lav_faturas: {
         Row: {
           aprovado_em: string | null
