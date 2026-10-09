@@ -27,7 +27,8 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
 - **Gestor** (menu LAVANDERIA, `src/routes/_authenticated/relatorio-operacoes.tsx`):
   - Saldo: na lavanderia agora, em talões abertos, pendente de talões já devolvidos, faltas na entrega e alertas
     (talão com 3 dias ou mais, falta na entrega, divergência de contagem, número pulado).
-  - Talões: por mês, com as 4 contagens, fotos, corrigir coleta/retorno, desfazer retorno e excluir.
+  - Talões: por mês, com as 4 contagens, coluna 📷 Fotos e, ao abrir o talão, miniaturas das fotos de coleta e
+    retorno que ampliam dentro do app (sem janela pop-up); corrigir coleta/retorno, desfazer retorno e excluir.
   - Fechamento do mês: nas colunas da fatura Clean Soft, mostra contagem × preço = valor esperado. O gestor
     digita as quantidades e o valor da fatura, e o app mostra a diferença, os talões sem retorno, os números
     pulados e o que foi anotado e não entregue. Tem "Aprovar pagamento" e "Imprimir/PDF".

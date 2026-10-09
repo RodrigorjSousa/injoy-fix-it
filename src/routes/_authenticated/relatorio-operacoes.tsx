@@ -65,19 +65,6 @@ export const Route = createFileRoute("/_authenticated/relatorio-operacoes")({
   component: LavanderiaGestor,
 });
 
-async function abrirFoto(path: string | null) {
-  if (!path) return;
-  const janela = window.open("", "_blank");
-  try {
-    const url = await urlFotoTalao(path);
-    if (janela) janela.location.href = url;
-    else window.location.href = url;
-  } catch (e) {
-    janela?.close();
-    toast.error(e instanceof Error ? e.message : "Não foi possível abrir a foto.");
-  }
-}
-
 const sinal = (v: number | null) => (v === null ? "—" : v > 0 ? `+${v}` : String(v));
 
 function LavanderiaGestor() {
@@ -450,13 +437,14 @@ function TaloesTab({
                 Falta entrega
               </th>
               <th className="text-left p-3">Retorno</th>
+              <th className="p-3 text-center">Fotos</th>
               <th className="p-3" />
             </tr>
           </thead>
           <tbody>
             {lista.length === 0 && (
               <tr>
-                <td colSpan={10} className="p-6 text-center text-slate-500">
+                <td colSpan={11} className="p-6 text-center text-slate-500">
                   Nenhum talão em {nomeMes(mes)}.
                 </td>
               </tr>
@@ -573,15 +561,20 @@ function TalaoLinha({
             </span>
           )}
         </td>
+        <td className="p-3 text-center">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700">
+            <Camera size={14} /> {[t.coleta_foto, t.retorno_foto].filter(Boolean).length}
+          </span>
+        </td>
         <td className="p-3 text-slate-400">
           {expandido ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </td>
       </tr>
       {expandido && (
         <tr className="bg-slate-50">
-          <td colSpan={10} className="p-3">
+          <td colSpan={11} className="p-3">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <table className="w-full text-xs bg-white rounded-lg border border-slate-200">
+              <table className="w-full text-xs bg-white rounded-lg border border-slate-200 self-start">
                 <thead className="text-[10px] uppercase text-slate-500">
                   <tr>
                     <th className="text-left p-2">Peça</th>
@@ -616,20 +609,9 @@ function TalaoLinha({
                 </tbody>
               </table>
               <div className="space-y-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => abrirFoto(t.coleta_foto)}
-                    className="flex-1 inline-flex items-center justify-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-2 font-bold"
-                  >
-                    <Camera size={13} /> Foto coleta
-                  </button>
-                  <button
-                    onClick={() => abrirFoto(t.retorno_foto)}
-                    disabled={!t.retorno_foto}
-                    className="flex-1 inline-flex items-center justify-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-2 font-bold disabled:opacity-40"
-                  >
-                    <Camera size={13} /> Foto retorno
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <FotoMiniatura path={t.coleta_foto} titulo={`Talão nº ${t.numero} · coleta`} />
+                  <FotoMiniatura path={t.retorno_foto} titulo={`Talão nº ${t.numero} · retorno`} />
                 </div>
                 {t.coleta_obs && (
                   <p className="bg-amber-50 border border-amber-200 rounded p-2">
@@ -1029,19 +1011,13 @@ function FechamentoTab({
                     {r.guardado ?? <span className="text-amber-600 font-bold">sem retorno</span>}
                   </td>
                   <td className="p-2 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => abrirFoto(t.coleta_foto)}
-                      className="text-blue-700 font-bold underline mr-2"
-                    >
+                    <BotaoFoto path={t.coleta_foto} titulo={`Talão nº ${t.numero} · coleta`}>
                       coleta
-                    </button>
+                    </BotaoFoto>
                     {t.retorno_foto && (
-                      <button
-                        onClick={() => abrirFoto(t.retorno_foto)}
-                        className="text-blue-700 font-bold underline"
-                      >
+                      <BotaoFoto path={t.retorno_foto} titulo={`Talão nº ${t.numero} · retorno`}>
                         retorno
-                      </button>
+                      </BotaoFoto>
                     )}
                   </td>
                 </tr>
@@ -1269,5 +1245,133 @@ function PecaLinha({
         </button>
       </td>
     </tr>
+  );
+}
+
+/* ====================================================================== FOTOS */
+
+function useUrlFoto(path: string | null) {
+  return useQuery({
+    queryKey: ["lav_foto", path],
+    queryFn: () => urlFotoTalao(path!),
+    enabled: !!path,
+    staleTime: 8 * 60_000, // a URL assinada vale 10 min
+    retry: 1,
+  });
+}
+
+function VisualizadorFoto({
+  path,
+  titulo,
+  onClose,
+}: {
+  path: string;
+  titulo: string;
+  onClose: () => void;
+}) {
+  const url = useUrlFoto(path);
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/85 flex flex-col" onClick={onClose}>
+      <div
+        className="flex items-center justify-between gap-2 p-3 text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="font-bold text-sm">{titulo}</p>
+        <div className="flex items-center gap-2">
+          {url.data && (
+            <a
+              href={url.data}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5"
+            >
+              Abrir em nova aba
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="text-xs font-bold bg-white text-slate-900 rounded-lg px-3 py-1.5"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+      <div
+        className="flex-1 overflow-auto flex items-start justify-center p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url.isLoading ? (
+          <p className="text-white/80 text-sm mt-10">
+            <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando foto…
+          </p>
+        ) : url.error ? (
+          <p className="text-red-200 text-sm mt-10 max-w-md text-center">
+            Não foi possível abrir a foto: {url.error.message}
+          </p>
+        ) : (
+          <img src={url.data} alt={titulo} className="max-w-full h-auto rounded-lg shadow-2xl" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Miniatura da foto do talão; toque para ampliar dentro do app (sem janela nova). */
+function FotoMiniatura({ path, titulo }: { path: string | null; titulo: string }) {
+  const [aberta, setAberta] = useState(false);
+  const url = useUrlFoto(path);
+  const rotulo = titulo.split(" · ")[1] ?? "foto";
+  if (!path)
+    return (
+      <div className="h-32 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[11px] text-slate-400 text-center px-2">
+        Sem foto de {rotulo}
+      </div>
+    );
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAberta(true)}
+        className="relative h-32 rounded-lg border border-slate-200 bg-white overflow-hidden group"
+        title={`Ver foto · ${titulo}`}
+      >
+        {url.data ? (
+          <img
+            src={url.data}
+            alt={titulo}
+            className="h-full w-full object-cover group-hover:opacity-90"
+          />
+        ) : url.error ? (
+          <span className="text-[11px] text-red-600 p-2 block">Erro: {url.error.message}</span>
+        ) : (
+          <Loader2 className="animate-spin text-slate-400 mx-auto" size={16} />
+        )}
+        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] font-bold uppercase py-1">
+          <Camera size={10} className="inline mr-1" />
+          {rotulo} · ampliar
+        </span>
+      </button>
+      {aberta && <VisualizadorFoto path={path} titulo={titulo} onClose={() => setAberta(false)} />}
+    </>
+  );
+}
+
+function BotaoFoto({
+  path,
+  titulo,
+  children,
+}: {
+  path: string;
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  const [aberta, setAberta] = useState(false);
+  return (
+    <>
+      <button onClick={() => setAberta(true)} className="text-blue-700 font-bold underline mr-2">
+        {children}
+      </button>
+      {aberta && <VisualizadorFoto path={path} titulo={titulo} onClose={() => setAberta(false)} />}
+    </>
   );
 }
