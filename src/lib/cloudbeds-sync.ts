@@ -3,12 +3,13 @@ import { supabase } from "@/integrations/supabase/client";
 const SESSION_MESSAGE = "Sua sessão expirou. Entre novamente para atualizar os dados do Cloudbeds.";
 
 /** Always send the user's token; retry a rejected session once, never with the public key. */
-export async function sincronizarCloudbeds() {
+async function chamarCloudbeds(name: string, method: "GET" | "POST") {
   const { data, error } = await supabase.auth.getSession();
   if (error || !data.session?.access_token) throw new Error(SESSION_MESSAGE);
 
-  const invoke = (token: string) => supabase.functions.invoke("consolidar-dados", {
-    body: {},
+  const invoke = (token: string) => supabase.functions.invoke(name, {
+    method,
+    ...(method === "POST" ? { body: {} } : {}),
     headers: { Authorization: `Bearer ${token}` },
   });
 
@@ -24,4 +25,12 @@ export async function sincronizarCloudbeds() {
     throw new Error(result.data.error || "Falha na sincronização com Cloudbeds.");
   }
   return result.data;
+}
+
+export function sincronizarCloudbeds() {
+  return chamarCloudbeds("consolidar-dados", "POST");
+}
+
+export function buscarRecepcaoCloudbeds(unidade: "Botafogo" | "Ipanema") {
+  return chamarCloudbeds(`dados-recepcao?property=${encodeURIComponent(unidade)}`, "GET");
 }

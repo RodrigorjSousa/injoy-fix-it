@@ -8,6 +8,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { buscarRecepcaoCloudbeds } from "@/lib/cloudbeds-sync";
 import type { Unidade } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { useRegistrosBonificacaoMes, formatBRL } from "@/lib/bonificacao";
@@ -63,7 +64,7 @@ export function PainelControleRapido({ unidade }: Props) {
         { data: trocaData },
       ] = await Promise.all([
         supabase.from("chamados").select("status").eq("unidade", unidade),
-        supabase.functions.invoke(`dados-recepcao?property=${unidade}`, { method: "GET" }),
+        buscarRecepcaoCloudbeds(unidade).then((data) => ({ data })),
         supabase
           .from("room_inspections")
           .select("room_number, created_at")

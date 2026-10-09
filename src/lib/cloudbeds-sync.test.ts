@@ -4,7 +4,7 @@ const mocks = vi.hoisted(() => ({ getSession: vi.fn(), refreshSession: vi.fn(), 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { auth: { getSession: mocks.getSession, refreshSession: mocks.refreshSession }, functions: { invoke: mocks.invoke } },
 }));
-import { sincronizarCloudbeds } from "./cloudbeds-sync";
+import { buscarRecepcaoCloudbeds, sincronizarCloudbeds } from "./cloudbeds-sync";
 
 beforeEach(() => {
   vi.resetAllMocks();
@@ -12,17 +12,24 @@ beforeEach(() => {
 });
 
 describe("Cloudbeds session recovery", () => {
+  it("retries reception reads with the refreshed session and selected unit", async () => {
+    mocks.invoke.mockResolvedValueOnce({ error: { context: { status: 401 } } }).mockResolvedValueOnce({ data: { success: true, data: [] }, error: null });
+    mocks.refreshSession.mockResolvedValue({ data: { session: { access_token: "refreshed-test-token" } }, error: null });
+    await buscarRecepcaoCloudbeds("Ipanema");
+    expect(mocks.invoke).toHaveBeenLastCalledWith("dados-recepcao?property=Ipanema", { method: "GET", headers: { Authorization: "Bearer refreshed-test-token" } });
+    expect(mocks.invoke).toHaveBeenCalledTimes(2);
+  });
   it("sends the current user token", async () => {
     mocks.invoke.mockResolvedValue({ data: { success: true }, error: null });
     await sincronizarCloudbeds();
-    expect(mocks.invoke).toHaveBeenCalledWith("consolidar-dados", { body: {}, headers: { Authorization: "Bearer initial-test-token" } });
+    expect(mocks.invoke).toHaveBeenCalledWith("consolidar-dados", { method: "POST", body: {}, headers: { Authorization: "Bearer initial-test-token" } });
   });
   it("refreshes a rejected session and retries with the new token", async () => {
     mocks.invoke.mockResolvedValueOnce({ error: { context: { status: 401 } } }).mockResolvedValueOnce({ data: { success: true }, error: null });
     mocks.refreshSession.mockResolvedValue({ data: { session: { access_token: "refreshed-test-token" } }, error: null });
     await sincronizarCloudbeds();
     expect(mocks.invoke).toHaveBeenCalledTimes(2);
-    expect(mocks.invoke).toHaveBeenLastCalledWith("consolidar-dados", { body: {}, headers: { Authorization: "Bearer refreshed-test-token" } });
+    expect(mocks.invoke).toHaveBeenLastCalledWith("consolidar-dados", { method: "POST", body: {}, headers: { Authorization: "Bearer refreshed-test-token" } });
   });
   it("stops after one retry when the session remains invalid", async () => {
     mocks.invoke.mockResolvedValue({ error: { context: { status: 401 } } });
