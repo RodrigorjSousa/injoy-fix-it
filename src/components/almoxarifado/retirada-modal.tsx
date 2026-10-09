@@ -9,6 +9,7 @@ import {
   Droplet,
   Wind,
   Coffee,
+  Briefcase,
   Package,
   Search,
   Minus,
@@ -18,11 +19,13 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
-type Setor = "Banheiro" | "Limpeza" | "Elétrica" | "Hidráulica" | "Ar Condicionado" | "Cozinha";
+type Setor = string;
 
-const SETORES: { key: Setor; icon: typeof Package; color: string }[] = [
+// Setores fixos (nesta ordem). Setores criados pelo gestor no Almoxarifado aparecem depois.
+const SETORES_BASE: { key: Setor; icon: typeof Package; color: string }[] = [
   { key: "Banheiro", icon: ToyBrick, color: "from-cyan-500 to-cyan-600" },
   { key: "Limpeza", icon: Brush, color: "from-emerald-500 to-emerald-600" },
+  { key: "Escritório", icon: Briefcase, color: "from-violet-500 to-violet-600" },
   { key: "Elétrica", icon: Zap, color: "from-amber-500 to-amber-600" },
   { key: "Hidráulica", icon: Droplet, color: "from-blue-500 to-blue-600" },
   { key: "Ar Condicionado", icon: Wind, color: "from-sky-500 to-sky-600" },
@@ -50,6 +53,7 @@ export function RetiradaAlmoxarifadoModal({ open, onClose, unidade, funcionarioN
   const [setor, setSetor] = useState<Setor>("Banheiro");
   const [busca, setBusca] = useState("");
   const [itens, setItens] = useState<InventoryItem[]>([]);
+  const [setoresExtras, setSetoresExtras] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [selecionado, setSelecionado] = useState<InventoryItem | null>(null);
   const [qtd, setQtd] = useState(1);
@@ -69,23 +73,36 @@ export function RetiradaAlmoxarifadoModal({ open, onClose, unidade, funcionarioN
     let alive = true;
     (async () => {
       setLoading(true);
-      const { data, error } = await supabase
-        .from("inventory_items" as never)
-        .select("*")
-        .eq("property", unidade)
-        .order("name");
+      const [{ data, error }, setoresRes] = await Promise.all([
+        supabase.from("inventory_items" as never).select("*").eq("property", unidade).order("name"),
+        supabase.from("inventory_sectors" as never).select("name").eq("property", unidade).order("name"),
+      ]);
       setLoading(false);
       if (!alive) return;
       if (error) {
         toast.error(error.message);
         return;
       }
-      setItens((data as unknown as InventoryItem[]) ?? []);
+      const lista = (data as unknown as InventoryItem[]) ?? [];
+      setItens(lista);
+      const nomes = new Set<string>([
+        ...(((setoresRes.data as unknown as { name: string }[]) ?? []).map((x) => x.name)),
+        ...lista.map((i) => i.sector).filter(Boolean),
+      ]);
+      setSetoresExtras([...nomes].filter((n) => !SETORES_BASE.some((b) => b.key === n)).sort());
     })();
     return () => {
       alive = false;
     };
   }, [open, unidade]);
+
+  const SETORES = useMemo(
+    () => [
+      ...SETORES_BASE,
+      ...setoresExtras.map((key) => ({ key, icon: Package, color: "from-slate-500 to-slate-600" })),
+    ],
+    [setoresExtras],
+  );
 
   const itensDoSetor = useMemo(() => {
     const q = busca.trim().toLowerCase();
