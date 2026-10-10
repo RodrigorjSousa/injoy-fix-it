@@ -45,7 +45,7 @@ export async function calculateLoadForecast(units: Unit[]) {
     const [raw, configResult, historyResult, daysResult] = await Promise.all([
       fetchPages(property,start,end), supabaseAdmin.from("previsao_carga_config").select("*").eq("unidade",unit).single(),
       supabaseAdmin.from("room_housekeeping_history").select("task_name,started_at,ended_at").eq("property",unit).gte("started_at",new Date(Date.now()-60*86400000).toISOString()),
-      supabaseAdmin.from("escala_dias").select("*,escala_colaboradores!inner(nome,vinculo,escala_padroes(intervalo_minutos))").eq("unidade",unit).eq("setor","camareiras").gte("data",start).lte("data",end),
+      supabaseAdmin.from("escala_dias").select("*,escala_colaboradores!escala_dias_colaborador_id_fkey!inner(nome,vinculo,escala_padroes(intervalo_minutos))").eq("unidade",unit).eq("setor","camareiras").gte("data",start).lte("data",end),
     ]);
     if (configResult.error) throw configResult.error; if(historyResult.error)throw historyResult.error; if(daysResult.error)throw daysResult.error;
     const reservations=normalize(raw); const rooms=[...new Set(reservations.map(r=>r.roomNumber))]; const config=configResult.data;
