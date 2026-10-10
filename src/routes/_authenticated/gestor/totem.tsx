@@ -41,6 +41,7 @@ type TotemRow = {
   pagamento_habilitado?: boolean;
   pos_serial?: string | null;
   pede_documentos?: boolean;
+  voz_ativa?: boolean;
   impressora?: "nenhuma" | "rawbt";
   wifi_rede?: string | null;
   wifi_senha?: string | null;
@@ -424,6 +425,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     pagamento_habilitado: totem.pagamento_habilitado ?? false,
     pos_serial: totem.pos_serial ?? "",
     pede_documentos: totem.pede_documentos ?? true,
+    voz_ativa: totem.voz_ativa ?? true,
     impressora: totem.impressora ?? "nenhuma",
     wifi_rede: totem.wifi_rede ?? "",
     wifi_senha: totem.wifi_senha ?? "",
@@ -568,6 +570,12 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
             ajuda="No check-in, antes de entregar a senha."
             valor={form.pede_documentos}
             onChange={(v) => setForm({ ...form, pede_documentos: v })}
+          />
+          <Regra
+            rotulo="Voz guiando o hóspede"
+            ajuda="Fala o passo a passo e as dicas da câmera no idioma escolhido. No Fully Kiosk, ligue a JavaScript Interface (PLUS)."
+            valor={form.voz_ativa}
+            onChange={(v) => setForm({ ...form, voz_ativa: v })}
           />
           <Regra
             rotulo="Imprimir comprovante (impressora térmica via RawBT)"

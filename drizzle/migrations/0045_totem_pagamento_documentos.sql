@@ -12,6 +12,8 @@ ALTER TABLE public.totem_dispositivos ADD COLUMN IF NOT EXISTS impressora text N
 ALTER TABLE public.totem_dispositivos ADD COLUMN IF NOT EXISTS wifi_rede text;
 ALTER TABLE public.totem_dispositivos ADD COLUMN IF NOT EXISTS wifi_senha text;
 ALTER TABLE public.totem_dispositivos ADD COLUMN IF NOT EXISTS mensagem_comprovante text;
+-- Voz guiando o hóspede no idioma escolhido (no Fully Kiosk precisa da JavaScript Interface).
+ALTER TABLE public.totem_dispositivos ADD COLUMN IF NOT EXISTS voz_ativa boolean NOT NULL DEFAULT true;
 
 ALTER TABLE public.totem_dispositivos DROP CONSTRAINT IF EXISTS totem_dispositivos_impressora_check;
 ALTER TABLE public.totem_dispositivos
