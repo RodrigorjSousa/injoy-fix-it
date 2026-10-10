@@ -115,7 +115,7 @@ Alternativa sem licença: Chrome › menu › **Instalar app** em `/totem` e dep
 Segurança › **Fixar app**. Funciona, mas o hóspede consegue sair segurando Voltar + Visão geral.
 
 ### Entrega 3: pagamento, documentos e comprovante (migrações 0045 e 0046)
-Fluxo do check-in: encontrar a reserva → **pagamento** (se houver saldo) → **documentos** → senha (na tela
+Fluxo do check-in: encontrar a reserva → **pagamento** (se houver saldo) → **identificação** → senha (na tela
 e impressa). Fluxo do check-out: encontrar a estadia → **pagamento** (se houver saldo) → confirmar a
 saída → avaliação (comprovante impresso).
 
@@ -136,14 +136,33 @@ saída → avaliação (comprovante impresso).
 - **Ticket de atendimento** (`ticket.server.ts`): depois dos dois fatores, o servidor devolve um ticket
   HMAC válido por 20 minutos, só para aquele totem e aquela reserva. Pagamento e documentos usam o
   ticket. A senha da porta refaz toda a conferência.
-- **Documentos** (`documentos.server.ts`):
+- **Identificação no estilo gov.br** (`rosto.ts`, `documentos.server.ts`, tela em `totem-app.tsx`).
+  Decisão do conselho (out/2026): câmera frontal, sem bandeja "scanner".
   - **Quem:** cada adulto da reserva, conforme o número de adultos do Cloudbeds, com os nomes conhecidos
     já preenchidos.
-  - **Captura:** tipo do documento, número e foto pela câmera frontal do tablet, com moldura. O RG pede
-    frente e verso.
-  - **Onde fica:** bucket privado `documentos-hospedes` e tabela `totem_documentos`, com anexo na
-    reserva do Cloudbeds (`postReservationDocument`). Se o anexo falhar, a foto continua guardada e o
-    gestor vê o erro.
+  - **Consentimento (LGPD):** antes da câmera, uma tela explica as duas fotos e para que servem. O
+    hóspede pode tocar em "Prefiro fazer na recepção": o totem registra o evento `fotos_recusadas` e
+    manda recado para a recepção. O servidor só grava foto com `consentimento: true` e guarda a hora
+    em `consentimento_em`.
+  - **Dados:** tipo do documento, nome e número (para o registro de hóspedes).
+  - **Foto 1, rosto:** guia oval. A leitura do rosto roda no tablet com o mesmo `@vladmandic/face-api`
+    do ponto (`src/lib/ponto-face.ts`, modelos em `public/models/face`). Pede para centralizar,
+    aproximar ou afastar, recusa duas pessoas, pede para **piscar** (prova de vida) e tira a foto
+    sozinha após 4 leituras boas seguidas. Sem piscar em 15 s, aparece "Tirar a foto mesmo assim"
+    (fica marcado sem prova de vida).
+  - **Foto 2, segurando o documento:** guia oval + guia do documento (que muda de lado conforme o
+    rosto). O maior rosto tem de ser a **mesma pessoa** da selfie (distância < 0,55). A foto 3x4 do
+    documento é procurada de novo em resolução maior no lado oposto ao rosto; achando, tira sozinha e
+    mostra a prévia para o hóspede confirmar. Botão manual depois de 8 s.
+  - **O que vai para o servidor:** só a foto (JPEG sem espelhar, o texto do documento fica legível) e
+    os indícios `vivacidade`, `dist_mesma_pessoa` e `dist_foto_documento`. O "vetor do rosto" não é
+    guardado.
+  - **Onde fica:** bucket privado `documentos-hospedes` e tabela `totem_documentos` (coluna `etapa`:
+    `rosto` ou `rosto_documento`), com anexo na reserva do Cloudbeds (`postReservationDocument`). Se o
+    anexo falhar, a foto continua guardada e o gestor vê o erro.
+  - **Limites:** não é biometria certificada nem consulta base do governo. Os indícios ajudam a
+    recepção a conferir; a foto 3x4 impressa pode não ser reconhecida (reflexo, foto antiga), por isso
+    ela não bloqueia o check-in.
 - **Comprovante** (`escpos.ts`): ESC/POS 80 mm, sem acentos, enviado ao app **RawBT**
   (`rawbt:base64,...`).
   - **Check-in:** senha em letras grandes, portas, validade, Wi-Fi, pagamento, telefone de ajuda e
@@ -152,8 +171,8 @@ saída → avaliação (comprovante impresso).
   - **Impressão:** sai sozinha, e na senha há o botão "Imprimir de novo".
 - **Área do Gestor › Totem:**
   - **Por tablet:** maquininha (liga/desliga e nº de série), documentos, impressora, Wi-Fi e mensagem.
-  - **Listas:** pagamentos (com alerta de não lançado) e documentos (com "Ver foto" por link
-    temporário).
+  - **Listas:** pagamentos (com alerta de não lançado) e fotos de identificação (com os indícios em
+    selos verdes/vermelhos e "Ver foto" por link temporário).
 
 #### Para ativar
 1. **Stone:**
@@ -182,10 +201,15 @@ saída → avaliação (comprovante impresso).
    - No Fully Kiosk, permita a câmera (*Web Content Settings › Enable Webcam Access*) e a abertura de
      outros apps por link (necessária para o `rawbt:`).
    - Teste a impressão e a câmera.
+   - Teste a identificação com uma pessoa de verdade e um RG/CNH real, na luz do balcão: a selfie
+     precisa sair sozinha ao piscar; anote se a foto 3x4 do documento é reconhecida.
 
 #### Cuidados (LGPD)
-- As fotos de documento são dados pessoais sensíveis. Só gestor/admin lê (políticas da 0046). Defina
-  por quanto tempo guardar e, se quiser, peça uma limpeza automática (ainda não implementada).
+- Selfie é **dado biométrico** (dado sensível, art. 5º, II e art. 11 da LGPD). Por isso: tela de
+  consentimento antes da câmera, opção de fazer na recepção, só gestor/admin lê (políticas da 0046) e
+  nenhum vetor de rosto guardado.
+- Falta definir por quanto tempo guardar as fotos e colocar isso na política de privacidade. Depois
+  disso dá para criar a limpeza automática (ainda não implementada).
 
 ### Pendências / próximos passos
 - Só o quarto 005 de Botafogo tem fechadura cadastrada. Nos outros quartos o totem para em

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanLine, Star, UserRound, Wallet } from "lucide-react";
+import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, IdCard, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanFace, ScanLine, ShieldCheck, Star, UserRound, Wallet } from "lucide-react";
 import {
   totemAvaliar,
   totemDocumentoEnviar,
+  totemFotosRecusadas,
   totemPagamentoCancelar,
   totemPagamentoIniciar,
   totemPagamentoStatus,
@@ -27,6 +28,8 @@ import { documentosFaltando, type Motivo } from "@/lib/totem/regras";
 import { imprimirRawBT, montarEscPos } from "@/lib/totem/escpos";
 import { cn } from "@/lib/utils";
 import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
+import { BlinkDetector, eyeAspectRatio, loadFaceApi } from "@/lib/ponto-face";
+import { ESPERA_MANUAL_DOC_MS, ESPERA_MANUAL_MS, Estabilidade, situacaoComDocumento, situacaoSelfie, type LeituraRosto } from "@/lib/totem/rosto";
 
 // Tela do hóspede no tablet do balcão "Express" (pensada para 12" em paisagem,
 // funciona também em retrato). Não usa o teclado do Android: o teclado é
@@ -66,6 +69,7 @@ export type TotemApi = {
   pagamentoStatus: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
   pagamentoCancelar: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
   documentoEnviar: (token: string, d: DocumentoEnvio) => Promise<unknown>;
+  fotosRecusadas: (token: string, ticket: string) => Promise<unknown>;
 };
 
 export type DocumentoEnvio = {
@@ -74,7 +78,11 @@ export type DocumentoEnvio = {
   nome: string;
   tipo: "rg" | "cnh" | "passaporte" | "outro";
   numero: string;
-  lado: "frente" | "verso";
+  etapa: "rosto" | "rosto_documento";
+  vivacidade: boolean | null;
+  distPessoa: number | null;
+  distDocumento: number | null;
+  consentimento: true;
   foto: string;
 };
 
@@ -90,6 +98,7 @@ const API_SERVIDOR: TotemApi = {
   pagamentoStatus: (token, cobrancaId) => totemPagamentoStatus({ data: { token, cobrancaId } }),
   pagamentoCancelar: (token, cobrancaId) => totemPagamentoCancelar({ data: { token, cobrancaId } }),
   documentoEnviar: (token, d) => totemDocumentoEnviar({ data: { token, ...d } }),
+  fotosRecusadas: (token, ticket) => totemFotosRecusadas({ data: { token, ticket } }),
 };
 
 type SenhaTela = Extract<RespostaCheckin, { estado: "senha" }>;
@@ -123,6 +132,7 @@ type Tela =
   | { t: "checkout_resumo"; ctx: CtxCheckout }
   | { t: "checkout_feito"; nome: string; quarto: string; reservationID: string; comprovante: Comprovante }
   | { t: "avaliado" }
+  | { t: "fotos_recusadas" }
   | { t: "erro"; fluxo: Fluxo; mensagem: string };
 
 /** Quanto tempo sem toque até perguntar "Ainda está aí?" (a tela inicial não tem limite). */
@@ -161,6 +171,7 @@ function passoDe(tela: Tela): number {
     case "pagamento":
       return 1;
     case "documentos":
+    case "fotos_recusadas":
     case "checkout_resumo":
       return 2;
     case "senha":
@@ -419,10 +430,21 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
           enviados={ctx.documentos?.enviados ?? []}
           enviar={(d) => api.documentoEnviar(token ?? "", { ...d, ticket: ctx.ticket })}
           onConcluir={() => void avancarCheckin({ ...ctx, documentos: null }, "documentos")}
+          onRecusar={async () => {
+            await api.fotosRecusadas(token ?? "", ctx.ticket).catch(() => undefined);
+            setTela({ t: "fotos_recusadas" });
+          }}
         />
       );
       break;
     }
+    case "fotos_recusadas":
+      painel = (
+        <Aviso t={t} titulo={t.recusaTitulo} telefone={null} onFim={irInicio}>
+          <p className="mt-5 max-w-xl text-xl leading-relaxed text-[var(--tinta-suave)]">{t.recusaTexto}</p>
+        </Aviso>
+      );
+      break;
     case "senha":
       painel = (
         <TelaSenha
@@ -1560,9 +1582,21 @@ function EtapaPagamento({
   );
 }
 
-// ============================================================ documentos
+// ============================================================ identificação
+// Igual ao gov.br: para cada adulto, (1) foto do rosto com prova de vida
+// (piscar) e (2) foto segurando o documento ao lado do rosto. A leitura do
+// rosto roda no próprio tablet (face-api, o mesmo do ponto); só a foto e as
+// distâncias de comparação vão para o servidor, nunca o "vetor do rosto".
 
 type TipoDoc = DocumentoEnvio["tipo"];
+type EtapaFoto = DocumentoEnvio["etapa"];
+type Captura = {
+  foto: string;
+  vivacidade: boolean | null;
+  descritor: number[] | null;
+  distPessoa: number | null;
+  distDocumento: number | null;
+};
 
 function EtapaDocumentos({
   t,
@@ -1570,22 +1604,29 @@ function EtapaDocumentos({
   enviados,
   enviar,
   onConcluir,
+  onRecusar,
 }: {
   t: T;
   adultos: Array<{ ordem: number; nome: string | null }>;
-  enviados: Array<{ hospede_ordem: number; lado: string }>;
+  enviados: Array<{ hospede_ordem: number; etapa: string }>;
   enviar: (d: Omit<DocumentoEnvio, "ticket">) => Promise<unknown>;
   onConcluir: () => void;
+  onRecusar: () => Promise<void>;
 }) {
-  const prontos = useMemo(() => new Set(enviados.filter((d) => d.lado === "frente").map((d) => d.hospede_ordem)), [enviados]);
-  const fila = useMemo(() => adultos.filter((a) => !prontos.has(a.ordem)), [adultos, prontos]);
+  const fila = useMemo(() => {
+    const tem = (o: number, e: string) =>
+      enviados.some((d) => d.hospede_ordem === o && d.etapa === e);
+    return adultos.filter((a) => !(tem(a.ordem, "rosto") && tem(a.ordem, "rosto_documento")));
+  }, [adultos, enviados]);
   const [pos, setPos] = useState(0);
   const atual = fila[pos];
-  const [fase, setFase] = useState<"dados" | "frente" | "verso">("dados");
+  const [fase, setFase] = useState<"consentimento" | "dados" | EtapaFoto>("consentimento");
   const [nome, setNome] = useState(atual?.nome ?? "");
   const [tipo, setTipo] = useState<TipoDoc>("rg");
   const [numero, setNumero] = useState("");
+  const [selfie, setSelfie] = useState<number[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const { enviando, enviar: recusando } = useEnvio();
 
   const concluiu = useRef(false);
   const concluir = useRef(onConcluir);
@@ -1610,22 +1651,55 @@ function EtapaDocumentos({
     setErro(null);
     setNumero("");
     setTipo("rg");
-    const seguinte = fila[pos + 1];
-    setNome(seguinte?.nome ?? "");
+    setSelfie(null);
+    setNome(fila[pos + 1]?.nome ?? "");
     setPos(pos + 1);
   };
 
-  const cabecalho = (
-    <div className="mb-5">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-[2.1rem] font-extrabold tracking-tight">{t.docsTitulo}</h2>
-        <span className="text-xl font-bold text-[var(--madeira)]">{t.adulto(atual.ordem, adultos.length)}</span>
-      </div>
-      {pos === 0 && fase === "dados" && (
+  if (fase === "consentimento") {
+    const icones = [ScanFace, IdCard, ShieldCheck];
+    return (
+      <div className="flex h-full flex-col">
+        <h2 className="text-[2.1rem] font-extrabold tracking-tight">{t.consentTitulo}</h2>
         <p className="mt-1 text-lg leading-snug text-[var(--tinta-suave)]">
-          {t.docsTexto(adultos.length)} {t.docsPorque}
+          {t.docsTexto(fila.length)}
         </p>
-      )}
+        <ul className="mt-6 space-y-3">
+          {t.consentItens.map((item, i) => {
+            const Icone = icones[i] ?? ShieldCheck;
+            return (
+              <li
+                key={item}
+                className="flex items-start gap-4 rounded-2xl bg-white px-5 py-4 text-lg leading-snug shadow-[0_0_0_1px_rgba(43,38,34,0.06)]"
+              >
+                <span className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-[var(--pedra)] text-[var(--teal)]">
+                  <Icone className="h-6 w-6" />
+                </span>
+                <span className="pt-1.5">{item}</span>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="mt-auto grid gap-3 pt-6 sm:grid-cols-[1fr_auto]">
+          <BotaoPrincipal onClick={() => setFase("dados")}>
+            <Check className="h-6 w-6" /> {t.consentAceito}
+          </BotaoPrincipal>
+          <BotaoSecundario onClick={() => void recusando(onRecusar)} className="sm:px-8">
+            {enviando ? <Loader2 className="h-6 w-6 animate-spin" /> : null} {t.consentRecusa}
+          </BotaoSecundario>
+        </div>
+      </div>
+    );
+  }
+
+  const cabecalho = (
+    <div className="mb-3 flex items-baseline justify-between gap-4">
+      <h2 className="text-[2rem] font-extrabold tracking-tight">
+        {fase === "dados" ? t.docsTitulo : fase === "rosto" ? t.etapaRosto : t.etapaDocumento}
+      </h2>
+      <span className="text-xl font-bold text-[var(--madeira)]">
+        {t.adulto(atual.ordem, adultos.length)}
+      </span>
     </div>
   );
 
@@ -1647,7 +1721,9 @@ function EtapaDocumentos({
                   aria-pressed={tipo === k}
                   className={cn(
                     "min-h-14 rounded-xl px-3 text-base font-semibold leading-tight focus-visible:outline-2 focus-visible:outline-[var(--teal)]",
-                    tipo === k ? "bg-[var(--tinta)] text-white" : "bg-white text-[var(--tinta)] shadow-[0_0_0_1px_rgba(43,38,34,0.1)]",
+                    tipo === k
+                      ? "bg-[var(--tinta)] text-white"
+                      : "bg-white text-[var(--tinta)] shadow-[0_0_0_1px_rgba(43,38,34,0.1)]",
                   )}
                 >
                   {t.tipos[k]}
@@ -1657,13 +1733,27 @@ function EtapaDocumentos({
           </>
         }
         campos={[
-          { id: "nome", rotulo: t.nome, valor: nome, teclado: "texto", max: 80, valido: (x) => x.trim().split(/\s+/).length >= 2 },
-          { id: "numero", rotulo: t.numeroDocumento, valor: numero, teclado: "texto", max: 30, valido: (x) => x.replace(/[^A-Za-z0-9]/g, "").length >= 4 },
+          {
+            id: "nome",
+            rotulo: t.nome,
+            valor: nome,
+            teclado: "texto",
+            max: 80,
+            valido: (x) => x.trim().split(/\s+/).length >= 2,
+          },
+          {
+            id: "numero",
+            rotulo: t.numeroDocumento,
+            valor: numero,
+            teclado: "texto",
+            max: 30,
+            valido: (x) => x.replace(/[^A-Za-z0-9]/g, "").length >= 4,
+          },
         ]}
         onChange={(id, v) => (id === "nome" ? setNome(v) : setNumero(v))}
-        acao={t.tirarFoto}
-        carregando={t.tirarFoto}
-        onEnviar={async () => setFase("frente")}
+        acao={t.continuar2}
+        carregando={t.continuar2}
+        onEnviar={async () => setFase("rosto")}
       />
     );
   }
@@ -1671,21 +1761,35 @@ function EtapaDocumentos({
   return (
     <div className="flex h-full flex-col">
       {cabecalho}
-      <CameraDocumento
+      <CapturaIdentidade
         key={`${atual.ordem}-${fase}`}
         t={t}
-        titulo={fase === "frente" ? t.ladoFrente : t.ladoVerso}
+        etapa={fase}
+        selfie={selfie}
         erro={erro}
-        onFoto={async (foto) => {
+        onFoto={async (c) => {
           setErro(null);
           try {
-            await enviar({ ordem: atual.ordem, nome: nome.trim(), tipo, numero: numero.trim(), lado: fase, foto });
+            await enviar({
+              ordem: atual.ordem,
+              nome: nome.trim(),
+              tipo,
+              numero: numero.trim(),
+              etapa: fase,
+              vivacidade: c.vivacidade,
+              distPessoa: c.distPessoa,
+              distDocumento: c.distDocumento,
+              consentimento: true,
+              foto: c.foto,
+            });
           } catch (e) {
             setErro(mensagemDe(e));
             return false;
           }
-          if (fase === "frente" && tipo === "rg") setFase("verso");
-          else proximo();
+          if (fase === "rosto") {
+            setSelfie(c.descritor);
+            setFase("rosto_documento");
+          } else proximo();
           return true;
         }}
       />
@@ -1693,28 +1797,108 @@ function EtapaDocumentos({
   );
 }
 
-/** Câmera frontal do tablet com moldura de documento; devolve JPEG em base64. */
-function CameraDocumento({
+type Fonte = HTMLVideoElement | HTMLCanvasElement;
+
+async function detectar(fonte: Fonte, W: number, H: number, tamanho: number, dx = 0): Promise<LeituraRosto[]> {
+  const faceapi = await loadFaceApi();
+  const achados = await faceapi
+    .detectAllFaces(fonte, new faceapi.TinyFaceDetectorOptions({ inputSize: tamanho, scoreThreshold: 0.45 }))
+    .withFaceLandmarks()
+    .withFaceDescriptors();
+  return achados.map((r) => {
+    const b = r.detection.box;
+    return {
+      caixa: { x: (b.x + dx) / W, y: b.y / H, w: b.width / W, h: b.height / H },
+      ear: (eyeAspectRatio(r.landmarks.getLeftEye()) + eyeAspectRatio(r.landmarks.getRightEye())) / 2,
+      descritor: Array.from(r.descriptor),
+      score: r.detection.score,
+    };
+  });
+}
+
+let recorte: HTMLCanvasElement | null = null;
+
+/**
+ * Lê os rostos do quadro atual (coordenadas do vídeo, sem espelhar, de 0 a 1).
+ * Na foto com documento, a foto 3x4 é pequena demais para a leitura do quadro
+ * inteiro; então procuramos de novo, em resolução maior, no lado oposto ao rosto.
+ */
+async function lerRostos(video: HTMLVideoElement, comDocumento: boolean): Promise<LeituraRosto[]> {
+  const W = video.videoWidth;
+  const H = video.videoHeight;
+  if (!W || !H) return [];
+  const rostos = await detectar(video, W, H, 416);
+  if (!comDocumento || rostos.length !== 1) return rostos;
+  const [rosto] = rostos;
+  const centro = rosto.caixa.x + rosto.caixa.w / 2;
+  const x0 = Math.round(centro < 0.5 ? Math.min(W * 0.5, (rosto.caixa.x + rosto.caixa.w) * W) : 0);
+  const largura = Math.round(centro < 0.5 ? W - x0 : Math.max(W * 0.5, rosto.caixa.x * W));
+  recorte ??= document.createElement("canvas");
+  recorte.width = largura;
+  recorte.height = H;
+  recorte.getContext("2d")?.drawImage(video, x0, 0, largura, H, 0, 0, largura, H);
+  const extras = await detectar(recorte, W, H, 608, x0);
+  return [...rostos, ...extras.filter((e) => e.caixa.w < rosto.caixa.w * 0.6)];
+}
+
+/** JPEG do quadro atual, sem espelhar (o texto do documento fica legível). */
+function fotografar(v: HTMLVideoElement): string | null {
+  if (!v.videoWidth) return null;
+  const escala = Math.min(1, 1600 / v.videoWidth);
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.round(v.videoWidth * escala);
+  canvas.height = Math.round(v.videoHeight * escala);
+  canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.88);
+}
+
+type Leitor = "carregando" | "ligado" | "desligado";
+type AvisoCaptura = keyof T["msgRosto"] | keyof T["msgDoc"];
+
+function CapturaIdentidade({
   t,
-  titulo,
+  etapa,
+  selfie,
   erro,
   onFoto,
 }: {
   t: T;
-  titulo: string;
+  etapa: EtapaFoto;
+  selfie: number[] | null;
   erro: string | null;
-  onFoto: (jpegBase64: string) => Promise<boolean>;
+  onFoto: (c: Captura) => Promise<boolean>;
 }) {
   const video = useRef<HTMLVideoElement | null>(null);
-  const [falha, setFalha] = useState<string | null>(null);
-  const [foto, setFoto] = useState<string | null>(null);
+  const [camera, setCamera] = useState<"abrindo" | "aberta" | string>("abrindo");
+  const [leitor, setLeitor] = useState<Leitor>("carregando");
+  const [aviso, setAviso] = useState<AvisoCaptura>("carregando");
+  const [progresso, setProgresso] = useState(0);
+  // Lado da tela (já espelhada) onde fica o rosto; a guia do documento vai do outro lado.
+  const [rostoNaEsquerda, setRostoNaEsquerda] = useState(true);
+  const [podeManual, setPodeManual] = useState(false);
+  const [previa, setPrevia] = useState<Captura | null>(null);
   const [tentativa, setTentativa] = useState(0);
   const { enviando, enviar } = useEnvio();
+  const ultima = useRef<{
+    descritor: number[] | null;
+    distPessoa: number | null;
+    distDocumento: number | null;
+  }>({
+    descritor: null,
+    distPessoa: null,
+    distDocumento: null,
+  });
+  const fotoFn = useRef(onFoto);
+  fotoFn.current = onFoto;
+  const enviarRef = useRef(enviar);
+  enviarRef.current = enviar;
+  const doc = etapa === "rosto_documento";
 
+  // Câmera frontal + leitura do rosto (carregam juntas).
   useEffect(() => {
     let stream: MediaStream | null = null;
     let ativo = true;
-    setFalha(null);
+    setCamera("abrindo");
     (async () => {
       try {
         stream = await navigator.mediaDevices.getUserMedia({
@@ -1726,84 +1910,279 @@ function CameraDocumento({
           video.current.srcObject = stream;
           await video.current.play().catch(() => undefined);
         }
+        setCamera("aberta");
       } catch (e) {
-        setFalha(mensagemDe(e));
+        setCamera(mensagemDe(e));
       }
     })();
+    const limite = new Promise<never>((_, rej) =>
+      setTimeout(() => rej(new Error("tempo")), 25_000),
+    );
+    Promise.race([loadFaceApi(), limite]).then(
+      () => ativo && setLeitor("ligado"),
+      () => ativo && setLeitor("desligado"),
+    );
     return () => {
       ativo = false;
       stream?.getTracks().forEach((tr) => tr.stop());
     };
   }, [tentativa]);
 
-  const capturar = () => {
+  // Sem leitura automática: libera o botão na hora.
+  useEffect(() => {
+    if (leitor === "desligado") setPodeManual(true);
+  }, [leitor]);
+
+  // Laço de leitura: decide sozinho a hora de tirar a foto.
+  useEffect(() => {
+    if (camera !== "aberta" || leitor !== "ligado" || previa) return;
     const v = video.current;
-    if (!v || !v.videoWidth) return;
-    const escala = Math.min(1, 1600 / v.videoWidth);
-    const canvas = document.createElement("canvas");
-    canvas.width = Math.round(v.videoWidth * escala);
-    canvas.height = Math.round(v.videoHeight * escala);
-    canvas.getContext("2d")?.drawImage(v, 0, 0, canvas.width, canvas.height);
-    setFoto(canvas.toDataURL("image/jpeg", 0.85));
+    if (!v) return;
+    let ativo = true;
+    let timer: number | undefined;
+    const piscada = new BlinkDetector();
+    const estavel = new Estabilidade();
+    const amostras: number[][] = [];
+    let piscou = false;
+    const inicio = Date.now();
+
+    const passo = async () => {
+      if (!ativo) return;
+      try {
+        const leituras = await lerRostos(v, doc);
+        if (!ativo) return;
+        if (!doc) {
+          const { situacao, principal } = situacaoSelfie(leituras);
+          ultima.current.descritor = principal?.descritor ?? ultima.current.descritor;
+          if (situacao !== "ok" || !principal) {
+            estavel.registrar(false);
+            setAviso(situacao === "ok" ? "sem_rosto" : situacao);
+          } else {
+            if (!piscou) piscou = piscada.push(principal.ear);
+            if (piscou) amostras.push(principal.descritor);
+            const pronto = estavel.registrar(piscou);
+            setAviso(piscou ? "segure" : "pisque");
+            if (pronto) {
+              const foto = fotografar(v);
+              if (foto) {
+                const media = amostras.slice(-4);
+                const descritor = media[0].map(
+                  (_, i) => media.reduce((s, m) => s + m[i], 0) / media.length,
+                );
+                void enviarRef.current(async () => {
+                  const ok = await fotoFn.current({
+                    foto,
+                    vivacidade: true,
+                    descritor,
+                    distPessoa: null,
+                    distDocumento: null,
+                  });
+                  if (!ok) setTentativa((n) => n + 1);
+                });
+                return;
+              }
+            }
+          }
+        } else {
+          const maior = [...leituras].sort((a, b) => b.caixa.w * b.caixa.h - a.caixa.w * a.caixa.h)[0];
+          if (maior) setRostoNaEsquerda(1 - (maior.caixa.x + maior.caixa.w / 2) < 0.5);
+          const r = situacaoComDocumento(leituras, selfie);
+          ultima.current = {
+            ...ultima.current,
+            distPessoa: r.distPessoa,
+            distDocumento: r.distDocumento,
+          };
+          const pronto = estavel.registrar(r.situacao === "ok");
+          setAviso(r.situacao === "ok" ? "segure" : r.situacao);
+          if (pronto) {
+            const foto = fotografar(v);
+            if (foto) {
+              setPrevia({
+                foto,
+                vivacidade: null,
+                descritor: null,
+                distPessoa: r.distPessoa,
+                distDocumento: r.distDocumento,
+              });
+              return;
+            }
+          }
+        }
+        setProgresso(estavel.progresso);
+      } catch (e) {
+        console.warn("[totem] leitura do rosto", e);
+      }
+      if (Date.now() - inicio > (doc ? ESPERA_MANUAL_DOC_MS : ESPERA_MANUAL_MS)) setPodeManual(true);
+      timer = window.setTimeout(passo, 140);
+    };
+    void passo();
+    return () => {
+      ativo = false;
+      window.clearTimeout(timer);
+    };
+  }, [camera, leitor, previa, doc, selfie]);
+
+  const manual = () => {
+    const v = video.current;
+    const foto = v ? fotografar(v) : null;
+    if (!foto) return;
+    const u = ultima.current;
+    const c: Captura = doc
+      ? {
+          foto,
+          vivacidade: null,
+          descritor: null,
+          distPessoa: u.distPessoa,
+          distDocumento: u.distDocumento,
+        }
+      : { foto, vivacidade: false, descritor: u.descritor, distPessoa: null, distDocumento: null };
+    if (doc) setPrevia(c);
+    else
+      void enviar(async () => {
+        const ok = await fotoFn.current(c);
+        if (!ok) setTentativa((n) => n + 1);
+      });
   };
 
-  if (falha) {
+  if (camera !== "abrindo" && camera !== "aberta") {
     return (
       <div className="flex flex-1 flex-col justify-center gap-4">
         <p className="text-2xl font-bold">{t.cameraErro}</p>
-        <p className="text-base text-[var(--tinta-suave)]">{falha}</p>
-        <BotaoPrincipal onClick={() => setTentativa((n) => n + 1)} className="w-auto self-start px-10">
+        <p className="text-base text-[var(--tinta-suave)]">{camera}</p>
+        <BotaoPrincipal
+          onClick={() => setTentativa((n) => n + 1)}
+          className="w-auto self-start px-10"
+        >
           <RotateCcw className="h-6 w-6" /> {t.tentarDeNovo}
         </BotaoPrincipal>
       </div>
     );
   }
 
+  const textoAviso =
+    leitor === "desligado"
+      ? t.semDetector
+      : camera === "abrindo" || leitor === "carregando" || aviso === "carregando"
+        ? t.msgRosto.carregando
+        : doc
+          ? (t.msgDoc[aviso as keyof T["msgDoc"]] ?? t.msgDoc.sem_rosto)
+          : (t.msgRosto[aviso as keyof T["msgRosto"]] ?? t.msgRosto.sem_rosto);
+  const bom = aviso === "segure";
+  const atencao = aviso === "pisque";
+  const corGuia = bom ? "border-[#3FB68B]" : atencao ? "border-[var(--luz)]" : "border-white/85";
+
   return (
     <div className="flex min-h-0 flex-1 flex-col">
-      <p className="text-xl font-bold">{titulo}</p>
-      <p className="text-base text-[var(--tinta-suave)]">{t.posicione}</p>
-      <div className="relative mt-3 min-h-0 flex-1 overflow-hidden rounded-[1.5rem] bg-[var(--tinta)]">
-        {foto ? (
-          <img src={foto} alt="" className="h-full w-full object-contain" />
-        ) : (
-          <>
-            <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
-            {/* Moldura no formato de um documento (85,6 × 54 mm) */}
-            <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
-              <div className="aspect-[1.586] w-[62%] rounded-2xl border-4 border-[var(--luz)] shadow-[0_0_0_100vmax_rgba(43,38,34,0.45)]" />
-            </div>
-          </>
-        )}
+      <p className="text-base leading-snug text-[var(--tinta-suave)]">
+        {previa ? t.confiraFoto : doc ? t.docDica : t.rostoDica}
+      </p>
+      {/* Caixa no formato do vídeo (16:9): as guias batem com o que o leitor do rosto enxerga. */}
+      <div className="mt-3 flex min-h-0 flex-1 items-start justify-center">
+        <div className="relative aspect-video max-h-full w-full overflow-hidden rounded-[1.5rem] bg-[var(--tinta)]">
+          {previa ? (
+            <img src={previa.foto} alt="" className="h-full w-full object-contain" />
+          ) : (
+            <>
+              <video
+                ref={video}
+                playsInline
+                muted
+                className="h-full w-full -scale-x-100 object-cover"
+              />
+              <div aria-hidden className="pointer-events-none absolute inset-0">
+                {doc ? (
+                  <>
+                    <div
+                      className={cn(
+                        "absolute top-1/2 h-[74%] w-[25%] -translate-y-1/2 rounded-[50%] border-[5px] transition-[left,colors] duration-300",
+                        rostoNaEsquerda ? "left-[14%]" : "left-[61%]",
+                        corGuia,
+                      )}
+                    />
+                    <div
+                      className={cn(
+                        "absolute top-1/2 aspect-[1.586] w-[28%] -translate-y-1/2 rounded-2xl border-[5px] border-dashed transition-[left,colors] duration-300",
+                        rostoNaEsquerda ? "left-[60%]" : "left-[12%]",
+                        corGuia,
+                      )}
+                    >
+                      <IdCard className="absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 text-white/70" />
+                    </div>
+                  </>
+                ) : (
+                  <div
+                    className={cn(
+                      "absolute left-1/2 top-1/2 h-[80%] w-[30%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-[5px] transition-colors",
+                      corGuia,
+                    )}
+                  />
+                )}
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex flex-col items-center gap-2 bg-gradient-to-t from-black/70 to-transparent px-6 pb-5 pt-12">
+                <p
+                  role="status"
+                  aria-live="polite"
+                  className="flex items-center gap-3 text-2xl font-bold text-white"
+                >
+                  {(enviando || leitor === "carregando") && (
+                    <Loader2 className="h-6 w-6 animate-spin" />
+                  )}
+                  {enviando ? t.enviando : textoAviso}
+                </p>
+                {leitor === "ligado" && (
+                  <div className="h-2 w-56 overflow-hidden rounded-full bg-white/25">
+                    <div
+                      className="h-full rounded-full bg-[#3FB68B] transition-[width]"
+                      style={{ width: `${Math.round(progresso * 100)}%` }}
+                    />
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
       </div>
       {erro && (
-        <p role="alert" className="mt-3 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]">
+        <p
+          role="alert"
+          className="mt-3 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]"
+        >
           {erro}
         </p>
       )}
-      <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        {foto ? (
-          <>
-            <BotaoSecundario onClick={() => setFoto(null)}>{t.tirarOutra}</BotaoSecundario>
+      {(previa || podeManual) && (
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {previa ? (
+            <>
+              <BotaoSecundario onClick={() => setPrevia(null)}>{t.tirarOutra}</BotaoSecundario>
+              <BotaoPrincipal
+                disabled={enviando}
+                onClick={() =>
+                  void enviar(async () => {
+                    const ok = await onFoto(previa);
+                    if (!ok) setPrevia(null);
+                  })
+                }
+              >
+                {enviando ? (
+                  <Loader2 className="h-6 w-6 animate-spin" />
+                ) : (
+                  <Check className="h-6 w-6" />
+                )}
+                {enviando ? t.enviando : t.usarFoto}
+              </BotaoPrincipal>
+            </>
+          ) : (
             <BotaoPrincipal
-              disabled={enviando}
-              onClick={() =>
-                void enviar(async () => {
-                  const ok = await onFoto(foto);
-                  if (!ok) setFoto(null);
-                })
-              }
+              onClick={manual}
+              disabled={enviando || camera !== "aberta"}
+              className="sm:col-span-2"
             >
-              {enviando ? <Loader2 className="h-6 w-6 animate-spin" /> : <Check className="h-6 w-6" />}
-              {enviando ? t.enviando : t.usarFoto}
+              <Camera className="h-7 w-7" /> {leitor === "desligado" ? t.tirarFoto : t.tirarManual}
             </BotaoPrincipal>
-          </>
-        ) : (
-          <BotaoPrincipal onClick={capturar} className="sm:col-span-2">
-            <Camera className="h-7 w-7" /> {t.tirarFoto}
-          </BotaoPrincipal>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

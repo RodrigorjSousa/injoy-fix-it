@@ -44,7 +44,7 @@ export type TotemInfo = {
 export type PortaTotem = { label: string; tipo: string; senha: string | null; mesma: boolean };
 
 export type PagamentoPendente = { valor: number };
-export type DocumentosPendentes = { adultos: AdultoReserva[]; enviados: Array<{ hospede_ordem: number; lado: string }> };
+export type DocumentosPendentes = { adultos: AdultoReserva[]; enviados: Array<{ hospede_ordem: number; etapa: string }> };
 export type MetodoPagamento = "credito" | "debito" | "pix";
 
 export type Comprovante = {
@@ -468,7 +468,12 @@ export const totemDocumentoEnviar = createServerFn({ method: "POST" })
         nome: z.string().trim().min(3).max(120),
         tipo: z.enum(["cpf", "rg", "cnh", "passaporte", "outro"]),
         numero: z.string().trim().max(40),
-        lado: z.enum(["frente", "verso"]),
+        etapa: z.enum(["rosto", "rosto_documento"]),
+        vivacidade: z.boolean().nullable(),
+        distPessoa: z.number().min(0).max(5).nullable(),
+        distDocumento: z.number().min(0).max(5).nullable(),
+        // A tela de consentimento (LGPD) vem antes das fotos; sem ela, não grava.
+        consentimento: z.literal(true),
         foto: z.string().min(1000).max(6_000_000),
       })
       .parse(input),
@@ -485,15 +490,31 @@ export const totemDocumentoEnviar = createServerFn({ method: "POST" })
       nome: data.nome,
       tipo: data.tipo,
       numero: data.numero,
-      lado: data.lado,
+      etapa: data.etapa,
+      vivacidade: data.vivacidade,
+      distPessoa: data.distPessoa,
+      distDocumento: data.distDocumento,
       jpegBase64: data.foto,
     });
     await S.registrarEvento(totem, "documento", {
       reservation_id: tk.reservationID,
       quarto: tk.quarto,
       hospede: data.nome,
-      detalhe: `${data.tipo} ${data.lado}${r.cloudbedsErro ? ` · Cloudbeds: ${r.cloudbedsErro}` : ""}`,
+      detalhe: `${data.etapa === "rosto" ? "selfie" : `selfie com ${data.tipo}`}${r.cloudbedsErro ? ` · Cloudbeds: ${r.cloudbedsErro}` : ""}`,
     });
+    return { ok: true };
+  });
+
+/** O hóspede preferiu não tirar as fotos no totem: avisa a recepção. */
+export const totemFotosRecusadas = createServerFn({ method: "POST" })
+  .inputValidator((input) => z.object({ token, ticket }).parse(input))
+  .handler(async ({ data }) => {
+    const S = await import("@/lib/totem/totem.server");
+    const T = await import("@/lib/totem/ticket.server");
+    const totem = await S.autenticarTotem(data.token);
+    const tk = await T.lerTicket(data.ticket, totem.id);
+    await S.registrarEvento(totem, "fotos_recusadas", { reservation_id: tk.reservationID, quarto: tk.quarto, detalhe: "Hóspede preferiu fazer a identificação na recepção." });
+    await S.avisarRecepcao(totem, tk.quarto, `Totem ${totem.nome}: hóspede da reserva ${tk.reservationID} preferiu não tirar as fotos de identificação no totem e vai até a recepção.`);
     return { ok: true };
   });
 

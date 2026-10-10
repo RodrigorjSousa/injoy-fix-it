@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { conferenciaFoto } from "@/lib/totem/rosto";
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Copy, KeyRound, Loader2, Plus, Save, Star, Unplug } from "lucide-react";
@@ -69,7 +70,10 @@ type DocumentoRow = {
   hospede_ordem: number;
   tipo_documento: string;
   numero_documento: string | null;
-  lado: string;
+  etapa: string;
+  vivacidade: boolean | null;
+  dist_mesma_pessoa: number | null;
+  dist_foto_documento: number | null;
   arquivo_path: string;
   cloudbeds_erro: string | null;
   criado_em: string;
@@ -191,13 +195,19 @@ function TotemGestor() {
         .limit(40),
       sb
         .from("totem_documentos")
-        .select("id,unidade,reservation_id,hospede_nome,hospede_ordem,tipo_documento,numero_documento,lado,arquivo_path,cloudbeds_erro,criado_em")
+        .select("id,unidade,reservation_id,hospede_nome,hospede_ordem,tipo_documento,numero_documento,etapa,vivacidade,dist_mesma_pessoa,dist_foto_documento,arquivo_path,cloudbeds_erro,criado_em")
         .order("criado_em", { ascending: false })
         .limit(40),
     ]);
     setAviso0045(!!(c.error || d.error));
     setCobrancas(((c.data ?? []) as CobrancaRow[]).map((r) => ({ ...r, valor: Number(r.valor) })));
-    setDocumentos((d.data ?? []) as DocumentoRow[]);
+    setDocumentos(
+      ((d.data ?? []) as DocumentoRow[]).map((r) => ({
+        ...r,
+        dist_mesma_pessoa: r.dist_mesma_pessoa === null ? null : Number(r.dist_mesma_pessoa),
+        dist_foto_documento: r.dist_foto_documento === null ? null : Number(r.dist_foto_documento),
+      })),
+    );
   }, []);
 
   const verDocumento = async (path: string) => {
@@ -273,7 +283,7 @@ function TotemGestor() {
 
       {aviso0045 && (
         <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          Pagamento na maquininha e fotos de documentos ainda não estão ativos: aplique no Lovable a migração
+          Pagamento na maquininha e fotos de identificação ainda não estão ativos: aplique no Lovable a migração
           drizzle/migrations/0045_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
           "documentos-hospedes", a 0046_totem_documentos_storage_policies.sql).
         </Card>
@@ -302,15 +312,34 @@ function TotemGestor() {
       </section>
 
       <section className="space-y-3">
-        <h3 className="text-lg font-black text-slate-900">Documentos recebidos</h3>
+        <h3 className="text-lg font-black text-slate-900">Fotos de identificação</h3>
+        <p className="text-sm text-slate-500">
+          Selfie com prova de vida e selfie segurando o documento. Os indícios abaixo são calculados no tablet; na dúvida, confira a foto.
+        </p>
         <Card className="divide-y">
-          {documentos.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhum documento ainda.</p>}
+          {documentos.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhuma foto ainda.</p>}
           {documentos.map((d) => (
             <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
               <div>
                 <p className="font-semibold text-slate-900">
-                  {d.hospede_nome} · {d.tipo_documento.toUpperCase()} {d.numero_documento ?? ""} · {d.lado}
+                  {d.hospede_nome} · {d.etapa === "rosto" ? "Selfie" : `Selfie com ${d.tipo_documento.toUpperCase()}`} {d.numero_documento ?? ""}
                 </p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {conferenciaFoto(d).map((c) => (
+                    <span
+                      key={c.texto}
+                      className={
+                        c.ok === true
+                          ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800"
+                          : c.ok === false
+                            ? "rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-800"
+                            : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600"
+                      }
+                    >
+                      {c.texto}
+                    </span>
+                  ))}
+                </div>
                 <p className="text-xs text-slate-500">
                   {d.unidade} · reserva {d.reservation_id} · {dataHora(d.criado_em)}
                   {d.cloudbeds_erro ? ` · não anexado no Cloudbeds: ${d.cloudbeds_erro}` : ""}

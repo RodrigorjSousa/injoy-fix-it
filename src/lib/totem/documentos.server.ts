@@ -1,4 +1,5 @@
-// Fotos de documentos tiradas no totem: bucket privado + anexo na reserva do Cloudbeds.
+// Fotos de identificação tiradas no totem (selfie + selfie segurando o documento):
+// bucket privado + anexo na reserva do Cloudbeds.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -12,18 +13,22 @@ const MAX_BYTES = 4 * 1024 * 1024;
 
 export type TipoDocumento = "cpf" | "rg" | "cnh" | "passaporte" | "outro";
 
-export async function documentosEnviados(reservationID: string): Promise<Array<{ hospede_ordem: number; lado: string }>> {
+export type EtapaFoto = "rosto" | "rosto_documento";
+
+export async function documentosEnviados(reservationID: string): Promise<Array<{ hospede_ordem: number; etapa: string }>> {
   const { data, error } = await db()
     .from("totem_documentos")
-    .select("hospede_ordem,lado")
+    .select("hospede_ordem,etapa")
     .eq("reservation_id", reservationID);
   if (error) {
     // Migração 0045 ainda não aplicada: não trava o check-in por isso.
     if (/does not exist|schema cache/i.test(error.message)) return [];
     throw new Error(`Falha ao consultar documentos: ${error.message}`);
   }
-  return (data ?? []) as Array<{ hospede_ordem: number; lado: string }>;
+  return (data ?? []) as Array<{ hospede_ordem: number; etapa: string }>;
 }
+
+const arred = (n: number | null) => (n === null || !Number.isFinite(n) ? null : Math.round(n * 1000) / 1000);
 
 function base64ParaBytes(b64: string): Uint8Array {
   const limpo = b64.replace(/^data:image\/\w+;base64,/, "");
@@ -34,14 +39,24 @@ function base64ParaBytes(b64: string): Uint8Array {
 export async function salvarDocumento(
   totem: Totem,
   ticket: Ticket,
-  doc: { ordem: number; nome: string; tipo: TipoDocumento; numero: string; lado: "frente" | "verso"; jpegBase64: string },
+  doc: {
+    ordem: number;
+    nome: string;
+    tipo: TipoDocumento;
+    numero: string;
+    etapa: EtapaFoto;
+    vivacidade: boolean | null;
+    distPessoa: number | null;
+    distDocumento: number | null;
+    jpegBase64: string;
+  },
 ): Promise<{ id: string; cloudbedsErro: string | null }> {
   const bytes = base64ParaBytes(doc.jpegBase64);
   if (bytes.length < 10_000) throw new Error("A foto ficou muito pequena. Tente de novo.");
   if (bytes.length > MAX_BYTES) throw new Error("A foto ficou grande demais. Tente de novo.");
   if (!(bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff)) throw new Error("Formato de foto inválido.");
 
-  const caminho = `${totem.unidade}/${ticket.reservationID}/${doc.ordem}-${doc.lado}-${crypto.randomUUID()}.jpg`;
+  const caminho = `${totem.unidade}/${ticket.reservationID}/${doc.ordem}-${doc.etapa}-${crypto.randomUUID()}.jpg`;
   const { error: upErr } = await supabaseAdmin.storage
     .from(BUCKET_DOCUMENTOS)
     .upload(caminho, bytes, { contentType: "image/jpeg", upsert: false });
@@ -63,7 +78,11 @@ export async function salvarDocumento(
       hospede_ordem: doc.ordem,
       tipo_documento: doc.tipo,
       numero_documento: doc.numero.slice(0, 40) || null,
-      lado: doc.lado,
+      etapa: doc.etapa,
+      vivacidade: doc.etapa === "rosto" ? doc.vivacidade : null,
+      dist_mesma_pessoa: arred(doc.distPessoa),
+      dist_foto_documento: arred(doc.distDocumento),
+      consentimento_em: new Date().toISOString(),
       arquivo_path: caminho,
     })
     .select("id")
@@ -76,7 +95,8 @@ export async function salvarDocumento(
   try {
     const form = new FormData();
     form.set("reservationID", ticket.reservationID);
-    const nomeArquivo = `Documento ${doc.ordem} ${doc.tipo.toUpperCase()} ${doc.lado} - ${doc.nome}`.replace(/[^\p{L}\p{N} .-]/gu, "").slice(0, 80);
+    const rotulo = doc.etapa === "rosto" ? "Selfie" : `Selfie com ${doc.tipo.toUpperCase()}`;
+    const nomeArquivo = `Hospede ${doc.ordem} ${rotulo} - ${doc.nome}`.replace(/[^\p{L}\p{N} .-]/gu, "").slice(0, 80);
     form.set("file", new Blob([bytes.slice().buffer as ArrayBuffer], { type: "image/jpeg" }), `${nomeArquivo}.jpg`);
     const res = await cloudbedsFetch(totem.unidade.toLowerCase() as CloudbedsProperty, "/postReservationDocument", {
       method: "POST",
