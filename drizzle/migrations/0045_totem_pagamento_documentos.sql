@@ -66,7 +66,14 @@ CREATE TABLE IF NOT EXISTS public.totem_documentos (
   hospede_ordem smallint NOT NULL DEFAULT 1,
   tipo_documento text NOT NULL CHECK (tipo_documento IN ('cpf', 'rg', 'cnh', 'passaporte', 'outro')),
   numero_documento text,
-  lado text NOT NULL DEFAULT 'frente' CHECK (lado IN ('frente', 'verso')),
+  -- Verificação no estilo gov.br: 'rosto' (selfie com prova de vida) e
+  -- 'rosto_documento' (segurando o documento ao lado do rosto).
+  etapa text NOT NULL CHECK (etapa IN ('rosto', 'rosto_documento')),
+  -- Indícios calculados no tablet (o "vetor do rosto" não é guardado):
+  vivacidade boolean,                 -- piscou os olhos na selfie
+  dist_mesma_pessoa numeric(5,3),     -- rosto desta foto x selfie (menor = mais parecido)
+  dist_foto_documento numeric(5,3),   -- foto impressa no documento x selfie
+  consentimento_em timestamptz NOT NULL,
   -- Caminho no bucket privado "documentos-hospedes": <unidade>/<reserva>/<arquivo>.jpg
   arquivo_path text NOT NULL,
   cloudbeds_file_id text,

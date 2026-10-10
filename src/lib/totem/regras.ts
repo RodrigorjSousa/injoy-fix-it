@@ -428,10 +428,10 @@ export function adultosDaReserva(rec: Raw, quartos: QuartoReserva[] = []): Adult
   return Array.from({ length: total }, (_, i) => ({ ordem: i + 1, nome: ordenados[i]?.nomeCompleto ?? null }));
 }
 
-/** Quantos adultos ainda não têm a FRENTE do documento enviada. */
-export function documentosFaltando(adultos: number, enviados: Array<{ hospede_ordem: number; lado: string }>): number {
-  const ok = new Set(enviados.filter((d) => d.lado === "frente").map((d) => d.hospede_ordem));
+/** Quantos adultos ainda não têm as duas fotos (selfie e selfie com o documento). */
+export function documentosFaltando(adultos: number, enviados: Array<{ hospede_ordem: number; etapa: string }>): number {
+  const tem = (ordem: number, etapa: string) => enviados.some((d) => d.hospede_ordem === ordem && d.etapa === etapa);
   let faltam = 0;
-  for (let i = 1; i <= adultos; i++) if (!ok.has(i)) faltam++;
+  for (let i = 1; i <= adultos; i++) if (!tem(i, "rosto") || !tem(i, "rosto_documento")) faltam++;
   return faltam;
 }
