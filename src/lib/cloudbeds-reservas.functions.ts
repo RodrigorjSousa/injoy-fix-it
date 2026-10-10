@@ -82,6 +82,25 @@ function somaQuartos(lista: unknown): number {
   return soma;
 }
 
+/** Valor de um quarto na estadia (roomTotal, ou soma das diárias). */
+export function receitaDoQuarto(q: Record<string, unknown> | null | undefined): number {
+  if (!q) return 0;
+  return somaQuartos([q]);
+}
+
+/** "13:00", "13:00:00", "1:00 PM" → "13:00". Vazio se não houver horário. */
+export function normalizarHora(valor: unknown): string {
+  if (typeof valor !== "string") return "";
+  const m = valor.trim().match(/\b(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/);
+  if (!m) return "";
+  let h = Number(m[1]);
+  const ampm = m[3]?.toLowerCase();
+  if (ampm === "pm" && h < 12) h += 12;
+  if (ampm === "am" && h === 12) h = 0;
+  if (h > 23 || Number(m[2]) > 59) return "";
+  return `${String(h).padStart(2, "0")}:${m[2]}`;
+}
+
 /**
  * Valor da reserva (receita) a partir do detalhe do Cloudbeds (getReservation) e, se faltar,
  * da linha da listagem (getReservations, que normalmente NÃO traz o valor).
@@ -212,17 +231,28 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       const rec = r as Record<string, unknown>;
       const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn);
       const id = String(rec.reservationID ?? "");
-      if (ci === hoje && id) todayIds.add(id);
+      const quartos = Array.isArray(rec.rooms) ? (rec.rooms as Array<Record<string, unknown>>) : [];
+      const quartoHoje = quartos.some(
+        (rm) => dateOnly(rm.roomCheckIn ?? rm.startDate ?? rm.checkInDate ?? rm.checkinDate ?? rm.checkIn ?? rm.checkin) === hoje,
+      );
+      if ((ci === hoje || quartoHoje) && id) todayIds.add(id);
     }
     const detailMap = new Map<string, Record<string, unknown>>();
     await Promise.all(
       Array.from(todayIds).map(async (id) => {
-        try {
-          const res = await cloudbedsFetch(property, `/getReservation?reservationID=${encodeURIComponent(id)}`);
-          if (!res.ok) return;
-          const json = (await res.json()) as { success?: boolean; data?: Record<string, unknown> };
-          if (json.success !== false && json.data) detailMap.set(id, json.data);
-        } catch {}
+        for (let tentativa = 0; tentativa < 2; tentativa++) {
+          try {
+            const res = await cloudbedsFetch(property, `/getReservation?reservationID=${encodeURIComponent(id)}`);
+            if (!res.ok) continue;
+            const json = (await res.json()) as { success?: boolean; data?: Record<string, unknown> };
+            if (json.success !== false && json.data) {
+              detailMap.set(id, json.data);
+              return;
+            }
+          } catch {
+            /* tenta de novo */
+          }
+        }
       }),
     );
     for (const r of rawList) {
@@ -351,7 +381,15 @@ export const getReservasHoje = createServerFn({ method: "POST" })
             rec.balanceTotal ??
             rec.totalRate,
         );
-      const rateio = roomsArr.length > 0 ? recTotal / roomsArr.length : 0;
+      const detalhe = detailMap.get(rid);
+      const totalReserva = receitaDaReserva(detalhe, rec as Record<string, unknown>) || recTotal;
+      const rateio = roomsArr.length > 0 ? totalReserva / roomsArr.length : 0;
+      const quartosDetalhe = detalhe
+        ? ([
+            ...(Array.isArray(detalhe.assigned) ? detalhe.assigned : []),
+            ...(Array.isArray(detalhe.unassigned) ? detalhe.unassigned : []),
+          ] as Array<Record<string, unknown>>)
+        : [];
 
       for (const room of roomsArr) {
         const candidates: unknown[] = [
@@ -380,11 +418,22 @@ export const getReservasHoje = createServerFn({ method: "POST" })
           (room && (room.roomCheckOut || room.endDate)) || rec.reservationCheckOut || rec.endDate || rec.checkout || "",
         );
 
+        // Valor do quarto na estadia: procura o mesmo quarto no detalhe da reserva.
+        const r0 = (room ?? {}) as Record<string, unknown>;
+        const qDet =
+          quartosDetalhe.length === 1 && roomsArr.length === 1
+            ? quartosDetalhe[0]
+            : quartosDetalhe.find(
+                (q) =>
+                  (r0.roomID && String(q.roomID ?? "") === String(r0.roomID)) ||
+                  (r0.reservationRoomID && String(q.reservationRoomID ?? "") === String(r0.reservationRoomID)) ||
+                  (r0.roomName && String(q.roomName ?? "") === String(r0.roomName)),
+              );
         const receitaRoom =
-          room &&
-          (rateForDate(room.detailedRoomRates, hoje) ||
-            moneyNumber(room.grandTotal ?? room.roomTotal ?? room.total ?? room.subtotal ?? room.totalRate ?? room.roomRate));
-        const receita = moneyNumber(receitaRoom) || rateio;
+          receitaDoQuarto(qDet) ||
+          receitaDoQuarto(r0) ||
+          (room && rateForDate(room.detailedRoomRates, hoje));
+        const receita = Math.round((moneyNumber(receitaRoom) || rateio) * 100) / 100;
         const noites = diffNoites(ci, co);
         const rawTime = String(
           (room && (room.checkInTime || room.estimatedArrivalTime || room.arrivalTime)) ||
@@ -393,8 +442,10 @@ export const getReservasHoje = createServerFn({ method: "POST" })
             rec.arrivalTime ||
             "",
         );
-        const timeMatch = rawTime.match(/\b(\d{1,2}):(\d{2})\b/);
-        const checkInTime = timeMatch ? `${timeMatch[1].padStart(2, "0")}:${timeMatch[2]}` : "";
+        const checkInTime =
+          normalizarHora(rawTime) ||
+          normalizarHora(qDet?.estimatedArrivalTime ?? qDet?.arrivalTime) ||
+          normalizarHora(detalhe?.estimatedArrivalTime ?? detalhe?.arrivalTime);
         const tipoAcomodacao = String((room && (room.roomTypeName || room.roomType)) || "");
         rows.push({
           reservationID: rid,
