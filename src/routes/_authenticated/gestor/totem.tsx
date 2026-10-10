@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { conferenciaFoto } from "@/lib/totem/rosto";
+import { linkPareamento } from "@/lib/totem/pareamento";
+import { carregarScript } from "@/lib/script-externo";
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Copy, KeyRound, Loader2, Plus, Save, Star, Unplug } from "lucide-react";
@@ -37,7 +39,7 @@ type TotemRow = {
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
   modo: "ambos" | "checkin" | "checkout";
-  // 0045 (podem faltar se a migração ainda não foi aplicada)
+  // 0050 (podem faltar se a migração ainda não foi aplicada)
   pagamento_habilitado?: boolean;
   pos_serial?: string | null;
   pede_documentos?: boolean;
@@ -157,7 +159,7 @@ function TotemGestor() {
   const [avaliacoes, setAvaliacoes] = useState<AvaliacaoRow[]>([]);
   const [cobrancas, setCobrancas] = useState<CobrancaRow[]>([]);
   const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
-  const [aviso0045, setAviso0045] = useState(false);
+  const [aviso0050, setAviso0050] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const [novaUnidade, setNovaUnidade] = useState<"Botafogo" | "Ipanema">("Ipanema");
@@ -187,7 +189,7 @@ function TotemGestor() {
     setEventos((e.data ?? []) as Evento[]);
     setAvaliacoes((a.data ?? []) as AvaliacaoRow[]);
 
-    // Pagamentos e documentos (migração 0045). Se ainda não existir, só avisa.
+    // Pagamentos e documentos (migração 0050). Se ainda não existir, só avisa.
     const [c, d] = await Promise.all([
       sb
         .from("totem_cobrancas")
@@ -200,7 +202,7 @@ function TotemGestor() {
         .order("criado_em", { ascending: false })
         .limit(40),
     ]);
-    setAviso0045(!!(c.error || d.error));
+    setAviso0050(!!(c.error || d.error));
     setCobrancas(((c.data ?? []) as CobrancaRow[]).map((r) => ({ ...r, valor: Number(r.valor) })));
     setDocumentos(
       ((d.data ?? []) as DocumentoRow[]).map((r) => ({
@@ -282,11 +284,11 @@ function TotemGestor() {
         </div>
       )}
 
-      {aviso0045 && (
+      {aviso0050 && (
         <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Pagamento na maquininha e fotos de identificação ainda não estão ativos: aplique no Lovable a migração
-          drizzle/migrations/0045_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
-          "documentos-hospedes", a 0046_totem_documentos_storage_policies.sql).
+          drizzle/migrations/0050_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
+          "documentos-hospedes", a 0051_totem_documentos_storage_policies.sql).
         </Card>
       )}
 
@@ -431,7 +433,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     wifi_senha: totem.wifi_senha ?? "",
     mensagem_comprovante: totem.mensagem_comprovante ?? "",
   });
-  const tem0045 = totem.pagamento_habilitado !== undefined;
+  const tem0050 = totem.pagamento_habilitado !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -441,7 +443,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     const { data, error } = await sb
       .from("totem_dispositivos")
       .update(
-        tem0045
+        tem0050
           ? {
               ...form,
               telefone_suporte: form.telefone_suporte.trim() || null,
@@ -552,7 +554,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
         <Regra rotulo="Totem ativo" valor={form.ativo} onChange={(v) => setForm({ ...form, ativo: v })} />
       </div>
 
-      {tem0045 && (
+      {tem0050 && (
         <div className="space-y-3 rounded-lg border border-slate-200 p-3">
           <p className="text-sm font-bold text-slate-900">Pagamento, documentos e comprovante</p>
           <Regra
@@ -620,7 +622,21 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
 
       {codigo && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <p className="text-xs text-emerald-800">Digite no tablet (em /totem). Vale até {dataHora(codigo.expira)} e só funciona uma vez.</p>
+          <div className="flex flex-wrap items-start gap-4">
+            <QrPareamento link={linkPareamento(window.location.origin, codigo.codigo)} />
+            <ol className="min-w-0 flex-1 list-decimal space-y-1 pl-4 text-sm text-emerald-900">
+              <li>
+                <b>Tablet ainda sem o totem aberto:</b> abra a câmera do tablet e aponte para o QR. O link abre o
+                totem já conectado.
+              </li>
+              <li>
+                <b>Tablet já na tela do totem (Fully Kiosk):</b> toque em <b>Ler QR code</b> e mostre este QR para
+                a câmera da frente.
+              </li>
+              <li>Ou digite o código abaixo na tela do totem.</li>
+            </ol>
+          </div>
+          <p className="mt-3 text-xs text-emerald-800">Vale até {dataHora(codigo.expira)} e só funciona uma vez.</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="font-mono text-3xl font-black tracking-widest text-emerald-900">{codigo.codigo}</span>
             <Button
@@ -649,3 +665,42 @@ function Regra({ rotulo, ajuda, valor, onChange }: { rotulo: string; ajuda?: str
     </label>
   );
 }
+
+/** QR com o link de pareamento (/totem?parear=CODIGO), desenhado no navegador. */
+function QrPareamento({ link }: { link: string }) {
+  const [svg, setSvg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    setSvg(null);
+    carregarScript("/vendor/qrcode-generator-1.4.4.min.js")
+      .then(() => {
+        const gerar = (window as unknown as { qrcode?: QrGerador }).qrcode;
+        if (!gerar) throw new Error("Gerador de QR indisponível.");
+        const qr = gerar(0, "M");
+        qr.addData(link);
+        qr.make();
+        if (ativo) setSvg(qr.createSvgTag(6, 2));
+      })
+      .catch((e: unknown) => ativo && setErro(e instanceof Error ? e.message : String(e)));
+    return () => {
+      ativo = false;
+    };
+  }, [link]);
+  if (erro) return <p className="text-xs text-red-700">QR indisponível: {erro}</p>;
+  return (
+    <div
+      role="img"
+      aria-label="QR code para conectar o tablet"
+      className="grid h-48 w-48 shrink-0 place-items-center rounded-md bg-white p-1 [&_svg]:h-full [&_svg]:w-full"
+      dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
+    >
+      {svg ? undefined : <Loader2 className="h-6 w-6 animate-spin text-emerald-700" />}
+    </div>
+  );
+}
+
+type QrGerador = (
+  tipo: number,
+  correcao: "L" | "M" | "Q" | "H",
+) => { addData: (d: string) => void; make: () => void; createSvgTag: (celula?: number, margem?: number) => string };

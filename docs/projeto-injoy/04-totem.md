@@ -114,7 +114,20 @@ check-in e check-out pelo totem + avaliação rápida no check-out.
 Alternativa sem licença: Chrome › menu › **Instalar app** em `/totem` e depois Configurações ›
 Segurança › **Fixar app**. Funciona, mas o hóspede consegue sair segurando Voltar + Visão geral.
 
-### Entrega 3: pagamento, documentos e comprovante (migrações 0045 e 0046)
+### Pareamento por QR code
+O gestor gera o código em **Área do Gestor › Totem** e a tela mostra também um **QR code** com o link
+`https://<endereço do app>/totem?parear=CODIGO` (`src/lib/totem/pareamento.ts`). Três jeitos de conectar:
+1. **Câmera do Android:** apontar para o QR abre o totem já conectado. Atenção: o link abre no
+   navegador padrão. Se o totem roda no Fully Kiosk, use o jeito 2 (cada navegador guarda o seu token).
+2. **Dentro do totem (Fully Kiosk):** na tela "Configurar este totem", tocar em **Ler QR code** e
+   mostrar o QR para a câmera da frente. Usa o leitor nativo do Android (`BarcodeDetector`) quando
+   existe, senão o jsQR.
+3. Digitar o código de 8 letras/números.
+
+As bibliotecas de QR ficam em `public/vendor/` (`qrcode-generator` MIT e `jsqr` Apache-2.0),
+carregadas só quando precisa (`src/lib/script-externo.ts`), sem mexer no `package.json`/`bun.lock`.
+
+### Entrega 3: pagamento, documentos e comprovante (migrações 0050 e 0051)
 Fluxo do check-in: encontrar a reserva → **pagamento** (se houver saldo) → **identificação** → senha (na tela
 e impressa). Fluxo do check-out: encontrar a estadia → **pagamento** (se houver saldo) → confirmar a
 saída → avaliação (comprovante impresso).
@@ -174,7 +187,7 @@ saída → avaliação (comprovante impresso).
     e no comprovante.
   - **Controles:** botão de alto-falante na coluna da esquerda (o hóspede pode silenciar; volta a
     ligar no próximo atendimento) e a opção "Voz guiando o hóspede" por tablet (coluna
-    `voz_ativa`, na 0045).
+    `voz_ativa`, na 0050).
 - **Comprovante** (`escpos.ts`): ESC/POS 80 mm, sem acentos, enviado ao app **RawBT**
   (`rawbt:base64,...`).
   - **Check-in:** senha em letras grandes, portas, validade, Wi-Fi, pagamento, telefone de ajuda e
@@ -202,9 +215,9 @@ saída → avaliação (comprovante impresso).
    (com `?token=...` se definiu o token), com os eventos `charge.paid`, `charge.refunded`, `order.paid`
    e `order.canceled`.
 4. **Migrações, na ordem:**
-   - Aplique a `0045_totem_pagamento_documentos.sql`.
+   - Aplique a `0050_totem_pagamento_documentos.sql`.
    - Crie pela ferramenta de armazenamento o bucket **privado** `documentos-hospedes`.
-   - Aplique a `0046_totem_documentos_storage_policies.sql`.
+   - Aplique a `0051_totem_documentos_storage_policies.sql`.
 5. **Área do Gestor › Totem:** em cada tablet, ligue "Cobrar saldo na maquininha", preencha o nº de série
    da maquininha que fica ao lado dele e configure impressora, Wi-Fi e mensagem.
 6. **No tablet:**
@@ -221,7 +234,7 @@ saída → avaliação (comprovante impresso).
 
 #### Cuidados (LGPD)
 - Selfie é **dado biométrico** (dado sensível, art. 5º, II e art. 11 da LGPD). Por isso: tela de
-  consentimento antes da câmera, só gestor/admin lê (políticas da 0046) e nenhum vetor de rosto
+  consentimento antes da câmera, só gestor/admin lê (políticas da 0051) e nenhum vetor de rosto
   guardado. Como não há recepção, quem não aceitar as fotos não conclui o check-in pelo totem; o
   telefone de ajuda continua na tela.
 - Falta definir por quanto tempo guardar as fotos e colocar isso na política de privacidade. Depois

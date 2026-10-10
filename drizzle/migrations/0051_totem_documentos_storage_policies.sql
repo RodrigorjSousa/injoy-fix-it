@@ -1,4 +1,4 @@
--- 0046 — Políticas do bucket privado "documentos-hospedes" (fotos de documentos do totem).
+-- 0051 — Políticas do bucket privado "documentos-hospedes" (fotos de documentos do totem).
 -- PRÉ-REQUISITO: o bucket "documentos-hospedes" (PRIVADO, não público) precisa existir —
 -- crie pela ferramenta de armazenamento antes de aplicar esta migração.
 -- O totem grava pelo servidor (chave de serviço); aqui só liberamos a LEITURA para gestor/admin.

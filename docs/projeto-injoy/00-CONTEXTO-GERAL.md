@@ -89,7 +89,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   - Atualização automática 3x/dia: cron chama `private.run_bonus_meta_sync`, que chama
     `/api/public/bonus-meta`.
   - Participantes: Raquel, Julia, Mayara, Gleidiane, Lucivaldo e Flavio.
-- Totem (0041, 0042, 0045, 0046): check-in com senha Tuya, check-out, avaliação, pagamento na
+- Totem (0041, 0042, 0050, 0051): check-in com senha Tuya, check-out, avaliação, pagamento na
   maquininha Stone (Connect 2.0), identificação estilo gov.br (selfie com prova de vida + selfie com
   documento) e comprovante térmico em `/totem`; gestão em Área
   do Gestor › Totem. Ver `04-totem.md`.

@@ -29,6 +29,8 @@ import { cn } from "@/lib/utils";
 import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 import { BlinkDetector, eyeAspectRatio, loadFaceApi } from "@/lib/ponto-face";
 import { Locutor, calar, falar, motorDeVoz } from "@/lib/totem/voz";
+import { PARAM_PAREAR, codigoDoTexto } from "@/lib/totem/pareamento";
+import { carregarScript } from "@/lib/script-externo";
 import { ESPERA_MANUAL_DOC_MS, ESPERA_MANUAL_MS, Estabilidade, situacaoComDocumento, situacaoSelfie, type LeituraRosto } from "@/lib/totem/rosto";
 
 // Tela do hóspede no tablet do balcão "Express" (pensada para 12" em paisagem,
@@ -228,8 +230,17 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     setTela({ t: "erro", fluxo, mensagem: msg });
   }, []);
 
+  // QR de pareamento lido pela câmera do Android abre /totem?parear=CODIGO.
+  const [codigoDoLink, setCodigoDoLink] = useState<string | null>(null);
+
   useEffect(() => {
     const salvo = ler(CHAVE_TOKEN_TOTEM);
+    const params = new URLSearchParams(window.location.search);
+    if (params.has(PARAM_PAREAR)) {
+      const doLink = codigoDoTexto(params.get(PARAM_PAREAR) ?? "");
+      window.history.replaceState(window.history.state, "", window.location.pathname);
+      if (!salvo && doLink) setCodigoDoLink(doLink);
+    }
     if (!salvo) {
       setTela({ t: "parear" });
       return;
@@ -437,6 +448,7 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       painel = (
         <Parear
           t={t}
+          codigoInicial={codigoDoLink}
           parear={api.parear}
           onPareado={(tok, i) => {
             gravar(CHAVE_TOKEN_TOTEM, tok);
@@ -1124,17 +1136,80 @@ function TecladoNumerico({ t, onDigito, onApagar, onConfirmar, acao, enviando, p
 
 // ---------------------------------------------------------------- telas
 
-function Parear({ t, parear, onPareado }: { t: T; parear: TotemApi["parear"]; onPareado: (token: string, info: TotemInfo) => void }) {
-  const [codigo, setCodigo] = useState("");
+function Parear({
+  t,
+  parear,
+  onPareado,
+  codigoInicial,
+}: {
+  t: T;
+  parear: TotemApi["parear"];
+  onPareado: (token: string, info: TotemInfo) => void;
+  codigoInicial?: string | null;
+}) {
+  const [codigo, setCodigo] = useState(codigoInicial ?? "");
   const [erro, setErro] = useState<string | null>(null);
+  const [lendo, setLendo] = useState(false);
+  const [conectando, setConectando] = useState(false);
   const limpo = codigo.replace(/[^A-Za-z0-9]/g, "");
+  const pareado = useRef(onPareado);
+  pareado.current = onPareado;
+
+  const conectar = useCallback(
+    async (c: string) => {
+      setErro(null);
+      setConectando(true);
+      try {
+        const r = await parear(c);
+        pareado.current(r.token, r.totem);
+      } catch (e) {
+        setErro(mensagemDe(e));
+      } finally {
+        setConectando(false);
+      }
+    },
+    [parear],
+  );
+
+  // Veio pelo link do QR: conecta sozinho.
+  const automatico = useRef(false);
+  useEffect(() => {
+    if (codigoInicial && !automatico.current) {
+      automatico.current = true;
+      void conectar(codigoInicial);
+    }
+  }, [codigoInicial, conectar]);
+
+  if (lendo) {
+    return (
+      <LeitorQr
+        t={t}
+        onLido={(c) => {
+          setLendo(false);
+          setCodigo(c);
+          void conectar(c);
+        }}
+        onCancelar={() => setLendo(false)}
+      />
+    );
+  }
+
   return (
     <FormTeclado
+      key={codigoInicial ?? "manual"}
       t={t}
       cabecalho={
-        <div className="mb-8">
+        <div className="mb-6">
           <h2 className="text-4xl font-extrabold tracking-tight">{t.pareamentoTitulo}</h2>
           <p className="mt-3 text-xl text-[var(--tinta-suave)]">{t.pareamentoAjuda}</p>
+          <BotaoPrincipal onClick={() => setLendo(true)} disabled={conectando} className="mt-5 w-auto px-8">
+            <QrCode className="h-7 w-7" /> {t.lerQr}
+          </BotaoPrincipal>
+          {conectando && (
+            <p role="status" className="mt-4 flex items-center gap-3 text-lg font-semibold text-[var(--teal)]">
+              <Loader2 className="h-5 w-5 animate-spin" /> {t.conectando}
+            </p>
+          )}
           {erro && (
             <p role="alert" className="mt-5 rounded-2xl bg-[#A3342B]/10 px-5 py-4 text-lg font-medium text-[#7E2720]">
               {erro}
@@ -1146,16 +1221,122 @@ function Parear({ t, parear, onPareado }: { t: T; parear: TotemApi["parear"]; on
       onChange={(_, v) => setCodigo(v.toUpperCase())}
       acao={t.parear}
       carregando={t.conferindo}
-      onEnviar={async () => {
-        setErro(null);
-        try {
-          const r = await parear(codigo);
-          onPareado(r.token, r.totem);
-        } catch (e) {
-          setErro(mensagemDe(e));
-        }
-      }}
+      onEnviar={() => conectar(codigo)}
     />
+  );
+}
+
+type DetectorQr = { detect: (fonte: HTMLVideoElement) => Promise<Array<{ rawValue: string }>> };
+type JsQr = (dados: Uint8ClampedArray, largura: number, altura: number, opcoes?: { inversionAttempts?: string }) => { data: string } | null;
+
+/** Lê o QR do pareamento com a câmera da frente do tablet. */
+function LeitorQr({ t, onLido, onCancelar }: { t: T; onLido: (codigo: string) => void; onCancelar: () => void }) {
+  const video = useRef<HTMLVideoElement | null>(null);
+  const [aviso, setAviso] = useState<string | null>(null);
+  const [falha, setFalha] = useState<string | null>(null);
+  const lido = useRef(onLido);
+  lido.current = onLido;
+
+  useEffect(() => {
+    let ativo = true;
+    let stream: MediaStream | null = null;
+    let timer: number | undefined;
+    const canvas = document.createElement("canvas");
+
+    // Leitor nativo do Android quando existe; senão, jsQR (fica em /public/vendor).
+    const montarLeitor = async (): Promise<(v: HTMLVideoElement) => Promise<string | null>> => {
+      const BD = (window as unknown as { BarcodeDetector?: { new (o: { formats: string[] }): DetectorQr; getSupportedFormats?: () => Promise<string[]> } }).BarcodeDetector;
+      if (BD) {
+        try {
+          const formatos = (await BD.getSupportedFormats?.()) ?? ["qr_code"];
+          if (formatos.includes("qr_code")) {
+            const det = new BD({ formats: ["qr_code"] });
+            return async (v) => (await det.detect(v))[0]?.rawValue ?? null;
+          }
+        } catch {
+          // cai no jsQR
+        }
+      }
+      await carregarScript("/vendor/jsqr-1.4.0.min.js");
+      const jsQR = (window as unknown as { jsQR?: JsQr }).jsQR;
+      if (!jsQR) throw new Error("jsQR indisponível");
+      return async (v) => {
+        const escala = Math.min(1, 800 / v.videoWidth);
+        canvas.width = Math.round(v.videoWidth * escala);
+        canvas.height = Math.round(v.videoHeight * escala);
+        const ctx = canvas.getContext("2d", { willReadFrequently: true });
+        if (!ctx) return null;
+        ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
+        const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        return jsQR(img.data, img.width, img.height, { inversionAttempts: "attemptBoth" })?.data ?? null;
+      };
+    };
+
+    (async () => {
+      try {
+        const [s, ler] = await Promise.all([
+          navigator.mediaDevices.getUserMedia({ video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false }),
+          montarLeitor(),
+        ]);
+        stream = s;
+        if (!ativo) return s.getTracks().forEach((tr) => tr.stop());
+        const v = video.current;
+        if (!v) return;
+        v.srcObject = s;
+        await v.play().catch(() => undefined);
+        const passo = async () => {
+          if (!ativo) return;
+          try {
+            if (v.videoWidth) {
+              const texto = await ler(v);
+              if (texto) {
+                const c = codigoDoTexto(texto);
+                if (c) {
+                  ativo = false;
+                  lido.current(c);
+                  return;
+                }
+                setAviso(t.qrInvalido);
+              }
+            }
+          } catch {
+            // quadro ruim, tenta o próximo
+          }
+          timer = window.setTimeout(passo, 250);
+        };
+        void passo();
+      } catch (e) {
+        if (ativo) setFalha(`${t.qrSemLeitor} (${mensagemDe(e)})`);
+      }
+    })();
+    return () => {
+      ativo = false;
+      window.clearTimeout(timer);
+      stream?.getTracks().forEach((tr) => tr.stop());
+    };
+  }, [t]);
+
+  return (
+    <div className="flex h-full flex-col">
+      <h2 className="text-4xl font-extrabold tracking-tight">{t.lerQr}</h2>
+      <p className="mt-2 text-xl text-[var(--tinta-suave)]">{t.lerQrAjuda}</p>
+      <div className="mt-4 flex min-h-0 flex-1 items-start justify-center">
+        <div className="relative aspect-video max-h-full w-full overflow-hidden rounded-[1.5rem] bg-[var(--tinta)]">
+          <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
+          <div aria-hidden className="pointer-events-none absolute inset-0 grid place-items-center">
+            <div className="aspect-square h-[70%] rounded-3xl border-[5px] border-white/85" />
+          </div>
+        </div>
+      </div>
+      {(falha || aviso) && (
+        <p role="alert" className="mt-3 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]">
+          {falha ?? aviso}
+        </p>
+      )}
+      <BotaoSecundario onClick={onCancelar} className="mt-4">
+        {t.voltar}
+      </BotaoSecundario>
+    </div>
   );
 }
 
