@@ -10,6 +10,8 @@ type EventKind =
   | "escala_publicada"
   | "escala_alterada"
   | "previsao_carga"
+  | "previsao_reforco"
+  | "previsao_reforco_resposta"
   | "ponto_pendente"
   | "ponto_atestado"
   | "ponto_atestado_resposta";
@@ -61,6 +63,20 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         body: `${d.unidade} · ${d.data}: ${d.gerais ?? 0} gerais e carga de ${d.ocupacao_pct ?? 0}%.`,
         url: "/gestor/previsao-carga",
         tag: `previsao-${d.unidade}-${d.data}-${d.tipo}`,
+      };
+    case "previsao_reforco":
+      return {
+        title: "Pedido de reforço na limpeza",
+        body: `${d.nome ?? "Recepção"} pede freelancer · ${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.ocupacao_pct != null ? ` (carga ${d.ocupacao_pct}%)` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para autorizar.`,
+        url: "/gestor/previsao-carga",
+        tag: `reforco-${d.id}`,
+      };
+    case "previsao_reforco_resposta":
+      return {
+        title: d.autorizado ? "Reforço autorizado" : "Reforço não autorizado",
+        body: `${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.autorizado ? ": pode chamar o freelancer." : "."}${d.resposta ? ` ${String(d.resposta).slice(0, 100)}` : ""}`,
+        url: "/previsao-carga",
+        tag: `reforco-resposta-${d.id}`,
       };
     case "ponto_pendente":
       return {
@@ -160,6 +176,9 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     case "ponto_pendente":
     case "ponto_atestado":
       return byRoles(["admin", "gestor"]);
+    case "previsao_reforco":
+      return byRoles(["admin", "gestor"]);
+    case "previsao_reforco_resposta":
     case "ponto_atestado_resposta":
     case "escala_alterada":
       return typeof d.user_id === "string" ? [d.user_id] : [];
