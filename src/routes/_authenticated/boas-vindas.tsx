@@ -50,6 +50,7 @@ import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
 
 
 import { cn } from "@/lib/utils";
+import { ServicosHojeGrid } from "@/components/gestao/servicos-quartos";
 import { nowSP, todaySP } from "@/lib/tz";
 
 type StatusKey = "prontos" | "emFaxina" | "sujos" | "bloqueados";
@@ -728,6 +729,7 @@ function BoasVindas() {
                         </button>
                       ))}
                     </div>
+                    <ServicosHojeGrid unidade={unidade as "Botafogo" | "Ipanema"} dark />
                   </div>
                 );
               default:
@@ -785,6 +787,7 @@ function BoasVindas() {
               </button>
             ))}
           </div>
+          <ServicosHojeGrid unidade={unidade as "Botafogo" | "Ipanema"} dark />
         </div>
       )}
 
