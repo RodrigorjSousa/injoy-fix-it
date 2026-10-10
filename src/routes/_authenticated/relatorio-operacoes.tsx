@@ -38,6 +38,7 @@ import {
   calcularSaldo,
   dataBR,
   faltasNaEntrega,
+  difItem,
   gerarAlertas,
   INICIO_SALDO,
   mesDe,
@@ -64,19 +65,6 @@ export const Route = createFileRoute("/_authenticated/relatorio-operacoes")({
   beforeLoad: () => requireGestor(),
   component: LavanderiaGestor,
 });
-
-async function abrirFoto(path: string | null) {
-  if (!path) return;
-  const janela = window.open("", "_blank");
-  try {
-    const url = await urlFotoTalao(path);
-    if (janela) janela.location.href = url;
-    else window.location.href = url;
-  } catch (e) {
-    janela?.close();
-    toast.error(e instanceof Error ? e.message : "Não foi possível abrir a foto.");
-  }
-}
 
 const sinal = (v: number | null) => (v === null ? "—" : v > 0 ? `+${v}` : String(v));
 
@@ -243,6 +231,49 @@ function Kpi({
   );
 }
 
+/** Legenda das três diferenças do talão, usada em Saldo, Talões e Fechamento. */
+function LegendaDiferencas() {
+  return (
+    <div className="grid gap-2 sm:grid-cols-3 text-[11px] leading-snug">
+      <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-red-800">
+        <b>A · Saída hotel × Entrada lavanderia</b>
+        <br />
+        Contagem da coleta não bateu. Cobrar atenção de quem contou.
+      </div>
+      <div className="bg-amber-50 border border-amber-200 rounded-lg p-2.5 text-amber-800">
+        <b>B · Entrada × Saída da lavanderia = RELAVE</b>
+        <br />
+        Positivo: ficou para lavar de novo. Fiscalize se volta em outro talão (negativo).
+      </div>
+      <div className="bg-red-50 border border-red-200 rounded-lg p-2.5 text-red-800">
+        <b>C · Saída lavanderia × Contado (base do pagamento)</b>
+        <br />
+        Paga o que saiu da lavanderia; se a camareira contou menos, paga o contado e desconta.
+      </div>
+    </div>
+  );
+}
+
+/** Célula de diferença: A e C em vermelho, B (relave) em âmbar. */
+function CelDif({
+  v,
+  tipo,
+  className,
+}: {
+  v: number | null;
+  tipo: "A" | "B" | "C";
+  className?: string;
+}) {
+  const vazio = v === null || v === 0;
+  const cor = vazio
+    ? "text-slate-300"
+    : tipo === "B"
+      ? "text-amber-700 bg-amber-50"
+      : "text-red-700 bg-red-50";
+  const txt = v === null ? "—" : tipo === "C" ? (v ? `−${v}` : "0") : sinal(v);
+  return <td className={cn("p-2 text-right font-black", cor, className)}>{txt}</td>;
+}
+
 function SaldoTab({
   taloes,
   pecas,
@@ -262,54 +293,78 @@ function SaldoTab({
   );
   const faltas = useMemo(() => faltasNaEntrega(taloes, pecas), [taloes, pecas]);
   const abertos = taloes.filter((t) => !t.retorno_data);
-  const totSaldo = saldo.reduce((s, l) => s + l.saldo, 0);
-  const totAberto = saldo.reduce((s, l) => s + l.emAberto, 0);
-  const totPend = saldo.reduce((s, l) => s + Math.max(0, l.pendente), 0);
-  const totFalta = faltas.reduce((s, f) => s + f.qtd, 0);
-  const linhas = todas ? saldo : saldo.filter((l) => l.enviado || l.voltou);
+  const tot = (f: (l: (typeof saldo)[number]) => number) => saldo.reduce((s, l) => s + f(l), 0);
+  const totSaldo = tot((l) => l.saldo);
+  const totAberto = tot((l) => l.emAberto);
+  const totRelave = tot((l) => Math.max(0, l.relavePendente));
+  const totColeta = tot((l) => Math.abs(l.difColeta));
+  const totDesc = faltas.reduce((s, f) => s + f.qtd, 0);
+  const linhas = todas
+    ? saldo
+    : saldo.filter((l) => l.emAberto || l.relavePendente || l.difColeta || l.desconto || l.aPagar);
+  const ordemAlerta = { coleta: 0, desconto: 1, parado: 2, relave: 3, sequencia: 4 } as const;
+  const alertasOrd = [...alertas].sort((a, b) => ordemAlerta[a.tipo] - ordemAlerta[b.tipo]);
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <Kpi titulo="Na lavanderia agora" valor={totSaldo} sub={`peças de ${unidade}`} />
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Kpi
-          titulo="Em talões abertos"
-          valor={totAberto}
-          sub={`${abertos.length} talão(ões) lavando`}
+          titulo="Na lavanderia agora"
+          valor={totSaldo}
+          sub={`${totAberto} em ${abertos.length} talão(ões) abertos`}
         />
         <Kpi
-          titulo="Pendente de talões devolvidos"
-          valor={totPend}
-          sub="deveriam ter voltado"
-          tom={totPend > 0 ? "amber" : undefined}
+          titulo="A · Hotel × lavanderia"
+          valor={totColeta}
+          sub="peças com contagem diferente na coleta"
+          tom={totColeta ? "red" : undefined}
         />
         <Kpi
-          titulo="Faltas na entrega"
-          valor={totFalta}
+          titulo="B · Relave pendente"
+          valor={totRelave}
+          sub="ficaram para relave e ainda não voltaram"
+          tom={totRelave ? "amber" : undefined}
+        />
+        <Kpi
+          titulo="C · Descontos"
+          valor={totDesc}
           sub={
-            totFalta
-              ? `${brl.format(faltas.reduce((s, f) => s + f.valor, 0))} anotados e não entregues`
-              : "nenhuma"
+            totDesc
+              ? `${brl.format(faltas.reduce((s, f) => s + f.valor, 0))} a descontar do pagamento`
+              : "nenhum"
           }
-          tom={totFalta > 0 ? "red" : undefined}
+          tom={totDesc ? "red" : undefined}
         />
+        <Kpi titulo="Peças a pagar" valor={tot((l) => l.aPagar)} sub="desde 01/10 (base C)" />
       </div>
 
-      {alertas.length > 0 && (
-        <div className="bg-white border border-amber-300 rounded-2xl overflow-hidden">
-          <div className="bg-amber-500 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2">
-            <AlertTriangle size={14} /> Atenção ({alertas.length})
+      <LegendaDiferencas />
+
+      {alertasOrd.length > 0 && (
+        <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+          <div className="bg-slate-800 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2">
+            <AlertTriangle size={14} /> Atenção ({alertasOrd.length})
           </div>
-          <ul className="divide-y divide-amber-100">
-            {alertas.map((a, i) => (
-              <li key={i} className="px-4 py-2.5 text-sm flex gap-2 items-start">
+          <ul className="divide-y divide-slate-100">
+            {alertasOrd.map((a, i) => (
+              <li
+                key={i}
+                className={cn(
+                  "px-4 py-2.5 text-sm flex gap-2 items-start",
+                  a.tipo === "coleta" || a.tipo === "desconto"
+                    ? "bg-red-50 text-red-800 font-semibold"
+                    : a.tipo === "relave"
+                      ? "bg-amber-50 text-amber-900"
+                      : "text-slate-700",
+                )}
+              >
                 <span
                   className={cn(
                     "mt-1.5 h-2 w-2 rounded-full shrink-0",
-                    a.nivel === "alto" ? "bg-red-500" : "bg-amber-400",
+                    a.tipo === "relave" || a.nivel === "medio" ? "bg-amber-400" : "bg-red-500",
                   )}
                 />
-                <span className="text-slate-700">{a.texto}</span>
+                <span>{a.texto}</span>
               </li>
             ))}
           </ul>
@@ -319,7 +374,7 @@ function SaldoTab({
       <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
         <div className="px-4 py-3 flex items-center justify-between border-b border-slate-100">
           <p className="text-xs font-black uppercase tracking-wider text-slate-600">
-            Saldo por peça
+            Saldo por peça (desde {dataBR(INICIO_SALDO)})
           </p>
           <label className="text-xs text-slate-500 flex items-center gap-1.5">
             <input type="checkbox" checked={todas} onChange={(e) => setTodas(e.target.checked)} />{" "}
@@ -332,15 +387,16 @@ function SaldoTab({
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-sm min-w-[640px]">
               <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
                 <tr>
                   <th className="text-left p-3">Peça</th>
                   <th className="p-3 text-right bg-blue-50 text-blue-800">Na lavanderia</th>
-                  <th className="p-3 text-right">Pendente</th>
                   <th className="p-3 text-right">Em talões abertos</th>
-                  <th className="p-3 text-right">Lavanderia recebeu</th>
-                  <th className="p-3 text-right">Voltou (contado)</th>
+                  <th className="p-3 text-right text-amber-700">B · Relave pendente</th>
+                  <th className="p-3 text-right text-red-700">A · Hotel × Lav.</th>
+                  <th className="p-3 text-right text-red-700">C · Descontos</th>
+                  <th className="p-3 text-right">Pagas</th>
                 </tr>
               </thead>
               <tbody>
@@ -350,21 +406,11 @@ function SaldoTab({
                     <td className="p-3 text-right font-black text-blue-800 bg-blue-50/50">
                       {l.saldo}
                     </td>
-                    <td
-                      className={cn(
-                        "p-3 text-right font-bold",
-                        l.pendente > 0
-                          ? "text-red-600"
-                          : l.pendente < 0
-                            ? "text-emerald-700"
-                            : "text-slate-400",
-                      )}
-                    >
-                      {sinal(l.pendente)}
-                    </td>
                     <td className="p-3 text-right text-slate-600">{l.emAberto}</td>
-                    <td className="p-3 text-right text-slate-600">{l.enviado}</td>
-                    <td className="p-3 text-right text-slate-600">{l.voltou}</td>
+                    <CelDif v={l.relavePendente} tipo="B" className="p-3" />
+                    <CelDif v={l.difColeta} tipo="A" className="p-3" />
+                    <CelDif v={l.desconto} tipo="C" className="p-3" />
+                    <td className="p-3 text-right text-slate-600">{l.aPagar}</td>
                   </tr>
                 ))}
               </tbody>
@@ -372,9 +418,8 @@ function SaldoTab({
           </div>
         )}
         <p className="px-4 py-3 text-[11px] text-slate-500 border-t border-slate-100 leading-relaxed">
-          <b>Pendente</b> = na lavanderia − em talões abertos. Positivo: peças de talões já
-          devolvidos que ainda não voltaram. Negativo: a lavanderia já devolveu peças de talões que
-          ainda estão abertos (normal quando a roupa volta misturada).
+          <b>Na lavanderia</b> = peças de talões abertos + relave pendente. Relave negativo: voltou
+          mais do que ficou (relave de um talão devolvido em outro).
         </p>
       </div>
     </div>
@@ -432,31 +477,37 @@ function TaloesTab({
         </select>
         <span className="text-xs text-slate-500">{lista.length} talão(ões)</span>
       </div>
+      <LegendaDiferencas />
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[760px]">
+        <table className="w-full text-sm min-w-[980px]">
           <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
             <tr>
               <th className="text-left p-3">Talão</th>
               <th className="text-left p-3">Coleta</th>
               <th className="p-3 text-right">Saída hotel</th>
               <th className="p-3 text-right">Ent. Lav.</th>
+              <th className="p-3 text-right text-red-700" title="Entrada lavanderia − Saída hotel">
+                A · Hotel×Lav
+              </th>
               <th className="p-3 text-right">Saída Lav.</th>
+              <th className="p-3 text-right text-amber-700" title="Entrada − Saída da lavanderia">
+                B · Relave
+              </th>
               <th className="p-3 text-right">Contado</th>
-              <th className="p-3 text-right" title="Ent. Lav. − Saída hotel">
-                Dif. coleta
+              <th className="p-3 text-right text-red-700" title="Saída lavanderia − Contado">
+                C · Desconto
               </th>
-              <th className="p-3 text-right" title="Contado − Saída Lav.">
-                Falta entrega
-              </th>
+              <th className="p-3 text-right">A pagar</th>
               <th className="text-left p-3">Retorno</th>
+              <th className="p-3 text-center">Fotos</th>
               <th className="p-3" />
             </tr>
           </thead>
           <tbody>
             {lista.length === 0 && (
               <tr>
-                <td colSpan={10} className="p-6 text-center text-slate-500">
+                <td colSpan={14} className="p-6 text-center text-slate-500">
                   Nenhum talão em {nomeMes(mes)}.
                 </td>
               </tr>
@@ -537,24 +588,12 @@ function TalaoLinha({
         </td>
         <td className="p-3 text-right font-bold">{r.saida}</td>
         <td className="p-3 text-right">{r.entLav ?? "—"}</td>
+        <CelDif v={r.difColeta} tipo="A" className="p-3" />
         <td className="p-3 text-right">{r.saidaLav ?? "—"}</td>
+        <CelDif v={r.relave} tipo="B" className="p-3" />
         <td className="p-3 text-right font-bold">{r.guardado ?? "—"}</td>
-        <td
-          className={cn(
-            "p-3 text-right font-bold",
-            r.difColeta ? "text-amber-600" : "text-slate-400",
-          )}
-        >
-          {sinal(r.difColeta)}
-        </td>
-        <td
-          className={cn(
-            "p-3 text-right font-bold",
-            r.difEntrega && r.difEntrega < 0 ? "text-red-600" : "text-slate-400",
-          )}
-        >
-          {sinal(r.difEntrega)}
-        </td>
+        <CelDif v={r.desconto} tipo="C" className="p-3" />
+        <td className="p-3 text-right font-black text-emerald-700">{r.aPagar ?? "—"}</td>
         <td className="p-3 text-xs">
           {r.aberto ? (
             <span
@@ -573,42 +612,50 @@ function TalaoLinha({
             </span>
           )}
         </td>
+        <td className="p-3 text-center">
+          <span className="inline-flex items-center gap-1 text-xs font-bold text-blue-700">
+            <Camera size={14} /> {[t.coleta_foto, t.retorno_foto].filter(Boolean).length}
+          </span>
+        </td>
         <td className="p-3 text-slate-400">
           {expandido ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
         </td>
       </tr>
       {expandido && (
         <tr className="bg-slate-50">
-          <td colSpan={10} className="p-3">
+          <td colSpan={14} className="p-3">
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_260px]">
-              <table className="w-full text-xs bg-white rounded-lg border border-slate-200">
+              <table className="w-full text-xs bg-white rounded-lg border border-slate-200 self-start">
                 <thead className="text-[10px] uppercase text-slate-500">
                   <tr>
                     <th className="text-left p-2">Peça</th>
                     <th className="p-2 text-right">Saída hotel</th>
                     <th className="p-2 text-right">Ent. Lav.</th>
+                    <th className="p-2 text-right text-red-700">A</th>
                     <th className="p-2 text-right">Saída Lav.</th>
+                    <th className="p-2 text-right text-amber-700">B relave</th>
                     <th className="p-2 text-right">Contado</th>
+                    <th className="p-2 text-right text-red-700">C desc.</th>
+                    <th className="p-2 text-right">Pagar</th>
                   </tr>
                 </thead>
                 <tbody>
                   {itens.map((i) => {
-                    const falta =
-                      i.saida_lav !== null && i.guardado !== null && i.guardado < i.saida_lav;
-                    const dif =
-                      i.ent_lav !== null && i.saida_hotel > 0 && i.ent_lav !== i.saida_hotel;
+                    const d = t.retorno_data ? difItem(i) : null;
                     return (
                       <tr key={i.peca_id} className="border-t border-slate-100">
                         <td className="p-2 font-semibold">
                           {nome.get(i.peca_id)?.nome ?? "Peça removida"}
                         </td>
                         <td className="p-2 text-right">{i.saida_hotel}</td>
-                        <td className={cn("p-2 text-right", dif && "text-amber-600 font-bold")}>
-                          {i.ent_lav ?? "—"}
-                        </td>
-                        <td className="p-2 text-right">{i.saida_lav ?? "—"}</td>
-                        <td className={cn("p-2 text-right", falta && "text-red-600 font-black")}>
-                          {i.guardado ?? "—"}
+                        <td className="p-2 text-right">{d ? d.entLav : "—"}</td>
+                        <CelDif v={d ? d.difColeta : null} tipo="A" />
+                        <td className="p-2 text-right">{d ? d.saidaLav : "—"}</td>
+                        <CelDif v={d ? d.relave : null} tipo="B" />
+                        <td className="p-2 text-right font-bold">{d ? d.contado : "—"}</td>
+                        <CelDif v={d ? d.desconto : null} tipo="C" />
+                        <td className="p-2 text-right font-black text-emerald-700">
+                          {d ? d.aPagar : "—"}
                         </td>
                       </tr>
                     );
@@ -616,20 +663,9 @@ function TalaoLinha({
                 </tbody>
               </table>
               <div className="space-y-2 text-xs" onClick={(e) => e.stopPropagation()}>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => abrirFoto(t.coleta_foto)}
-                    className="flex-1 inline-flex items-center justify-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-2 font-bold"
-                  >
-                    <Camera size={13} /> Foto coleta
-                  </button>
-                  <button
-                    onClick={() => abrirFoto(t.retorno_foto)}
-                    disabled={!t.retorno_foto}
-                    className="flex-1 inline-flex items-center justify-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-2 font-bold disabled:opacity-40"
-                  >
-                    <Camera size={13} /> Foto retorno
-                  </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <FotoMiniatura path={t.coleta_foto} titulo={`Talão nº ${t.numero} · coleta`} />
+                  <FotoMiniatura path={t.retorno_foto} titulo={`Talão nº ${t.numero} · retorno`} />
                 </div>
                 {t.coleta_obs && (
                   <p className="bg-amber-50 border border-amber-200 rounded p-2">
@@ -743,7 +779,7 @@ function FechamentoTab({
   const aprovada = faturaQ.data?.status === "aprovada";
   const diferenca =
     valorNum !== null && Number.isFinite(valorNum)
-      ? Math.round((valorNum - f.valorEsperado) * 100) / 100
+      ? Math.round((valorNum - f.valorPagar) * 100) / 100
       : null;
 
   const salvar = async () => {
@@ -756,7 +792,7 @@ function FechamentoTab({
         mes,
         qtdFatura: qtdNum,
         valorFatura: valorNum,
-        valorEsperado: f.valorEsperado,
+        valorEsperado: f.valorPagar,
         obs: obs.trim() || null,
       });
       toast.success("Fechamento salvo");
@@ -777,7 +813,7 @@ function FechamentoTab({
           mes,
           qtdFatura: qtdNum,
           valorFatura: valorNum,
-          valorEsperado: f.valorEsperado,
+          valorEsperado: f.valorPagar,
           obs: obs.trim() || null,
         });
       if (!id) throw new Error("Salve o fechamento antes.");
@@ -821,35 +857,42 @@ function FechamentoTab({
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi
-          titulo="Talões no mês"
-          valor={f.taloes.length}
-          sub={`${f.taloesSemRetorno.length} sem retorno`}
-          tom={f.taloesSemRetorno.length ? "amber" : undefined}
+          titulo="Valor a pagar"
+          valor={brl.format(f.valorPagar)}
+          sub={`${f.totalPagar} peças · saída da lavanderia limitada ao contado`}
         />
         <Kpi
-          titulo="Peças (lavanderia)"
-          valor={f.totalPecasLavanderia}
-          sub={`camareiras contaram ${f.totalPecasHotel}`}
+          titulo="C · Descontos"
+          valor={brl.format(f.valorDesconto)}
+          sub={`${f.totalDesconto} peça(s) saíram da lavanderia e não chegaram`}
+          tom={f.totalDesconto ? "red" : undefined}
         />
         <Kpi
-          titulo="Valor esperado"
-          valor={brl.format(f.valorEsperado)}
-          sub="contagem × tabela de preços"
-        />
-        <Kpi
-          titulo="Fatura − esperado"
+          titulo="Fatura − a pagar"
           valor={diferenca === null ? "—" : brl.format(diferenca)}
           sub={
             valorNum === null
               ? "digite o valor da fatura"
               : diferenca! > 0
-                ? "cobrando a mais"
+                ? "descontar da fatura"
                 : diferenca! < 0
-                  ? "cobrando a menos"
+                  ? "fatura abaixo do calculado"
                   : "bateu"
           }
           tom={diferenca && diferenca > 0 ? "red" : undefined}
         />
+        <Kpi
+          titulo="Talões no mês"
+          valor={f.taloes.length}
+          sub={`${f.taloesSemRetorno.length} sem retorno (ainda não entram no pagamento)`}
+          tom={f.taloesSemRetorno.length ? "amber" : undefined}
+        />
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
+        <b>Regra do pagamento:</b> vale o que <b>saiu da lavanderia</b> (Saída Lav.). Se a camareira
+        contou menos ao guardar, paga-se o que ela contou e a diferença é descontada (ex.: saiu 8,
+        contou 7 → paga 7). Relave (B) não é pago agora: entra quando voltar em outro talão.
       </div>
 
       {(f.taloesSemRetorno.length > 0 || f.numerosFaltando.length > 0 || faltas.length > 0) && (
@@ -860,35 +903,41 @@ function FechamentoTab({
           {f.taloesSemRetorno.length > 0 && (
             <p>
               Sem retorno lançado: {f.taloesSemRetorno.map((t) => `nº ${t.numero}`).join(", ")} —
-              nestes a quantidade cobrada usa a contagem da camareira.
+              ainda não entram no valor a pagar.
             </p>
           )}
           {f.numerosFaltando.length > 0 && (
             <p>Números pulados: {f.numerosFaltando.join(", ")}. Algum talão não foi lançado?</p>
           )}
           {faltas.length > 0 && (
-            <p>
-              Anotado pela lavanderia e não entregue:{" "}
+            <p className="text-red-800">
+              <b>Descontar</b> (saiu da lavanderia e não chegou):{" "}
               {faltas
                 .map((x) => `${x.qtd} ${x.peca.nome} (talão ${x.taloes.join(", ")})`)
                 .join("; ")}{" "}
-              — <b>{brl.format(faltas.reduce((s, x) => s + x.valor, 0))}</b> pela tabela.
+              — <b>{brl.format(faltas.reduce((s, x) => s + x.valor, 0))}</b>.
             </p>
           )}
         </div>
       )}
 
       <div className="bg-white border border-slate-200 rounded-2xl overflow-x-auto">
-        <table className="w-full text-sm min-w-[720px]">
+        <table className="w-full text-sm min-w-[980px]">
           <thead className="bg-slate-50 text-[10px] uppercase tracking-wider text-slate-500">
             <tr>
               <th className="text-left p-3">Coluna da fatura</th>
               <th className="p-3 text-right">Preço</th>
-              <th className="p-3 text-right">Camareiras</th>
-              <th className="p-3 text-right">Lavanderia</th>
-              <th className="p-3 text-right">Valor esperado</th>
+              <th className="p-3 text-right">Saída hotel</th>
+              <th className="p-3 text-right">Ent. Lav.</th>
+              <th className="p-3 text-right">Saída Lav.</th>
+              <th className="p-3 text-right text-amber-700">B · Relave</th>
+              <th className="p-3 text-right">Contado</th>
+              <th className="p-3 text-right text-red-700">C · Desconto</th>
+              <th className="p-3 text-right bg-emerald-50 text-emerald-800">A pagar</th>
               <th className="p-3 text-center bg-blue-50 text-blue-800">Qtd na fatura</th>
-              <th className="p-3 text-right">Diferença</th>
+              <th className="p-3 text-right" title="Fatura − Saída Lav.">
+                Fatura × Saída Lav.
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -897,8 +946,16 @@ function FechamentoTab({
                 <td className="p-3 font-semibold text-slate-800">{l.grupo}</td>
                 <td className="p-3 text-right text-slate-500">{brl.format(l.preco)}</td>
                 <td className="p-3 text-right">{l.qtdHotel}</td>
-                <td className="p-3 text-right font-bold">{l.qtdLavanderia}</td>
-                <td className="p-3 text-right">{brl.format(l.valorEsperado)}</td>
+                <td className="p-3 text-right">{l.qtdEntLav}</td>
+                <td className="p-3 text-right font-bold">{l.qtdSaidaLav}</td>
+                <CelDif v={l.qtdRelave} tipo="B" className="p-3" />
+                <td className="p-3 text-right font-bold">{l.qtdContado}</td>
+                <CelDif v={l.qtdDesconto} tipo="C" className="p-3" />
+                <td className="p-3 text-right bg-emerald-50/60">
+                  <span className="font-black text-emerald-800">{l.qtdPagar}</span>
+                  <br />
+                  <span className="text-[11px] text-emerald-700">{brl.format(l.valorPagar)}</span>
+                </td>
                 <td className="p-2 bg-blue-50/50">
                   <input
                     type="text"
@@ -935,8 +992,16 @@ function FechamentoTab({
               <td className="p-3">Total</td>
               <td />
               <td className="p-3 text-right">{f.totalPecasHotel}</td>
-              <td className="p-3 text-right">{f.totalPecasLavanderia}</td>
-              <td className="p-3 text-right">{brl.format(f.valorEsperado)}</td>
+              <td className="p-3 text-right">{f.linhas.reduce((s, l) => s + l.qtdEntLav, 0)}</td>
+              <td className="p-3 text-right">{f.totalSaidaLav}</td>
+              <CelDif v={f.totalRelave} tipo="B" className="p-3" />
+              <td className="p-3 text-right">{f.totalContado}</td>
+              <CelDif v={f.totalDesconto} tipo="C" className="p-3" />
+              <td className="p-3 text-right bg-emerald-50 text-emerald-800">
+                {f.totalPagar}
+                <br />
+                <span className="text-[11px]">{brl.format(f.valorPagar)}</span>
+              </td>
               <td className="p-3 text-center text-blue-800">
                 {f.valorFaturaCalculado === null ? "—" : brl.format(f.valorFaturaCalculado)}
               </td>
@@ -1005,14 +1070,19 @@ function FechamentoTab({
         <p className="px-4 py-3 text-xs font-black uppercase tracking-wider text-slate-600 border-b border-slate-100">
           Talões de {nomeMes(mes)} (pela data da coleta)
         </p>
-        <table className="w-full text-xs min-w-[560px]">
+        <table className="w-full text-xs min-w-[760px]">
           <thead className="text-[10px] uppercase text-slate-500 bg-slate-50">
             <tr>
               <th className="text-left p-2">Data</th>
               <th className="text-left p-2">Talão</th>
               <th className="p-2 text-right">Saída hotel</th>
               <th className="p-2 text-right">Ent. Lav.</th>
+              <th className="p-2 text-right text-red-700">A</th>
+              <th className="p-2 text-right">Saída Lav.</th>
+              <th className="p-2 text-right text-amber-700">B relave</th>
               <th className="p-2 text-right">Contado</th>
+              <th className="p-2 text-right text-red-700">C desc.</th>
+              <th className="p-2 text-right">Pagar</th>
               <th className="p-2">Fotos</th>
             </tr>
           </thead>
@@ -1025,23 +1095,22 @@ function FechamentoTab({
                   <td className="p-2 font-black text-sky-800">{t.numero}</td>
                   <td className="p-2 text-right">{r.saida}</td>
                   <td className="p-2 text-right">{r.entLav ?? "—"}</td>
+                  <CelDif v={r.difColeta} tipo="A" />
+                  <td className="p-2 text-right">{r.saidaLav ?? "—"}</td>
+                  <CelDif v={r.relave} tipo="B" />
                   <td className="p-2 text-right">
                     {r.guardado ?? <span className="text-amber-600 font-bold">sem retorno</span>}
                   </td>
+                  <CelDif v={r.desconto} tipo="C" />
+                  <td className="p-2 text-right font-black text-emerald-700">{r.aPagar ?? "—"}</td>
                   <td className="p-2 text-center whitespace-nowrap">
-                    <button
-                      onClick={() => abrirFoto(t.coleta_foto)}
-                      className="text-blue-700 font-bold underline mr-2"
-                    >
+                    <BotaoFoto path={t.coleta_foto} titulo={`Talão nº ${t.numero} · coleta`}>
                       coleta
-                    </button>
+                    </BotaoFoto>
                     {t.retorno_foto && (
-                      <button
-                        onClick={() => abrirFoto(t.retorno_foto)}
-                        className="text-blue-700 font-bold underline"
-                      >
+                      <BotaoFoto path={t.retorno_foto} titulo={`Talão nº ${t.numero} · retorno`}>
                         retorno
-                      </button>
+                      </BotaoFoto>
                     )}
                   </td>
                 </tr>
@@ -1049,7 +1118,7 @@ function FechamentoTab({
             })}
             {f.taloes.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-slate-500">
+                <td colSpan={11} className="p-4 text-center text-slate-500">
                   Nenhum talão neste mês.
                 </td>
               </tr>
@@ -1072,34 +1141,42 @@ function imprimirFechamento(
   faltas: ReturnType<typeof faltasNaEntrega>,
 ) {
   const linhas = f.linhas
-    .filter((l) => l.qtdLavanderia || l.qtdFatura)
+    .filter((l) => l.qtdHotel || l.qtdSaidaLav || l.qtdFatura)
     .map(
       (l) =>
-        `<tr><td>${esc(l.grupo)}</td><td>${brl.format(l.preco)}</td><td>${l.qtdHotel}</td><td>${l.qtdLavanderia}</td><td>${brl.format(
-          l.valorEsperado,
-        )}</td><td>${l.qtdFatura ?? "—"}</td><td>${l.difQtd === null ? "—" : sinal(l.difQtd)}</td></tr>`,
+        `<tr><td>${esc(l.grupo)}</td><td>${brl.format(l.preco)}</td><td>${l.qtdHotel}</td><td>${l.qtdEntLav}</td><td>${l.qtdSaidaLav}</td><td>${sinal(
+          l.qtdRelave,
+        )}</td><td>${l.qtdContado}</td><td class="v">${l.qtdDesconto ? "−" + l.qtdDesconto : "0"}</td><td><b>${l.qtdPagar}</b></td><td><b>${brl.format(
+          l.valorPagar,
+        )}</b></td><td>${l.qtdFatura ?? "—"}</td></tr>`,
     )
     .join("");
   const taloes = f.taloes
     .map((t) => {
       const r = resumoTalao(t, todaySP());
-      return `<tr><td>${dataBR(t.data_coleta)}</td><td>${esc(t.numero)}</td><td>${r.saida}</td><td>${r.entLav ?? "—"}</td><td>${
-        r.saidaLav ?? "—"
-      }</td><td>${r.guardado ?? "sem retorno"}</td></tr>`;
+      return `<tr><td>${dataBR(t.data_coleta)}</td><td>${esc(t.numero)}</td><td>${r.saida}</td><td>${r.entLav ?? "—"}</td><td class="v">${
+        r.difColeta ? sinal(r.difColeta) : ""
+      }</td><td>${r.saidaLav ?? "—"}</td><td>${r.relave ? sinal(r.relave) : ""}</td><td>${r.guardado ?? "sem retorno"}</td><td class="v">${
+        r.desconto ? "−" + r.desconto : ""
+      }</td><td><b>${r.aPagar ?? "—"}</b></td></tr>`;
     })
     .join("");
+  const dif = valorFatura === null ? null : Math.round((valorFatura - f.valorPagar) * 100) / 100;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Lavanderia ${esc(unidade)} ${esc(nomeMes(mes))}</title>
-<style>body{font-family:Arial,sans-serif;font-size:12px;margin:24px;color:#111}h1{font-size:18px;margin:0}h2{font-size:14px;margin:18px 0 6px}
-table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:4px 6px;text-align:right}td:first-child,th:first-child{text-align:left}
-th{background:#eee}.r{display:flex;gap:24px;margin-top:8px}.b{font-weight:bold}</style></head><body>
+<style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#111}h1{font-size:17px;margin:0}h2{font-size:13px;margin:16px 0 6px}
+table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:3px 5px;text-align:right}td:first-child,th:first-child{text-align:left}
+th{background:#eee}.r{display:flex;gap:22px;margin-top:8px;font-size:13px}.b{font-weight:bold}.v{color:#b91c1c;font-weight:bold}.n{margin-top:6px;color:#333}</style></head><body>
 <h1>INJOY ${esc(unidade)} — Fechamento da lavanderia (Clean Soft)</h1><div>${esc(nomeMes(mes))} · gerado em ${dataBR(todaySP())}</div>
-<div class="r"><div>Valor esperado: <span class="b">${brl.format(f.valorEsperado)}</span></div><div>Valor da fatura: <span class="b">${
-    valorFatura === null ? "—" : brl.format(valorFatura)
-  }</span></div><div>Diferença: <span class="b">${valorFatura === null ? "—" : brl.format(valorFatura - f.valorEsperado)}</span></div></div>
-<h2>Por coluna da fatura</h2><table><tr><th>Coluna</th><th>Preço</th><th>Camareiras</th><th>Lavanderia</th><th>Valor esperado</th><th>Fatura</th><th>Dif.</th></tr>${linhas}</table>
+<div class="r"><div>Valor a pagar: <span class="b">${brl.format(f.valorPagar)}</span></div><div>Descontos: <span class="b v">${brl.format(
+    f.valorDesconto,
+  )}</span></div><div>Fatura: <span class="b">${valorFatura === null ? "—" : brl.format(valorFatura)}</span></div><div>Fatura − a pagar: <span class="b">${
+    dif === null ? "—" : brl.format(dif)
+  }</span></div></div>
+<div class="n">Regra: paga-se o que saiu da lavanderia; se a camareira contou menos, paga-se o contado. Relave (B) entra quando voltar.</div>
+<h2>Por coluna da fatura</h2><table><tr><th>Coluna</th><th>Preço</th><th>Saída hotel</th><th>Ent. Lav.</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desconto</th><th>Qtd a pagar</th><th>Valor a pagar</th><th>Fatura</th></tr>${linhas}</table>
 ${
   faltas.length
-    ? `<h2>Anotado pela lavanderia e não entregue</h2><table><tr><th>Peça</th><th>Qtd</th><th>Valor</th><th>Talões</th></tr>${faltas
+    ? `<h2>Descontar (saiu da lavanderia e não chegou)</h2><table><tr><th>Peça</th><th>Qtd</th><th>Valor</th><th>Talões</th></tr>${faltas
         .map(
           (x) =>
             `<tr><td>${esc(x.peca.nome)}</td><td>${x.qtd}</td><td>${brl.format(x.valor)}</td><td>${esc(x.taloes.join(", "))}</td></tr>`,
@@ -1108,7 +1185,7 @@ ${
     : ""
 }
 ${f.numerosFaltando.length ? `<p><b>Números pulados:</b> ${f.numerosFaltando.join(", ")}</p>` : ""}
-<h2>Talões (${f.taloes.length})</h2><table><tr><th>Data</th><th>Talão</th><th>Saída hotel</th><th>Ent. Lav.</th><th>Saída Lav.</th><th>Contado</th></tr>${taloes}</table>
+<h2>Talões (${f.taloes.length})</h2><table><tr><th>Data</th><th>Talão</th><th>Saída hotel</th><th>Ent. Lav.</th><th>A</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desc.</th><th>Pagar</th></tr>${taloes}</table>
 <script>window.onload=function(){window.print()}</script></body></html>`;
   const w = window.open("", "_blank");
   if (!w) return toast.error("Libere as janelas pop-up para imprimir.");
@@ -1269,5 +1346,133 @@ function PecaLinha({
         </button>
       </td>
     </tr>
+  );
+}
+
+/* ====================================================================== FOTOS */
+
+function useUrlFoto(path: string | null) {
+  return useQuery({
+    queryKey: ["lav_foto", path],
+    queryFn: () => urlFotoTalao(path!),
+    enabled: !!path,
+    staleTime: 8 * 60_000, // a URL assinada vale 10 min
+    retry: 1,
+  });
+}
+
+function VisualizadorFoto({
+  path,
+  titulo,
+  onClose,
+}: {
+  path: string;
+  titulo: string;
+  onClose: () => void;
+}) {
+  const url = useUrlFoto(path);
+  return (
+    <div className="fixed inset-0 z-[60] bg-black/85 flex flex-col" onClick={onClose}>
+      <div
+        className="flex items-center justify-between gap-2 p-3 text-white"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <p className="font-bold text-sm">{titulo}</p>
+        <div className="flex items-center gap-2">
+          {url.data && (
+            <a
+              href={url.data}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-bold bg-white/15 hover:bg-white/25 rounded-lg px-3 py-1.5"
+            >
+              Abrir em nova aba
+            </a>
+          )}
+          <button
+            onClick={onClose}
+            className="text-xs font-bold bg-white text-slate-900 rounded-lg px-3 py-1.5"
+          >
+            Fechar
+          </button>
+        </div>
+      </div>
+      <div
+        className="flex-1 overflow-auto flex items-start justify-center p-3"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {url.isLoading ? (
+          <p className="text-white/80 text-sm mt-10">
+            <Loader2 className="animate-spin inline mr-2" size={16} /> Carregando foto…
+          </p>
+        ) : url.error ? (
+          <p className="text-red-200 text-sm mt-10 max-w-md text-center">
+            Não foi possível abrir a foto: {url.error.message}
+          </p>
+        ) : (
+          <img src={url.data} alt={titulo} className="max-w-full h-auto rounded-lg shadow-2xl" />
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Miniatura da foto do talão; toque para ampliar dentro do app (sem janela nova). */
+function FotoMiniatura({ path, titulo }: { path: string | null; titulo: string }) {
+  const [aberta, setAberta] = useState(false);
+  const url = useUrlFoto(path);
+  const rotulo = titulo.split(" · ")[1] ?? "foto";
+  if (!path)
+    return (
+      <div className="h-32 rounded-lg border border-dashed border-slate-300 bg-white flex items-center justify-center text-[11px] text-slate-400 text-center px-2">
+        Sem foto de {rotulo}
+      </div>
+    );
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setAberta(true)}
+        className="relative h-32 rounded-lg border border-slate-200 bg-white overflow-hidden group"
+        title={`Ver foto · ${titulo}`}
+      >
+        {url.data ? (
+          <img
+            src={url.data}
+            alt={titulo}
+            className="h-full w-full object-cover group-hover:opacity-90"
+          />
+        ) : url.error ? (
+          <span className="text-[11px] text-red-600 p-2 block">Erro: {url.error.message}</span>
+        ) : (
+          <Loader2 className="animate-spin text-slate-400 mx-auto" size={16} />
+        )}
+        <span className="absolute bottom-0 inset-x-0 bg-black/60 text-white text-[10px] font-bold uppercase py-1">
+          <Camera size={10} className="inline mr-1" />
+          {rotulo} · ampliar
+        </span>
+      </button>
+      {aberta && <VisualizadorFoto path={path} titulo={titulo} onClose={() => setAberta(false)} />}
+    </>
+  );
+}
+
+function BotaoFoto({
+  path,
+  titulo,
+  children,
+}: {
+  path: string;
+  titulo: string;
+  children: React.ReactNode;
+}) {
+  const [aberta, setAberta] = useState(false);
+  return (
+    <>
+      <button onClick={() => setAberta(true)} className="text-blue-700 font-bold underline mr-2">
+        {children}
+      </button>
+      {aberta && <VisualizadorFoto path={path} titulo={titulo} onClose={() => setAberta(false)} />}
+    </>
   );
 }

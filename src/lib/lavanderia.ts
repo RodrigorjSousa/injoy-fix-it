@@ -69,15 +69,66 @@ export function recebidoLavanderia(t: Talao, it: TalaoItem) {
   return talaoAberto(t) || it.ent_lav === null ? n(it.saida_hotel) : n(it.ent_lav);
 }
 
+/*
+ * As três diferenças do talão (regra combinada com o Rodrigo em 10/10/2026):
+ *   A) Saída Hotel × Entrada Lavanderia  → erro de contagem na coleta (vermelho: cobrar os envolvidos)
+ *   B) Entrada Lav. × Saída Lav.         → RELAVE: ficou na lavanderia para lavar de novo e deve
+ *                                          voltar em outro talão (saldo acompanhado por peça)
+ *   C) Saída Lav. × Contado (hotel)      → BASE DO PAGAMENTO: paga o que saiu da lavanderia, mas se a
+ *                                          camareira contou menos, paga o que ela contou (ex.: saiu 8,
+ *                                          contou 7 → paga 7; desconta 1)
+ */
+export type DifItem = {
+  peca_id: string;
+  saidaHotel: number;
+  entLav: number;
+  saidaLav: number;
+  contado: number;
+  /** A) entLav − saidaHotel. Diferente de 0 = contagem da coleta não bateu. */
+  difColeta: number;
+  /** B) entLav − saidaLav. Positivo = ficou para relave; negativo = voltou relave de outro talão. */
+  relave: number;
+  /** C) saidaLav − contado, quando positivo: peças a descontar do pagamento. */
+  desconto: number;
+  /** Quantidade paga: o menor entre o que saiu da lavanderia e o que a camareira contou. */
+  aPagar: number;
+  /** Camareira contou mais do que a lavanderia anotou (não paga a mais; só informa). */
+  contouAMais: number;
+};
+
+export function difItem(it: TalaoItem): DifItem {
+  const saidaHotel = n(it.saida_hotel);
+  const entLav = it.ent_lav === null ? saidaHotel : n(it.ent_lav);
+  const contado = n(it.guardado);
+  const saidaLav = it.saida_lav === null ? contado : n(it.saida_lav);
+  return {
+    peca_id: it.peca_id,
+    saidaHotel,
+    entLav,
+    saidaLav,
+    contado,
+    difColeta: entLav - saidaHotel,
+    relave: entLav - saidaLav,
+    desconto: Math.max(0, saidaLav - contado),
+    aPagar: Math.min(saidaLav, contado),
+    contouAMais: Math.max(0, contado - saidaLav),
+  };
+}
+
 export type ResumoTalao = {
   saida: number;
   entLav: number | null;
   saidaLav: number | null;
   guardado: number | null;
-  /** ent_lav − saida_hotel: diferença de contagem na coleta (hotel × lavanderia). */
+  /** A) soma de entLav − saidaHotel por peça. */
   difColeta: number | null;
-  /** Peças que a lavanderia anotou como devolvidas e não chegaram (soma por peça, negativa). */
-  difEntrega: number | null;
+  /** Quantas peças tiveram diferença na coleta (soma dos valores absolutos). */
+  difColetaAbs: number | null;
+  /** B) soma de entLav − saidaLav (relave deste talão). */
+  relave: number | null;
+  /** C) peças a descontar (soma por peça). */
+  desconto: number | null;
+  aPagar: number | null;
   aberto: boolean;
   dias: number;
 };
@@ -92,21 +143,26 @@ export function resumoTalao(t: Talao, hoje: string): ResumoTalao {
       saidaLav: null,
       guardado: null,
       difColeta: null,
-      difEntrega: null,
+      difColetaAbs: null,
+      relave: null,
+      desconto: null,
+      aPagar: null,
       aberto,
       dias: diasEntre(t.data_coleta, hoje),
     };
   }
-  const entLav = t.itens.reduce((s, i) => s + n(i.ent_lav), 0);
-  const saidaLav = t.itens.reduce((s, i) => s + n(i.saida_lav), 0);
-  const guardado = t.itens.reduce((s, i) => s + n(i.guardado), 0);
+  const d = t.itens.map(difItem);
+  const soma = (f: (x: DifItem) => number) => d.reduce((s, x) => s + f(x), 0);
   return {
     saida,
-    entLav,
-    saidaLav,
-    guardado,
-    difColeta: entLav - saida,
-    difEntrega: -t.itens.reduce((s, i) => s + Math.max(0, n(i.saida_lav) - n(i.guardado)), 0),
+    entLav: soma((x) => x.entLav),
+    saidaLav: soma((x) => x.saidaLav),
+    guardado: soma((x) => x.contado),
+    difColeta: soma((x) => x.difColeta),
+    difColetaAbs: soma((x) => Math.abs(x.difColeta)),
+    relave: soma((x) => x.relave),
+    desconto: soma((x) => x.desconto),
+    aPagar: soma((x) => x.aPagar),
     aberto,
     dias: diasEntre(t.data_coleta, t.retorno_data!),
   };
@@ -114,24 +170,28 @@ export function resumoTalao(t: Talao, hoje: string): ResumoTalao {
 
 export type LinhaSaldo = {
   peca: Peca;
-  /** Total que a lavanderia recebeu (ent_lav; talões em aberto pela contagem do hotel). */
-  enviado: number;
-  /** Total que voltou e a camareira contou ao guardar. */
-  voltou: number;
-  /** Está na lavanderia agora. */
-  saldo: number;
-  /** Parte do saldo que está em talões ainda abertos (normal: roupa lavando). */
+  /** Peças em talões que ainda não voltaram (contagem do hotel). */
   emAberto: number;
-  /** saldo − emAberto. Positivo = peças de talões já devolvidos que não voltaram. */
-  pendente: number;
+  /** B) Relave acumulado: entrou na lavanderia e ainda não saiu (Σ entLav − saidaLav). */
+  relavePendente: number;
+  /** emAberto + relavePendente: o que está na lavanderia agora. */
+  saldo: number;
+  /** A) Σ entLav − saidaHotel (diferença de contagem na coleta). */
+  difColeta: number;
+  /** C) Σ peças descontadas (saiu da lavanderia e não chegou). */
+  desconto: number;
+  /** Σ peças pagas (base do pagamento). */
+  aPagar: number;
 };
 
 /** Saldo de peças de uma unidade (use só talões dessa unidade). */
 export function calcularSaldo(taloes: Talao[], pecas: Peca[], inicio = INICIO_SALDO): LinhaSaldo[] {
-  const mapa = new Map<string, { enviado: number; voltou: number; emAberto: number }>();
+  type Acc = Omit<LinhaSaldo, "peca" | "saldo">;
+  const mapa = new Map<string, Acc>();
   const get = (id: string) => {
     let v = mapa.get(id);
-    if (!v) mapa.set(id, (v = { enviado: 0, voltou: 0, emAberto: 0 }));
+    if (!v)
+      mapa.set(id, (v = { emAberto: 0, relavePendente: 0, difColeta: 0, desconto: 0, aPagar: 0 }));
     return v;
   };
   for (const t of taloes) {
@@ -139,18 +199,29 @@ export function calcularSaldo(taloes: Talao[], pecas: Peca[], inicio = INICIO_SA
     const aberto = talaoAberto(t);
     for (const it of t.itens) {
       const v = get(it.peca_id);
-      v.enviado += recebidoLavanderia(t, it);
-      if (aberto) v.emAberto += n(it.saida_hotel);
-      else v.voltou += n(it.guardado);
+      if (aberto) {
+        v.emAberto += n(it.saida_hotel);
+        continue;
+      }
+      const d = difItem(it);
+      v.relavePendente += d.relave;
+      v.difColeta += d.difColeta;
+      v.desconto += d.desconto;
+      v.aPagar += d.aPagar;
     }
   }
   return [...pecas]
     .sort((a, b) => a.ordem - b.ordem || a.nome.localeCompare(b.nome))
     .filter((p) => p.ativo || mapa.has(p.id))
     .map((peca) => {
-      const v = mapa.get(peca.id) ?? { enviado: 0, voltou: 0, emAberto: 0 };
-      const saldo = v.enviado - v.voltou;
-      return { peca, ...v, saldo, pendente: saldo - v.emAberto };
+      const v = mapa.get(peca.id) ?? {
+        emAberto: 0,
+        relavePendente: 0,
+        difColeta: 0,
+        desconto: 0,
+        aPagar: 0,
+      };
+      return { peca, ...v, saldo: v.emAberto + v.relavePendente };
     });
 }
 
@@ -171,9 +242,12 @@ export function numerosFaltando(numeros: string[], saltoMaximo = 30): number[] {
 
 export type Alerta = {
   nivel: "alto" | "medio";
+  tipo: "coleta" | "relave" | "desconto" | "parado" | "sequencia";
   talaoId?: string;
   texto: string;
 };
+
+const fmtSinal = (v: number) => (v > 0 ? `+${v}` : String(v));
 
 export function gerarAlertas(
   taloes: Talao[],
@@ -181,65 +255,84 @@ export function gerarAlertas(
   pecas: Peca[],
   hoje: string,
 ): Alerta[] {
-  const nome = new Map(pecas.map((p) => [p.id, p.nome]));
+  const porId = new Map(pecas.map((p) => [p.id, p]));
+  const nome = (id: string) => porId.get(id)?.nome ?? "peça";
   const alertas: Alerta[] = [];
   const ordenados = [...taloes].sort((a, b) => a.data_coleta.localeCompare(b.data_coleta));
   for (const t of ordenados) {
     const r = resumoTalao(t, hoje);
-    if (r.aberto && r.dias >= DIAS_ALERTA_ABERTO) {
-      alertas.push({
-        nivel: "alto",
-        talaoId: t.id,
-        texto: `Talão nº ${t.numero} saiu em ${dataBR(t.data_coleta)} (${r.saida} peças) e ainda não voltou — há ${r.dias} dias.`,
-      });
-    }
-    if (!r.aberto) {
-      const faltas = t.itens
-        .filter((i) => n(i.guardado) < n(i.saida_lav))
-        .map((i) => `${n(i.saida_lav) - n(i.guardado)} ${nome.get(i.peca_id) ?? "peça"}`);
-      if (faltas.length)
+    if (r.aberto) {
+      if (r.dias >= DIAS_ALERTA_ABERTO)
         alertas.push({
           nivel: "alto",
+          tipo: "parado",
           talaoId: t.id,
-          texto: `Talão nº ${t.numero}: a lavanderia anotou mais do que chegou — faltou ${faltas.join(", ")}.`,
+          texto: `Talão nº ${t.numero} saiu em ${dataBR(t.data_coleta)} (${r.saida} peças) e ainda não voltou — há ${r.dias} dias.`,
         });
-      const difs = t.itens
-        .filter((i) => n(i.saida_hotel) > 0 && n(i.ent_lav) !== n(i.saida_hotel))
-        .map((i) => {
-          const d = n(i.ent_lav) - n(i.saida_hotel);
-          return `${nome.get(i.peca_id) ?? "peça"} ${d > 0 ? "+" : ""}${d}`;
-        });
-      if (difs.length)
-        alertas.push({
-          nivel: "medio",
-          talaoId: t.id,
-          texto: `Talão nº ${t.numero}: contagem da lavanderia diferente da camareira na coleta (${difs.join(", ")}).`,
-        });
+      continue;
     }
+    const d = t.itens.map(difItem);
+    const coleta = d.filter((x) => x.saidaHotel > 0 && x.difColeta !== 0);
+    if (coleta.length)
+      alertas.push({
+        nivel: "alto",
+        tipo: "coleta",
+        talaoId: t.id,
+        texto: `Talão nº ${t.numero}: SAÍDA DO HOTEL × ENTRADA DA LAVANDERIA não bateu (${coleta
+          .map((x) => `${nome(x.peca_id)} ${fmtSinal(x.difColeta)}`)
+          .join(", ")}). Cobrar atenção de quem contou.`,
+      });
+    const desc = d.filter((x) => x.desconto > 0);
+    if (desc.length) {
+      const valor = desc.reduce(
+        (s, x) => s + x.desconto * Number(porId.get(x.peca_id)?.preco ?? 0),
+        0,
+      );
+      alertas.push({
+        nivel: "alto",
+        tipo: "desconto",
+        talaoId: t.id,
+        texto: `Talão nº ${t.numero}: saiu da lavanderia mais do que chegou — descontar ${desc
+          .map((x) => `${x.desconto} ${nome(x.peca_id)}`)
+          .join(", ")} (${brl.format(centavos(valor))}).`,
+      });
+    }
+    const rel = d.filter((x) => x.relave > 0);
+    if (rel.length)
+      alertas.push({
+        nivel: "medio",
+        tipo: "relave",
+        talaoId: t.id,
+        texto: `Talão nº ${t.numero}: ficou para relave ${rel
+          .map((x) => `${x.relave} ${nome(x.peca_id)}`)
+          .join(", ")} — deve voltar em outro talão.`,
+      });
   }
   const faltando = numerosFaltando(taloes.map((t) => t.numero));
   if (faltando.length)
     alertas.push({
       nivel: "medio",
+      tipo: "sequencia",
       texto: `Talão(ões) pulado(s) na sequência: ${faltando.join(", ")}. Confira se a lavanderia levou roupa sem lançamento.`,
     });
-  const pend = saldo.filter((l) => l.pendente > 0);
+  const pend = saldo.filter((l) => l.relavePendente > 0);
   if (pend.length)
     alertas.push({
-      nivel: "alto",
-      texto: `Peças de talões já devolvidos que não voltaram: ${pend.map((l) => `${l.pendente} ${l.peca.nome}`).join(", ")}.`,
+      nivel: "medio",
+      tipo: "relave",
+      texto: `Relave ainda na lavanderia: ${pend.map((l) => `${l.relavePendente} ${l.peca.nome}`).join(", ")}.`,
     });
   return alertas;
 }
 
-/** Peças que a lavanderia anotou como devolvidas mas não chegaram (saida_lav − guardado), por peça. */
+/** C) Peças a descontar (saiu da lavanderia e a camareira contou menos), por peça, com valor. */
 export function faltasNaEntrega(taloes: Talao[], pecas: Peca[]) {
   const porPeca = new Map(pecas.map((p) => [p.id, p]));
   const mapa = new Map<string, { peca: Peca; qtd: number; valor: number; taloes: string[] }>();
   for (const t of taloes) {
     if (talaoAberto(t)) continue;
     for (const i of t.itens) {
-      const falta = n(i.saida_lav) - n(i.guardado);
+      const falta = difItem(i).desconto;
       const p = porPeca.get(i.peca_id);
       if (falta <= 0 || !p) continue;
       const v = mapa.get(p.id) ?? { peca: p, qtd: 0, valor: 0, taloes: [] };
@@ -258,19 +351,36 @@ export type LinhaFechamento = {
   preco: number;
   /** Contagem das camareiras na coleta. */
   qtdHotel: number;
-  /** Contagem da lavanderia (ent_lav). Talões sem retorno entram pela contagem do hotel. */
-  qtdLavanderia: number;
-  valorEsperado: number;
+  /** Contagem da lavanderia na entrada. */
+  qtdEntLav: number;
+  /** O que a lavanderia anotou que devolveu (o que ela cobra). */
+  qtdSaidaLav: number;
+  /** O que as camareiras contaram ao guardar. */
+  qtdContado: number;
+  /** Base do pagamento: Σ por peça do menor entre Saída Lav. e Contado. */
+  qtdPagar: number;
+  /** Peças descontadas (Saída Lav. − Contado, quando faltou). */
+  qtdDesconto: number;
+  /** Relave do mês (Entrada Lav. − Saída Lav.). */
+  qtdRelave: number;
+  valorPagar: number;
+  valorDesconto: number;
   qtdFatura: number | null;
   valorFatura: number | null;
+  /** Fatura − Saída Lav.: a lavanderia cobrou diferente do que ela mesma anotou no talão. */
   difQtd: number | null;
 };
 
 export type Fechamento = {
   linhas: LinhaFechamento[];
   totalPecasHotel: number;
-  totalPecasLavanderia: number;
-  valorEsperado: number;
+  totalSaidaLav: number;
+  totalContado: number;
+  totalPagar: number;
+  totalDesconto: number;
+  totalRelave: number;
+  valorPagar: number;
+  valorDesconto: number;
   valorFaturaCalculado: number | null;
   taloes: Talao[];
   taloesSemRetorno: Talao[];
@@ -284,7 +394,9 @@ export function mesDe(data: string) {
 const centavos = (v: number) => Math.round(v * 100) / 100;
 
 /**
- * Fechamento do mês (pela data da coleta), agrupado como as colunas da fatura da Clean Soft.
+ * Fechamento do mês (pela data da coleta, como na planilha da Clean Soft), agrupado como as
+ * colunas da fatura. Paga-se só o que voltou: o menor entre a Saída Lav. e o Contado, por peça.
+ * Talões sem retorno ainda não entram no pagamento.
  * `qtdFatura`: quantidades digitadas pelo gestor a partir da fatura, por grupo.
  */
 export function calcularFechamento(
@@ -297,7 +409,8 @@ export function calcularFechamento(
     .filter((t) => mesDe(t.data_coleta) === mes)
     .sort((a, b) => a.data_coleta.localeCompare(b.data_coleta) || a.numero.localeCompare(b.numero));
   const porPeca = new Map(pecas.map((p) => [p.id, p]));
-  const grupos = new Map<string, LinhaFechamento & { ordem: number }>();
+  type G = LinhaFechamento & { ordem: number };
+  const grupos = new Map<string, G>();
   const ordenadas = [...pecas].sort((a, b) => a.ordem - b.ordem);
   for (const p of ordenadas) {
     if (!grupos.has(p.grupo_fatura))
@@ -306,27 +419,42 @@ export function calcularFechamento(
         preco: Number(p.preco),
         ordem: p.ordem,
         qtdHotel: 0,
-        qtdLavanderia: 0,
-        valorEsperado: 0,
+        qtdEntLav: 0,
+        qtdSaidaLav: 0,
+        qtdContado: 0,
+        qtdPagar: 0,
+        qtdDesconto: 0,
+        qtdRelave: 0,
+        valorPagar: 0,
+        valorDesconto: 0,
         qtdFatura: null,
         valorFatura: null,
         difQtd: null,
       });
   }
   for (const t of taloes) {
+    const aberto = talaoAberto(t);
     for (const it of t.itens) {
       const p = porPeca.get(it.peca_id);
       if (!p) continue;
       const g = grupos.get(p.grupo_fatura)!;
-      const lav = recebidoLavanderia(t, it);
       g.qtdHotel += n(it.saida_hotel);
-      g.qtdLavanderia += lav;
-      g.valorEsperado += lav * Number(p.preco);
+      if (aberto) continue;
+      const d = difItem(it);
+      const preco = Number(p.preco);
+      g.qtdEntLav += d.entLav;
+      g.qtdSaidaLav += d.saidaLav;
+      g.qtdContado += d.contado;
+      g.qtdPagar += d.aPagar;
+      g.qtdDesconto += d.desconto;
+      g.qtdRelave += d.relave;
+      g.valorPagar += d.aPagar * preco;
+      g.valorDesconto += d.desconto * preco;
     }
   }
   let algumaFatura = false;
   let valorFatura = 0;
-  const linhas = [...grupos.values()]
+  const linhas: LinhaFechamento[] = [...grupos.values()]
     .sort((a, b) => a.ordem - b.ordem)
     .map(({ ordem: _o, ...g }) => {
       const qf = qtdFatura[g.grupo];
@@ -337,17 +465,24 @@ export function calcularFechamento(
       }
       return {
         ...g,
-        valorEsperado: centavos(g.valorEsperado),
+        valorPagar: centavos(g.valorPagar),
+        valorDesconto: centavos(g.valorDesconto),
         qtdFatura: tem ? qf : null,
         valorFatura: tem ? centavos(qf * g.preco) : null,
-        difQtd: tem ? qf - g.qtdLavanderia : null,
+        difQtd: tem ? qf - g.qtdSaidaLav : null,
       };
     });
+  const soma = (f: (l: LinhaFechamento) => number) => linhas.reduce((s, l) => s + f(l), 0);
   return {
     linhas,
-    totalPecasHotel: linhas.reduce((s, l) => s + l.qtdHotel, 0),
-    totalPecasLavanderia: linhas.reduce((s, l) => s + l.qtdLavanderia, 0),
-    valorEsperado: centavos(linhas.reduce((s, l) => s + l.valorEsperado, 0)),
+    totalPecasHotel: soma((l) => l.qtdHotel),
+    totalSaidaLav: soma((l) => l.qtdSaidaLav),
+    totalContado: soma((l) => l.qtdContado),
+    totalPagar: soma((l) => l.qtdPagar),
+    totalDesconto: soma((l) => l.qtdDesconto),
+    totalRelave: soma((l) => l.qtdRelave),
+    valorPagar: centavos(soma((l) => l.valorPagar)),
+    valorDesconto: centavos(soma((l) => l.valorDesconto)),
     valorFaturaCalculado: algumaFatura ? centavos(valorFatura) : null,
     taloes,
     taloesSemRetorno: taloes.filter(talaoAberto),
@@ -404,7 +539,7 @@ const inteiro = (s: string) => (vazio(s) ? null : parseInt(s, 10));
 /**
  * Regras do retorno (o talão nem sempre vem com tudo preenchido):
  *  - Ent. Lav. em branco  = a lavanderia não anotou diferença: vale a Saída Hotel.
- *  - Saída Lav. em branco = nada anotado como devolvido: 0.
+ *  - Saída Lav. em branco = a lavanderia não anotou diferença: vale o Contei.
  *  - Contei em branco     = 0, mas só é aceito se a Saída Lav. também estiver em branco/0
  *    (se a lavanderia anotou que devolveu, a camareira precisa contar).
  */
@@ -438,7 +573,7 @@ export function normalizarRetorno(linhas: LinhaRetornoForm[]) {
     .map((l) => ({
       peca_id: l.peca_id,
       ent_lav: inteiro(l.ent_lav) ?? l.saida_hotel,
-      saida_lav: inteiro(l.saida_lav) ?? 0,
+      saida_lav: inteiro(l.saida_lav) ?? inteiro(l.guardado) ?? 0,
       guardado: inteiro(l.guardado) ?? 0,
     }));
 }
