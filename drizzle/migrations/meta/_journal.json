@@ -337,6 +337,13 @@
       "when": 1791660197760,
       "tag": "0047_apply_0048_previsao_carga_recepcao",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1791661737641,
+      "tag": "0048_apply_0049_previsao_carga_acessos",
+      "breakpoints": true
     }
   ]
 }

@@ -2503,6 +2503,27 @@ export type Database = {
         }
         Relationships: []
       }
+      previsao_carga_acessos: {
+        Row: {
+          definido_por: string | null
+          liberado: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          definido_por?: string | null
+          liberado: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          definido_por?: string | null
+          liberado?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       previsao_carga_alertas: {
         Row: {
           data: string
@@ -4062,9 +4083,25 @@ export type Database = {
         Args: { _colaborador_id: string; _device_id: string }
         Returns: undefined
       }
+      previsao_acessos_listar: {
+        Args: never
+        Returns: {
+          email: string
+          gestor: boolean
+          nome: string
+          origem: string
+          papeis: string[]
+          user_id: string
+          ve: boolean
+        }[]
+      }
       previsao_cancelar_reforco: { Args: { _id: string }; Returns: undefined }
       previsao_decidir_reforco: {
         Args: { _autorizar: boolean; _id: string; _resposta?: string }
+        Returns: undefined
+      }
+      previsao_definir_acesso: {
+        Args: { _liberado: boolean; _user_id: string }
         Returns: undefined
       }
       previsao_pedir_reforco: {
