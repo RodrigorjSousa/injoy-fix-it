@@ -330,6 +330,13 @@
       "when": 1791650448670,
       "tag": "0046_apply_0047_escala_colaboradores_horario",
       "breakpoints": true
+    },
+    {
+      "idx": 47,
+      "version": "7",
+      "when": 1791660197760,
+      "tag": "0047_apply_0048_previsao_carga_recepcao",
+      "breakpoints": true
     }
   ]
 }

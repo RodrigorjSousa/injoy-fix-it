@@ -2586,6 +2586,60 @@ export type Database = {
         }
         Relationships: []
       }
+      previsao_reforco_pedidos: {
+        Row: {
+          data: string
+          decidido_em: string | null
+          decidido_nome: string | null
+          decidido_por: string | null
+          gerais: number | null
+          id: string
+          mensagem: string | null
+          nivel: string | null
+          ocupacao_pct: number | null
+          resposta: string | null
+          solicitado_em: string
+          solicitado_nome: string | null
+          solicitado_por: string
+          status: string
+          unidade: string
+        }
+        Insert: {
+          data: string
+          decidido_em?: string | null
+          decidido_nome?: string | null
+          decidido_por?: string | null
+          gerais?: number | null
+          id?: string
+          mensagem?: string | null
+          nivel?: string | null
+          ocupacao_pct?: number | null
+          resposta?: string | null
+          solicitado_em?: string
+          solicitado_nome?: string | null
+          solicitado_por: string
+          status?: string
+          unidade: string
+        }
+        Update: {
+          data?: string
+          decidido_em?: string | null
+          decidido_nome?: string | null
+          decidido_por?: string | null
+          gerais?: number | null
+          id?: string
+          mensagem?: string | null
+          nivel?: string | null
+          ocupacao_pct?: number | null
+          resposta?: string | null
+          solicitado_em?: string
+          solicitado_nome?: string | null
+          solicitado_por?: string
+          status?: string
+          unidade?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -3930,6 +3984,7 @@ export type Database = {
         }[]
       }
       minha_permissao_bonificacao: { Args: never; Returns: Json }
+      minha_permissao_previsao_carga: { Args: never; Returns: boolean }
       open_room_inspection_issue: {
         Args: {
           _category?: string
@@ -4006,6 +4061,15 @@ export type Database = {
       ponto_vincular_aparelho: {
         Args: { _colaborador_id: string; _device_id: string }
         Returns: undefined
+      }
+      previsao_cancelar_reforco: { Args: { _id: string }; Returns: undefined }
+      previsao_decidir_reforco: {
+        Args: { _autorizar: boolean; _id: string; _resposta?: string }
+        Returns: undefined
+      }
+      previsao_pedir_reforco: {
+        Args: { _data: string; _mensagem?: string; _unidade: string }
+        Returns: string
       }
       registrar_bonificacao_conjunta: {
         Args: {
