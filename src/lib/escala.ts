@@ -242,25 +242,33 @@ export function useSalvarEscalaColaborador() {
         unidade: input.unidade,
         vinculo: input.vinculo,
         turno_padrao: input.turno_padrao,
-        hora_entrada: input.vinculo === "freelance" ? input.hora_entrada || null : null,
-        hora_saida: input.vinculo === "freelance" ? input.hora_saida || null : null,
         telefone: input.telefone?.trim() || null,
         ativo: input.ativo,
       };
+      // Horário habitual (só freelancer). Se a coluna ainda não existir no banco, salva o resto
+      // mesmo assim, em vez de travar o cadastro inteiro.
+      const horario = {
+        hora_entrada: input.vinculo === "freelance" ? input.hora_entrada || null : null,
+        hora_saida: input.vinculo === "freelance" ? input.hora_saida || null : null,
+      };
+      const semColunaHorario = (e: { code?: string; message?: string } | null) =>
+        !!e && (e.code === "42703" || e.code === "PGRST204") && /hora_(entrada|saida)/.test(e.message ?? "");
       let colaboradorId = input.id;
       const client = supabase as SupabaseClient<DatabaseComColaboradoresPendentes>;
       if (input.id) {
-        const { error } = await client.from("escala_colaboradores").update(row).eq("id", input.id);
-        if (error) throw error;
+        let { error } = await client.from("escala_colaboradores").update({ ...row, ...horario }).eq("id", input.id);
+        if (semColunaHorario(error)) ({ error } = await client.from("escala_colaboradores").update(row).eq("id", input.id));
+        if (error) throw new Error(error.message);
       } else {
-        const { data, error } = await client.from("escala_colaboradores").insert(row).select("id").single();
-        if (error) throw error;
+        let { data, error } = await client.from("escala_colaboradores").insert({ ...row, ...horario }).select("id").single();
+        if (semColunaHorario(error)) ({ data, error } = await client.from("escala_colaboradores").insert(row).select("id").single());
+        if (error || !data) throw new Error(error?.message ?? "Não foi possível salvar");
         colaboradorId = data.id;
       }
       if (input.vinculo === "fixo" && input.padrao && colaboradorId) {
         const { data: existing, error: findError } = await supabase
           .from("escala_padroes").select("id").eq("colaborador_id", colaboradorId).is("vigente_ate", null).maybeSingle();
-        if (findError) throw findError;
+        if (findError) throw new Error(findError.message);
         const pattern = {
           tipo: input.padrao.tipo,
           hora_entrada: input.padrao.hora_entrada || null,
@@ -278,10 +286,10 @@ export function useSalvarEscalaColaborador() {
         };
         if (existing) {
           const { error } = await supabase.from("escala_padroes").update(pattern).eq("id", existing.id);
-          if (error) throw error;
+          if (error) throw new Error(error.message);
         } else {
           const { error } = await supabase.from("escala_padroes").insert({ colaborador_id: colaboradorId, ...pattern });
-          if (error) throw error;
+          if (error) throw new Error(error.message);
         }
       }
       return colaboradorId;
