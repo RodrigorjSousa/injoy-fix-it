@@ -66,6 +66,53 @@ function moneyNumber(value: unknown): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function somaQuartos(lista: unknown): number {
+  if (!Array.isArray(lista)) return 0;
+  let soma = 0;
+  for (const q of lista as Array<Record<string, unknown>>) {
+    if (!q || typeof q !== "object") continue;
+    let v = moneyNumber(q.roomTotal ?? q.total ?? q.grandTotal ?? q.subtotal ?? q.totalRate);
+    if (!v) {
+      const diarias = (q.dailyRates ?? q.detailedRoomRates) as unknown;
+      if (Array.isArray(diarias)) v = diarias.reduce((s: number, d) => s + moneyNumber((d as Record<string, unknown>)?.rate), 0);
+      else if (diarias && typeof diarias === "object") v = Object.values(diarias).reduce((s: number, d) => s + moneyNumber(d), 0);
+    }
+    soma += v;
+  }
+  return soma;
+}
+
+/**
+ * Valor da reserva (receita) a partir do detalhe do Cloudbeds (getReservation) e, se faltar,
+ * da linha da listagem (getReservations, que normalmente NÃO traz o valor).
+ * Usa o primeiro valor positivo encontrado.
+ */
+export function receitaDaReserva(detalhe: Record<string, unknown> | null | undefined, lista?: Record<string, unknown>): number {
+  const fontes = [detalhe, lista].filter(Boolean) as Record<string, unknown>[];
+  for (const r of fontes) {
+    const bd = (r.balanceDetailed ?? {}) as Record<string, unknown>;
+    const candidatos = [
+      r.total,
+      r.grandTotal,
+      bd.grandTotal,
+      bd.subTotal,
+      r.totalCost,
+      r.balanceTotal,
+      r.totalRate,
+      somaQuartos([...(Array.isArray(r.assigned) ? r.assigned : []), ...(Array.isArray(r.unassigned) ? r.unassigned : [])]),
+      somaQuartos(r.rooms),
+      r.detailedRates && typeof r.detailedRates === "object"
+        ? Object.values(r.detailedRates as Record<string, unknown>).reduce((s: number, d) => s + moneyNumber(d), 0)
+        : 0,
+    ];
+    for (const c of candidatos) {
+      const v = moneyNumber(c);
+      if (v > 0) return Math.round(v * 100) / 100;
+    }
+  }
+  return 0;
+}
+
 function rateForDate(value: unknown, date: string): number {
   if (!value || typeof value !== "object") return 0;
   const rates = value as Record<string, unknown>;
@@ -440,7 +487,30 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
       return bDate.localeCompare(aDate);
     });
 
-    const reservas: ReservaFeita[] = rawList.map((r) => {
+    // A listagem do Cloudbeds não traz o valor da reserva: busca o detalhe das 10 exibidas.
+    const exibidas = rawList.slice(0, 10);
+    const detalhes = new Map<string, Record<string, unknown>>();
+    await Promise.all(
+      exibidas.map(async (r) => {
+        const id = String((r as Record<string, unknown>).reservationID ?? "");
+        if (!id) return;
+        for (let tentativa = 0; tentativa < 2; tentativa++) {
+          try {
+            const res = await cloudbedsFetch(property, `/getReservation?reservationID=${encodeURIComponent(id)}`);
+            if (!res.ok) continue;
+            const json = (await res.json()) as { success?: boolean; data?: Record<string, unknown> };
+            if (json.success !== false && json.data) {
+              detalhes.set(id, json.data);
+              return;
+            }
+          } catch {
+            /* tenta de novo */
+          }
+        }
+      }),
+    );
+
+    const reservas: ReservaFeita[] = exibidas.map((r) => {
       const rec = r as Record<string, unknown>;
       const nome =
         (rec.guestName as string) ||
@@ -451,13 +521,7 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
       );
       const ci = dateOnly(rec.reservationCheckIn ?? rec.startDate ?? rec.checkInDate ?? rec.checkIn ?? "");
       const co = dateOnly(rec.reservationCheckOut ?? rec.endDate ?? rec.checkOut ?? "");
-      const receita = moneyNumber(
-        (rec as Record<string, unknown>).grandTotal ??
-          (rec as Record<string, unknown>).total ??
-          (rec as Record<string, unknown>).totalCost ??
-          (rec as Record<string, unknown>).balanceTotal ??
-          0,
-      );
+      const receita = receitaDaReserva(detalhes.get(String(rec.reservationID ?? "")), rec);
       return {
         reservationID: String(rec.reservationID ?? ""),
         hospede: nome,
@@ -470,6 +534,5 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
     });
 
     // Limita a 10 (como o painel do Cloudbeds).
-    const top = reservas.slice(0, 10);
-    return { reservas: top, total: reservas.length, data: hoje };
+    return { reservas, total: rawList.length, data: hoje };
   });
