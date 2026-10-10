@@ -49,6 +49,7 @@ export type Totem = {
   wifi_rede: string | null;
   wifi_senha: string | null;
   mensagem_comprovante: string | null;
+  voz_ativa: boolean;
 };
 
 export type ModoTotem = "ambos" | "checkin" | "checkout";
@@ -75,6 +76,7 @@ function normalizarTotem(row: Record<string, unknown>): Totem {
     wifi_rede: (row.wifi_rede as string | null) ?? null,
     wifi_senha: (row.wifi_senha as string | null) ?? null,
     mensagem_comprovante: (row.mensagem_comprovante as string | null) ?? null,
+    voz_ativa: row.voz_ativa !== false,
   };
 }
 

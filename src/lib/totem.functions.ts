@@ -39,6 +39,7 @@ export type TotemInfo = {
   horaCheckin: string;
   modo: "ambos" | "checkin" | "checkout";
   impressora: "nenhuma" | "rawbt";
+  voz: boolean;
 };
 
 export type PortaTotem = { label: string; tipo: string; senha: string | null; mesma: boolean };
@@ -104,6 +105,7 @@ function info(t: TotemServidor): TotemInfo {
     horaCheckin: t.hora_checkin,
     modo: t.modo,
     impressora: t.impressora,
+    voz: t.voz_ativa,
   };
 }
 
@@ -502,19 +504,6 @@ export const totemDocumentoEnviar = createServerFn({ method: "POST" })
       hospede: data.nome,
       detalhe: `${data.etapa === "rosto" ? "selfie" : `selfie com ${data.tipo}`}${r.cloudbedsErro ? ` · Cloudbeds: ${r.cloudbedsErro}` : ""}`,
     });
-    return { ok: true };
-  });
-
-/** O hóspede preferiu não tirar as fotos no totem: avisa a recepção. */
-export const totemFotosRecusadas = createServerFn({ method: "POST" })
-  .inputValidator((input) => z.object({ token, ticket }).parse(input))
-  .handler(async ({ data }) => {
-    const S = await import("@/lib/totem/totem.server");
-    const T = await import("@/lib/totem/ticket.server");
-    const totem = await S.autenticarTotem(data.token);
-    const tk = await T.lerTicket(data.ticket, totem.id);
-    await S.registrarEvento(totem, "fotos_recusadas", { reservation_id: tk.reservationID, quarto: tk.quarto, detalhe: "Hóspede preferiu fazer a identificação na recepção." });
-    await S.avisarRecepcao(totem, tk.quarto, `Totem ${totem.nome}: hóspede da reserva ${tk.reservationID} preferiu não tirar as fotos de identificação no totem e vai até a recepção.`);
     return { ok: true };
   });
 

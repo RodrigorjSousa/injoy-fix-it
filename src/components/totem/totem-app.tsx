@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, IdCard, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanFace, ScanLine, ShieldCheck, Star, UserRound, Wallet } from "lucide-react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, IdCard, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanFace, ScanLine, ShieldCheck, Star, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import {
   totemAvaliar,
   totemDocumentoEnviar,
-  totemFotosRecusadas,
   totemPagamentoCancelar,
   totemPagamentoIniciar,
   totemPagamentoStatus,
@@ -29,6 +28,7 @@ import { imprimirRawBT, montarEscPos } from "@/lib/totem/escpos";
 import { cn } from "@/lib/utils";
 import { CHAVE_TOKEN_TOTEM } from "@/lib/totem/chave";
 import { BlinkDetector, eyeAspectRatio, loadFaceApi } from "@/lib/ponto-face";
+import { Locutor, calar, falar, motorDeVoz } from "@/lib/totem/voz";
 import { ESPERA_MANUAL_DOC_MS, ESPERA_MANUAL_MS, Estabilidade, situacaoComDocumento, situacaoSelfie, type LeituraRosto } from "@/lib/totem/rosto";
 
 // Tela do hóspede no tablet do balcão "Express" (pensada para 12" em paisagem,
@@ -69,7 +69,6 @@ export type TotemApi = {
   pagamentoStatus: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
   pagamentoCancelar: (token: string, cobrancaId: string) => Promise<SituacaoPagamento>;
   documentoEnviar: (token: string, d: DocumentoEnvio) => Promise<unknown>;
-  fotosRecusadas: (token: string, ticket: string) => Promise<unknown>;
 };
 
 export type DocumentoEnvio = {
@@ -98,7 +97,6 @@ const API_SERVIDOR: TotemApi = {
   pagamentoStatus: (token, cobrancaId) => totemPagamentoStatus({ data: { token, cobrancaId } }),
   pagamentoCancelar: (token, cobrancaId) => totemPagamentoCancelar({ data: { token, cobrancaId } }),
   documentoEnviar: (token, d) => totemDocumentoEnviar({ data: { token, ...d } }),
-  fotosRecusadas: (token, ticket) => totemFotosRecusadas({ data: { token, ticket } }),
 };
 
 type SenhaTela = Extract<RespostaCheckin, { estado: "senha" }>;
@@ -132,7 +130,6 @@ type Tela =
   | { t: "checkout_resumo"; ctx: CtxCheckout }
   | { t: "checkout_feito"; nome: string; quarto: string; reservationID: string; comprovante: Comprovante }
   | { t: "avaliado" }
-  | { t: "fotos_recusadas" }
   | { t: "erro"; fluxo: Fluxo; mensagem: string };
 
 /** Quanto tempo sem toque até perguntar "Ainda está aí?" (a tela inicial não tem limite). */
@@ -171,7 +168,6 @@ function passoDe(tela: Tela): number {
     case "pagamento":
       return 1;
     case "documentos":
-    case "fotos_recusadas":
     case "checkout_resumo":
       return 2;
     case "senha":
@@ -188,6 +184,11 @@ const faltaDocumento = (ctx: CtxCheckin) =>
 
 // ======================================================================= app
 
+/** Fala no idioma da tela; `prioridade` = frase de tela (sai na hora), sem ela = dica (filtrada). */
+const VozContexto = createContext<(texto: string, prioridade?: boolean) => void>(() => undefined);
+const useVoz = () => useContext(VozContexto);
+const primeiroNomeTela = (nome: string) => nome.trim().split(/\s+/)[0] ?? "";
+
 export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   const [token, setToken] = useState<string | null>(null);
   const [info, setInfo] = useState<TotemInfo | null>(null);
@@ -195,6 +196,25 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   const [tela, setTela] = useState<Tela>({ t: "carregando" });
   const t = TEXTOS[idioma];
   const fmt = useMemo(() => formatadores(idioma), [idioma]);
+
+  // ---- voz: passo a passo falado no idioma escolhido
+  const [mudo, setMudo] = useState(false);
+  const [temVoz, setTemVoz] = useState(false);
+  useEffect(() => setTemVoz(motorDeVoz() !== null), []);
+  const vozLigada = temVoz && (info?.voz ?? true) && !mudo;
+  const idiomaRef = useRef(idioma);
+  idiomaRef.current = idioma;
+  const vozRef = useRef(vozLigada);
+  vozRef.current = vozLigada;
+  const locutor = useMemo(() => new Locutor((texto) => falar(texto, idiomaRef.current)), []);
+  const dizer = useCallback(
+    (texto: string, prioridade = false) => {
+      if (vozRef.current) locutor.dizer(texto, prioridade);
+    },
+    [locutor],
+  );
+  // Só fala depois que alguém toca na tela (não conversa com o saguão vazio).
+  const interagiu = useRef(false);
 
   const tratarErro = useCallback((e: unknown, fluxo: Fluxo = "checkin") => {
     const msg = mensagemDe(e);
@@ -238,7 +258,11 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     setTela((atual) => (atual.t === "parear" || atual.t === "carregando" ? atual : { t: "inicio" }));
     // Cada hóspede começa em português; o idioma escolhido não fica para o próximo.
     setIdioma("pt");
-  }, []);
+    setMudo(false);
+    interagiu.current = false;
+    calar();
+    locutor.esquecer();
+  }, [locutor]);
 
   useModoQuiosque(!!token);
   const restante = useOcioso(OCIOSO_MS[tela.t], tela, irInicio);
@@ -345,6 +369,58 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     }
   };
 
+  // Narração de cada tela (a identificação fala por conta própria, etapa a etapa).
+  useEffect(() => {
+    const v = t.voz;
+    let texto: string | null = null;
+    switch (tela.t) {
+      case "inicio":
+        if (!interagiu.current) return;
+        texto = modo === "checkout" ? v.checkout : modo === "checkin" ? v.inicioCheckin : v.inicioAmbos;
+        break;
+      case "checkin":
+        texto = tela.modo === "codigo" ? v.checkinCodigo : v.checkinDocumento;
+        break;
+      case "checkin_resumo":
+        texto = v.resumo(primeiroNomeTela(tela.ctx.nome));
+        break;
+      case "pagamento":
+        texto = v.pagamento(fmt.valor(tela.ctx.pagamento?.valor ?? 0));
+        break;
+      case "senha":
+        texto = v.senha;
+        break;
+      case "checkout":
+        texto = v.checkout;
+        break;
+      case "checkout_resumo":
+        texto = v.checkoutResumo(primeiroNomeTela(tela.ctx.nome));
+        break;
+      case "checkout_feito":
+        texto = v.checkoutFeito;
+        break;
+      case "avaliado":
+        texto = v.avaliado;
+        break;
+      case "impedido":
+        texto = v.problema(`${t.naoDeuCerto}.`);
+        break;
+      case "nao_encontrado":
+        texto = v.problema(tela.fluxo === "checkin" ? t.naoEncontrada : t.naoEncontradaCheckout);
+        break;
+      case "bloqueado":
+        texto = v.problema(t.bloqueado);
+        break;
+      case "erro":
+        texto = v.problema(`${t.naoDeuCerto}.`);
+        break;
+      default:
+        return;
+    }
+    if (texto) dizer(texto, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tela, idioma]);
+
   const voltarInicioVisivel = !(tela.t === "inicio" || tela.t === "parear" || tela.t === "carregando" || (tela.t === "checkout" && modo === "checkout"));
 
   // ------------------------------------------------------------- conteúdo
@@ -430,21 +506,11 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
           enviados={ctx.documentos?.enviados ?? []}
           enviar={(d) => api.documentoEnviar(token ?? "", { ...d, ticket: ctx.ticket })}
           onConcluir={() => void avancarCheckin({ ...ctx, documentos: null }, "documentos")}
-          onRecusar={async () => {
-            await api.fotosRecusadas(token ?? "", ctx.ticket).catch(() => undefined);
-            setTela({ t: "fotos_recusadas" });
-          }}
         />
       );
       break;
     }
-    case "fotos_recusadas":
-      painel = (
-        <Aviso t={t} titulo={t.recusaTitulo} telefone={null} onFim={irInicio}>
-          <p className="mt-5 max-w-xl text-xl leading-relaxed text-[var(--tinta-suave)]">{t.recusaTexto}</p>
-        </Aviso>
-      );
-      break;
+
     case "senha":
       painel = (
         <TelaSenha
@@ -546,7 +612,11 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   const passos = fluxo === "checkout" ? t.passosCheckout4 : t.passosCheckin4;
 
   return (
+    <VozContexto.Provider value={dizer}>
     <div
+      onPointerDownCapture={() => {
+        interagiu.current = true;
+      }}
       className="totem-quiosque relative min-h-[100dvh] select-none bg-[var(--pedra)] text-[var(--tinta)] antialiased lg:h-[100dvh] lg:overflow-hidden"
       lang={idioma === "pt" ? "pt-BR" : idioma}
       style={
@@ -619,6 +689,21 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
                 </span>
               </p>
             )}
+            <div className="flex flex-wrap items-center gap-3">
+            {temVoz && (info?.voz ?? true) && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!mudo) calar();
+                  setMudo(!mudo);
+                }}
+                aria-pressed={!mudo}
+                aria-label={mudo ? t.somDesligado : t.somLigado}
+                className="grid h-14 w-14 place-items-center rounded-full bg-white/70 text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
+              >
+                {mudo ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+              </button>
+            )}
             <nav aria-label="Idioma / Language / Idioma" className="flex w-fit gap-1 rounded-full bg-white/70 p-1">
                 {IDIOMAS.map((i) => (
                   <button
@@ -635,6 +720,7 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
                   </button>
                 ))}
             </nav>
+            </div>
           </div>
           {/* Linha de luz, como o LED do balcão */}
           <span aria-hidden className="pointer-events-none absolute inset-x-12 bottom-0 hidden h-px bg-gradient-to-r from-transparent via-[var(--luz)] to-transparent lg:block" />
@@ -650,6 +736,7 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
         <AvisoInativo t={t} segundos={restante} onContinuar={() => window.dispatchEvent(new Event("pointerdown"))} />
       )}
     </div>
+    </VozContexto.Provider>
   );
 }
 
@@ -1604,14 +1691,12 @@ function EtapaDocumentos({
   enviados,
   enviar,
   onConcluir,
-  onRecusar,
 }: {
   t: T;
   adultos: Array<{ ordem: number; nome: string | null }>;
   enviados: Array<{ hospede_ordem: number; etapa: string }>;
   enviar: (d: Omit<DocumentoEnvio, "ticket">) => Promise<unknown>;
   onConcluir: () => void;
-  onRecusar: () => Promise<void>;
 }) {
   const fila = useMemo(() => {
     const tem = (o: number, e: string) =>
@@ -1626,7 +1711,14 @@ function EtapaDocumentos({
   const [numero, setNumero] = useState("");
   const [selfie, setSelfie] = useState<number[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const { enviando, enviar: recusando } = useEnvio();
+  const dizer = useVoz();
+
+  // Voz da etapa (a câmera tem as próprias falas).
+  useEffect(() => {
+    if (fase === "consentimento") dizer(t.voz.consentimento, true);
+    else if (fase === "dados") dizer(pos > 0 ? `${t.voz.proximoHospede(pos + 1)} ${t.voz.dados}` : t.voz.dados, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fase, pos, t]);
 
   const concluiu = useRef(false);
   const concluir = useRef(onConcluir);
@@ -1680,13 +1772,11 @@ function EtapaDocumentos({
             );
           })}
         </ul>
-        <div className="mt-auto grid gap-3 pt-6 sm:grid-cols-[1fr_auto]">
+        <div className="mt-auto pt-6">
+          <p className="mb-3 text-base text-[var(--tinta-suave)]">{t.consentObrigatorio}</p>
           <BotaoPrincipal onClick={() => setFase("dados")}>
             <Check className="h-6 w-6" /> {t.consentAceito}
           </BotaoPrincipal>
-          <BotaoSecundario onClick={() => void recusando(onRecusar)} className="sm:px-8">
-            {enviando ? <Loader2 className="h-6 w-6 animate-spin" /> : null} {t.consentRecusa}
-          </BotaoSecundario>
         </div>
       </div>
     );
@@ -1892,6 +1982,7 @@ function CapturaIdentidade({
   fotoFn.current = onFoto;
   const enviarRef = useRef(enviar);
   enviarRef.current = enviar;
+  const dizer = useVoz();
   const doc = etapa === "rosto_documento";
 
   // Câmera frontal + leitura do rosto (carregam juntas).
@@ -2044,6 +2135,27 @@ function CapturaIdentidade({
       });
   };
 
+  const textoAviso =
+    leitor === "desligado"
+      ? t.semDetector
+      : camera === "abrindo" || leitor === "carregando" || aviso === "carregando"
+        ? t.msgRosto.carregando
+        : doc
+          ? (t.msgDoc[aviso as keyof T["msgDoc"]] ?? t.msgDoc.sem_rosto)
+          : (t.msgRosto[aviso as keyof T["msgRosto"]] ?? t.msgRosto.sem_rosto);
+  // Voz: apresenta a etapa, depois lê as dicas da câmera (filtradas para não atropelar).
+  useEffect(() => {
+    dizer(doc ? t.voz.documento : t.voz.rosto, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [doc, t]);
+  useEffect(() => {
+    if (previa) dizer(t.voz.previa, true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previa, t]);
+  useEffect(() => {
+    if (!previa && !enviando && aviso !== "carregando" && leitor === "ligado") dizer(textoAviso);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [textoAviso, previa, enviando, leitor]);
   if (camera !== "abrindo" && camera !== "aberta") {
     return (
       <div className="flex flex-1 flex-col justify-center gap-4">
@@ -2059,14 +2171,6 @@ function CapturaIdentidade({
     );
   }
 
-  const textoAviso =
-    leitor === "desligado"
-      ? t.semDetector
-      : camera === "abrindo" || leitor === "carregando" || aviso === "carregando"
-        ? t.msgRosto.carregando
-        : doc
-          ? (t.msgDoc[aviso as keyof T["msgDoc"]] ?? t.msgDoc.sem_rosto)
-          : (t.msgRosto[aviso as keyof T["msgRosto"]] ?? t.msgRosto.sem_rosto);
   const bom = aviso === "segure";
   const atencao = aviso === "pisque";
   const corGuia = bom ? "border-[#3FB68B]" : atencao ? "border-[var(--luz)]" : "border-white/85";

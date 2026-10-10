@@ -140,10 +140,10 @@ saída → avaliação (comprovante impresso).
   Decisão do conselho (out/2026): câmera frontal, sem bandeja "scanner".
   - **Quem:** cada adulto da reserva, conforme o número de adultos do Cloudbeds, com os nomes conhecidos
     já preenchidos.
-  - **Consentimento (LGPD):** antes da câmera, uma tela explica as duas fotos e para que servem. O
-    hóspede pode tocar em "Prefiro fazer na recepção": o totem registra o evento `fotos_recusadas` e
-    manda recado para a recepção. O servidor só grava foto com `consentimento: true` e guarda a hora
-    em `consentimento_em`.
+  - **Consentimento (LGPD):** antes da câmera, uma tela explica as duas fotos e para que servem. Não
+    há opção de "fazer na recepção" (a unidade não tem recepção): as fotos são obrigatórias para
+    liberar a senha. O servidor só grava foto com `consentimento: true` e guarda a hora em
+    `consentimento_em`.
   - **Dados:** tipo do documento, nome e número (para o registro de hóspedes).
   - **Foto 1, rosto:** guia oval. A leitura do rosto roda no tablet com o mesmo `@vladmandic/face-api`
     do ponto (`src/lib/ponto-face.ts`, modelos em `public/models/face`). Pede para centralizar,
@@ -161,8 +161,20 @@ saída → avaliação (comprovante impresso).
     `rosto` ou `rosto_documento`), com anexo na reserva do Cloudbeds (`postReservationDocument`). Se o
     anexo falhar, a foto continua guardada e o gestor vê o erro.
   - **Limites:** não é biometria certificada nem consulta base do governo. Os indícios ajudam a
-    recepção a conferir; a foto 3x4 impressa pode não ser reconhecida (reflexo, foto antiga), por isso
+    equipe a conferir à distância; a foto 3x4 impressa pode não ser reconhecida (reflexo, foto antiga), por isso
     ela não bloqueia o check-in.
+- **Voz guiando o hóspede** (`voz.ts`): fala o passo a passo de cada tela e as dicas da câmera
+  ("chegue mais perto", "pisque devagar"...) no idioma escolhido (pt-BR, en-US, es-ES).
+  - **Como sai o som:** o navegador do Fully Kiosk (Android WebView) não tem voz própria, então a
+    fala usa `fully.textToSpeech` (JavaScript Interface, recurso **PLUS**). No computador, usa a voz
+    do Chrome.
+  - **Quando fala:** só depois que alguém toca na tela (não fala sozinho para o saguão vazio). As
+    dicas da câmera passam por um filtro para não atropelar umas às outras (`Locutor`).
+  - **A senha da porta nunca é falada** (outra pessoa poderia ouvir): a voz diz que ela está na tela
+    e no comprovante.
+  - **Controles:** botão de alto-falante na coluna da esquerda (o hóspede pode silenciar; volta a
+    ligar no próximo atendimento) e a opção "Voz guiando o hóspede" por tablet (coluna
+    `voz_ativa`, na 0045).
 - **Comprovante** (`escpos.ts`): ESC/POS 80 mm, sem acentos, enviado ao app **RawBT**
   (`rawbt:base64,...`).
   - **Check-in:** senha em letras grandes, portas, validade, Wi-Fi, pagamento, telefone de ajuda e
@@ -200,14 +212,18 @@ saída → avaliação (comprovante impresso).
      porta 9100).
    - No Fully Kiosk, permita a câmera (*Web Content Settings › Enable Webcam Access*) e a abertura de
      outros apps por link (necessária para o `rawbt:`).
+   - Fully Kiosk: ative a licença **PLUS** e ligue *Advanced Web Settings › Enable JavaScript
+     Interface*. No Android, em *Configurações › Idiomas › Saída de texto para fala*, use o mecanismo
+     do Google e baixe as vozes de português (Brasil), inglês e espanhol.
    - Teste a impressão e a câmera.
    - Teste a identificação com uma pessoa de verdade e um RG/CNH real, na luz do balcão: a selfie
      precisa sair sozinha ao piscar; anote se a foto 3x4 do documento é reconhecida.
 
 #### Cuidados (LGPD)
 - Selfie é **dado biométrico** (dado sensível, art. 5º, II e art. 11 da LGPD). Por isso: tela de
-  consentimento antes da câmera, opção de fazer na recepção, só gestor/admin lê (políticas da 0046) e
-  nenhum vetor de rosto guardado.
+  consentimento antes da câmera, só gestor/admin lê (políticas da 0046) e nenhum vetor de rosto
+  guardado. Como não há recepção, quem não aceitar as fotos não conclui o check-in pelo totem; o
+  telefone de ajuda continua na tela.
 - Falta definir por quanto tempo guardar as fotos e colocar isso na política de privacidade. Depois
   disso dá para criar a limpeza automática (ainda não implementada).
 
