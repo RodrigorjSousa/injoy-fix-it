@@ -36,6 +36,7 @@ import { Route as AuthenticatedMinhaEscalaRouteImport } from './routes/_authenti
 import { Route as AuthenticatedPainelRouteImport } from './routes/_authenticated/painel'
 import { Route as AuthenticatedPontoRouteImport } from './routes/_authenticated/ponto'
 import { Route as AuthenticatedPreventivaRouteImport } from './routes/_authenticated/preventiva'
+import { Route as AuthenticatedPrevisaoCargaRouteImport } from './routes/_authenticated/previsao-carga'
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
 import { Route as AuthenticatedRelatoriosTurnoRouteImport } from './routes/_authenticated/relatorios-turno'
@@ -204,6 +205,12 @@ const AuthenticatedPreventivaRoute = AuthenticatedPreventivaRouteImport.update({
   path: '/preventiva',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedPrevisaoCargaRoute =
+  AuthenticatedPrevisaoCargaRouteImport.update({
+    id: '/previsao-carga',
+    path: '/previsao-carga',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedRecepcaoRoute = AuthenticatedRecepcaoRouteImport.update({
   id: '/recepcao',
   path: '/recepcao',
@@ -342,6 +349,7 @@ export interface FileRoutesByFullPath {
   '/painel': typeof AuthenticatedPainelRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
+  '/previsao-carga': typeof AuthenticatedPrevisaoCargaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
@@ -387,6 +395,7 @@ export interface FileRoutesByTo {
   '/painel': typeof AuthenticatedPainelRoute
   '/ponto': typeof AuthenticatedPontoRoute
   '/preventiva': typeof AuthenticatedPreventivaRoute
+  '/previsao-carga': typeof AuthenticatedPrevisaoCargaRoute
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
@@ -437,6 +446,7 @@ export interface FileRoutesById {
   '/_authenticated/painel': typeof AuthenticatedPainelRoute
   '/_authenticated/ponto': typeof AuthenticatedPontoRoute
   '/_authenticated/preventiva': typeof AuthenticatedPreventivaRoute
+  '/_authenticated/previsao-carga': typeof AuthenticatedPrevisaoCargaRoute
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/_authenticated/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
@@ -488,6 +498,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/ponto'
     | '/preventiva'
+    | '/previsao-carga'
     | '/recepcao'
     | '/relatorio-operacoes'
     | '/relatorios-turno'
@@ -533,6 +544,7 @@ export interface FileRouteTypes {
     | '/painel'
     | '/ponto'
     | '/preventiva'
+    | '/previsao-carga'
     | '/recepcao'
     | '/relatorio-operacoes'
     | '/relatorios-turno'
@@ -582,6 +594,7 @@ export interface FileRouteTypes {
     | '/_authenticated/painel'
     | '/_authenticated/ponto'
     | '/_authenticated/preventiva'
+    | '/_authenticated/previsao-carga'
     | '/_authenticated/recepcao'
     | '/_authenticated/relatorio-operacoes'
     | '/_authenticated/relatorios-turno'
@@ -808,6 +821,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedPreventivaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/previsao-carga': {
+      id: '/_authenticated/previsao-carga'
+      path: '/previsao-carga'
+      fullPath: '/previsao-carga'
+      preLoaderRoute: typeof AuthenticatedPrevisaoCargaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/recepcao': {
       id: '/_authenticated/recepcao'
       path: '/recepcao'
@@ -1002,6 +1022,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedPainelRoute: typeof AuthenticatedPainelRoute
   AuthenticatedPontoRoute: typeof AuthenticatedPontoRoute
   AuthenticatedPreventivaRoute: typeof AuthenticatedPreventivaRoute
+  AuthenticatedPrevisaoCargaRoute: typeof AuthenticatedPrevisaoCargaRoute
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedRelatorioOperacoesRoute: typeof AuthenticatedRelatorioOperacoesRoute
   AuthenticatedRelatoriosTurnoRoute: typeof AuthenticatedRelatoriosTurnoRoute
@@ -1034,6 +1055,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedPainelRoute: AuthenticatedPainelRoute,
   AuthenticatedPontoRoute: AuthenticatedPontoRoute,
   AuthenticatedPreventivaRoute: AuthenticatedPreventivaRoute,
+  AuthenticatedPrevisaoCargaRoute: AuthenticatedPrevisaoCargaRoute,
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedRelatorioOperacoesRoute: AuthenticatedRelatorioOperacoesRoute,
   AuthenticatedRelatoriosTurnoRoute: AuthenticatedRelatoriosTurnoRoute,

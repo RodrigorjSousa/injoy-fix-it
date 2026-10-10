@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone, Gauge } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { usePermissaoBonificacao } from "@/lib/bonificacao";
+import { usePermissaoPrevisao } from "@/lib/previsao-reforco";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { PushNotificationsButton } from "@/components/push-notifications-button";
 import { useUnidade } from "@/lib/unidade-context";
@@ -99,6 +100,7 @@ const podePainel = (me: Me) => {
 // Bonificação: o item é incluído abaixo conforme a lista de acessos do banco
 // (Bonificação › Acessos), e não mais pelo nome do funcionário.
 const BONIFICACAO_NAV: NavItem = { to: "/bonificacao", label: "Bonificação", icon: Trophy };
+const PREVISAO_NAV: NavItem = { to: "/previsao-carga", label: "Previsão de Carga", icon: Gauge };
 
 
 const ALL_NAV: NavItem[] = [
@@ -151,6 +153,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // ela substitui a navegação de topo (o grupo ADMINISTRADOR continua só para admins).
   const listaCustom = me?.funcionario?.telasPermitidas ?? null;
   const { data: permBonif } = usePermissaoBonificacao();
+  const { data: permPrevisao } = usePermissaoPrevisao();
   const navBase: NavItem[] = (() => {
     if (listaCustom && !isAdmin(me)) {
       const keys = Array.from(new Set([...listaCustom, ...requiredTelaKeys(me), "chat"]));
@@ -166,12 +169,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return ALL_NAV.filter((n) => !n.show || n.show(me));
   })();
   // Bonificação aparece para quem o gestor liberou, mesmo com lista personalizada.
+  // Previsão de Carga: Recepção ou quem o gestor liberar em Equipe (regra no banco).
   const nav: NavItem[] = (() => {
-    const semBonif = navBase.filter((n) => n.to !== "/bonificacao");
-    if (!me || isAdmin(me) || !permBonif?.podeRegistrar) return semBonif;
-    const idxChat = semBonif.findIndex((n) => n.to === "/chat");
-    const pos = idxChat >= 0 ? idxChat : semBonif.length;
-    return [...semBonif.slice(0, pos), BONIFICACAO_NAV, ...semBonif.slice(pos)];
+    let lista = navBase.filter((n) => n.to !== "/bonificacao" && n.to !== "/previsao-carga");
+    const antesDoChat = (item: NavItem) => {
+      const idxChat = lista.findIndex((n) => n.to === "/chat");
+      const pos = idxChat >= 0 ? idxChat : lista.length;
+      lista = [...lista.slice(0, pos), item, ...lista.slice(pos)];
+    };
+    if (me && !isAdmin(me) && permBonif?.podeRegistrar) antesDoChat(BONIFICACAO_NAV);
+    if (me && !isAdmin(me) && permPrevisao) antesDoChat(PREVISAO_NAV);
+    return lista;
   })();
 
   const isActive = (to: string, exact?: boolean) =>

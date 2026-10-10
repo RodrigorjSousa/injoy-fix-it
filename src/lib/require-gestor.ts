@@ -2,6 +2,7 @@ import { redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buscarPermissaoBonificacao } from "@/lib/bonificacao";
+import { buscarPermissaoPrevisao } from "@/lib/previsao-reforco";
 
 export type TelaGestorCompartilhada =
   | "almoxarifado"
@@ -9,7 +10,8 @@ export type TelaGestorCompartilhada =
   | "frigobar"
   | "bonificacao"
   | "check-in-digital"
-  | "preventiva";
+  | "preventiva"
+  | "previsao-carga";
 
 type Role = "admin" | "gestor" | "funcionario" | "recepcao" | "camareira";
 
@@ -39,6 +41,18 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
     negarAcesso(
       "Seu login não está liberado na Bonificação. Peça ao gestor para liberar em Bonificação › Acessos.",
     );
+  }
+
+  // Previsão de Carga: quem decide é o banco (gestor, Recepção ou quem foi liberado em Equipe).
+  if (!options.somenteGestor && options.tela === "previsao-carga") {
+    let pode = false;
+    try {
+      pode = await buscarPermissaoPrevisao();
+    } catch (e) {
+      negarAcesso(e instanceof Error ? e.message : "Não foi possível verificar seu acesso.");
+    }
+    if (pode) return { gestor: false, userId: auth.user.id };
+    negarAcesso("Seu login não está liberado na Previsão de Carga. Peça ao gestor para liberar em Equipe.");
   }
 
   const [{ data: roleRows, error: rolesError }, { data: funcionario, error: funcionarioError }] =

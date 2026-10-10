@@ -72,7 +72,7 @@ export function contarServicosPrevistos(row: Pick<ForecastRow, "qtd_geral" | "qt
   };
 }
 
-function useQuartosServico(unidade: Unidade) {
+export function useQuartosServico(unidade: Unidade) {
   const qc = useQueryClient();
   const key = ["servicos-quartos", unidade];
   useEffect(() => {
@@ -102,7 +102,7 @@ function useQuartosServico(unidade: Unidade) {
   });
 }
 
-function Bloco({ s, valor, quartos, dark, pequeno, onClick }: { s: (typeof SERVICOS)[number]; valor: number; quartos?: string[]; dark?: boolean; pequeno?: boolean; onClick?: () => void }) {
+export function Bloco({ s, valor, quartos, dark, pequeno, onClick }: { s: (typeof SERVICOS)[number]; valor: number; quartos?: string[]; dark?: boolean; pequeno?: boolean; onClick?: () => void }) {
   const Tag = onClick ? "button" : "div";
   return (
     <Tag

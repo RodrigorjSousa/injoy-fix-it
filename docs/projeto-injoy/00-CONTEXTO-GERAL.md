@@ -92,6 +92,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Totem (0041): check-in com senha Tuya, check-out e avaliação em `/totem`; gestão em Área do Gestor ›
   Totem — ver `04-totem.md`.
 
+- Previsão de Carga (0015/0016 + 0048): tela `/previsao-carga` para a Recepção (ou quem tiver
+  `previsao-carga` em Equipe › Telas; regra no banco `private.pode_ver_previsao_carga`). A Recepção pede
+  reforço (`previsao_pedir_reforco`), o gestor autoriza em Área do Gestor › Previsão de Carga
+  (`previsao_decidir_reforco`), com push para os dois lados.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 
