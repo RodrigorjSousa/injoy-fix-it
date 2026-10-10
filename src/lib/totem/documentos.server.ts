@@ -21,7 +21,7 @@ export async function documentosEnviados(reservationID: string): Promise<Array<{
     .select("hospede_ordem,etapa")
     .eq("reservation_id", reservationID);
   if (error) {
-    // Migração 0045 ainda não aplicada: não trava o check-in por isso.
+    // Migração 0050 ainda não aplicada: não trava o check-in por isso.
     if (/does not exist|schema cache/i.test(error.message)) return [];
     throw new Error(`Falha ao consultar documentos: ${error.message}`);
   }

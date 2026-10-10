@@ -74,7 +74,7 @@ export async function pagoRecente(reservationID: string, horas = 6): Promise<num
     .eq("status", "pago")
     .gte("pago_em", new Date(Date.now() - horas * 3_600_000).toISOString());
   if (error) {
-    if (/does not exist|schema cache/i.test(error.message)) return 0; // migração 0045 ainda não aplicada
+    if (/does not exist|schema cache/i.test(error.message)) return 0; // migração 0050 ainda não aplicada
     throw new Error(`Falha ao consultar pagamentos do totem: ${error.message}`);
   }
   return ((data ?? []) as Array<{ valor: number | string }>).reduce((s, r) => s + Number(r.valor), 0);
