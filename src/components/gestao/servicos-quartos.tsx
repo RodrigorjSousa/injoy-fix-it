@@ -10,6 +10,7 @@ import { usePrevisaoCarga, useRecalcularPrevisao, type ForecastRow } from "@/lib
 import { addCivilDays } from "@/lib/escala-engine";
 import { todaySP } from "@/lib/tz";
 import { cn } from "@/lib/utils";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 type Unidade = "Botafogo" | "Ipanema";
 
@@ -27,7 +28,18 @@ const zerado = (): ContagemServicos => ({
   GERAL: 0, "GERAL - CHECK-IN": 0, "REVISÃO CHECK IN": 0, ARRUMAÇÃO: 0, "TROCA + ARRUMAÇÃO": 0, VERIFICAÇÃO: 0,
 });
 
-type QuartoServico = { room_number: string; assigned_task: string | null; condition: string | null };
+type QuartoServico = {
+  room_number: string;
+  assigned_task: string | null;
+  condition: string | null;
+  room_type?: string | null;
+  status?: string | null;
+  service_status?: string | null;
+  assigned_camareira?: string | null;
+  guest_name?: string | null;
+  arrival_time?: string | null;
+  is_dnd?: boolean | null;
+};
 
 /** Conta os serviços de hoje (quartos em manutenção ficam de fora). */
 export function contarServicosHoje(quartos: QuartoServico[]) {
@@ -81,7 +93,7 @@ function useQuartosServico(unidade: Unidade) {
     queryFn: async (): Promise<QuartoServico[]> => {
       const { data, error } = await supabase
         .from("room_housekeeping")
-        .select("room_number, assigned_task, condition")
+        .select("room_number, assigned_task, condition, room_type, status, service_status, assigned_camareira, guest_name, arrival_time, is_dnd")
         .eq("property", unidade)
         .order("room_number");
       if (error) throw new Error(error.message);
@@ -90,14 +102,18 @@ function useQuartosServico(unidade: Unidade) {
   });
 }
 
-function Bloco({ s, valor, quartos, dark, pequeno }: { s: (typeof SERVICOS)[number]; valor: number; quartos?: string[]; dark?: boolean; pequeno?: boolean }) {
+function Bloco({ s, valor, quartos, dark, pequeno, onClick }: { s: (typeof SERVICOS)[number]; valor: number; quartos?: string[]; dark?: boolean; pequeno?: boolean; onClick?: () => void }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
+    <Tag
+      {...(onClick ? { type: "button" as const, onClick, "aria-label": `Ver quartos: ${s.label}` } : {})}
       title={`${s.key}: ${s.regra}${quartos?.length ? `\nQuartos: ${quartos.join(", ")}` : ""}`}
       className={cn(
-        "flex items-center gap-3 rounded-2xl border p-3",
+        "flex w-full items-center gap-3 rounded-2xl border p-3 text-left",
         dark ? "border-white/10 bg-white/5" : "border-slate-200 bg-white",
         valor === 0 && "opacity-60",
+        onClick && "cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-lg focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-400",
+        onClick && (dark ? "hover:border-white/30 hover:bg-white/10" : "hover:border-slate-400"),
       )}
     >
       <div className={cn("grid shrink-0 place-items-center rounded-xl font-black text-white shadow", s.cor, pequeno ? "h-9 w-9 text-base" : "h-11 w-11 text-xl")}>
@@ -111,7 +127,7 @@ function Bloco({ s, valor, quartos, dark, pequeno }: { s: (typeof SERVICOS)[numb
           <p className={cn("text-[10px] font-semibold", dark ? "text-slate-500" : "text-slate-400")}>{s.regra}</p>
         )}
       </div>
-    </div>
+    </Tag>
   );
 }
 
@@ -119,6 +135,12 @@ function Bloco({ s, valor, quartos, dark, pequeno }: { s: (typeof SERVICOS)[numb
 export function ServicosHojeGrid({ unidade, dark, titulo }: { unidade: Unidade; dark?: boolean; titulo?: string }) {
   const q = useQuartosServico(unidade);
   const { contagem, quartosPorServico } = useMemo(() => contarServicosHoje(q.data ?? []), [q.data]);
+  const [aberto, setAberto] = useState<TaskLabel | null>(null);
+  const servicoAberto = SERVICOS.find((x) => x.key === aberto);
+  const quartosAbertos = useMemo(
+    () => (q.data ?? []).filter((r) => r.condition !== "maintenance" && formatTaskLabel(r.assigned_task) === aberto),
+    [q.data, aberto],
+  );
   const total = SERVICOS.reduce((s, x) => s + (x.key === "VERIFICAÇÃO" ? 0 : contagem[x.key]), 0);
   return (
     <div className="space-y-2">
@@ -135,12 +157,60 @@ export function ServicosHojeGrid({ unidade, dark, titulo }: { unidade: Unidade; 
       ) : (
         <div className="grid grid-cols-2 gap-2 md:grid-cols-3 xl:grid-cols-6">
           {SERVICOS.map((s) => (
-            <Bloco key={s.key} s={s} valor={contagem[s.key]} quartos={quartosPorServico[s.key]} dark={dark} />
+            <Bloco key={s.key} s={s} valor={contagem[s.key]} quartos={quartosPorServico[s.key]} dark={dark} onClick={() => setAberto(s.key)} />
           ))}
         </div>
       )}
+      <Dialog open={aberto !== null} onOpenChange={(o) => !o && setAberto(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {servicoAberto && <span className={cn("inline-block h-4 w-4 rounded", servicoAberto.cor)} />}
+              {servicoAberto?.label ?? "Serviço"}
+            </DialogTitle>
+            <DialogDescription>
+              INJOY {unidade} · {quartosAbertos.length} {quartosAbertos.length === 1 ? "quarto" : "quartos"}
+              {servicoAberto ? ` · ${servicoAberto.regra}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="-mx-1 max-h-[60vh] overflow-y-auto px-1">
+            {quartosAbertos.length === 0 ? (
+              <p className="py-10 text-center text-sm text-slate-500">Nenhum quarto com este serviço agora.</p>
+            ) : (
+              <ul className="space-y-2">
+                {quartosAbertos.map((r) => (
+                  <li key={r.room_number} className="flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                    <div className={cn("grid h-11 w-11 shrink-0 place-items-center rounded-lg text-sm font-black text-white", servicoAberto?.cor)}>
+                      {r.room_number}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-sm font-bold text-slate-900">Quarto {r.room_number}</p>
+                        {r.room_type && <span className="rounded border bg-white px-1.5 py-0.5 text-[10px] font-semibold text-slate-500">{r.room_type}</span>}
+                        <span className={cn("rounded-full px-2 py-0.5 text-[10px] font-bold", situacao(r).cls)}>{situacao(r).txt}</span>
+                        {r.is_dnd && <span className="rounded-full bg-fuchsia-100 px-2 py-0.5 text-[10px] font-bold text-fuchsia-700">Não perturbe</span>}
+                      </div>
+                      <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        {r.assigned_camareira ? <span>Camareira: {r.assigned_camareira}</span> : <span className="text-slate-400">Sem camareira</span>}
+                        {r.guest_name && <span className="truncate">Hóspede: {r.guest_name}</span>}
+                        {r.arrival_time && <span>Chegada {String(r.arrival_time).slice(0, 5)}</span>}
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
+}
+
+function situacao(r: QuartoServico): { txt: string; cls: string } {
+  if (r.service_status === "done" || r.status === "clean") return { txt: "Pronto", cls: "bg-emerald-100 text-emerald-700" };
+  if (r.service_status === "in_progress" || r.status === "cleaning") return { txt: "Em faxina", cls: "bg-amber-100 text-amber-700" };
+  return { txt: "A fazer", cls: "bg-red-100 text-red-700" };
 }
 
 const TOM = {
