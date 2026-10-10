@@ -901,7 +901,7 @@ function EditarFuncoesDialog({
 
   return (
     <Dialog open={!!funcionario} onOpenChange={(o) => !o && onClose()}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg pb-0 sm:pb-0">
         <DialogHeader>
           <DialogTitle>Editar {funcionario?.nome ?? ""}</DialogTitle>
         </DialogHeader>
@@ -1056,7 +1056,7 @@ function EditarFuncoesDialog({
         </div>
 
 
-        <DialogFooter>
+        <DialogFooter className="sticky bottom-0 z-10 -mx-4 sm:-mx-6 gap-2 border-t bg-background px-4 sm:px-6 py-3">
           <Button variant="outline" onClick={onClose} disabled={saving}>
             Cancelar
           </Button>
