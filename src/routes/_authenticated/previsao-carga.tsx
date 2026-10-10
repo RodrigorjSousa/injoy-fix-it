@@ -1,11 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BellRing, CheckCircle2, Gauge, RefreshCw, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Bloco, SERVICOS, contarServicosPrevistos, useQuartosServico } from "@/components/gestao/servicos-quartos";
@@ -21,6 +22,7 @@ import {
 } from "@/lib/previsao-reforco";
 import { useMe } from "@/lib/store";
 import { todaySP } from "@/lib/tz";
+import { addCivilDays } from "@/lib/escala-engine";
 import { cn } from "@/lib/utils";
 
 export const Route = createFileRoute("/_authenticated/previsao-carga")({
@@ -42,7 +44,7 @@ function Page() {
   const previsao = usePrevisaoCarga();
   const recalcular = useRecalcularPrevisao();
   const pedidos = usePedidosReforco();
-  const [pedindo, setPedindo] = useState<ForecastRow | null>(null);
+  const [pedindo, setPedindo] = useState<PedidoAlvo | null>(null);
   const hoje = todaySP();
   const grupos = useMemo(
     () =>
@@ -71,9 +73,14 @@ function Page() {
             freelancer.
           </p>
         </div>
-        <Button onClick={atualizar} disabled={recalcular.isPending}>
-          <RefreshCw className={cn("mr-2 h-4 w-4", recalcular.isPending && "animate-spin")} /> Atualizar agora
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button variant="outline" onClick={atualizar} disabled={recalcular.isPending}>
+            <RefreshCw className={cn("mr-2 h-4 w-4", recalcular.isPending && "animate-spin")} /> Atualizar agora
+          </Button>
+          <Button onClick={() => setPedindo({ unidade: "Botafogo", data: addCivilDays(hoje, 1), livre: true })}>
+            <BellRing className="mr-2 h-4 w-4" /> Pedir reforço
+          </Button>
+        </div>
       </header>
 
       {previsao.error && (
@@ -83,7 +90,7 @@ function Page() {
       )}
 
       {grupos.map((g) => (
-        <UnidadeSecao key={g.unidade} unidade={g.unidade} dias={g.dias} pedidos={pedidos.data} onPedir={setPedindo} carregando={previsao.isLoading} />
+        <UnidadeSecao key={g.unidade} unidade={g.unidade} dias={g.dias} pedidos={pedidos.data} onPedir={(r) => setPedindo({ unidade: r.unidade as "Botafogo" | "Ipanema", data: r.data, carga: Number(r.ocupacao_carga_pct) })} carregando={previsao.isLoading} />
       ))}
 
       <PedirDialog row={pedindo} onClose={() => setPedindo(null)} />
@@ -177,13 +184,13 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
             )}
           </div>
         </div>
-      ) : row.freelancers_escalados > 0 ? (
-        <p className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
-          <CheckCircle2 className="h-3.5 w-3.5" /> Reforço já escalado
-        </p>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {row.nivel !== "verde" ? (
+          {row.freelancers_escalados > 0 ? (
+            <p className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
+              <CheckCircle2 className="h-3.5 w-3.5" /> Reforço já escalado
+            </p>
+          ) : row.nivel !== "verde" ? (
             <p className="flex items-center gap-1 text-xs font-bold text-red-700">
               <AlertTriangle className="h-4 w-4" /> Possível sobrecarga
             </p>
@@ -191,7 +198,7 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
             <span />
           )}
           <Button size="sm" variant={row.nivel === "verde" ? "outline" : "default"} onClick={onPedir}>
-            <BellRing className="mr-1.5 h-4 w-4" /> Avisar gestor / pedir reforço
+            <BellRing className="mr-1.5 h-4 w-4" /> {row.freelancers_escalados > 0 ? "Pedir mais reforço" : "Avisar gestor / pedir reforço"}
           </Button>
         </div>
       )}
@@ -199,43 +206,87 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
   );
 }
 
-function PedirDialog({ row, onClose }: { row: ForecastRow | null; onClose: () => void }) {
+type PedidoAlvo = { unidade: "Botafogo" | "Ipanema"; data: string; carga?: number; livre?: boolean };
+
+function PedirDialog({ row, onClose }: { row: PedidoAlvo | null; onClose: () => void }) {
   const pedir = usePedirReforco();
   const [msg, setMsg] = useState("");
+  const [unidade, setUnidade] = useState<"Botafogo" | "Ipanema">("Botafogo");
+  const [data, setData] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const hoje = todaySP();
+  useEffect(() => {
+    if (row) {
+      setUnidade(row.unidade);
+      setData(row.data);
+      setErro(null);
+    }
+  }, [row]);
+  const fechar = () => {
+    setErro(null);
+    onClose();
+  };
   const enviar = () => {
     if (!row) return;
+    if (!data || data < hoje) {
+      setErro("Escolha hoje ou um dia futuro.");
+      return;
+    }
+    setErro(null);
     pedir.mutate(
-      { unidade: row.unidade as "Botafogo" | "Ipanema", data: row.data, mensagem: msg },
+      { unidade, data, mensagem: msg },
       {
         onSuccess: () => {
           toast.success("Gestor avisado. Aguarde a autorização para chamar o freelancer.");
           setMsg("");
-          onClose();
+          fechar();
         },
-        onError: (e) => toast.error(e.message),
+        onError: (e) => {
+          setErro(e.message);
+          toast.error(e.message);
+        },
       },
     );
   };
   return (
-    <Dialog open={!!row} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={!!row} onOpenChange={(v) => !v && fechar()}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Pedir reforço ao gestor</DialogTitle>
           <DialogDescription>
-            {row ? `${row.unidade} · ${dataCurta(row.data)} · carga ${Math.round(Number(row.ocupacao_carga_pct))}%` : ""}. O gestor recebe
-            uma notificação e autoriza ou não. Só chame o freelancer depois de autorizado.
+            O gestor recebe uma notificação e autoriza ou não. Só chame o freelancer depois de autorizado.
           </DialogDescription>
         </DialogHeader>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label>Unidade</Label>
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              value={unidade}
+              disabled={!row?.livre}
+              onChange={(e) => setUnidade(e.target.value as "Botafogo" | "Ipanema")}
+            >
+              <option value="Botafogo">Botafogo</option>
+              <option value="Ipanema">Ipanema</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label>Dia</Label>
+            <Input type="date" min={hoje} value={data} disabled={!row?.livre} onChange={(e) => setData(e.target.value)} />
+          </div>
+        </div>
+        {row?.carga != null && <p className="text-xs text-slate-500">Carga prevista: {Math.round(row.carga)}%</p>}
         <div className="space-y-2">
           <Label>Observação (opcional)</Label>
           <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Ex.: 6 gerais com check-in antes das 14h" />
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+        {erro && <p className="rounded-md border border-red-200 bg-red-50 p-2 text-sm font-semibold text-red-700">{erro}</p>}
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={fechar}>
             Cancelar
           </Button>
           <Button onClick={enviar} disabled={pedir.isPending}>
-            <BellRing className="mr-2 h-4 w-4" /> Avisar gestor
+            <BellRing className="mr-2 h-4 w-4" /> {pedir.isPending ? "Enviando…" : "Avisar gestor"}
           </Button>
         </DialogFooter>
       </DialogContent>
