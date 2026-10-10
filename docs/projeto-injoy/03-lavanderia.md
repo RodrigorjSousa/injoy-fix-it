@@ -62,6 +62,19 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
 - Retorno: "Voltou outra peça?" virou busca no catálogo inteiro. Peça já listada → leva até ela; nova → inclui
   e já põe o cursor em "Contei".
 
+### Regra das três diferenças e do pagamento (0046, 10/10/2026)
+Combinado com o Rodrigo:
+- **A · Saída Hotel × Entrada Lav.**: contagem da coleta não bateu. Em **vermelho**, para cobrar atenção.
+- **B · Entrada Lav. × Saída Lav. = relave**: positivo = ficou para lavar de novo; negativo = voltou relave
+  de outro talão. O saldo de relave por peça é acompanhado em Saldo (deve zerar quando volta).
+- **C · Saída Lav. × Contado = base do pagamento**: paga-se o que saiu da lavanderia, limitado ao que a
+  camareira contou (saiu 8, contou 7 → paga 7; desconta 1). Contou a mais → paga só a Saída Lav.
+- Fechamento do mês (pela data da coleta, como na planilha da Clean Soft): valor a pagar = Σ por peça de
+  min(Saída Lav., Contado) × preço. Talões sem retorno ainda não entram. A fatura é comparada com a Saída Lav.
+- Campos em branco no retorno: Ent. Lav. = Saída Hotel; **Saída Lav. = Contado** (antes era 0). A 0046
+  corrige uma vez os retornos já gravados com Saída Lav. = 0 e Contado > 0 (rodado por `lav_preparar`,
+  `lav_config.catalogo_versao = 3`).
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",

@@ -821,8 +821,9 @@ function RetornoForm({
       </div>
       <div className="overflow-auto flex-1">
         <div className="mx-3 mt-3 bg-sky-500/10 border border-sky-500/40 rounded-lg p-3 text-[11px] text-sky-100 leading-snug">
-          Copie do talão o que estiver escrito em <b>Ent. Lav.</b> e <b>Saída Lav.</b> (pode deixar
-          em branco o que não estiver anotado). Em <b>Contei</b>, conte você a roupa ao guardar.
+          Copie do talão o que estiver escrito em <b>Ent. Lav.</b> e <b>Saída Lav.</b> (em branco =
+          igual à coluna ao lado). Em <b>Contei</b>, conte você a roupa ao guardar — é por essa
+          contagem que a lavanderia é paga.
         </div>
         <div className="p-3 space-y-2">
           {linhas.map((l) => {
@@ -830,9 +831,12 @@ function RetornoForm({
             const sai = num(l.saida_lav);
             const gua = num(l.guardado);
             const incompleta = linhaIncompleta(l);
-            const falta = sai !== null && gua !== null && gua < sai ? sai - gua : 0;
-            const difColeta =
-              ent !== null && l.saida_hotel > 0 && ent !== l.saida_hotel ? ent - l.saida_hotel : 0;
+            // Mesmas regras do banco: Ent. Lav. em branco = Saída Hotel; Saída Lav. em branco = Contei.
+            const entEf = ent ?? l.saida_hotel;
+            const saiEf = sai ?? gua;
+            const difColeta = ent !== null && l.saida_hotel > 0 ? ent - l.saida_hotel : 0;
+            const relave = gua !== null || sai !== null ? entEf - (saiEf ?? 0) : 0;
+            const falta = saiEf !== null && gua !== null && gua < saiEf ? saiEf - gua : 0;
             return (
               <div
                 key={l.peca_id}
@@ -874,7 +878,7 @@ function RetornoForm({
                           campo === "ent_lav"
                             ? String(l.saida_hotel)
                             : campo === "saida_lav"
-                              ? "0"
+                              ? l.guardado || "="
                               : "?"
                         }
                         id={campo === "guardado" ? `contei-${l.peca_id}` : undefined}
@@ -888,18 +892,30 @@ function RetornoForm({
                     </label>
                   ))}
                 </div>
-                {(falta > 0 || difColeta !== 0) && (
+                {(falta > 0 || difColeta !== 0 || relave !== 0) && (
                   <div className="mt-1.5 space-y-0.5 text-[11px] font-bold">
-                    {falta > 0 && (
-                      <p className="text-red-300">
-                        ⚠ Lavanderia anotou {sai}, chegaram {gua}: faltou {falta}.
-                      </p>
-                    )}
                     {difColeta !== 0 && (
-                      <p className="text-amber-300">
-                        Lavanderia contou {ent} na entrada; saíram {l.saida_hotel} (
+                      <p className="text-red-300">
+                        ⚠ Saíram {l.saida_hotel} do hotel, a lavanderia contou {ent} na entrada (
                         {difColeta > 0 ? "+" : ""}
                         {difColeta}).
+                      </p>
+                    )}
+                    {relave > 0 && (
+                      <p className="text-amber-300">
+                        ↻ {relave} ficou(aram) na lavanderia para relave — deve voltar em outro
+                        talão.
+                      </p>
+                    )}
+                    {relave < 0 && (
+                      <p className="text-amber-200">
+                        ↻ Voltaram {-relave} a mais do que entraram (relave de outro talão).
+                      </p>
+                    )}
+                    {falta > 0 && (
+                      <p className="text-red-300">
+                        ⚠ Lavanderia anotou {saiEf}, chegaram {gua}: faltou {falta} (será
+                        descontado).
                       </p>
                     )}
                   </div>

@@ -8,6 +8,7 @@ import {
   numerosFaltando,
   resumoTalao,
   validarRetorno,
+  difItem,
   filtrarPecas,
   normalizarRetorno,
   type Peca,
@@ -101,62 +102,76 @@ const T19383 = () =>
     ],
   });
 
-describe("resumo do talão", () => {
-  it("talão 19383: separa diferença de contagem na coleta e falta na entrega", () => {
+describe("as três diferenças do talão", () => {
+  it("separa coleta (A), relave (B) e desconto do pagamento (C) por peça", () => {
+    // Saiu 10, lavanderia contou 9 na entrada, devolveu 8 (1 em relave), camareira contou 7.
+    const d = difItem(item("Fronha", 10, 9, 8, 7));
+    expect(d.difColeta).toBe(-1); // A: hotel × entrada lavanderia
+    expect(d.relave).toBe(1); // B: ficou 1 para relave
+    expect(d.desconto).toBe(1); // C: saiu 8, contou 7 → desconta 1
+    expect(d.aPagar).toBe(7); // paga o que a camareira contou
+  });
+
+  it("camareira contou mais do que saiu: paga o que saiu da lavanderia", () => {
+    const d = difItem(item("Piso", 3, 3, 6, 7));
+    expect(d.aPagar).toBe(6);
+    expect(d.desconto).toBe(0);
+    expect(d.contouAMais).toBe(1);
+    expect(d.relave).toBe(-3); // voltou relave de outro talão
+  });
+
+  it("talão 19383: totais do talão", () => {
     const r = resumoTalao(T19383(), "2026-10-08");
     expect(r.saida).toBe(30);
     expect(r.entLav).toBe(31);
     expect(r.saidaLav).toBe(57);
     expect(r.guardado).toBe(56);
     expect(r.difColeta).toBe(1); // lavanderia contou 1 toalha de rosto a mais
-    expect(r.difEntrega).toBe(-1); // anotou 11 toalhas de rosto, chegaram 10
+    expect(r.relave).toBe(-26); // voltou muito mais do que entrou: relave de outros talões
+    expect(r.desconto).toBe(1); // anotou 11 toalhas de rosto, chegaram 10
+    expect(r.aPagar).toBe(56);
     expect(r.dias).toBe(2);
   });
 
-  it("talão aberto conta os dias desde a coleta", () => {
+  it("talão aberto conta os dias desde a coleta e não tem diferenças", () => {
     const r = resumoTalao(
       talao({ data_coleta: "2026-10-03", itens: [item("Fronha", 8)] }),
       "2026-10-08",
     );
     expect(r.aberto).toBe(true);
     expect(r.dias).toBe(5);
-    expect(r.difEntrega).toBeNull();
+    expect(r.desconto).toBeNull();
   });
 });
 
 describe("saldo de peças", () => {
-  it("roupa misturada entre talões: o saldo absorve, sem dívida falsa", () => {
-    // Talão A sai com 20 fronhas e volta com 10; talão B sai com 10 e volta com 20.
-    const a = talao({ retorno_data: "2026-10-03", itens: [item("Fronha", 20, 20, 10, 10)] });
+  it("relave de um talão que volta em outro zera o saldo", () => {
+    const a = talao({ retorno_data: "2026-10-03", itens: [item("Fronha", 20, 20, 17, 17)] });
     const b = talao({
       data_coleta: "2026-10-02",
       retorno_data: "2026-10-04",
-      itens: [item("Fronha", 10, 10, 20, 20)],
+      itens: [item("Fronha", 10, 10, 13, 13)],
     });
-    const fronha = calcularSaldo([a, b], PECAS).find((l) => l.peca.id === "Fronha")!;
-    expect(fronha.saldo).toBe(0);
-    expect(fronha.pendente).toBe(0);
+    const fronha = calcularSaldo([a], PECAS).find((l) => l.peca.id === "Fronha")!;
+    expect(fronha.relavePendente).toBe(3);
+    const depois = calcularSaldo([a, b], PECAS).find((l) => l.peca.id === "Fronha")!;
+    expect(depois.relavePendente).toBe(0);
+    expect(depois.saldo).toBe(0);
   });
 
-  it("talões abertos são saldo normal; o que sobra de talões devolvidos é pendência", () => {
+  it("na lavanderia = talões abertos + relave pendente; acumula A e C", () => {
     const devolvido = talao({
       retorno_data: "2026-10-03",
-      itens: [item("Toalha Banho", 30, 30, 26, 26)],
+      itens: [item("Toalha Banho", 30, 28, 26, 25)],
     });
     const aberto = talao({ data_coleta: "2026-10-07", itens: [item("Toalha Banho", 12)] });
     const l = calcularSaldo([devolvido, aberto], PECAS).find((x) => x.peca.id === "Toalha Banho")!;
-    expect(l.enviado).toBe(42);
-    expect(l.voltou).toBe(26);
-    expect(l.saldo).toBe(16);
     expect(l.emAberto).toBe(12);
-    expect(l.pendente).toBe(4);
-  });
-
-  it("usa a contagem da lavanderia (ent_lav) quando o talão já voltou", () => {
-    const t = talao({ retorno_data: "2026-10-03", itens: [item("Piso", 10, 9, 9, 9)] });
-    const l = calcularSaldo([t], PECAS).find((x) => x.peca.id === "Piso")!;
-    expect(l.enviado).toBe(9);
-    expect(l.saldo).toBe(0);
+    expect(l.relavePendente).toBe(2);
+    expect(l.saldo).toBe(14);
+    expect(l.difColeta).toBe(-2);
+    expect(l.desconto).toBe(1);
+    expect(l.aPagar).toBe(25);
   });
 
   it("ignora talões antes de 01/10/2026", () => {
@@ -166,20 +181,30 @@ describe("saldo de peças", () => {
 });
 
 describe("alertas", () => {
-  it("avisa talão parado, falta na entrega, divergência de contagem e número pulado", () => {
+  it("avisa talão parado, coleta, desconto, relave e número pulado", () => {
     const parado = talao({
       numero: "20380",
       data_coleta: "2026-10-03",
       itens: [item("Fronha", 8)],
     });
-    const t = { ...T19383(), numero: "20382" };
+    const t = talao({
+      numero: "20382",
+      retorno_data: "2026-10-05",
+      itens: [item("Fronha", 10, 9, 8, 7), item("Toalha Rosto", 5, 5, 5, 5)],
+    });
     const taloes = [parado, t];
-    const saldo = calcularSaldo(taloes, PECAS);
-    const textos = gerarAlertas(taloes, saldo, PECAS, "2026-10-08").map((a) => a.texto);
-    expect(textos.some((x) => x.includes("20380") && x.includes("há 5 dias"))).toBe(true);
-    expect(textos.some((x) => x.includes("faltou 1 Toalha Rosto"))).toBe(true);
-    expect(textos.some((x) => x.includes("Toalha Rosto +1"))).toBe(true);
-    expect(textos.some((x) => x.includes("pulado") && x.includes("20381"))).toBe(true);
+    const alertas = gerarAlertas(taloes, calcularSaldo(taloes, PECAS), PECAS, "2026-10-08");
+    const texto = (tipo: string) =>
+      alertas
+        .filter((a) => a.tipo === tipo)
+        .map((a) => a.texto)
+        .join(" | ");
+    expect(texto("parado")).toContain("há 5 dias");
+    expect(texto("coleta")).toContain("Fronha -1");
+    expect(texto("desconto").replace(/\s/g, " ")).toContain("descontar 1 Fronha (R$ 1,26)");
+    expect(texto("relave")).toContain("ficou para relave 1 Fronha");
+    expect(texto("relave")).toContain("Relave ainda na lavanderia: 1 Fronha");
+    expect(texto("sequencia")).toContain("20381");
   });
 
   it("talão com menos de 3 dias não alerta", () => {
@@ -231,7 +256,7 @@ describe("fechamento do mês", () => {
       itens: totais.map(([p, q]) => item(p, q, q, q, q)),
     });
     const f = calcularFechamento([t], PECAS, "2026-08");
-    expect(f.valorEsperado).toBe(4560.31);
+    expect(f.valorPagar).toBe(4560.31);
     expect(f.linhas.map((l) => l.grupo)).toEqual([
       "Capa almofada / Prot. trav.",
       "Pillow top",
@@ -252,23 +277,37 @@ describe("fechamento do mês", () => {
     ]);
   });
 
-  it("compara a fatura digitada com a contagem da lavanderia", () => {
-    const t1 = T19383();
+  it("paga o menor entre Saída Lav. e Contado; compara a fatura com a Saída Lav.", () => {
+    const t1 = talao({
+      data_coleta: "2026-10-02",
+      retorno_data: "2026-10-04",
+      itens: [item("Fronha", 10, 9, 8, 7), item("Toalha Rosto", 5, 5, 6, 6)],
+    });
     const t2 = talao({ data_coleta: "2026-10-20", itens: [item("Fronha", 5)] }); // ainda sem retorno
-    const outroMes = talao({ data_coleta: "2026-11-01", itens: [item("Fronha", 99)] });
+    const outroMes = talao({
+      data_coleta: "2026-11-01",
+      retorno_data: "2026-11-03",
+      itens: [item("Fronha", 99, 99, 99, 99)],
+    });
     const f = calcularFechamento([t1, t2, outroMes], PECAS, "2026-10", {
-      Fronha: 18,
+      Fronha: 9,
       "Toalha rosto": 6,
     });
     const fronha = f.linhas.find((l) => l.grupo === "Fronha")!;
     expect(fronha.qtdHotel).toBe(15);
-    expect(fronha.qtdLavanderia).toBe(15);
-    expect(fronha.difQtd).toBe(3); // cobrou 3 fronhas a mais
-    expect(fronha.valorFatura).toBe(22.68);
-    expect(f.linhas.find((l) => l.grupo === "Toalha rosto")!.difQtd).toBe(0);
+    expect(fronha.qtdSaidaLav).toBe(8);
+    expect(fronha.qtdContado).toBe(7);
+    expect(fronha.qtdPagar).toBe(7);
+    expect(fronha.qtdDesconto).toBe(1);
+    expect(fronha.qtdRelave).toBe(1);
+    expect(fronha.valorPagar).toBe(8.82); // 7 × 1,26
+    expect(fronha.difQtd).toBe(1); // cobrou 9, anotou 8 no talão
+    expect(f.linhas.find((l) => l.grupo === "Toalha rosto")!.qtdPagar).toBe(6);
+    expect(f.valorPagar).toBe(17.58); // 8,82 + 6 × 1,46
+    expect(f.valorDesconto).toBe(1.26);
     expect(f.taloes).toHaveLength(2);
     expect(f.taloesSemRetorno).toHaveLength(1);
-    expect(f.valorFaturaCalculado).toBe(31.44); // 18 × 1,26 + 6 × 1,46
+    expect(f.valorFaturaCalculado).toBe(20.1); // 9 × 1,26 + 6 × 1,46
   });
 });
 
@@ -290,11 +329,11 @@ describe("validação do retorno", () => {
   it("só exige a contagem da camareira quando a lavanderia anotou devolução", () => {
     expect(validarRetorno([L("Fronha", 10, "10", "16", "")], nome)).toContain("Fronha");
   });
-  it("aceita campos em branco: Ent. Lav. = saída, Saída Lav. = 0", () => {
+  it("aceita campos em branco: Ent. Lav. = Saída Hotel, Saída Lav. = Contei", () => {
     const linhas = [L("Fronha", 10, "", "", "9"), L("Piso", 6), L("Edredom", 0, "", "1", "1")];
     expect(validarRetorno(linhas, nome)).toBeNull();
     expect(normalizarRetorno(linhas)).toEqual([
-      { peca_id: "Fronha", ent_lav: 10, saida_lav: 0, guardado: 9 },
+      { peca_id: "Fronha", ent_lav: 10, saida_lav: 9, guardado: 9 },
       { peca_id: "Piso", ent_lav: 6, saida_lav: 0, guardado: 0 },
       { peca_id: "Edredom", ent_lav: 0, saida_lav: 1, guardado: 1 },
     ]);
