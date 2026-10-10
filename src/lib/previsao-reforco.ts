@@ -104,3 +104,40 @@ export const STATUS_PEDIDO = {
   autorizado: { txt: "Autorizado: chamar freelancer", cls: "bg-emerald-100 text-emerald-800 border-emerald-300" },
   negado: { txt: "Não autorizado", cls: "bg-slate-100 text-slate-700 border-slate-300" },
 } as const;
+
+// ------------------------------------------------------------ quem vê (gestor)
+export type AcessoPrevisao = {
+  user_id: string;
+  nome: string;
+  email: string | null;
+  papeis: string[];
+  gestor: boolean;
+  ve: boolean;
+  origem: "gestor" | "liberado" | "bloqueado" | "recepcao" | "equipe" | "sem_acesso";
+};
+
+export function useAcessosPrevisao(enabled = true) {
+  return useQuery({
+    queryKey: ["previsao_acessos"],
+    enabled,
+    queryFn: async (): Promise<AcessoPrevisao[]> => {
+      const { data, error } = await rpc("previsao_acessos_listar");
+      if (error) throw new Error(error.message);
+      return (data ?? []) as AcessoPrevisao[];
+    },
+  });
+}
+
+export function useDefinirAcessoPrevisao() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { userId: string; liberado: boolean | null }) => {
+      const { error } = await rpc("previsao_definir_acesso", { _user_id: input.userId, _liberado: input.liberado });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["previsao_acessos"] });
+      void qc.invalidateQueries({ queryKey: ["permissao_previsao_carga"] });
+    },
+  });
+}

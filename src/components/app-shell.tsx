@@ -137,6 +137,7 @@ const ALL_NAV: NavItem[] = [
       { to: "/gestao-boas-vindas", label: "BOAS-VINDAS", icon: LayoutGrid },
       { to: "/configuracoes", label: "EQUIPE", icon: PlusCircle },
       { to: "/gestor/escala", label: "ESCALA", icon: CalendarDays },
+      { to: "/gestor/previsao-carga", label: "PREVISÃO DE CARGA", icon: Gauge },
       { to: "/gestor/ponto", label: "PONTO FACIAL", icon: Fingerprint },
 
     ],
