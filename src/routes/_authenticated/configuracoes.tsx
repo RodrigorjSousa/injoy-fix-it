@@ -1015,6 +1015,9 @@ function EditarFuncoesDialog({
                     ? "Selecione manualmente as abas que este funcionário verá."
                     : "Usando o padrão do perfil de acesso."}
                 </p>
+                <p className="text-xs text-teal-700 mt-0.5">
+                  Previsão de Carga: libere em Área do Gestor › Previsão de Carga › Quem vê.
+                </p>
               </div>
               <label className="flex items-center gap-2 text-xs cursor-pointer">
                 <Checkbox
