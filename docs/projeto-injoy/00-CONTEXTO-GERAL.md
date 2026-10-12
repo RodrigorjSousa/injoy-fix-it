@@ -97,6 +97,11 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   reforço (`previsao_pedir_reforco`), o gestor autoriza em Área do Gestor › Previsão de Carga
   (`previsao_decidir_reforco`), com push para os dois lados.
 
+- Check-out em Ipanema (sem recepção): a camareira faz pelo app só em quarto com GERAL/GERAL - CHECK-IN;
+  o servidor faz no Cloudbeds, confere o status e grava `cloudbeds_checkout_logs.status`
+  (confirmado/nao_confirmado/falhou) + recado `to_recepcao`. A Recepção de Botafogo vê o quadro
+  "Check-outs feitos pelas camareiras" e marca "Conferi" (`checkout_log_conferir`, 0050).
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 

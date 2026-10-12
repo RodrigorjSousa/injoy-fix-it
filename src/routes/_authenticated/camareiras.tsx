@@ -172,8 +172,9 @@ function PainelCamareiras() {
     setCheckoutLoading(chave);
     const t = toast.loading("Fazendo check-out no Cloudbeds...");
     try {
-      await doCheckout({ data: { property: q.property, roomNumber: q.room_number } });
-      toast.success("Check-out realizado no Cloudbeds", { id: t });
+      const r = await doCheckout({ data: { property: q.property, roomNumber: q.room_number } });
+      if (r?.confirmado) toast.success("Check-out confirmado no Cloudbeds. A recepção foi avisada.", { id: t });
+      else toast.warning("Check-out enviado, mas o Cloudbeds ainda não confirmou. A recepção vai conferir.", { id: t, duration: 10000 });
       await sincronizar();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao fazer check-out", { id: t });
@@ -705,7 +706,7 @@ function PainelCamareiras() {
               <div className="flex justify-between items-start gap-3">
                 <div>
                   <h2 className="text-xl font-black text-slate-800 tracking-tight">
-                    Quarto APT {q.room_number}
+                    Quarto {/^apt/i.test(q.room_number) ? "" : "APT "}{q.room_number}
                   </h2>
                   <p className="text-xs text-slate-400 font-medium mt-0.5">{q.room_type || "—"}</p>
                 </div>
@@ -977,7 +978,9 @@ function PainelCamareiras() {
 
               {q.property === "Ipanema" &&
                 q.guest_name &&
-                q.guest_name !== "Quarto Vazio" && (
+                q.guest_name !== "Quarto Vazio" &&
+                // Só quem sai hoje (GERAL ou GERAL com check-in); evita fazer check-out de hóspede que fica.
+                ["GERAL", "GERAL - CHECK-IN"].includes(formatTaskLabel(q.assigned_task)) && (
                   <button
                     onClick={() => fazerCheckoutCloudbeds(q)}
                     disabled={checkoutLoading === `${q.property}-${q.room_number}`}
@@ -1186,7 +1189,7 @@ function PainelCamareiras() {
               <div>
                 <h3 className="font-black text-slate-800">Quem vai fazer o serviço?</h3>
                 <p className="text-xs text-slate-500 mt-0.5">
-                  Quarto APT {selecionarPara.room_number} — INJOY {selecionarPara.property}
+                  Quarto {/^apt/i.test(selecionarPara.room_number) ? "" : "APT "}{selecionarPara.room_number} — INJOY {selecionarPara.property}
                 </p>
               </div>
               <button

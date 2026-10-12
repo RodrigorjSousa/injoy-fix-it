@@ -28,11 +28,12 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         tag: `chamado-${d.id}`,
       };
     case "recado_camareira": {
-      const from = d.direction === "camareira_to_recepcao" ? "camareira" : "recepção";
+      const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
+      const from = paraRecepcao ? "camareira" : "recepção";
       return {
-        title: `💬 Recado da ${from}`,
+        title: `💬 Recado da ${from}${d.property ? ` · ${d.property}` : ""}`,
         body: `Quarto ${d.room_number}: ${String(d.message ?? "").slice(0, 140)}`,
-        url: d.direction === "camareira_to_recepcao" ? "/recepcao" : "/camareiras",
+        url: paraRecepcao ? "/recepcao" : "/camareiras",
         tag: `recado-${d.id}`,
       };
     }
@@ -162,7 +163,7 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     }
     case "recado_camareira": {
       const roles =
-        d.direction === "camareira_to_recepcao"
+        d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao"
           ? ["recepcao", "admin", "gestor"]
           : ["camareira", "admin", "gestor"];
       return byRoles(roles);

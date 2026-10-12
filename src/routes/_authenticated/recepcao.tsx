@@ -25,6 +25,7 @@ import { DinheiroCaixaModal } from "@/components/recepcao/dinheiro-caixa-modal";
 import { VendaBebidasModal } from "@/components/recepcao/venda-bebidas-modal";
 import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-modal";
 import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
+import { CheckoutsCamareirasSection } from "@/components/recepcao/checkouts-camareiras";
 import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-enviados-camareira";
 import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
@@ -384,6 +385,8 @@ function RecepcaoPage() {
           </button>
         )}
       </div>
+
+      <CheckoutsCamareirasSection />
 
       <RecadosDaCamareiraSection
         unidade={unidadeAtiva}

@@ -36,7 +36,7 @@ export function RecadosDaCamareiraSection({
     const { data, error } = await supabase
       .from("recados_camareiras")
       .select("*")
-      .eq("property", unidade)
+      .in("property", unidade === "Ipanema" ? ["Ipanema"] : [unidade, "Ipanema"])
       .eq("direction", "to_recepcao")
       .is("read_at", null)
       .order("created_at", { ascending: false });
@@ -57,7 +57,6 @@ export function RecadosDaCamareiraSection({
           event: "*",
           schema: "public",
           table: "recados_camareiras",
-          filter: `property=eq.${unidade}`,
         },
         (payload) => {
           const row = (payload.new ?? payload.old) as { direction?: string } | undefined;
@@ -121,7 +120,7 @@ export function RecadosDaCamareiraSection({
                 {r.message}
               </p>
               <p className="text-[10px] text-slate-500 flex items-center gap-1">
-                <User size={11} /> {r.created_by_name}
+                <User size={11} /> {r.created_by_name} · {r.property}
               </p>
             </div>
           ))}
