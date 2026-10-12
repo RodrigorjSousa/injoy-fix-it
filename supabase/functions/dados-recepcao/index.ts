@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { canalPrePago, saldoACobrar } from '../_shared/canal-pagamento.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
@@ -481,11 +482,10 @@ serve(async (req) => {
           pax,
           chegadaHora: horaChegada,
           dataSaida: saidaISO ? String(saidaISO).split('-').reverse().join('/') : '--/--/----',
-          pagamentoPendente: parseFloat(res.balance ?? res.balanceDue ?? 0) > 0,
-          pagamentoValor: (() => {
-            const v = parseFloat(res.balance ?? res.balanceDue ?? 0)
-            return Number.isFinite(v) && v > 0 ? Number(v.toFixed(2)) : 0
-          })(),
+          // Airbnb: hóspede já pagou ao canal (repasse em até 48h) — não é débito.
+          pagamentoPendente: saldoACobrar(res) > 0,
+          pagamentoValor: saldoACobrar(res),
+          canalPrePago: canalPrePago(res),
           docPendente: docFaltando,
           statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
           checkedIn: emCasa,
