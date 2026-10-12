@@ -508,32 +508,50 @@ export type Database = {
         Row: {
           camareira_id: string | null
           camareira_name: string
+          cloudbeds_status: string | null
+          conferido_em: string | null
+          conferido_nome: string | null
+          conferido_por: string | null
           created_at: string
+          erro: string | null
           guest_name: string | null
           id: string
           property: string
           reservation_id: string | null
           room_number: string
+          status: string
         }
         Insert: {
           camareira_id?: string | null
           camareira_name: string
+          cloudbeds_status?: string | null
+          conferido_em?: string | null
+          conferido_nome?: string | null
+          conferido_por?: string | null
           created_at?: string
+          erro?: string | null
           guest_name?: string | null
           id?: string
           property: string
           reservation_id?: string | null
           room_number: string
+          status?: string
         }
         Update: {
           camareira_id?: string | null
           camareira_name?: string
+          cloudbeds_status?: string | null
+          conferido_em?: string | null
+          conferido_nome?: string | null
+          conferido_por?: string | null
           created_at?: string
+          erro?: string | null
           guest_name?: string | null
           id?: string
           property?: string
           reservation_id?: string | null
           room_number?: string
+          status?: string
         }
         Relationships: []
       }
@@ -3878,6 +3896,7 @@ export type Database = {
           nome: string
         }[]
       }
+      checkout_log_conferir: { Args: { _id: string }; Returns: undefined }
       editar_bonificacao_conjunta: {
         Args: {
           _data: string
