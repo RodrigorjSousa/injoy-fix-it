@@ -127,4 +127,4 @@ das selfies antigas do ponto foi oferecida.
   - outros bloqueios → BLOQUEADO;
   - motivo com ECI/LCO (também "early check-in", "saída atrasada" etc.) → só aviso, não bloqueia.
 - Se o Cloudbeds falhar (com 3 tentativas), a unidade NÃO é regravada: fica o último dado bom.
-- Sincronização automática a cada 5 min (migração 0046).
+- Sincronização automática a cada 5 min (migração 0051).
