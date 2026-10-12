@@ -1,3 +1,4 @@
+import { canalPrePago } from "@/lib/cloudbeds/canal-pagamento";
 // Regras puras do Totem (sem acesso a rede/banco) — testadas em regras.test.ts.
 // Lidam com o formato "solto" das reservas do Cloudbeds (getReservations com
 // includeGuestsDetails=true): os campos variam entre contas, então tudo aqui é
@@ -237,6 +238,8 @@ export function extrairQuartos(rec: Raw): QuartoReserva[] {
 }
 
 export function saldoDe(rec: Raw): number {
+  // Airbnb: o hóspede já pagou ao canal (repasse em até 48h); não bloqueia check-in/out.
+  if (canalPrePago(rec)) return 0;
   if (rec.balance !== undefined && rec.balance !== null && rec.balance !== "") return numero(rec.balance);
   const det = rec.balanceDetailed as Raw | undefined;
   if (det && typeof det === "object" && "balance" in det) return numero(det.balance);

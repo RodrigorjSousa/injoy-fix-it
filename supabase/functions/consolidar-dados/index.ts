@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+import { saldoACobrar } from '../_shared/canal-pagamento.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 
 const corsHeaders = {
@@ -471,7 +472,7 @@ serve(async (req) => {
         } else if (!hospedeAtualInHouse && reservaEntrandoHoje) {
           tarefaSugerida = 'REVISÃO'
           const temPendencia =
-            parseFloat(reservaEntrandoHoje.balanceDue ?? reservaEntrandoHoje.balance ?? 0) > 0 ||
+            saldoACobrar(reservaEntrandoHoje) > 0 ||
             !(reservaEntrandoHoje.guestDocumentNumber || reservaEntrandoHoje.guestTaxID || reservaEntrandoHoje.guestDocumentType)
 
           corLegenda = temPendencia ? 'AZUL FRACO' : 'AZUL FORTE'
@@ -505,12 +506,8 @@ serve(async (req) => {
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
         const pax = resAtiva ? resAtiva.numberOfGuests || 0 : 0
-        const pendingAmount = resAtiva
-          ? (() => {
-              const v = parseFloat(String(resAtiva.balanceDue ?? resAtiva.balance ?? 0))
-              return Number.isFinite(v) && v > 0 ? Number(v.toFixed(2)) : 0
-            })()
-          : 0
+        // Airbnb: hóspede já pagou ao canal (repasse em até 48h) — não é débito.
+        const pendingAmount = saldoACobrar(resAtiva)
         const hasPendingPayment = pendingAmount > 0
         // Docs completos se qualquer identificação estiver preenchida:
         // documento (passaporte/RG), taxID (CPF) ou tipo de documento cadastrado.
@@ -713,10 +710,7 @@ serve(async (req) => {
       const availableRooms = dashAvail > 0 ? dashAvail : Math.max(limpos - manut, 0)
 
       // Saldo pendente: soma de balanceDue das reservas ativas
-      const pendingBalance = reservasAtivas.reduce((sum: number, r: any) => {
-        const v = parseFloat(String(r.balanceDue ?? r.balance ?? 0))
-        return sum + (Number.isFinite(v) && v > 0 ? v : 0)
-      }, 0)
+      const pendingBalance = reservasAtivas.reduce((sum: number, r: any) => sum + saldoACobrar(r), 0)
 
       // Docs pendentes: usa a mesma regra aplicada aos quartos (após validação de
       // reserva confirmada + saldo zero), garantindo consistência com os badges.

@@ -90,6 +90,8 @@ interface QuartoRecepcao {
   pax: number;
   pagamentoPendente: boolean;
   pagamentoValor?: number;
+  /** Airbnb: já pago ao canal (repasse em até 48h), sem débito. */
+  canalPrePago?: boolean;
   docPendente: boolean;
   statusCheckin: StatusCheckin;
   temReserva: boolean;
@@ -575,6 +577,11 @@ function RecepcaoPage() {
                         </p>
                       </div>
 
+                      {q.canalPrePago && (
+                        <span className="inline-flex w-max items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
+                          Airbnb · já pago ao canal
+                        </span>
+                      )}
                       {(q.pagamentoPendente || (q.docPendente && q.pagamentoPendente)) && (
                           <div className="space-y-1.5 pt-1">
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
