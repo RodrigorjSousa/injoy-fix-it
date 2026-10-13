@@ -41,8 +41,63 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
 - `hotel_metrics.rating` é fixo no código (8,6 Botafogo / 7,8 Ipanema, "homologação").
 - Indicadores ficam espalhados em 4 telas e a tela `/gestao` mostra uma unidade por vez.
 
+## Decisões do Rodrigo (13/10/2026)
+- Entram os blocos A (precisa de você hoje), B (operação de hoje, unidades lado a lado), C (mês em curso)
+  e um bloco novo: **rendimento por unidade lado a lado** com quartos mais e menos alugados, quartos com mais
+  reclamações, dias de alta e de baixa e a faixa de diária que mais fecha hospedagem.
+- Lugar: topo do **Início da Área do Gestor** (`/gestor`); os atalhos continuam embaixo.
+- Corrigir já os números inventados do `/gestao` e a nota fixa.
+
+## Como funciona (entrega 1, branch `feat/dashboard-gestor`, migração `0054_dashboard_rendimento.sql`)
+- Tela: `src/routes/_authenticated/gestor/index.tsx` monta os blocos de `src/components/dashboard/*`:
+  `bloco-pendencias`, `bloco-operacao`, `bloco-mes`, `bloco-rendimento` (+ `comum.tsx`). Celular: uma coluna;
+  computador: Botafogo e Ipanema lado a lado.
+- Consultas: `src/lib/dashboard/dados.ts`. Cada fonte é consultada separada; se uma falhar (ex.: migração
+  ainda não aplicada), só aquele item mostra "Não carregou · motivo".
+- **A · Precisa de você hoje**: alertas do Financeiro/Escala (componente existente) + contagens de pedidos de
+  reforço pendentes, batidas de ponto pendentes, atestados pendentes, talões na lavanderia há 3 dias ou mais,
+  chamados urgentes abertos e check-outs das camareiras sem "Conferi" (desde ontem). Só aparece o que tem
+  quantidade > 0; cada item leva à tela certa.
+- **B · Operação de hoje**: `room_housekeeping` ao vivo, mesma regra da tela inicial (`src/lib/dashboard/operacao.ts`,
+  com testes): ocupação sobre os quartos vendáveis, chegadas, saídas, prontos/faxina/sujos/bloqueados, a receber
+  no balcão e docs pendentes. Embaixo, os cartões existentes de escala de hoje e reforço em 2 dias.
+- **C · Mês em curso**: receita, despesa e resultado do Financeiro (rateio de "Ambas" igual ao Financeiro,
+  `valorRateado`), ocupação média do mês (`hotel_metrics`), notas G/F/L da Bonificação, média do totem,
+  peças e talões da lavanderia e quem está em risco/perdeu a Meta da equipe.
+- **D · Rendimento por unidade**:
+  - Dados: o servidor (`src/lib/dashboard-rendimento.functions.ts`, `sincronizarRendimentoMes`) busca no
+    Cloudbeds as reservas que tocam o mês (`getReservationsWithRateDetails` filtrando pela saída; se falhar,
+    plano B `getReservations` + `getReservation` de cada uma) e grava **uma linha por quarto por noite** em
+    `dash_reserva_noites` pela RPC `dash_gravar_noites` (substitui o mês inteiro da unidade, tudo ou nada).
+    Sem nome de hóspede. Canceladas e no-show não entram. Log em `dash_sincronizacoes`.
+  - Atualização: ao abrir o painel, o mês atual é buscado sozinho se a última busca passou de 6 h. Botão
+    "Atualizar com o Cloudbeds" busca os meses do período escolhido; aviso amarelo lista meses nunca buscados
+    com "Buscar agora" (para o histórico de 12 meses, 24 buscas, uma de cada vez).
+  - Valor da noite: tarifa do dia; se faltar, total do quarto ÷ noites; se faltar, total da reserva dividido
+    igualmente (`noitesDaReserva`, em `src/lib/dashboard/rendimento.ts`, com testes).
+  - Períodos: este mês, mês passado, 3 meses, 12 meses. Indicadores vão **até hoje**; o que já está reservado
+    para depois aparece à parte ("Já reservado para o resto do período").
+  - Indicadores por unidade: receita, ocupação (noites ÷ quartos × dias; Botafogo 19, Ipanema 12), diária
+    média, RevPAR, reservas, estadia média, valor médio por reserva, **diária que mais fecha** (faixa de
+    R$ 50 com mais noites + gráfico), mais e menos alugados (3 cada, incluindo quartos com 0 noites), dias de
+    alta e de baixa (3 cada), ocupação por dia da semana e receita por canal. Faixa comparativa B × I no topo.
+  - **Reclamações e problemas por quarto** (no período): chamados com "[Quarto X]" na descrição + problemas
+    abertos na vistoria (`room_inspection_issues`) + avaliações do totem com nota até 3.
+- `/gestao`: sem números de exemplo (mostra "—" e o erro quando falta a métrica). `consolidar-dados` grava
+  `hotel_metrics.rating = null` (a nota fixa saiu; ninguém lia o campo).
+
 ## Estado atual
-- Mapeamento feito (13/10/2026). Aguardando o Rodrigo decidir o conteúdo do dashboard.
+- Entrega 1 pronta na branch `feat/dashboard-gestor`: tsc, vitest (176 testes, 22 novos) e build passando.
+  SQL da 0054 testado em Postgres local (17 verificações: gestor, admin, recepção, anônimo; aplicada 2x).
+- Para ativar: (1) merge; (2) aplicar a `0054_dashboard_rendimento.sql` no Lovable; (3) Publicar → Atualizar.
+  Na primeira abertura o mês atual é buscado sozinho; para o histórico, escolha "12 meses" e "Buscar agora".
+- Não testado contra o Cloudbeds real (as credenciais ficam só no servidor). Conferir na primeira busca:
+  receita de um mês fechado contra o relatório do Cloudbeds e as "Observações da busca" no fim do bloco.
 
 ## Ideias e pendências
-- (a decidir com o Rodrigo)
+- Preventiva AC atrasada no bloco A (a regra de vencimento está só na tela de histórico de manutenção).
+- VA/VT do mês contra o "valor separado" (hoje salvo só no aparelho, o dashboard não enxerga).
+- Preencher sozinho diárias vendidas/receita de hospedagem/ocupação do Financeiro (`fin_indicadores_mes`)
+  com os dados de `dash_reserva_noites`.
+- Busca automática diária por agendamento (hoje só ao abrir o painel).
+- Lista de quartos repetida em `index.tsx`, `vistoria.tsx` e `src/lib/dashboard/rendimento.ts` (unificar).

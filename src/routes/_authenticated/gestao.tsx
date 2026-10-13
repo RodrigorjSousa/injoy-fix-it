@@ -19,40 +19,13 @@ export const Route = createFileRoute("/_authenticated/gestao")({
   component: DashboardGestao,
 });
 
+// Sem números de exemplo: se a métrica do Cloudbeds não chegou, a tela mostra "—".
 type DadosHotel = {
-  ocupacaoAtual: number;
-  totalQuartos: number;
-  quartosLimpos: number;
-  quartosEmLimpeza: number;
-  quartosSujos: number;
-  quartosManutencao: number;
+  ocupacaoAtual: number | null;
+  quartosDisponiveis: number | null;
   faturamentoPendente: string;
-  documentosFaltando: number;
+  documentosFaltando: number | null;
 };
-
-const DADOS_POR_UNIDADE: Record<Unidade, DadosHotel> = {
-  Botafogo: {
-    ocupacaoAtual: 78,
-    totalQuartos: 40,
-    quartosLimpos: 22,
-    quartosEmLimpeza: 6,
-    quartosSujos: 9,
-    quartosManutencao: 3,
-    faturamentoPendente: "R$ 2.450,00",
-    documentosFaltando: 4,
-  },
-  Ipanema: {
-    ocupacaoAtual: 91,
-    totalQuartos: 28,
-    quartosLimpos: 18,
-    quartosEmLimpeza: 4,
-    quartosSujos: 5,
-    quartosManutencao: 1,
-    faturamentoPendente: "R$ 3.980,00",
-    documentosFaltando: 2,
-  },
-};
-
 
 function DashboardGestao() {
   const [unidadeAtiva, setUnidadeAtiva] = useState<Unidade>("Botafogo");
@@ -60,20 +33,14 @@ function DashboardGestao() {
   const { metrics, syncing, sincronizar, error: metricsError } = useHotelMetrics();
   const live = metrics[unidadeAtiva];
   const dadosHotel: DadosHotel = useMemo(() => {
-    const base = DADOS_POR_UNIDADE[unidadeAtiva];
-    if (!live) return base;
+    if (!live) return { ocupacaoAtual: null, quartosDisponiveis: null, faturamentoPendente: "—", documentosFaltando: null };
     return {
-      ...base,
       ocupacaoAtual: Math.round(Number(live.occupancy_percentage) || 0),
-      quartosLimpos: live.clean_rooms,
-      quartosSujos: live.dirty_rooms,
-      quartosManutencao: live.maintenance_rooms,
-      quartosEmLimpeza: live.dirty_rooms,
+      quartosDisponiveis: live.available_rooms ?? null,
       faturamentoPendente: `R$ ${Number(live.pending_balance || 0).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      totalQuartos: (live.available_rooms ?? base.totalQuartos) + (live.clean_rooms || 0) + (live.dirty_rooms || 0) + (live.maintenance_rooms || 0),
-      documentosFaltando: live.pending_docs_count ?? base.documentosFaltando,
+      documentosFaltando: live.pending_docs_count ?? null,
     };
-  }, [unidadeAtiva, live]);
+  }, [live]);
 
 
 
@@ -120,7 +87,7 @@ function DashboardGestao() {
         {metricsError && !live && (
           <ErrorState
             title="Métricas ao vivo indisponíveis"
-            description={`${metricsError}. Mostrando valores estimados — toque em sincronizar para tentar novamente.`}
+            description={`${metricsError}. Toque em sincronizar para tentar novamente.`}
             onRetry={sincronizar}
             retrying={syncing}
           />
@@ -131,7 +98,7 @@ function DashboardGestao() {
           <div className="flex justify-between items-start mb-2">
             <div>
               <p className="text-sm font-semibold text-slate-500">Taxa de Ocupação Hoje</p>
-              <h2 className="text-3xl font-black text-slate-900">{dadosHotel.ocupacaoAtual}%</h2>
+              <h2 className="text-3xl font-black text-slate-900">{dadosHotel.ocupacaoAtual == null ? "—" : `${dadosHotel.ocupacaoAtual}%`}</h2>
             </div>
             <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
               <TrendingUp size={22} />
@@ -140,11 +107,14 @@ function DashboardGestao() {
           <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden mt-3">
             <div
               className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-              style={{ width: `${dadosHotel.ocupacaoAtual}%` }}
+              style={{ width: `${dadosHotel.ocupacaoAtual ?? 0}%` }}
             />
           </div>
           <p className="text-xs text-slate-400 mt-2 flex items-center gap-1">
-            <ArrowUpRight size={14} /> {live?.available_rooms ?? (dadosHotel.totalQuartos - dadosHotel.quartosManutencao)} quartos disponíveis para venda.
+            <ArrowUpRight size={14} />{" "}
+            {dadosHotel.quartosDisponiveis == null
+              ? "Sem dado do Cloudbeds para hoje."
+              : `${dadosHotel.quartosDisponiveis} quartos disponíveis para venda.`}
           </p>
         </div>
 
@@ -160,7 +130,7 @@ function DashboardGestao() {
           <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col justify-between">
             <div>
               <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Docs Pendentes</p>
-              <p className="text-lg font-black text-amber-600 mt-1">{dadosHotel.documentosFaltando} Hóspedes</p>
+              <p className="text-lg font-black text-amber-600 mt-1">{dadosHotel.documentosFaltando == null ? "—" : `${dadosHotel.documentosFaltando} Hóspedes`}</p>
             </div>
             <span className="text-[10px] text-slate-500 mt-3 block">Falta check-in online</span>
           </div>
