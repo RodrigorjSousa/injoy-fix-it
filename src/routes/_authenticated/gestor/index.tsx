@@ -23,6 +23,10 @@ import {
   Fingerprint,
   TabletSmartphone,
   Sparkles,
+  ConciergeBell,
+  Cog,
+  LayoutGrid,
+  MessageSquare,
 } from "lucide-react";
 import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
 import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
@@ -64,15 +68,33 @@ type HubPath =
   | "/gestor/previsao-carga"
   | "/gestor/ponto"
   | "/gestor/totem"
-  | "/gestor/tarefas-extras";
+  | "/gestor/tarefas-extras"
+  | "/recepcao"
+  | "/camareiras"
+  | "/manutencao"
+  | "/servicos"
+  | "/painel"
+  | "/chat";
 
 type HubItem = { label: string; description: string; to: HubPath; icon: typeof BarChart3; tone: string };
 
 const sections: { title: string; items: HubItem[] }[] = [
   {
+    // Telas que a equipe usa no dia a dia; o gestor entra por aqui (não ficam mais na lateral).
+    title: "Telas da equipe",
+    items: [
+      { label: "Recepção", description: "Tela da recepção: chegadas, saídas e caixa", to: "/recepcao", icon: ConciergeBell, tone: "bg-sky-700" },
+      { label: "Camareiras", description: "Quartos, serviços e lavanderia das camareiras", to: "/camareiras", icon: BedDouble, tone: "bg-pink-600" },
+      { label: "Manutenção", description: "Tela do técnico de manutenção", to: "/manutencao", icon: Cog, tone: "bg-teal-700" },
+    ],
+  },
+  {
     title: "Operação",
     items: [
       { label: "Painel de Gestão", description: "Indicadores e visão diária", to: "/gestao", icon: BarChart3, tone: "bg-blue-600" },
+      { label: "Painel de Chamados", description: "Chamados: a fazer, fazendo e feito", to: "/painel", icon: LayoutGrid, tone: "bg-red-600" },
+      { label: "Serviços", description: "Catálogo de serviços e chamados por categoria", to: "/servicos", icon: Wrench, tone: "bg-orange-600" },
+      { label: "Chat", description: "Mensagens da equipe", to: "/chat", icon: MessageSquare, tone: "bg-slate-600" },
       { label: "Previsão de Carga", description: "Sinalizador de reforço da limpeza", to: "/gestor/previsao-carga", icon: Gauge, tone: "bg-amber-600" },
       { label: "Lavanderia", description: "Operações e conta corrente", to: "/relatorio-operacoes", icon: Shirt, tone: "bg-sky-600" },
       { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },

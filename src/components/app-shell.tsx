@@ -144,6 +144,12 @@ const ALL_NAV: NavItem[] = [
   },
 ];
 
+const MENU_GESTOR: NavItem = {
+  label: "ÁREA DO GESTOR",
+  icon: ShieldCheck,
+  children: [{ to: "/gestor", label: "INÍCIO DA ÁREA", icon: ShieldCheck, exact: true }],
+};
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
@@ -156,6 +162,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: permBonif } = usePermissaoBonificacao();
   const { data: permPrevisao } = usePermissaoPrevisao();
   const navBase: NavItem[] = (() => {
+    // Gestor/admin: a lateral fica só com ÁREA DO GESTOR › INÍCIO DA ÁREA. As demais telas
+    // (inclusive Recepção, Camareiras e Manutenção) abrem pelos cards de Atalhos do Início da Área.
+    // Gestor não bate ponto nem tem escala, então Bater Ponto e Minha Escala não aparecem.
+    if (isAdmin(me)) return [MENU_GESTOR];
     if (listaCustom && !isAdmin(me)) {
       const keys = Array.from(new Set([...listaCustom, ...requiredTelaKeys(me), "chat"]));
       const custom: NavItem[] = keys
@@ -191,7 +201,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
   const isGroupOpen = (item: NavItem) =>
-    openGroups[item.label] ?? groupActive(item);
+    openGroups[item.label] ?? (groupActive(item) || item === MENU_GESTOR);
 
   const toggleGroup = (label: string, defaultOpen: boolean) =>
     setOpenGroups((s) => ({ ...s, [label]: !(s[label] ?? defaultOpen) }));
