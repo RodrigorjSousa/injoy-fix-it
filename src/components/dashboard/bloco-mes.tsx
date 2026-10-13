@@ -30,10 +30,10 @@ export function BlocoMes() {
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-2">
-                      <Kpi rotulo="Receita lançada" valor={brl0.format(d.receita)} />
-                      <Kpi rotulo="Despesa" valor={brl0.format(d.despesa)} />
+                      <Kpi rotulo="Receita lançada" to="/gestor/financeiro" unidade={u} valor={brl0.format(d.receita)} />
+                      <Kpi rotulo="Despesa" to="/gestor/financeiro" unidade={u} valor={brl0.format(d.despesa)} />
                       <Kpi
-                        rotulo="Resultado"
+                        rotulo="Resultado" to="/gestor/financeiro" unidade={u}
                         valor={brl0.format(resultado)}
                         sub={d.receita ? pct(resultado / d.receita, 1) : undefined}
                         tom={resultado < 0 ? "ruim" : "bom"}
@@ -41,18 +41,18 @@ export function BlocoMes() {
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       <Kpi
-                        rotulo="Ocupação média"
+                        rotulo="Ocupação média" to="/gestao" unidade={u}
                         valor={d.ocupacaoMedia == null ? "—" : `${num(d.ocupacaoMedia, 0)}%`}
                         sub={`${d.diasComMedicao} dia(s) medidos`}
                       />
                       <Kpi
-                        rotulo="Notas (G/F/L)"
+                        rotulo="Notas (G/F/L)" to="/bonificacao" unidade={u}
                         valor={`${num(d.notaGeral)} · ${num(d.notaFuncionarios)} · ${num(d.notaLimpeza)}`}
                         sub={`${d.avaliacoesBonificacao} avaliação(ões)`}
                       />
-                      <Kpi rotulo="Totem" valor={d.totemMedia == null ? "—" : `${num(d.totemMedia)} ★`} sub={`${d.totemAvaliacoes} avaliação(ões)`} />
+                      <Kpi rotulo="Totem" to="/gestor/totem" unidade={u} valor={d.totemMedia == null ? "—" : `${num(d.totemMedia)} ★`} sub={`${d.totemAvaliacoes} avaliação(ões)`} />
                     </div>
-                    <Kpi rotulo="Lavanderia" valor={`${d.pecasLavanderia.toLocaleString("pt-BR")} peças`} sub={`${d.taloesLavanderia} talão(ões) no mês`} />
+                    <Kpi rotulo="Lavanderia" to="/relatorio-operacoes" unidade={u} valor={`${d.pecasLavanderia.toLocaleString("pt-BR")} peças`} sub={`${d.taloesLavanderia} talão(ões) no mês`} />
                     <Erros lista={d.erros} />
                   </>
                 )}
