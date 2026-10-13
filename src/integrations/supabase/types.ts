@@ -2763,6 +2763,8 @@ export type Database = {
           decidido_em: string | null
           decidido_nome: string | null
           decidido_por: string | null
+          escala_dia_id: string | null
+          freelancer_nome: string | null
           gerais: number | null
           id: string
           mensagem: string | null
@@ -2774,12 +2776,15 @@ export type Database = {
           solicitado_por: string
           status: string
           unidade: string
+          valor: number | null
         }
         Insert: {
           data: string
           decidido_em?: string | null
           decidido_nome?: string | null
           decidido_por?: string | null
+          escala_dia_id?: string | null
+          freelancer_nome?: string | null
           gerais?: number | null
           id?: string
           mensagem?: string | null
@@ -2791,12 +2796,15 @@ export type Database = {
           solicitado_por: string
           status?: string
           unidade: string
+          valor?: number | null
         }
         Update: {
           data?: string
           decidido_em?: string | null
           decidido_nome?: string | null
           decidido_por?: string | null
+          escala_dia_id?: string | null
+          freelancer_nome?: string | null
           gerais?: number | null
           id?: string
           mensagem?: string | null
@@ -2808,8 +2816,17 @@ export type Database = {
           solicitado_por?: string
           status?: string
           unidade?: string
+          valor?: number | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "previsao_reforco_pedidos_escala_dia_fk"
+            columns: ["escala_dia_id"]
+            isOneToOne: false
+            referencedRelation: "escala_dias"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -4299,10 +4316,24 @@ export type Database = {
         Args: { _liberado: boolean; _user_id: string }
         Returns: undefined
       }
+      previsao_excluir_reforco: { Args: { _id: string }; Returns: undefined }
+      previsao_lancar_reforco: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _hora_entrada?: string
+          _mensagem?: string
+          _novo_nome: string
+          _unidade: string
+          _valor: number
+        }
+        Returns: string
+      }
       previsao_pedir_reforco: {
         Args: { _data: string; _mensagem?: string; _unidade: string }
         Returns: string
       }
+      previsao_reforco_opcoes: { Args: { _unidade: string }; Returns: Json }
       registrar_bonificacao_conjunta: {
         Args: {
           _data: string
