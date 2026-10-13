@@ -87,6 +87,14 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
 - `/gestao`: sem números de exemplo (mostra "—" e o erro quando falta a métrica). `consolidar-dados` grava
   `hotel_metrics.rating = null` (a nota fixa saiu; ninguém lia o campo).
 
+## Menu do gestor (13/10/2026, branch `feat/menu-gestor-enxuto`, sem migração)
+- Gestor/admin: a lateral (e a barra de baixo no celular) mostra só ÁREA DO GESTOR › INÍCIO DA ÁREA
+  (`MENU_GESTOR` em `src/components/app-shell.tsx`). Sem Bater Ponto nem Minha Escala (gestor não bate
+  ponto nem tem escala; é só o menu, cadastro e quiosque não mudaram). Seletor de unidade,
+  notificações e Sair continuam. A lateral da equipe não mudou.
+- Todas as telas que estavam na lateral têm card em Atalhos. Novos: seção "Telas da equipe" (Recepção,
+  Camareiras, Manutenção) e, em Operação, Painel de Chamados, Serviços e Chat.
+
 ## Estado atual
 - Revisão no Lovable: ocupação de hoje usa `hotel_metrics.occupancy_percentage` do Cloudbeds, não nomes de hóspedes. Conferência real: Botafogo 52,63%, Ipanema 50%.
 - Indicadores da operação abrem quartos filtrados; indicadores mensais levam aos módulos; rendimento, quartos, dias, canais e barras abrem os registros resumidos. Valores longos quebram linha sem esconder os dados.
