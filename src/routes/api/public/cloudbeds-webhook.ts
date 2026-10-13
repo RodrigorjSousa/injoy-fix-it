@@ -22,6 +22,12 @@ export const Route = createFileRoute("/api/public/cloudbeds-webhook")({
         json({ ok: true, endpoint: "cloudbeds-webhook", accepts: "POST" }),
 
       POST: async ({ request }) => {
+        // Segurança: só aceita com o token secreto na URL (?token=...), cadastrado em CLOUDBEDS_WEBHOOK_TOKEN.
+        // Sem o secret configurado, recusa tudo (o app não usa housekeeping_tasks; a operação vem de consolidar-dados).
+        const esperado = process.env.CLOUDBEDS_WEBHOOK_TOKEN;
+        const recebido = new URL(request.url).searchParams.get("token");
+        if (!esperado || recebido !== esperado) return json({ error: "Unauthorized" }, 401);
+
         let payload: any;
         try {
           payload = await request.json();

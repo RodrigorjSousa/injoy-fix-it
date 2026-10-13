@@ -46,8 +46,38 @@ async function logTuyaCall(entry: {
   }
 }
 
+// Quem pode chamar esta função (abre portas e cria senhas): o servidor (chave de serviço — totem e limpeza
+// automática) ou um usuário logado com papel gestor/admin/recepção, ou liberado na tela "check-in-digital".
+// Antes qualquer um com a chave pública (que está no app) podia chamar, inclusive "unlock".
+async function autorizado(req: Request): Promise<boolean> {
+  const token = (req.headers.get("authorization") ?? "").replace(/^Bearer\s+/i, "").trim();
+  if (!token) return false;
+  if (SUPABASE_SERVICE_ROLE_KEY && token === SUPABASE_SERVICE_ROLE_KEY) return true;
+  const { data, error } = await supabaseAdmin.auth.getUser(token);
+  const uid = data?.user?.id;
+  if (error || !uid) return false;
+  const { data: papeis } = await supabaseAdmin.from("user_roles").select("role").eq("user_id", uid);
+  if ((papeis ?? []).some((p: { role: string }) => ["gestor", "admin", "recepcao"].includes(p.role))) return true;
+  const { data: func } = await supabaseAdmin
+    .from("funcionarios")
+    .select("telas_permitidas")
+    .eq("user_id", uid)
+    .order("nome")
+    .limit(1)
+    .maybeSingle();
+  const telas = (func?.telas_permitidas ?? []) as string[];
+  return Array.isArray(telas) && telas.includes("check-in-digital");
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+
+  if (!(await autorizado(req))) {
+    return new Response(JSON.stringify({ success: false, error: "Não autorizado" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
 
   try {
     const payload = await req.json();
@@ -55,9 +85,16 @@ serve(async (req) => {
 
 
 
-    const clientId = "vv57ktpj3ka4prqhfm9r";
-    const secret = "e62b5e3d534548aa99ab458af9bd72b2";
-    const baseUrl = "https://openapi.tuyaus.com";
+    // Credenciais da Tuya só nos secrets do Supabase (nunca no código: o repositório é público).
+    const clientId = Deno.env.get("TUYA_CLIENT_ID") ?? "";
+    const secret = Deno.env.get("TUYA_CLIENT_SECRET") ?? "";
+    const baseUrl = Deno.env.get("TUYA_BASE_URL") ?? "https://openapi.tuyaus.com";
+    if (!clientId || !secret) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Tuya não configurada: faltam os secrets TUYA_CLIENT_ID e TUYA_CLIENT_SECRET." }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
 
     const calcSha256 = async (str: string) => {
       const msgUint8 = new TextEncoder().encode(str);

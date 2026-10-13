@@ -16,7 +16,6 @@ export const Route = createFileRoute("/api/public/tuya-cleanup")({
       POST: async () => {
         const SUPABASE_URL = process.env.SUPABASE_URL!;
         const SERVICE_ROLE = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-        const ANON_KEY = process.env.SUPABASE_ANON_KEY ?? process.env.SUPABASE_PUBLISHABLE_KEY!;
 
         const nowIso = new Date().toISOString();
 
@@ -78,14 +77,15 @@ export const Route = createFileRoute("/api/public/tuya-cleanup")({
             continue;
           }
 
-          // 2) Chamar tuya-password action=revoke via anon key (edge function pública)
+          // 2) Chamar tuya-password action=revoke com a chave de serviço (só o servidor tem)
           const revRes = await fetch(
             `${SUPABASE_URL}/functions/v1/tuya-password`,
             {
               method: "POST",
               headers: {
-                apikey: ANON_KEY,
-                Authorization: `Bearer ${ANON_KEY}`,
+                // Chave de serviço: a tuya-password não aceita mais a chave pública.
+                apikey: SERVICE_ROLE,
+                Authorization: `Bearer ${SERVICE_ROLE}`,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
