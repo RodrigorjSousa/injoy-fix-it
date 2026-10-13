@@ -172,7 +172,7 @@ function PainelCamareiras() {
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
     const chave = `${q.property}-${q.room_number}`;
     const ok = window.confirm(
-      `Confirmar CHECK-OUT no Cloudbeds do quarto ${q.room_number}?\n\nHóspede: ${q.guest_name ?? "—"}\n\nEsta ação é irreversível no PMS.`,
+      `Confirmar CHECK-OUT no Cloudbeds do quarto ${q.room_number}?\n\nHóspede que sai: ${q.departing_guest_name ?? q.guest_name ?? "—"}\n\nEsta ação é irreversível no PMS.`,
     );
     if (!ok) return;
     setCheckoutLoading(chave);
@@ -1003,8 +1003,8 @@ function PainelCamareiras() {
                 </button>
               )}
 
-              {q.property === "Ipanema" &&
-                q.guest_name &&
+              {/* Botafogo e Ipanema: a camareira faz o check-out e a Recepção confere. */}
+              {q.guest_name &&
                 q.guest_name !== "Quarto Vazio" &&
                 // Só quem sai hoje (GERAL ou GERAL com check-in); evita fazer check-out de hóspede que fica.
                 ["GERAL", "GERAL - CHECK-IN"].includes(formatTaskLabel(q.assigned_task)) && (

@@ -11,7 +11,7 @@ const inputSchema = z.object({
  * Faz o check-out de uma reserva diretamente no Cloudbeds.
  * Busca a reserva atualmente `checked_in` no quarto informado
  * e altera o status para `checked_out`.
- * Uso pensado para a unidade Ipanema (sem recepção),
+ * Usado nas duas unidades (Botafogo e Ipanema); a Recepção confere no quadro de check-outs,
  * autorizado para gestor/admin ou camareira da unidade.
  */
 export const cloudbedsCheckoutRoom = createServerFn({ method: "POST" })
