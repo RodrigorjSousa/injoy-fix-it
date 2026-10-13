@@ -393,6 +393,13 @@
       "when": 1791904024359,
       "tag": "0055_cloudbeds_quarto_limpo",
       "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1791909583202,
+      "tag": "0056_0056_reforco_recepcao_lanca",
+      "breakpoints": true
     }
   ]
 }
