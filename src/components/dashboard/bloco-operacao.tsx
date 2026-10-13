@@ -2,7 +2,7 @@ import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
 import { PrevisaoCargaCard } from "@/components/gestao/previsao-carga-card";
 import { useQuartosHoje, useOcupacaoHoje, UNIDADES_DASH, type QuartoHoje } from "@/lib/dashboard/dados";
 import { resumoOperacao } from "@/lib/dashboard/operacao";
-import { situacaoQuarto } from "@/lib/dashboard/operacao";
+import { situacaoQuarto, taxaOcupacaoCloudbeds } from "@/lib/dashboard/operacao";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
@@ -25,6 +25,7 @@ export function BlocoOperacao() {
   return (
     <Secao titulo="Operação de hoje" acao={<Button variant="outline" size="sm" disabled={sync.isPending} onClick={() => sync.mutate()}><RefreshCw className={sync.isPending ? "animate-spin" : ""} />{sync.isPending ? "Atualizando…" : "Atualizar operação"}</Button>}>
       {sync.error && <p role="alert" className="text-sm text-destructive">{sync.error.message}</p>}
+      {ocupacao.error && <p role="alert" className="text-sm text-destructive">Ocupação: {ocupacao.error.message}</p>}
       {q.error ? (
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">Quartos: {(q.error as Error).message}</p>
       ) : (
