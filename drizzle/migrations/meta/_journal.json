@@ -386,6 +386,13 @@
       "when": 1791895083161,
       "tag": "0054_0054_dashboard_rendimento",
       "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1791904024359,
+      "tag": "0055_cloudbeds_quarto_limpo",
+      "breakpoints": true
     }
   ]
 }

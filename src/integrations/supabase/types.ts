@@ -555,6 +555,48 @@ export type Database = {
         }
         Relationships: []
       }
+      cloudbeds_limpeza_logs: {
+        Row: {
+          condicao_cloudbeds: string | null
+          created_at: string
+          erro: string | null
+          id: string
+          nome: string | null
+          origem: string
+          property: string
+          resultado: string
+          room_id: string | null
+          room_number: string
+          user_id: string | null
+        }
+        Insert: {
+          condicao_cloudbeds?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          nome?: string | null
+          origem: string
+          property: string
+          resultado: string
+          room_id?: string | null
+          room_number: string
+          user_id?: string | null
+        }
+        Update: {
+          condicao_cloudbeds?: string | null
+          created_at?: string
+          erro?: string | null
+          id?: string
+          nome?: string | null
+          origem?: string
+          property?: string
+          resultado?: string
+          room_id?: string | null
+          room_number?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       config_bonificacao: {
         Row: {
           created_at: string
@@ -3134,6 +3176,11 @@ export type Database = {
           assigned_camareira: string | null
           assigned_task: string | null
           blink_troca: boolean
+          cloudbeds_limpo_em: string | null
+          cloudbeds_limpo_erro: string | null
+          cloudbeds_limpo_status: string | null
+          cloudbeds_limpo_tentativas: number
+          cloudbeds_room_id: string | null
           color_code: string | null
           comment_media_type: string | null
           comment_media_url: string | null
@@ -3170,6 +3217,11 @@ export type Database = {
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
+          cloudbeds_limpo_em?: string | null
+          cloudbeds_limpo_erro?: string | null
+          cloudbeds_limpo_status?: string | null
+          cloudbeds_limpo_tentativas?: number
+          cloudbeds_room_id?: string | null
           color_code?: string | null
           comment_media_type?: string | null
           comment_media_url?: string | null
@@ -3206,6 +3258,11 @@ export type Database = {
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
+          cloudbeds_limpo_em?: string | null
+          cloudbeds_limpo_erro?: string | null
+          cloudbeds_limpo_status?: string | null
+          cloudbeds_limpo_tentativas?: number
+          cloudbeds_room_id?: string | null
           color_code?: string | null
           comment_media_type?: string | null
           comment_media_url?: string | null
@@ -3990,6 +4047,17 @@ export type Database = {
         }[]
       }
       checkout_log_conferir: { Args: { _id: string }; Returns: undefined }
+      cloudbeds_limpeza_registrar: {
+        Args: {
+          _condicao?: string
+          _confirmado: boolean
+          _erro?: string
+          _property: string
+          _room_id: string
+          _room_number: string
+        }
+        Returns: string
+      }
       dash_gravar_noites: {
         Args: {
           _avisos?: string
