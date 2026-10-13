@@ -14,6 +14,8 @@ import {
   saldoDe,
   sobrenomeConfere,
   tentativasEsgotadas,
+  adultosDaReserva,
+  documentosFaltando,
   type EntradaCheckin,
 } from "./regras";
 
@@ -186,5 +188,26 @@ describe("relógio e bloqueio", () => {
     expect(tentativasEsgotadas(cinco, agora)).toBe(true);
     expect(tentativasEsgotadas([ev(0.5, "identificacao_ok"), ...cinco], agora)).toBe(false);
     expect(tentativasEsgotadas([1, 2, 3, 4, 12].map((m) => ev(m, "identificacao_falhou")), agora)).toBe(false);
+  });
+});
+
+describe("adultos e documentos", () => {
+  it("usa o número de adultos e preenche os nomes conhecidos, titular primeiro", () => {
+    const r = adultosDaReserva({ ...reserva, adults: 3 });
+    expect(r).toEqual([
+      { ordem: 1, nome: "María José da Silva" },
+      { ordem: 2, nome: "John O'Connor" },
+      { ordem: 3, nome: null },
+    ]);
+  });
+  it("sem número de adultos usa a soma dos quartos ou os hóspedes; nunca menos de 1", () => {
+    expect(adultosDaReserva({ rooms: [{ roomName: "005", adults: 2 }] })).toHaveLength(2);
+    expect(adultosDaReserva({ guestList: {} })).toHaveLength(1);
+  });
+  it("cada adulto precisa da selfie e da foto com o documento", () => {
+    const f = (ordem: number, etapa: string) => ({ hospede_ordem: ordem, etapa });
+    expect(documentosFaltando(2, [f(1, "rosto"), f(1, "rosto_documento"), f(2, "rosto")])).toBe(1);
+    expect(documentosFaltando(2, [f(1, "rosto"), f(1, "rosto_documento"), f(2, "rosto"), f(2, "rosto_documento")])).toBe(0);
+    expect(documentosFaltando(1, [f(1, "rosto_documento")])).toBe(1);
   });
 });

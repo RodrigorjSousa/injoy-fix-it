@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { conferenciaFoto } from "@/lib/totem/rosto";
+import { linkPareamento } from "@/lib/totem/pareamento";
+import { carregarScript } from "@/lib/script-externo";
 import { useCallback, useEffect, useState } from "react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { Copy, KeyRound, Loader2, Plus, Save, Star, Unplug } from "lucide-react";
@@ -36,6 +39,55 @@ type TotemRow = {
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
   modo: "ambos" | "checkin" | "checkout";
+  // 0059 (podem faltar se a migração ainda não foi aplicada)
+  pagamento_habilitado?: boolean;
+  pos_serial?: string | null;
+  pede_documentos?: boolean;
+  voz_ativa?: boolean;
+  impressora?: "nenhuma" | "rawbt";
+  wifi_rede?: string | null;
+  wifi_senha?: string | null;
+  mensagem_comprovante?: string | null;
+};
+
+type CobrancaRow = {
+  id: string;
+  unidade: string;
+  reservation_id: string;
+  hospede: string | null;
+  fluxo: string;
+  valor: number;
+  metodo: string;
+  status: string;
+  bandeira: string | null;
+  cloudbeds_lancado: boolean;
+  cloudbeds_erro: string | null;
+  criado_em: string;
+};
+
+type DocumentoRow = {
+  id: string;
+  unidade: string;
+  reservation_id: string;
+  hospede_nome: string;
+  hospede_ordem: number;
+  tipo_documento: string;
+  numero_documento: string | null;
+  etapa: string;
+  vivacidade: boolean | null;
+  dist_mesma_pessoa: number | null;
+  dist_foto_documento: number | null;
+  arquivo_path: string;
+  cloudbeds_erro: string | null;
+  criado_em: string;
+};
+
+const STATUS_COBRANCA: Record<string, string> = {
+  pendente: "Aguardando",
+  pago: "Pago",
+  cancelado: "Cancelado",
+  falhou: "Falhou",
+  expirado: "Expirou",
 };
 
 const MODOS: Array<{ id: TotemRow["modo"]; rotulo: string }> = [
@@ -76,6 +128,8 @@ const TIPOS: Record<string, string> = {
   checkout_impedido: "Check-out não liberado",
   checkout_erro: "Erro no check-out",
   avaliacao: "Avaliação",
+  pagamento_iniciado: "Cobrança enviada à maquininha",
+  documento: "Foto de documento",
 };
 
 const MOTIVOS: Record<string, string> = {
@@ -89,6 +143,7 @@ const MOTIVOS: Record<string, string> = {
   sem_fechadura: "quarto sem fechadura",
   saldo_aberto: "saldo em aberto",
   nao_hospedado: "não hospedado",
+  documentos_pendentes: "faltam documentos",
 };
 
 const dataHora = (iso: string | null) =>
@@ -102,6 +157,9 @@ function TotemGestor() {
   const [totens, setTotens] = useState<TotemRow[] | null>(null);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [avaliacoes, setAvaliacoes] = useState<AvaliacaoRow[]>([]);
+  const [cobrancas, setCobrancas] = useState<CobrancaRow[]>([]);
+  const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
+  const [aviso0059, setAviso0059] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const [novaUnidade, setNovaUnidade] = useState<"Botafogo" | "Ipanema">("Ipanema");
@@ -111,7 +169,7 @@ function TotemGestor() {
     const [t, e, a] = await Promise.all([
       sb
         .from("totem_dispositivos")
-        .select("id,nome,unidade,ativo,token_hash,pareado_em,ultimo_uso,hora_checkin,hora_checkout,exige_quarto_limpo,bloqueia_saldo_aberto,telefone_suporte,modo")
+        .select("*")
         .order("criado_em"),
       sb.from("totem_eventos").select("id,unidade,tipo,quarto,hospede,detalhe,criado_em").order("criado_em", { ascending: false }).limit(60),
       sb.from("totem_avaliacoes").select("id,unidade,quarto,hospede,nota,comentario,criado_em").order("criado_em", { ascending: false }).limit(50),
@@ -130,7 +188,36 @@ function TotemGestor() {
     setTotens((t.data ?? []) as TotemRow[]);
     setEventos((e.data ?? []) as Evento[]);
     setAvaliacoes((a.data ?? []) as AvaliacaoRow[]);
+
+    // Pagamentos e documentos (migração 0059). Se ainda não existir, só avisa.
+    const [c, d] = await Promise.all([
+      sb
+        .from("totem_cobrancas")
+        .select("id,unidade,reservation_id,hospede,fluxo,valor,metodo,status,bandeira,cloudbeds_lancado,cloudbeds_erro,criado_em")
+        .order("criado_em", { ascending: false })
+        .limit(40),
+      sb
+        .from("totem_documentos")
+        .select("id,unidade,reservation_id,hospede_nome,hospede_ordem,tipo_documento,numero_documento,etapa,vivacidade,dist_mesma_pessoa,dist_foto_documento,arquivo_path,cloudbeds_erro,criado_em")
+        .order("criado_em", { ascending: false })
+        .limit(40),
+    ]);
+    setAviso0059(!!(c.error || d.error));
+    setCobrancas(((c.data ?? []) as CobrancaRow[]).map((r) => ({ ...r, valor: Number(r.valor) })));
+    setDocumentos(
+      ((d.data ?? []) as DocumentoRow[]).map((r) => ({
+        ...r,
+        dist_mesma_pessoa: r.dist_mesma_pessoa === null ? null : Number(r.dist_mesma_pessoa),
+        dist_foto_documento: r.dist_foto_documento === null ? null : Number(r.dist_foto_documento),
+      })),
+    );
   }, []);
+
+  const verDocumento = async (path: string) => {
+    const { data, error } = await sb.storage.from("documentos-hospedes").createSignedUrl(path, 300);
+    if (error || !data?.signedUrl) return toast.error(`Não foi possível abrir: ${error?.message ?? "sem link"}`);
+    window.open(data.signedUrl, "_blank", "noopener");
+  };
 
   useEffect(() => {
     void carregar();
@@ -196,6 +283,78 @@ function TotemGestor() {
           {totens.length === 0 && !erro && <p className="text-sm text-slate-500">Nenhum totem cadastrado ainda.</p>}
         </div>
       )}
+
+      {aviso0059 && (
+        <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          Pagamento na maquininha e fotos de identificação ainda não estão ativos: aplique no Lovable a migração
+          drizzle/migrations/0059_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
+          "documentos-hospedes", a 0060_totem_documentos_storage_policies.sql).
+        </Card>
+      )}
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-black text-slate-900">Pagamentos no totem</h3>
+        <Card className="divide-y">
+          {cobrancas.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhum pagamento ainda.</p>}
+          {cobrancas.map((c) => (
+            <div key={c.id} className="grid gap-1 p-3 text-sm sm:grid-cols-[8rem_1fr_auto]">
+              <span className="text-xs text-slate-500">{dataHora(c.criado_em)}</span>
+              <div>
+                <p className="font-semibold text-slate-900">
+                  R$ {c.valor.toFixed(2).replace(".", ",")} · {c.metodo}
+                  {c.bandeira ? ` ${c.bandeira}` : ""} · {c.hospede ?? "Hóspede"} · reserva {c.reservation_id}
+                </p>
+                {c.status === "pago" && !c.cloudbeds_lancado && (
+                  <p className="text-red-700">Não lançado no Cloudbeds{c.cloudbeds_erro ? `: ${c.cloudbeds_erro}` : ""}. Lançar manualmente.</p>
+                )}
+              </div>
+              <Badge variant={c.status === "pago" ? "default" : "secondary"}>{STATUS_COBRANCA[c.status] ?? c.status}</Badge>
+            </div>
+          ))}
+        </Card>
+      </section>
+
+      <section className="space-y-3">
+        <h3 className="text-lg font-black text-slate-900">Fotos de identificação</h3>
+        <p className="text-sm text-slate-500">
+          Selfie com prova de vida e selfie segurando o documento. Os indícios abaixo são calculados no tablet; na dúvida, confira a foto.
+        </p>
+        <Card className="divide-y">
+          {documentos.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhuma foto ainda.</p>}
+          {documentos.map((d) => (
+            <div key={d.id} className="flex flex-wrap items-center justify-between gap-2 p-3 text-sm">
+              <div>
+                <p className="font-semibold text-slate-900">
+                  {d.hospede_nome} · {d.etapa === "rosto" ? "Selfie" : `Selfie com ${d.tipo_documento.toUpperCase()}`} {d.numero_documento ?? ""}
+                </p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {conferenciaFoto(d).map((c) => (
+                    <span
+                      key={c.texto}
+                      className={
+                        c.ok === true
+                          ? "rounded-full bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-800"
+                          : c.ok === false
+                            ? "rounded-full bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-800"
+                            : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-600"
+                      }
+                    >
+                      {c.texto}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-xs text-slate-500">
+                  {d.unidade} · reserva {d.reservation_id} · {dataHora(d.criado_em)}
+                  {d.cloudbeds_erro ? ` · não anexado no Cloudbeds: ${d.cloudbeds_erro}` : ""}
+                </p>
+              </div>
+              <Button size="sm" variant="outline" onClick={() => void verDocumento(d.arquivo_path)}>
+                Ver foto
+              </Button>
+            </div>
+          ))}
+        </Card>
+      </section>
 
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
@@ -265,7 +424,16 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     telefone_suporte: totem.telefone_suporte ?? "",
     ativo: totem.ativo,
     modo: totem.modo ?? "ambos",
+    pagamento_habilitado: totem.pagamento_habilitado ?? false,
+    pos_serial: totem.pos_serial ?? "",
+    pede_documentos: totem.pede_documentos ?? true,
+    voz_ativa: totem.voz_ativa ?? true,
+    impressora: totem.impressora ?? "nenhuma",
+    wifi_rede: totem.wifi_rede ?? "",
+    wifi_senha: totem.wifi_senha ?? "",
+    mensagem_comprovante: totem.mensagem_comprovante ?? "",
   });
+  const tem0059 = totem.pagamento_habilitado !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -274,7 +442,26 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     setSalvando(true);
     const { data, error } = await sb
       .from("totem_dispositivos")
-      .update({ ...form, telefone_suporte: form.telefone_suporte.trim() || null })
+      .update(
+        tem0059
+          ? {
+              ...form,
+              telefone_suporte: form.telefone_suporte.trim() || null,
+              pos_serial: form.pos_serial.trim() || null,
+              wifi_rede: form.wifi_rede.trim() || null,
+              wifi_senha: form.wifi_senha.trim() || null,
+              mensagem_comprovante: form.mensagem_comprovante.trim() || null,
+            }
+          : {
+              hora_checkin: form.hora_checkin,
+              hora_checkout: form.hora_checkout,
+              exige_quarto_limpo: form.exige_quarto_limpo,
+              bloqueia_saldo_aberto: form.bloqueia_saldo_aberto,
+              telefone_suporte: form.telefone_suporte.trim() || null,
+              ativo: form.ativo,
+              modo: form.modo,
+            },
+      )
       .eq("id", totem.id)
       .select("id");
     setSalvando(false);
@@ -367,6 +554,58 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
         <Regra rotulo="Totem ativo" valor={form.ativo} onChange={(v) => setForm({ ...form, ativo: v })} />
       </div>
 
+      {tem0059 && (
+        <div className="space-y-3 rounded-lg border border-slate-200 p-3">
+          <p className="text-sm font-bold text-slate-900">Pagamento, documentos e comprovante</p>
+          <Regra
+            rotulo="Cobrar saldo na maquininha Stone"
+            ajuda="Pagamento Direto (Connect 2.0). Precisa dos segredos da Pagar.me/Stone no Lovable."
+            valor={form.pagamento_habilitado}
+            onChange={(v) => setForm({ ...form, pagamento_habilitado: v })}
+          />
+          <div>
+            <Label htmlFor={`pos-${totem.id}`}>Número de série da maquininha (S920 ou Q92)</Label>
+            <Input id={`pos-${totem.id}`} value={form.pos_serial} onChange={(e) => setForm({ ...form, pos_serial: e.target.value })} />
+          </div>
+          <Regra
+            rotulo="Pedir foto do documento de todos os adultos"
+            ajuda="No check-in, antes de entregar a senha."
+            valor={form.pede_documentos}
+            onChange={(v) => setForm({ ...form, pede_documentos: v })}
+          />
+          <Regra
+            rotulo="Voz guiando o hóspede"
+            ajuda="Fala o passo a passo e as dicas da câmera no idioma escolhido. No Fully Kiosk, ligue a JavaScript Interface (PLUS)."
+            valor={form.voz_ativa}
+            onChange={(v) => setForm({ ...form, voz_ativa: v })}
+          />
+          <Regra
+            rotulo="Imprimir comprovante (impressora térmica via RawBT)"
+            valor={form.impressora === "rawbt"}
+            onChange={(v) => setForm({ ...form, impressora: v ? "rawbt" : "nenhuma" })}
+          />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label htmlFor={`wr-${totem.id}`}>Wi-Fi (rede)</Label>
+              <Input id={`wr-${totem.id}`} value={form.wifi_rede} onChange={(e) => setForm({ ...form, wifi_rede: e.target.value })} />
+            </div>
+            <div>
+              <Label htmlFor={`ws-${totem.id}`}>Wi-Fi (senha)</Label>
+              <Input id={`ws-${totem.id}`} value={form.wifi_senha} onChange={(e) => setForm({ ...form, wifi_senha: e.target.value })} />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor={`msg-${totem.id}`}>Mensagem no fim do comprovante</Label>
+            <Input
+              id={`msg-${totem.id}`}
+              placeholder="Ex.: Café da manhã das 7h às 10h"
+              value={form.mensagem_comprovante}
+              onChange={(e) => setForm({ ...form, mensagem_comprovante: e.target.value })}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="flex flex-wrap gap-2">
         <Button onClick={salvar} disabled={salvando}>
           {salvando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />} Salvar regras
@@ -383,7 +622,21 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
 
       {codigo && (
         <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
-          <p className="text-xs text-emerald-800">Digite no tablet (em /totem). Vale até {dataHora(codigo.expira)} e só funciona uma vez.</p>
+          <div className="flex flex-wrap items-start gap-4">
+            <QrPareamento link={linkPareamento(window.location.origin, codigo.codigo)} />
+            <ol className="min-w-0 flex-1 list-decimal space-y-1 pl-4 text-sm text-emerald-900">
+              <li>
+                <b>Tablet ainda sem o totem aberto:</b> abra a câmera do tablet e aponte para o QR. O link abre o
+                totem já conectado.
+              </li>
+              <li>
+                <b>Tablet já na tela do totem (Fully Kiosk):</b> toque em <b>Ler QR code</b> e mostre este QR para
+                a câmera da frente.
+              </li>
+              <li>Ou digite o código abaixo na tela do totem.</li>
+            </ol>
+          </div>
+          <p className="mt-3 text-xs text-emerald-800">Vale até {dataHora(codigo.expira)} e só funciona uma vez.</p>
           <div className="mt-1 flex items-center gap-2">
             <span className="font-mono text-3xl font-black tracking-widest text-emerald-900">{codigo.codigo}</span>
             <Button
@@ -412,3 +665,42 @@ function Regra({ rotulo, ajuda, valor, onChange }: { rotulo: string; ajuda?: str
     </label>
   );
 }
+
+/** QR com o link de pareamento (/totem?parear=CODIGO), desenhado no navegador. */
+function QrPareamento({ link }: { link: string }) {
+  const [svg, setSvg] = useState<string | null>(null);
+  const [erro, setErro] = useState<string | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    setSvg(null);
+    carregarScript("/vendor/qrcode-generator-1.4.4.min.js")
+      .then(() => {
+        const gerar = (window as unknown as { qrcode?: QrGerador }).qrcode;
+        if (!gerar) throw new Error("Gerador de QR indisponível.");
+        const qr = gerar(0, "M");
+        qr.addData(link);
+        qr.make();
+        if (ativo) setSvg(qr.createSvgTag(6, 2));
+      })
+      .catch((e: unknown) => ativo && setErro(e instanceof Error ? e.message : String(e)));
+    return () => {
+      ativo = false;
+    };
+  }, [link]);
+  if (erro) return <p className="text-xs text-red-700">QR indisponível: {erro}</p>;
+  return (
+    <div
+      role="img"
+      aria-label="QR code para conectar o tablet"
+      className="grid h-48 w-48 shrink-0 place-items-center rounded-md bg-white p-1 [&_svg]:h-full [&_svg]:w-full"
+      dangerouslySetInnerHTML={svg ? { __html: svg } : undefined}
+    >
+      {svg ? undefined : <Loader2 className="h-6 w-6 animate-spin text-emerald-700" />}
+    </div>
+  );
+}
+
+type QrGerador = (
+  tipo: number,
+  correcao: "L" | "M" | "Q" | "H",
+) => { addData: (d: string) => void; make: () => void; createSvgTag: (celula?: number, margem?: number) => string };

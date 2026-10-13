@@ -114,11 +114,138 @@ check-in e check-out pelo totem + avaliação rápida no check-out.
 Alternativa sem licença: Chrome › menu › **Instalar app** em `/totem` e depois Configurações ›
 Segurança › **Fixar app**. Funciona, mas o hóspede consegue sair segurando Voltar + Visão geral.
 
+### Pareamento por QR code
+O gestor gera o código em **Área do Gestor › Totem** e a tela mostra também um **QR code** com o link
+`https://<endereço do app>/totem?parear=CODIGO` (`src/lib/totem/pareamento.ts`). Três jeitos de conectar:
+1. **Câmera do Android:** apontar para o QR abre o totem já conectado. Atenção: o link abre no
+   navegador padrão. Se o totem roda no Fully Kiosk, use o jeito 2 (cada navegador guarda o seu token).
+2. **Dentro do totem (Fully Kiosk):** na tela "Configurar este totem", tocar em **Ler QR code** e
+   mostrar o QR para a câmera da frente. Usa o leitor nativo do Android (`BarcodeDetector`) quando
+   existe, senão o jsQR.
+3. Digitar o código de 8 letras/números.
+
+As bibliotecas de QR ficam em `public/vendor/` (`qrcode-generator` MIT e `jsqr` Apache-2.0),
+carregadas só quando precisa (`src/lib/script-externo.ts`), sem mexer no `package.json`/`bun.lock`.
+
+### Entrega 3: pagamento, documentos e comprovante (migrações 0059 e 0060)
+Fluxo do check-in: encontrar a reserva → **pagamento** (se houver saldo) → **identificação** → senha (na tela
+e impressa). Fluxo do check-out: encontrar a estadia → **pagamento** (se houver saldo) → confirmar a
+saída → avaliação (comprovante impresso).
+
+- **Pagamento: Stone Connect 2.0, "Pagamento Direto"** (`src/lib/totem/stone.server.ts` e
+  `cobranca.server.ts`).
+  - **Cobrança:** o servidor cria o pedido na API Pagar.me v5 para o número de série da maquininha do
+    tablet (S920 ou Q92). A maquininha abre a tela sozinha, com crédito, débito ou Pix.
+  - **Confirmação:** vem pelo webhook `/api/public/pagarme-webhook`. O servidor não confia no corpo do
+    webhook e relê o pedido na API antes de aprovar. Como resiliência, a tela também consulta a cada
+    15 s.
+  - **Lançamento no Cloudbeds:** com o pagamento aprovado, o servidor faz `postPayment` uma única vez
+    (trava em `cloudbeds_lancando_em`) e grava em `reservation_payments`. Se o Cloudbeds recusar, a
+    recepção recebe um recado e o gestor vê "Não lançado no Cloudbeds".
+  - **Valor:** sempre recalculado no servidor (saldo do Cloudbeds menos o que o totem recebeu nas
+    últimas 6 h), para não cobrar duas vezes.
+  - **Pedidos sem pagamento:** um pedido sem pagamento expira em 5 minutos e é cancelado na
+    maquininha. Também é cancelado se o hóspede trocar de forma de pagamento ou sair da tela.
+- **Ticket de atendimento** (`ticket.server.ts`): depois dos dois fatores, o servidor devolve um ticket
+  HMAC válido por 20 minutos, só para aquele totem e aquela reserva. Pagamento e documentos usam o
+  ticket. A senha da porta refaz toda a conferência.
+- **Identificação no estilo gov.br** (`rosto.ts`, `documentos.server.ts`, tela em `totem-app.tsx`).
+  Decisão do conselho (out/2026): câmera frontal, sem bandeja "scanner".
+  - **Quem:** cada adulto da reserva, conforme o número de adultos do Cloudbeds, com os nomes conhecidos
+    já preenchidos.
+  - **Consentimento (LGPD):** antes da câmera, uma tela explica as duas fotos e para que servem. Não
+    há opção de "fazer na recepção" (a unidade não tem recepção): as fotos são obrigatórias para
+    liberar a senha. O servidor só grava foto com `consentimento: true` e guarda a hora em
+    `consentimento_em`.
+  - **Dados:** tipo do documento, nome e número (para o registro de hóspedes).
+  - **Foto 1, rosto:** guia oval. A leitura do rosto roda no tablet com o mesmo `@vladmandic/face-api`
+    do ponto (`src/lib/ponto-face.ts`, modelos em `public/models/face`). Pede para centralizar,
+    aproximar ou afastar, recusa duas pessoas, pede para **piscar** (prova de vida) e tira a foto
+    sozinha após 4 leituras boas seguidas. Sem piscar em 15 s, aparece "Tirar a foto mesmo assim"
+    (fica marcado sem prova de vida).
+  - **Foto 2, segurando o documento:** guia oval + guia do documento (que muda de lado conforme o
+    rosto). O maior rosto tem de ser a **mesma pessoa** da selfie (distância < 0,55). A foto 3x4 do
+    documento é procurada de novo em resolução maior no lado oposto ao rosto; achando, tira sozinha e
+    mostra a prévia para o hóspede confirmar. Botão manual depois de 8 s.
+  - **O que vai para o servidor:** só a foto (JPEG sem espelhar, o texto do documento fica legível) e
+    os indícios `vivacidade`, `dist_mesma_pessoa` e `dist_foto_documento`. O "vetor do rosto" não é
+    guardado.
+  - **Onde fica:** bucket privado `documentos-hospedes` e tabela `totem_documentos` (coluna `etapa`:
+    `rosto` ou `rosto_documento`), com anexo na reserva do Cloudbeds (`postReservationDocument`). Se o
+    anexo falhar, a foto continua guardada e o gestor vê o erro.
+  - **Limites:** não é biometria certificada nem consulta base do governo. Os indícios ajudam a
+    equipe a conferir à distância; a foto 3x4 impressa pode não ser reconhecida (reflexo, foto antiga), por isso
+    ela não bloqueia o check-in.
+- **Voz guiando o hóspede** (`voz.ts`): fala o passo a passo de cada tela e as dicas da câmera
+  ("chegue mais perto", "pisque devagar"...) no idioma escolhido (pt-BR, en-US, es-ES).
+  - **Como sai o som:** o navegador do Fully Kiosk (Android WebView) não tem voz própria, então a
+    fala usa `fully.textToSpeech` (JavaScript Interface, recurso **PLUS**). No computador, usa a voz
+    do Chrome.
+  - **Quando fala:** só depois que alguém toca na tela (não fala sozinho para o saguão vazio). As
+    dicas da câmera passam por um filtro para não atropelar umas às outras (`Locutor`).
+  - **A senha da porta nunca é falada** (outra pessoa poderia ouvir): a voz diz que ela está na tela
+    e no comprovante.
+  - **Controles:** botão de alto-falante na coluna da esquerda (o hóspede pode silenciar; volta a
+    ligar no próximo atendimento) e a opção "Voz guiando o hóspede" por tablet (coluna
+    `voz_ativa`, na 0059).
+- **Comprovante** (`escpos.ts`): ESC/POS 80 mm, sem acentos, enviado ao app **RawBT**
+  (`rawbt:base64,...`).
+  - **Check-in:** senha em letras grandes, portas, validade, Wi-Fi, pagamento, telefone de ajuda e
+    mensagem configurável.
+  - **Check-out:** recibo.
+  - **Impressão:** sai sozinha, e na senha há o botão "Imprimir de novo".
+- **Área do Gestor › Totem:**
+  - **Por tablet:** maquininha (liga/desliga e nº de série), documentos, impressora, Wi-Fi e mensagem.
+  - **Listas:** pagamentos (com alerta de não lançado) e fotos de identificação (com os indícios em
+    selos verdes/vermelhos e "Ver foto" por link temporário).
+
+#### Para ativar
+1. **Stone:**
+   - Peça ao gerente de conta a ativação do **Connect 2.0 – Pagamento Direto** para sistema próprio
+     (Programa de Parceiros), com maquininha **S920 ou Q92**.
+   - Você recebe a chave secreta Pagar.me (`sk_...`) e o `ServiceRefererName`.
+   - Não há ambiente de teste: teste com vendas reais de valor baixo e cancele em seguida.
+2. **Lovable › Secrets:**
+   - `PAGARME_SECRET_KEY_BOTAFOGO` e `PAGARME_SECRET_KEY_IPANEMA` (ou só `PAGARME_SECRET_KEY`, se for a
+     mesma conta)
+   - `STONE_SERVICE_REFERER_NAME`
+   - Opcional: `PAGARME_WEBHOOK_TOKEN`
+   - Opcional: `TOTEM_TICKET_SECRET` (sem ele, o ticket usa a chave de serviço)
+3. **Pagar.me › Configurações › Webhooks:** cadastre `https://<endereço do app>/api/public/pagarme-webhook`
+   (com `?token=...` se definiu o token), com os eventos `charge.paid`, `charge.refunded`, `order.paid`
+   e `order.canceled`.
+4. **Migrações, na ordem:**
+   - Aplique a `0059_totem_pagamento_documentos.sql`.
+   - Crie pela ferramenta de armazenamento o bucket **privado** `documentos-hospedes`.
+   - Aplique a `0060_totem_documentos_storage_policies.sql`.
+5. **Área do Gestor › Totem:** em cada tablet, ligue "Cobrar saldo na maquininha", preencha o nº de série
+   da maquininha que fica ao lado dele e configure impressora, Wi-Fi e mensagem.
+6. **No tablet:**
+   - Instale o **RawBT** e configure a impressora nele (de preferência por rede: IP da impressora,
+     porta 9100).
+   - No Fully Kiosk, permita a câmera (*Web Content Settings › Enable Webcam Access*) e a abertura de
+     outros apps por link (necessária para o `rawbt:`).
+   - Fully Kiosk: ative a licença **PLUS** e ligue *Advanced Web Settings › Enable JavaScript
+     Interface*. No Android, em *Configurações › Idiomas › Saída de texto para fala*, use o mecanismo
+     do Google e baixe as vozes de português (Brasil), inglês e espanhol.
+   - Teste a impressão e a câmera.
+   - Teste a identificação com uma pessoa de verdade e um RG/CNH real, na luz do balcão: a selfie
+     precisa sair sozinha ao piscar; anote se a foto 3x4 do documento é reconhecida.
+
+#### Cuidados (LGPD)
+- Selfie é **dado biométrico** (dado sensível, art. 5º, II e art. 11 da LGPD). Por isso: tela de
+  consentimento antes da câmera, só gestor/admin lê (políticas da 0060) e nenhum vetor de rosto
+  guardado. Como não há recepção, quem não aceitar as fotos não conclui o check-in pelo totem; o
+  telefone de ajuda continua na tela.
+- Falta definir por quanto tempo guardar as fotos e colocar isso na política de privacidade. Depois
+  disso dá para criar a limpeza automática (ainda não implementada).
+
 ### Pendências / próximos passos
 - Só o quarto 005 de Botafogo tem fechadura cadastrada. Nos outros quartos o totem para em
   "sem fechadura digital" e manda o hóspede falar com a equipe.
 - Ligar `totem_avaliacoes` à Bonificação (notas Geral/Funcionário/Limpeza).
-- Pagamento de saldo no totem (hoje bloqueia ou deixa passar, conforme a configuração).
+- Pagamento: implementado com a Stone (Entrega 3), sem teste real ainda. Falta a homologação na Stone e
+  os segredos.
 - **Segurança (fora do totem):** a edge function `tuya-password` aceita chamadas com a chave pública
   (inclusive `action: "unlock"`), e o client_id/secret da Tuya está escrito no código de um repositório
   público. É preciso trocar o secret na Tuya, passar para secrets do Supabase e exigir a chave de serviço
