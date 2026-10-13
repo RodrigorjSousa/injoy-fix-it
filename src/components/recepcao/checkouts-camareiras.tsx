@@ -1,4 +1,4 @@
-// Check-outs feitos pelas camareiras (Ipanema não tem recepção) para a Recepção conferir.
+// Check-outs feitos pelas camareiras (Botafogo e Ipanema) para a Recepção conferir.
 import { useEffect } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CheckCircle2, LogOut, XCircle } from "lucide-react";
