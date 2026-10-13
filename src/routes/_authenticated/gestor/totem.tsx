@@ -39,7 +39,7 @@ type TotemRow = {
   bloqueia_saldo_aberto: boolean;
   telefone_suporte: string | null;
   modo: "ambos" | "checkin" | "checkout";
-  // 0050 (podem faltar se a migração ainda não foi aplicada)
+  // 0059 (podem faltar se a migração ainda não foi aplicada)
   pagamento_habilitado?: boolean;
   pos_serial?: string | null;
   pede_documentos?: boolean;
@@ -159,7 +159,7 @@ function TotemGestor() {
   const [avaliacoes, setAvaliacoes] = useState<AvaliacaoRow[]>([]);
   const [cobrancas, setCobrancas] = useState<CobrancaRow[]>([]);
   const [documentos, setDocumentos] = useState<DocumentoRow[]>([]);
-  const [aviso0050, setAviso0050] = useState(false);
+  const [aviso0059, setAviso0059] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [novoNome, setNovoNome] = useState("");
   const [novaUnidade, setNovaUnidade] = useState<"Botafogo" | "Ipanema">("Ipanema");
@@ -189,7 +189,7 @@ function TotemGestor() {
     setEventos((e.data ?? []) as Evento[]);
     setAvaliacoes((a.data ?? []) as AvaliacaoRow[]);
 
-    // Pagamentos e documentos (migração 0050). Se ainda não existir, só avisa.
+    // Pagamentos e documentos (migração 0059). Se ainda não existir, só avisa.
     const [c, d] = await Promise.all([
       sb
         .from("totem_cobrancas")
@@ -202,7 +202,7 @@ function TotemGestor() {
         .order("criado_em", { ascending: false })
         .limit(40),
     ]);
-    setAviso0050(!!(c.error || d.error));
+    setAviso0059(!!(c.error || d.error));
     setCobrancas(((c.data ?? []) as CobrancaRow[]).map((r) => ({ ...r, valor: Number(r.valor) })));
     setDocumentos(
       ((d.data ?? []) as DocumentoRow[]).map((r) => ({
@@ -284,11 +284,11 @@ function TotemGestor() {
         </div>
       )}
 
-      {aviso0050 && (
+      {aviso0059 && (
         <Card className="border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
           Pagamento na maquininha e fotos de identificação ainda não estão ativos: aplique no Lovable a migração
-          drizzle/migrations/0050_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
-          "documentos-hospedes", a 0051_totem_documentos_storage_policies.sql).
+          drizzle/migrations/0059_totem_pagamento_documentos.sql (e, depois de criar o bucket privado
+          "documentos-hospedes", a 0060_totem_documentos_storage_policies.sql).
         </Card>
       )}
 
@@ -433,7 +433,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     wifi_senha: totem.wifi_senha ?? "",
     mensagem_comprovante: totem.mensagem_comprovante ?? "",
   });
-  const tem0050 = totem.pagamento_habilitado !== undefined;
+  const tem0059 = totem.pagamento_habilitado !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -443,7 +443,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     const { data, error } = await sb
       .from("totem_dispositivos")
       .update(
-        tem0050
+        tem0059
           ? {
               ...form,
               telefone_suporte: form.telefone_suporte.trim() || null,
@@ -554,7 +554,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
         <Regra rotulo="Totem ativo" valor={form.ativo} onChange={(v) => setForm({ ...form, ativo: v })} />
       </div>
 
-      {tem0050 && (
+      {tem0059 && (
         <div className="space-y-3 rounded-lg border border-slate-200 p-3">
           <p className="text-sm font-bold text-slate-900">Pagamento, documentos e comprovante</p>
           <Regra
