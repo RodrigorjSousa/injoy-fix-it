@@ -120,6 +120,7 @@ Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do ass
 3. Lavanderia — `03-lavanderia.md`
 4. Totem (auto check-in, check-out e avaliação) — `04-totem.md`
 5. Mercado autônomo no hall — `05-mercado-autonomo.md`
+7. WhatsApp humanizado com IA — `07-whatsapp-ia.md`
 
 Pendências gerais: Fase 3 (licenças e vistorias obrigatórias: bombeiros, vigilância sanitária,
 caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começou; limpeza automática
