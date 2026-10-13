@@ -246,9 +246,7 @@ saída → avaliação (comprovante impresso).
 - Ligar `totem_avaliacoes` à Bonificação (notas Geral/Funcionário/Limpeza).
 - Pagamento: implementado com a Stone (Entrega 3), sem teste real ainda. Falta a homologação na Stone e
   os segredos.
-- **Segurança (fora do totem):** a edge function `tuya-password` aceita chamadas com a chave pública
-  (inclusive `action: "unlock"`), e o client_id/secret da Tuya está escrito no código de um repositório
-  público. É preciso trocar o secret na Tuya, passar para secrets do Supabase e exigir a chave de serviço
-  ou um usuário com papel na função.
+- **Segurança (resolvido no código em 13/10/2026):** `tuya-password` exige chave de serviço ou usuário com papel e lê a
+  Tuya dos secrets `TUYA_CLIENT_ID`/`TUYA_CLIENT_SECRET`. Falta o Rodrigo trocar o secret na Tuya e cadastrar os secrets.
 - Os nomes de campo do Cloudbeds para documento (`guestDocumentNumber` etc.) foram tratados de forma
   tolerante. Confirmar no primeiro teste real se o login por documento encontra a reserva.
