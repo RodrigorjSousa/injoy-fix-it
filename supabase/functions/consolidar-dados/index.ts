@@ -661,9 +661,6 @@ serve(async (req) => {
       // reserva confirmada + saldo zero), garantindo consistência com os badges.
       const pendingDocs = quartosUnidade.filter((q) => q.has_pending_docs === true).length
 
-      // Nota de avaliação (Cloudbeds Guest Reviews) — homologação: valores fixos por unidade
-      const ratingUnidade = unidade === 'Botafogo' ? 8.6 : 7.8
-
       await supabaseClient.from('hotel_metrics').upsert(
         {
           property: unidade,
@@ -675,7 +672,7 @@ serve(async (req) => {
           pending_balance: Number(pendingBalance.toFixed(2)),
           available_rooms: availableRooms,
           pending_docs_count: pendingDocs,
-          rating: ratingUnidade,
+          rating: null, // não há nota real do Cloudbeds aqui (antes era um número fixo)
           updated_at: nowIso,
         },
         { onConflict: 'property,date' },

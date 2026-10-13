@@ -24,9 +24,10 @@ import {
   TabletSmartphone,
   Sparkles,
 } from "lucide-react";
-import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
-import { EscalaHojeCard } from "@/components/escala/escala-hoje-card";
-import { PrevisaoCargaCard } from "@/components/gestao/previsao-carga-card";
+import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
+import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
+import { BlocoMes } from "@/components/dashboard/bloco-mes";
+import { BlocoRendimento } from "@/components/dashboard/bloco-rendimento";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
   head: () => ({
@@ -109,9 +110,12 @@ const sections: { title: string; items: HubItem[] }[] = [
 function GestorHub() {
   return (
     <div className="space-y-8">
-      <FinanceiroAlertas />
-      <EscalaHojeCard />
-      <PrevisaoCargaCard />
+      <BlocoPendencias />
+      <BlocoOperacao />
+      <BlocoMes />
+      <BlocoRendimento />
+
+      <h2 className="border-t border-slate-200 pt-6 text-sm font-black uppercase text-slate-700">Atalhos</h2>
 
       {sections.map((section) => (
         <section key={section.title} className="space-y-3">
