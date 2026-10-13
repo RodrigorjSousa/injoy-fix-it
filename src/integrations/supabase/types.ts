@@ -3193,6 +3193,8 @@ export type Database = {
           assigned_camareira: string | null
           assigned_task: string | null
           blink_troca: boolean
+          block_kind: string | null
+          block_reason: string | null
           cloudbeds_limpo_em: string | null
           cloudbeds_limpo_erro: string | null
           cloudbeds_limpo_status: string | null
@@ -3234,6 +3236,8 @@ export type Database = {
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
+          block_kind?: string | null
+          block_reason?: string | null
           cloudbeds_limpo_em?: string | null
           cloudbeds_limpo_erro?: string | null
           cloudbeds_limpo_status?: string | null
@@ -3275,6 +3279,8 @@ export type Database = {
           assigned_camareira?: string | null
           assigned_task?: string | null
           blink_troca?: boolean
+          block_kind?: string | null
+          block_reason?: string | null
           cloudbeds_limpo_em?: string | null
           cloudbeds_limpo_erro?: string | null
           cloudbeds_limpo_status?: string | null
