@@ -93,7 +93,7 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   ponto nem tem escala; é só o menu, cadastro e quiosque não mudaram). Seletor de unidade,
   notificações e Sair continuam. A lateral da equipe não mudou.
 - Todas as telas que estavam na lateral têm card em Atalhos. Novos: seção "Telas da equipe" (Recepção,
-  Camareiras, Manutenção) e, em Operação, Painel de Chamados, Serviços e Chat.
+  Camareiras, Manutenção, Preventiva AC — movida de Operação) e, em Operação, Painel de Chamados, Serviços e Chat.
 
 ## Estado atual
 - Revisão no Lovable: ocupação de hoje usa `hotel_metrics.occupancy_percentage` do Cloudbeds, não nomes de hóspedes. Conferência real: Botafogo 52,63%, Ipanema 50%.
