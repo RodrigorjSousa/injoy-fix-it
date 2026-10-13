@@ -25,6 +25,7 @@
 | Usuário logado / papéis | `useMe()` em `src/lib/store.ts` |
 | Proteção de rota | `src/lib/require-gestor.ts` (`requireGestor({somenteGestor})` ou `{tela}`) |
 | Menu lateral | `src/components/app-shell.tsx` (`ALL_NAV`) |
+| Botão Voltar | `src/components/botao-voltar.tsx` (lateral no computador, topo no celular; regras em `src/lib/voltar.ts`) |
 | Telas liberáveis por funcionário | `src/lib/telas-catalog.ts` + `funcionarios.telas_permitidas` |
 | Área do gestor | `src/routes/_authenticated/gestor/*` |
 | Papel no banco | `private.has_role(uid, 'gestor')` (enum `public.app_role`) |
