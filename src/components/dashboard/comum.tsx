@@ -59,9 +59,9 @@ export function Kpi({ rotulo, valor, sub, tom, onClick, to, unidade }: { rotulo:
   const { setUnidade } = useUnidade();
   const content = (
     <div className="w-full min-w-0 rounded-lg bg-muted px-3 py-2 text-left">
-      <p className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500">{rotulo}</p>
-      <p className={cn("truncate text-lg font-black text-slate-900", tom === "ruim" && "text-red-600", tom === "bom" && "text-emerald-700")}>{valor}</p>
-      {sub && <p className="truncate text-[11px] text-slate-500">{sub}</p>}
+      <p className="whitespace-normal break-words text-[10px] font-bold uppercase text-slate-500">{rotulo}</p>
+      <p className={cn("whitespace-normal break-words text-lg font-black text-slate-900", tom === "ruim" && "text-red-600", tom === "bom" && "text-emerald-700")}>{valor}</p>
+      {sub && <p className="whitespace-normal break-words text-[11px] text-slate-500">{sub}</p>}
     </div>
   );
   if (to) return <Button asChild variant="ghost" className="h-auto min-w-0 p-0"><Link to={to} onClick={() => { if (unidade) setUnidade(unidade); }}>{content}</Link></Button>;
