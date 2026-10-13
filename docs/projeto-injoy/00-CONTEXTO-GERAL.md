@@ -92,10 +92,16 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Totem (0041): check-in com senha Tuya, check-out e avaliação em `/totem`; gestão em Área do Gestor ›
   Totem — ver `04-totem.md`.
 
-- Previsão de Carga (0015/0016 + 0048): tela `/previsao-carga` para a Recepção (ou quem tiver
-  `previsao-carga` em Equipe › Telas; regra no banco `private.pode_ver_previsao_carga`). A Recepção pede
-  reforço (`previsao_pedir_reforco`), o gestor autoriza em Área do Gestor › Previsão de Carga
-  (`previsao_decidir_reforco`), com push para os dois lados.
+- Previsão de Carga (0015/0016 + 0048 + 0056): tela `/previsao-carga` para a Recepção (ou quem tiver
+  `previsao-carga` em Equipe › Telas; regra no banco `private.pode_ver_previsao_carga`).
+  - Desde a 0056 a Recepção **lança** o reforço (sem autorização): botão "Pedir reforço" no card do dia (data e
+    unidade preenchidas) ou no topo (escolhe unidade e dia) → freelancer da lista ou nome novo (cria o cadastro
+    freelance de camareiras), valor (padrão da modalidade de reforço, editável) e entrada. `previsao_lancar_reforco`
+    cria o dia `extra` na Escala (vai sozinho ao Financeiro), grava em `previsao_reforco_pedidos` (status `lancado`,
+    `escala_dia_id`, `freelancer_nome`, `valor`) e manda push "Reforço lançado" ao gestor.
+  - Só o gestor corrige: Área do Gestor › Previsão de Carga lista os reforços com Editar (resumo dos plantões) e
+    Excluir (`previsao_excluir_reforco`, apaga o pedido e o plantão). Pedidos antigos (pendente/autorizado/negado)
+    também podem ser excluídos. Autorizar/Negar saíram da tela.
 
 - Check-out pela camareira (Botafogo e Ipanema): faz pelo app só em quarto com GERAL/GERAL - CHECK-IN;
   o servidor faz no Cloudbeds, confere o status e grava `cloudbeds_checkout_logs.status`
@@ -118,6 +124,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
     (testes em `src/lib/cloudbeds/cloudbeds-limpeza.test.ts`). Cada tentativa fica em `cloudbeds_limpeza_logs`.
   - Não perturbe e a vistoria da recepção NÃO mandam limpo ao Cloudbeds (decisão do Rodrigo, 13/10/2026:
     a vistoria fica só no app).
+
+- Plantões de freelancer editáveis (0056, `src/components/escala/plantoes-freelancer.tsx`): no Financeiro, a linha
+  que veio da Escala abre o resumo dia a dia (editar, excluir, incluir, excluir todos); a lixeira e o lápis dessas
+  linhas abrem o mesmo resumo (antes a lixeira apagava o lançamento e a sincronização o recriava). O nome do
+  freelancer aparece na linha. Na Escala, editar um dia `extra` tem "Valor e horas do plantão" e "Excluir dia".
+  Lançamento já pago não é alterado pela Escala (aviso no resumo).
 
 - Previsão de Carga — REFORÇO x SUBSTITUIÇÃO: extra com `substitui_colaborador_id` (cobre férias,
   folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem

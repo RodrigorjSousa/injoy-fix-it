@@ -112,5 +112,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     na home, quando ele está na outra unidade pela escala, a manutenção aparece como informativo
     ("está em Botafogo pela escala; se houver urgência aqui, ele vem"), não como pendência.
 
+- Reforço lançado pela Recepção e plantões editáveis (branch `feat/financeiro-coberturas-detalhe`, migração
+  `0056_reforco_recepcao_lanca.sql`): ver "Previsão de Carga" e "Plantões de freelancer editáveis" no
+  `00-CONTEXTO-GERAL.md`. Regras puras em `src/lib/plantao.ts` (testes em `plantao.test.ts`).
+
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
