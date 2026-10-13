@@ -2,9 +2,9 @@
 
 ## Revisão do painel do gestor
 
-- [ ] Conferir e corrigir a ocupação de hoje com os dados do Cloudbeds
-- [ ] Abrir detalhes pelos indicadores, listas e gráficos do novo painel
-- [ ] Corrigir gráficos e validar o painel autenticado com dados reais
+- [x] Conferir e corrigir a ocupação de hoje com os dados do Cloudbeds
+- [x] Abrir detalhes pelos indicadores, listas e gráficos do novo painel
+- [x] Corrigir gráficos e validar o painel autenticado com dados reais
 
 - [x] Criar guarda reutilizável de gestor e permissões por tela
 - [x] Proteger todas as rotas administrativas e compartilháveis solicitadas
