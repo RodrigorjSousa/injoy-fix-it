@@ -379,6 +379,13 @@
       "when": 1791887619957,
       "tag": "0053_escala_horario_freelancer",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1791895083161,
+      "tag": "0054_0054_dashboard_rendimento",
+      "breakpoints": true
     }
   ]
 }

@@ -618,6 +618,87 @@ export type Database = {
         }
         Relationships: []
       }
+      dash_reserva_noites: {
+        Row: {
+          atualizado_em: string
+          checkin: string | null
+          checkout: string | null
+          data: string
+          id: string
+          origem: string | null
+          quarto: string
+          reservado_em: string | null
+          reservation_id: string
+          status: string | null
+          tipo_quarto: string | null
+          unidade: string
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          checkin?: string | null
+          checkout?: string | null
+          data: string
+          id?: string
+          origem?: string | null
+          quarto: string
+          reservado_em?: string | null
+          reservation_id: string
+          status?: string | null
+          tipo_quarto?: string | null
+          unidade: string
+          valor?: number
+        }
+        Update: {
+          atualizado_em?: string
+          checkin?: string | null
+          checkout?: string | null
+          data?: string
+          id?: string
+          origem?: string | null
+          quarto?: string
+          reservado_em?: string | null
+          reservation_id?: string
+          status?: string | null
+          tipo_quarto?: string | null
+          unidade?: string
+          valor?: number
+        }
+        Relationships: []
+      }
+      dash_sincronizacoes: {
+        Row: {
+          avisos: string | null
+          fonte: string | null
+          mes: string
+          noites: number
+          reservas: number
+          sincronizado_em: string
+          sincronizado_por: string | null
+          unidade: string
+        }
+        Insert: {
+          avisos?: string | null
+          fonte?: string | null
+          mes: string
+          noites?: number
+          reservas?: number
+          sincronizado_em?: string
+          sincronizado_por?: string | null
+          unidade: string
+        }
+        Update: {
+          avisos?: string | null
+          fonte?: string | null
+          mes?: string
+          noites?: number
+          reservas?: number
+          sincronizado_em?: string
+          sincronizado_por?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
       escala_alteracoes: {
         Row: {
           alterado_em: string
@@ -3909,6 +3990,17 @@ export type Database = {
         }[]
       }
       checkout_log_conferir: { Args: { _id: string }; Returns: undefined }
+      dash_gravar_noites: {
+        Args: {
+          _avisos?: string
+          _fonte?: string
+          _mes: string
+          _noites: Json
+          _reservas?: number
+          _unidade: string
+        }
+        Returns: number
+      }
       editar_bonificacao_conjunta: {
         Args: {
           _data: string
