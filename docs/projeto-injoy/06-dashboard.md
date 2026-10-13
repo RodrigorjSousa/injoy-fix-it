@@ -56,7 +56,8 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   ainda não aplicada), só aquele item mostra "Não carregou · motivo".
 - **A · Precisa de você hoje**: alertas do Financeiro/Escala (componente existente) + contagens de pedidos de
   reforço pendentes, batidas de ponto pendentes, atestados pendentes, talões na lavanderia há 3 dias ou mais,
-  chamados urgentes abertos e check-outs das camareiras sem "Conferi" (desde ontem). Só aparece o que tem
+  chamados urgentes abertos, check-outs das camareiras sem "Conferi" (desde ontem) e quartos limpos no
+  app que o Cloudbeds não confirmou (`cloudbeds_limpo_status = 'falhou'`, migração 0055). Só aparece o que tem
   quantidade > 0; cada item leva à tela certa.
 - **B · Operação de hoje**: `room_housekeeping` ao vivo, mesma regra da tela inicial (`src/lib/dashboard/operacao.ts`,
   com testes): ocupação sobre os quartos vendáveis, chegadas, saídas, prontos/faxina/sujos/bloqueados, a receber

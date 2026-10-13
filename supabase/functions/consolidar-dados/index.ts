@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { saldoACobrar } from '../_shared/canal-pagamento.ts'
+import { lerHousekeeping, reenviarLimpezasPendentes, type QuartoHousekeeping } from '../_shared/cloudbeds-limpeza.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
@@ -126,7 +127,7 @@ serve(async (req) => {
       }
 
       const [roomsJson, dashJson, roomBlocksJson, reservasWindow, reservasSaindoHoje, reservasCheckedIn] = await Promise.all([
-        cloudbedsGet(`${API_BASE}/getHousekeepingStatus`, apiKey),
+        cloudbedsGet(`${API_BASE}/getHousekeepingStatus?pageSize=100`, apiKey),
         // Dashboard é só para métricas: se falhar, segue sem ele.
         cloudbedsGet(`${API_BASE}/getDashboard`, apiKey).catch(() => ({})),
         // Bloqueios (manutenção, bloqueado, ECI, LCO): janela de ontem a amanhã e filtro do dia
@@ -516,6 +517,7 @@ serve(async (req) => {
         return {
           property: nomeUnidade,
           room_number: numQuarto,
+          cloudbeds_room_id: String(room.roomID ?? '').trim() || null,
           room_type: String(room.roomTypeName ?? room.roomType ?? ''),
           status,
           condition: blocked ? 'maintenance' : 'normal',
@@ -546,7 +548,7 @@ serve(async (req) => {
 
       })
 
-      return { quartos, dashboard: dashJson, reservas }
+      return { quartos, dashboard: dashJson, reservas, housekeeping: lerHousekeeping(todosQuartos), apiKey }
     }
 
 
@@ -561,7 +563,7 @@ serve(async (req) => {
         const msg = `${nome}: ${(e as Error).message}`
         console.error('[consolidar-dados] unidade ignorada nesta rodada —', msg)
         erros.push(msg)
-        return { quartos: [] as any[], dashboard: null as any, reservas: [] as any[], falhou: true }
+        return { quartos: [] as any[], dashboard: null as any, reservas: [] as any[], falhou: true, housekeeping: [] as QuartoHousekeeping[], apiKey: undefined }
       }
     }
     const [ipanema, botafogo] = await Promise.all([
@@ -686,15 +688,25 @@ serve(async (req) => {
       let { error: upErr } = await supabaseClient
         .from('room_housekeeping')
         .upsert(linhas, { onConflict: 'property,room_number' })
-      if (upErr && /block_kind|block_reason|next_nights/i.test(upErr.message)) {
+      if (upErr && /block_kind|block_reason|next_nights|cloudbeds_room_id/i.test(upErr.message)) {
         console.warn('[consolidar-dados] colunas novas ausentes; gravando sem elas')
-        const semColunas = linhas.map(({ block_kind, block_reason, next_nights, ...resto }: any) => resto)
+        const semColunas = linhas.map(({ block_kind, block_reason, next_nights, cloudbeds_room_id, ...resto }: any) => resto)
         ;({ error: upErr } = await supabaseClient
           .from('room_housekeeping')
           .upsert(semColunas, { onConflict: 'property,room_number' }))
       }
       if (upErr) throw new Error(`Falha ao gravar quartos: ${upErr.message}`)
     }
+
+    // Camareira finalizou e o Cloudbeds ainda não confirmou LIMPO → tenta de novo (migração 0055).
+    const limpeza = await reenviarLimpezasPendentes(
+      supabaseClient,
+      [
+        ['Ipanema', ipanema],
+        ['Botafogo', botafogo],
+      ],
+      API_BASE,
+    )
 
     if (erros.length === 2 || (erros.length && linhas.length === 0)) {
       return new Response(
@@ -716,7 +728,7 @@ serve(async (req) => {
       }))
 
     return new Response(
-      JSON.stringify({ success: true, count: linhas.length, hoje: hojeStr, avisos: erros, resumo }),
+      JSON.stringify({ success: true, count: linhas.length, hoje: hojeStr, avisos: erros, resumo, limpeza }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {

@@ -106,6 +106,19 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   `_shared/cloudbeds-quarto.ts`, a listagem não traz); noites do próximo hóspede em `next_nights` (0052).
   Camareira "Finalizar serviço" marca o quarto LIMPO no Cloudbeds (`cloudbedsMarcarQuartoLimpo`).
 
+- Quarto limpo no Cloudbeds com confirmação (migração 0055, branch `fix/camareira-quarto-limpo-cloudbeds`):
+  - Ao finalizar, o app grava `room_housekeeping.cloudbeds_limpo_status = 'pendente'` e o servidor manda
+    `postHousekeepingStatus roomID + roomCondition=clean` (sem `roomCondition` o Cloudbeds INVERTE o estado),
+    depois lê `getHousekeepingStatus` de volta. Só diz "confirmado" se o Cloudbeds mostrar clean/inspected.
+  - O quarto é achado pelo `cloudbeds_room_id` gravado pela sincronização; sem ele, pelo número (recusa se
+    houver dois quartos com o mesmo número).
+  - Não confirmou → continua `pendente` e `consolidar-dados` (a cada 5 min) confere e reenvia; para depois de
+    6 tentativas ou 12 h (`falhou`, aparece nas pendências do dashboard) ou se o quarto deixou de estar
+    finalizado / ficou em Não perturbe. Regras em `supabase/functions/_shared/cloudbeds-limpeza.ts`
+    (testes em `src/lib/cloudbeds/cloudbeds-limpeza.test.ts`). Cada tentativa fica em `cloudbeds_limpeza_logs`.
+  - Não perturbe e a vistoria da recepção NÃO mandam limpo ao Cloudbeds (decisão do Rodrigo, 13/10/2026:
+    a vistoria fica só no app).
+
 - Previsão de Carga — REFORÇO x SUBSTITUIÇÃO: extra com `substitui_colaborador_id` (cobre férias,
   folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem
   `substitui_colaborador_id`. `freelancers_escalados` e "Reforço chamado" contam só reforço.

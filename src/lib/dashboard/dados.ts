@@ -61,7 +61,7 @@ export function usePendencias() {
       const hoje = todaySP();
       const ha3dias = somarDias(hoje, -2); // coleta há 3 dias ou mais (hoje conta como dia 1)
       const ontem = somarDias(hoje, -1);
-      const [reforco, ponto, atestados, lav, chamados, checkouts] = await Promise.all([
+      const [reforco, ponto, atestados, lav, chamados, checkouts, limpo] = await Promise.all([
         contar(() => db.from("previsao_reforco_pedidos").select("id", { count: "exact", head: true }).eq("status", "pendente")),
         contar(() => db.from("ponto_batidas").select("id", { count: "exact", head: true }).eq("status", "pendente")),
         contar(() => db.from("ponto_atestados").select("id", { count: "exact", head: true }).eq("status", "pendente")),
@@ -87,6 +87,7 @@ export function usePendencias() {
             .is("conferido_em", null)
             .gte("created_at", `${ontem}T03:00:00Z`),
         ),
+        contar(() => db.from("room_housekeeping").select("id", { count: "exact", head: true }).eq("cloudbeds_limpo_status", "falhou")),
       ]);
       const ch = chamados as { qtd: number; total?: number; erro?: string };
       return [
@@ -103,6 +104,13 @@ export function usePendencias() {
           link: "/painel",
         },
         { chave: "checkouts", rotulo: "Check-outs das camareiras sem conferência", ...checkouts, link: "/recepcao" },
+        {
+          chave: "limpo-cloudbeds",
+          rotulo: "Quartos limpos no app que o Cloudbeds não confirmou",
+          ...limpo,
+          detalhe: "marque como limpo no Cloudbeds",
+          link: "/camareiras",
+        },
       ];
     },
   });

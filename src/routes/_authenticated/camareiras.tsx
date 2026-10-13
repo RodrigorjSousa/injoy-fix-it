@@ -401,13 +401,32 @@ function PainelCamareiras() {
 
     toast.success("Serviço finalizado — quarto liberado");
 
-    // Marca o quarto como LIMPO no Cloudbeds (não bloqueia a camareira se o Cloudbeds falhar).
+    // Marca como "pendente" para o Cloudbeds: se o envio abaixo não chegar (sem sinal, app fechado),
+    // a sincronização a cada 5 min manda de novo. Separado do update acima para não travar a camareira
+    // se a migração 0055 ainda não estiver aplicada.
+    await supabase
+      .from("room_housekeeping")
+      // biome-ignore lint/suspicious/noExplicitAny: colunas novas ainda não estão no types.ts gerado
+      .update({ cloudbeds_limpo_status: "pendente", cloudbeds_limpo_erro: null, cloudbeds_limpo_tentativas: 0 } as any)
+      .eq("property", q.property)
+      .eq("room_number", q.room_number)
+      .then(({ error: e }) => e && console.warn("[camareiras] pendente Cloudbeds", e.message));
+
+    // Marca o quarto como LIMPO no Cloudbeds e confere (não bloqueia a camareira se o Cloudbeds falhar).
     try {
-      await marcarLimpoCloudbeds({ data: { property: q.property, roomNumber: q.room_number } });
-      toast.success(`Quarto ${q.room_number} marcado como limpo no Cloudbeds`);
+      const r = await marcarLimpoCloudbeds({ data: { property: q.property, roomNumber: q.room_number } });
+      if (r.confirmado) toast.success(`Quarto ${q.room_number} confirmado como limpo no Cloudbeds`);
+      else
+        toast.warning(
+          `Quarto liberado no app. O Cloudbeds ainda não confirmou (${r.erro ?? "sem resposta"}); o sistema tenta de novo sozinho a cada 5 minutos.`,
+          { duration: 10000 },
+        );
     } catch (err) {
       console.error("[camareiras] Cloudbeds limpo", err);
-      toast.warning(`Quarto liberado no app, mas o Cloudbeds não confirmou como limpo: ${err instanceof Error ? err.message : "erro"}. Avise a recepção.`, { duration: 10000 });
+      toast.warning(
+        `Quarto liberado no app. O envio ao Cloudbeds falhou (${err instanceof Error ? err.message : "erro"}); o sistema tenta de novo sozinho a cada 5 minutos.`,
+        { duration: 10000 },
+      );
     }
   }, [nomeAutomatico, marcarLimpoCloudbeds]);
 
