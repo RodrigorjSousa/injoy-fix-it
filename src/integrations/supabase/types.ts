@@ -3543,6 +3543,89 @@ export type Database = {
           },
         ]
       }
+      totem_cobrancas: {
+        Row: {
+          atualizado_em: string
+          autorizacao: string | null
+          bandeira: string | null
+          cloudbeds_erro: string | null
+          cloudbeds_lancado: boolean
+          cloudbeds_lancando_em: string | null
+          cobranca_id: string | null
+          criado_em: string
+          detalhe: Json | null
+          fluxo: string
+          hospede: string | null
+          id: string
+          metodo: string
+          pago_em: string | null
+          pedido_id: string | null
+          provedor: string
+          reservation_id: string
+          status: string
+          totem_id: string | null
+          ultima_consulta: string | null
+          unidade: string
+          valor: number
+        }
+        Insert: {
+          atualizado_em?: string
+          autorizacao?: string | null
+          bandeira?: string | null
+          cloudbeds_erro?: string | null
+          cloudbeds_lancado?: boolean
+          cloudbeds_lancando_em?: string | null
+          cobranca_id?: string | null
+          criado_em?: string
+          detalhe?: Json | null
+          fluxo?: string
+          hospede?: string | null
+          id?: string
+          metodo: string
+          pago_em?: string | null
+          pedido_id?: string | null
+          provedor?: string
+          reservation_id: string
+          status?: string
+          totem_id?: string | null
+          ultima_consulta?: string | null
+          unidade: string
+          valor: number
+        }
+        Update: {
+          atualizado_em?: string
+          autorizacao?: string | null
+          bandeira?: string | null
+          cloudbeds_erro?: string | null
+          cloudbeds_lancado?: boolean
+          cloudbeds_lancando_em?: string | null
+          cobranca_id?: string | null
+          criado_em?: string
+          detalhe?: Json | null
+          fluxo?: string
+          hospede?: string | null
+          id?: string
+          metodo?: string
+          pago_em?: string | null
+          pedido_id?: string | null
+          provedor?: string
+          reservation_id?: string
+          status?: string
+          totem_id?: string | null
+          ultima_consulta?: string | null
+          unidade?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "totem_cobrancas_totem_id_fkey"
+            columns: ["totem_id"]
+            isOneToOne: false
+            referencedRelation: "totem_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       totem_dispositivos: {
         Row: {
           ativo: boolean
@@ -3553,15 +3636,23 @@ export type Database = {
           hora_checkin: string
           hora_checkout: string
           id: string
+          impressora: string
+          mensagem_comprovante: string | null
           modo: string
           nome: string
+          pagamento_habilitado: boolean
           pareado_em: string | null
           pareamento_expira: string | null
           pareamento_hash: string | null
+          pede_documentos: boolean
+          pos_serial: string | null
           telefone_suporte: string | null
           token_hash: string | null
           ultimo_uso: string | null
           unidade: string
+          voz_ativa: boolean
+          wifi_rede: string | null
+          wifi_senha: string | null
         }
         Insert: {
           ativo?: boolean
@@ -3572,15 +3663,23 @@ export type Database = {
           hora_checkin?: string
           hora_checkout?: string
           id?: string
+          impressora?: string
+          mensagem_comprovante?: string | null
           modo?: string
           nome: string
+          pagamento_habilitado?: boolean
           pareado_em?: string | null
           pareamento_expira?: string | null
           pareamento_hash?: string | null
+          pede_documentos?: boolean
+          pos_serial?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
           ultimo_uso?: string | null
           unidade: string
+          voz_ativa?: boolean
+          wifi_rede?: string | null
+          wifi_senha?: string | null
         }
         Update: {
           ativo?: boolean
@@ -3591,17 +3690,93 @@ export type Database = {
           hora_checkin?: string
           hora_checkout?: string
           id?: string
+          impressora?: string
+          mensagem_comprovante?: string | null
           modo?: string
           nome?: string
+          pagamento_habilitado?: boolean
           pareado_em?: string | null
           pareamento_expira?: string | null
           pareamento_hash?: string | null
+          pede_documentos?: boolean
+          pos_serial?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
           ultimo_uso?: string | null
           unidade?: string
+          voz_ativa?: boolean
+          wifi_rede?: string | null
+          wifi_senha?: string | null
         }
         Relationships: []
+      }
+      totem_documentos: {
+        Row: {
+          arquivo_path: string
+          cloudbeds_erro: string | null
+          cloudbeds_file_id: string | null
+          consentimento_em: string
+          criado_em: string
+          dist_foto_documento: number | null
+          dist_mesma_pessoa: number | null
+          etapa: string
+          hospede_nome: string
+          hospede_ordem: number
+          id: string
+          numero_documento: string | null
+          reservation_id: string
+          tipo_documento: string
+          totem_id: string | null
+          unidade: string
+          vivacidade: boolean | null
+        }
+        Insert: {
+          arquivo_path: string
+          cloudbeds_erro?: string | null
+          cloudbeds_file_id?: string | null
+          consentimento_em: string
+          criado_em?: string
+          dist_foto_documento?: number | null
+          dist_mesma_pessoa?: number | null
+          etapa: string
+          hospede_nome: string
+          hospede_ordem?: number
+          id?: string
+          numero_documento?: string | null
+          reservation_id: string
+          tipo_documento: string
+          totem_id?: string | null
+          unidade: string
+          vivacidade?: boolean | null
+        }
+        Update: {
+          arquivo_path?: string
+          cloudbeds_erro?: string | null
+          cloudbeds_file_id?: string | null
+          consentimento_em?: string
+          criado_em?: string
+          dist_foto_documento?: number | null
+          dist_mesma_pessoa?: number | null
+          etapa?: string
+          hospede_nome?: string
+          hospede_ordem?: number
+          id?: string
+          numero_documento?: string | null
+          reservation_id?: string
+          tipo_documento?: string
+          totem_id?: string | null
+          unidade?: string
+          vivacidade?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "totem_documentos_totem_id_fkey"
+            columns: ["totem_id"]
+            isOneToOne: false
+            referencedRelation: "totem_dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       totem_eventos: {
         Row: {

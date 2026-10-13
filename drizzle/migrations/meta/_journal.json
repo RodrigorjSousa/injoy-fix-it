@@ -414,6 +414,13 @@
       "when": 1791912371453,
       "tag": "0058_consolidar_dados_5min",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1791915386797,
+      "tag": "0059_0059_totem_pagamento_documentos",
+      "breakpoints": true
     }
   ]
 }
