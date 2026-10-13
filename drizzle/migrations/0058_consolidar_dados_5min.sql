@@ -1,6 +1,3 @@
--- Sincronização automática com o Cloudbeds a cada 5 minutos (a 0051_room_housekeeping_bloqueio_cloudbeds,
--- que fazia isso, não chegou ao banco). Agendamento em migração separada. Idempotente: se o job não
--- existir ou já estiver em 5 min, não muda nada.
 DO $$
 DECLARE v_job bigint;
 BEGIN

@@ -400,6 +400,20 @@
       "when": 1791909583202,
       "tag": "0056_0056_reforco_recepcao_lanca",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1791912346759,
+      "tag": "0057_room_housekeeping_bloqueio",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791912371453,
+      "tag": "0058_consolidar_dados_5min",
+      "breakpoints": true
     }
   ]
 }
