@@ -9,6 +9,7 @@ import { useMe } from "@/lib/store";
 import { usePermissaoBonificacao } from "@/lib/bonificacao";
 import { usePermissaoPrevisao } from "@/lib/previsao-reforco";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
+import { BotaoVoltar } from "@/components/botao-voltar";
 import { PushNotificationsButton } from "@/components/push-notifications-button";
 import { useUnidade } from "@/lib/unidade-context";
 import { TELA_BY_KEY } from "@/lib/telas-catalog";
@@ -261,6 +262,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <span className="text-xl font-bold tracking-wider text-sidebar-foreground">INJOY</span>
         </Link>
 
+        {/* Voltar à tela anterior (fica na lateral para não cobrir o topo das telas) */}
+        <div className="px-4 pt-4 empty:hidden">
+          <BotaoVoltar className="w-full justify-center border-sidebar-border bg-sidebar-accent/40 text-sidebar-foreground hover:bg-sidebar-accent/70" />
+        </div>
+
         <div className="px-4 pt-4 pb-2">
           <label className="text-[10px] font-semibold uppercase tracking-wider text-sidebar-foreground/50 mb-1.5 flex items-center gap-1.5">
             <Building2 className="h-3 w-3" />
@@ -365,6 +371,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile top bar */}
       <header className="lg:hidden sticky top-0 z-30 bg-card/95 backdrop-blur border-b border-border px-4 py-3 flex items-center gap-3">
+        <BotaoVoltar compacto />
         <Link to="/" className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-all">
           <div className="h-10 w-10 rounded-lg bg-white shadow-sm overflow-hidden grid place-items-center">
             <img src={injoyLogo.url} alt="INJOY" className="h-8 w-8 object-contain" />
