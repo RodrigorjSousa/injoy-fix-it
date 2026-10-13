@@ -425,8 +425,13 @@ function RecepcaoPage() {
 
       <div className="p-4 space-y-4">
         {unidadeAtiva === "Botafogo" && <HistoricoTrocasTurno unidade={unidadeAtiva} />}
-        <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
-        <SolicitacoesCompraPanel unidade={unidadeAtiva} />
+        {/* Auditoria de Almoxarifado e Solicitações de Compra: só o gestor vê (a Recepção não). */}
+        {(me?.isGestor || me?.isAdmin) && (
+          <>
+            <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
+            <SolicitacoesCompraPanel unidade={unidadeAtiva} />
+          </>
+        )}
       </div>
 
 
