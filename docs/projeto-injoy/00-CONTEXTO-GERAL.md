@@ -56,15 +56,18 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ```
 
 ## Segurança (revisão de 13/10/2026, branch `fix/seguranca-supabase`)
-- O repositório é **público**. Nunca colocar senha, chave ou secret no código; só a chave pública (anon) do
+- O repositório era público até 13/10/2026 (agora privado). Nunca colocar senha, chave ou secret no código; só a chave pública (anon) do
   Supabase pode estar no `.env`. Tudo aponta para o projeto `vpeuugeoetwvrmrtemgj` (conferido).
 - `tuya-password` (abre portas e cria senhas) só aceita a chave de serviço (totem, limpeza automática) ou usuário
   gestor/admin/recepção ou liberado na tela `check-in-digital`. Credenciais da Tuya nos secrets
   `TUYA_CLIENT_ID` / `TUYA_CLIENT_SECRET` (o secret antigo ficou no histórico público e precisa ser trocado na Tuya).
 - `tuya-cleanup` chama a `tuya-password` com a chave de serviço.
 - 0059: `search_path` fixo nas funções que faltavam.
-- Pendente: `cloudbeds-webhook` aceita POST sem assinatura (grava só em `housekeeping_tasks`, que o app não usa);
-  avaliar desligar ou exigir token na URL.
+- `cloudbeds-webhook` só aceita POST com `?token=` igual ao secret `CLOUDBEDS_WEBHOOK_TOKEN`; sem o secret, recusa tudo
+  (grava só em `housekeeping_tasks`, que o app não usa).
+- Senhas das portas hoje são geradas no app da Tuya (celular), não pela API; sem os secrets da Tuya as telas de
+  porta do app mostram "Tuya não configurada".
+- Repositório GitHub passou a ser **privado** (13/10/2026).
 
 ## Cuidados que já custaram tempo
 - O Lovable **renumera ou esvazia migrações** (ex.: 0031 esvaziada depois de falhar). Quando falhar,
