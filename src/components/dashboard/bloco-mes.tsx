@@ -79,7 +79,7 @@ export function BlocoMes() {
                   key={p.funcionario_id}
                   className={p.situacao === "perdeu" ? "rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" : "rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900"}
                 >
-                  <b>{p.nome}</b> · {p.atrasos} atraso(s), {p.faltas} falta(s) · {p.situacao === "perdeu" ? "perdeu a meta" : "em risco"}
+                  <Link to="/bonificacao" className="block"><b>{p.nome}</b> · {p.atrasos} atraso(s), {p.faltas} falta(s) · {p.situacao === "perdeu" ? "perdeu a meta" : "em risco"}</Link>
                 </li>
               ))}
             </ul>

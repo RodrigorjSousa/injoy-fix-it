@@ -118,6 +118,8 @@ export function BlocoRendimento() {
               <Button
                 key={p.id}
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setPeriodo(p.id)}
                 className={cn(
                   "rounded-md px-2.5 py-1 text-xs font-semibold",
@@ -151,7 +153,7 @@ export function BlocoRendimento() {
             <AlertTriangle className="h-3.5 w-3.5" />
             Ainda não buscado no Cloudbeds: {faltando.map((m) => `${m.slice(5)}/${m.slice(2, 4)}`).join(", ")}.
           </span>
-          <Button type="button" onClick={() => atualizar(faltando)} className="font-bold underline">
+          <Button type="button" variant="link" size="sm" onClick={() => atualizar(faltando)} className="font-bold underline">
             Buscar agora
           </Button>
         </div>
@@ -159,7 +161,7 @@ export function BlocoRendimento() {
       {noitesQ.error && <Erros lista={[`Noites vendidas: ${(noitesQ.error as Error).message}`]} />}
       {reclamQ.data?.erros.length ? <Erros lista={reclamQ.data.erros} /> : null}
 
-      <ComparativoTopo dados={porUnidade} />
+      <ComparativoTopo dados={porUnidade} noites={noitesQ.data ?? []} de={de} ate={ate} />
 
       <div className="grid gap-3 md:grid-cols-2">
         {UNIDADES_DASH.map((u) => (
@@ -168,7 +170,7 @@ export function BlocoRendimento() {
             unidade={u}
             carregando={noitesQ.isLoading || (sync.isPending && !noitesQ.data?.length)}
             disponivel={!noitesQ.error && !syncQ.error && (syncQ.data ?? []).some((s) => s.unidade === u && meses.includes(s.mes.slice(0, 7)))}
-            noites={(noitesQ.data ?? []).filter((n) => n.unidade === u && n.data >= de && n.data <= ate)}
+            noites={(noitesQ.data ?? []).filter((n) => n.unidade === u && n.data >= de)}
             {...porUnidade[u]}
             mostrarFuturo={fim > hoje}
           />
@@ -192,7 +194,8 @@ export function BlocoRendimento() {
 }
 
 /** Uma linha para comparar as duas unidades de relance. */
-function ComparativoTopo({ dados }: { dados: Record<UnidadeDash, { resumo: ResumoRendimento }> }) {
+function ComparativoTopo({ dados, noites, de, ate }: { dados: Record<UnidadeDash, { resumo: ResumoRendimento }>; noites: (NoiteLida & { unidade: UnidadeDash })[]; de: string; ate: string }) {
+  const [detalhe, setDetalhe] = useState<DetalhePainel | null>(null);
   const linhas: { rotulo: string; v: (r: ResumoRendimento) => number; f: (n: number) => string }[] = [
     { rotulo: "Receita", v: (r) => r.receita, f: (n) => brl0.format(n) },
     { rotulo: "Ocupação", v: (r) => r.ocupacao, f: (n) => pct(n) },
@@ -209,7 +212,7 @@ function ComparativoTopo({ dados }: { dados: Record<UnidadeDash, { resumo: Resum
         const vi = l.v(i);
         const total = vb + vi || 1;
         return (
-          <div key={l.rotulo} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+          <Button variant="outline" key={l.rotulo} className="block h-auto min-w-0 px-3 py-2 text-left" onClick={() => setDetalhe({ titulo: `${l.rotulo} · Comparativo`, descricao: `${dataCurta(de)} a ${dataCurta(ate)}`, conteudo: <div className="space-y-4"><p>Botafogo: <b>{l.f(vb)}</b> · Ipanema: <b>{l.f(vi)}</b></p><div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr><th className="p-2 text-left">Unidade</th><th className="p-2 text-left">Data</th><th className="p-2 text-left">Quarto</th><th className="p-2 text-right">Diária</th></tr></thead><tbody>{noites.filter((n) => n.data >= de && n.data <= ate).map((n, idx) => <tr key={idx} className="border-t border-border"><td className="p-2">{n.unidade}</td><td className="p-2 whitespace-nowrap">{dataCurta(n.data)}</td><td className="p-2">{n.quarto}</td><td className="p-2 text-right whitespace-nowrap">{brl.format(n.valor)}</td></tr>)}</tbody></table></div></div> })}>
             <p className="text-[10px] font-bold uppercase text-slate-500">{l.rotulo}</p>
             <div className="mt-1 flex justify-between text-xs font-black">
               <span className="text-blue-700">{l.f(vb)}</span>
@@ -219,9 +222,10 @@ function ComparativoTopo({ dados }: { dados: Record<UnidadeDash, { resumo: Resum
               <div className="bg-blue-700" style={{ width: `${(vb / total) * 100}%` }} />
               <div className="bg-teal-700" style={{ width: `${(vi / total) * 100}%` }} />
             </div>
-          </div>
+          </Button>
         );
       })}
+      <DetalhesPainel detalhe={detalhe} fechar={() => setDetalhe(null)} />
     </div>
   );
 }
@@ -247,9 +251,9 @@ function CartaoUnidade({
 }) {
   const cor = unidade === "Botafogo" ? "var(--primary)" : "var(--success)";
   const [detalhe, setDetalhe] = useState<DetalhePainel | null>(null);
-  const abrir = (titulo: string, filtro: (n: NoiteLida) => boolean = () => true) => {
-    const lista = noites.filter(filtro);
-    setDetalhe({ titulo: `${titulo} · ${unidade}`, descricao: `${lista.length} noites · ${dataCurta(r.de)} a ${dataCurta(r.ate)}`, conteudo: lista.length ?
+  const abrir = (titulo: string, filtro: (n: NoiteLida) => boolean = () => true, futuro = false) => {
+    const lista = noites.filter((n) => (futuro ? n.data > r.ate : n.data <= r.ate) && filtro(n));
+    setDetalhe({ titulo: `${titulo} · ${unidade}`, descricao: `${lista.length} noites${futuro ? " futuras" : ` · ${dataCurta(r.de)} a ${dataCurta(r.ate)}`}`, conteudo: lista.length ?
       <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="p-2 text-left">Data</th><th className="p-2 text-left">Quarto</th><th className="p-2 text-left">Reserva / canal</th><th className="p-2 text-right">Diária</th></tr></thead><tbody>{lista.map((n, i) => <tr key={`${n.reservation_id}-${n.data}-${n.quarto}-${i}`} className="border-b border-border"><td className="p-2 whitespace-nowrap">{dataCurta(n.data)}</td><td className="p-2">{n.quarto}</td><td className="p-2">{n.reservation_id}<p className="text-xs text-muted-foreground">{n.origem ?? "Não informado"}</p></td><td className="p-2 text-right whitespace-nowrap">{brl.format(n.valor)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">Nenhuma noite vendida neste filtro.</p> });
   };
   if (carregando)
@@ -274,15 +278,15 @@ function CartaoUnidade({
         <Kpi rotulo="Reservas" onClick={() => abrir("Reservas")} valor={r.reservas} sub={`estadia média ${num(r.estadiaMedia)} noite(s)`} />
         <Kpi rotulo="Valor médio por reserva" onClick={() => abrir("Valor médio por reserva")} valor={brl0.format(r.ticketMedio)} />
         <Kpi
-          rotulo="Diária que mais fecha" onClick={() => abrir("Diária que mais fecha")}
+          rotulo="Diária que mais fecha" onClick={() => abrir("Diária que mais fecha", (n) => !!r.faixaMaisVendida && n.valor >= r.faixaMaisVendida.de && n.valor < r.faixaMaisVendida.ate)}
           valor={r.faixaMaisVendida ? `${brl0.format(r.faixaMaisVendida.de)}–${brl0.format(r.faixaMaisVendida.ate)}` : "—"}
           sub={r.faixaMaisVendida ? `${pct(r.faixaMaisVendida.parte)} das noites` : undefined}
         />
       </div>
       {mostrarFuturo && futuras.noites > 0 && (
-        <p className="rounded-lg bg-blue-50 px-3 py-1.5 text-xs text-blue-900">
+        <Button variant="outline" className="h-auto w-full whitespace-normal px-3 py-1.5 text-xs" onClick={() => abrir("Reservas para o resto do período", () => true, true)}>
           Já reservado para o resto do período: <b>{brl0.format(futuras.receita)}</b> em {futuras.noites} noite(s).
-        </p>
+        </Button>
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
