@@ -11,3 +11,6 @@ Publish schedules through manager-only atomic operations, sync freelancer costs 
 Keep housekeeping load forecasts as immutable manager-only snapshots calculated server-side from Cloudbeds and the published schedule; this preserves audit history and protects operational data.
 Model pending additive schedule collaborator columns with a narrow local database contract until their migrations are applied; this keeps generated types untouched without bypassing migration order.
 Use the shared Cloudbeds sync helper to send the user token and refresh a rejected session at most once; this avoids public-key fallback and unbounded authentication retries.
+Read today's occupancy from the synchronized Cloudbeds hotel metric, never infer it from guest names; room cards also contain arriving and departing guests.
+Use dashboard detail dialogs for filtered room/night records and preserve the unit when linking to another module; indicators must open the data they summarize.
+Bind database client RPC methods before extracting them into a local typed contract; SDK methods depend on their client receiver.
