@@ -407,6 +407,13 @@
       "when": 1791912346759,
       "tag": "0057_room_housekeeping_bloqueio",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1791912371453,
+      "tag": "0058_consolidar_dados_5min",
+      "breakpoints": true
     }
   ]
 }
