@@ -134,13 +134,14 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
   const cancelar = useCancelarReforco();
   const c = contarServicosPrevistos(row, totalQuartos);
   const nivel = NIVEL[row.nivel];
+  const reforcoOk = pedido?.status === "autorizado" || row.freelancers_escalados > 0;
   const podeCancelar = pedido?.status === "pendente" && (pedido.solicitado_por === me?.userId || me?.isGestor || me?.isAdmin);
   return (
-    <Card className={cn("space-y-3 p-4", nivel.cls)}>
+    <Card className={cn("space-y-3 p-4", reforcoOk && row.nivel !== "verde" ? "border-teal-400 bg-teal-50" : nivel.cls)}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="capitalize">{dataCurta(row.data)}</strong>
         <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-black uppercase">
-          {nivel.txt} · carga {Math.round(Number(row.ocupacao_carga_pct))}%
+          {reforcoOk && row.nivel !== "verde" ? "Reforço chamado" : nivel.txt} · carga {Math.round(Number(row.ocupacao_carga_pct))}%
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">

@@ -6,7 +6,7 @@ import { AlertTriangle, CalendarClock, CheckCircle2, RefreshCw } from "lucide-re
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { formatTaskLabel, type TaskLabel } from "@/lib/task-labels";
-import { usePrevisaoCarga, useRecalcularPrevisao, type ForecastRow } from "@/lib/previsao-carga";
+import { usePrevisaoCarga, useRecalcularPrevisao, useReforcosChamados, type ForecastRow } from "@/lib/previsao-carga";
 import { addCivilDays } from "@/lib/escala-engine";
 import { todaySP } from "@/lib/tz";
 import { cn } from "@/lib/utils";
@@ -230,6 +230,7 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
   const previsao = usePrevisaoCarga();
   const quartos = useQuartosServico(unidade);
   const recalcular = useRecalcularPrevisao();
+  const reforcos = useReforcosChamados().data;
   const [hoje] = useState(todaySP());
   const dias = [addCivilDays(hoje, 1), addCivilDays(hoje, 2)];
   const totalQuartos = (quartos.data ?? []).filter((q) => q.condition !== "maintenance").length;
@@ -274,7 +275,7 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
             );
           const c = contarServicosPrevistos(row, totalQuartos);
           return (
-            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", TOM[row.nivel])}>
+            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", (row.freelancers_escalados > 0 || reforcos?.has(`${unidade}|${d}`)) && row.nivel !== "verde" ? "border-teal-400 bg-teal-50 text-teal-900" : TOM[row.nivel])}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <strong className="capitalize">{i === 0 ? "Amanhã" : "Depois de amanhã"} · {dataCurta(d)}</strong>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black uppercase">
