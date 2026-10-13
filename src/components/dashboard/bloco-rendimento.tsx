@@ -1,6 +1,10 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, Loader2, RefreshCw } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Button } from "@/components/ui/button";
+import { DetalhesPainel, type DetalhePainel } from "./detalhes";
+import type { NoiteLida } from "@/lib/dashboard/rendimento";
 import { toast } from "sonner";
 import {
   fimMes,
@@ -111,7 +115,7 @@ export function BlocoRendimento() {
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex rounded-lg border border-slate-200 bg-white p-0.5">
             {PERIODOS.map((p) => (
-              <button
+              <Button
                 key={p.id}
                 type="button"
                 onClick={() => setPeriodo(p.id)}
@@ -121,10 +125,10 @@ export function BlocoRendimento() {
                 )}
               >
                 {p.rotulo}
-              </button>
+              </Button>
             ))}
           </div>
-          <button
+          <Button
             type="button"
             onClick={() => atualizar(meses)}
             disabled={sync.isPending}
@@ -132,7 +136,7 @@ export function BlocoRendimento() {
           >
             {sync.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RefreshCw className="h-3.5 w-3.5" />}
             {sync.isPending ? `Buscando no Cloudbeds ${progresso ?? ""}` : "Atualizar com o Cloudbeds"}
-          </button>
+          </Button>
         </div>
       }
     >
@@ -147,9 +151,9 @@ export function BlocoRendimento() {
             <AlertTriangle className="h-3.5 w-3.5" />
             Ainda não buscado no Cloudbeds: {faltando.map((m) => `${m.slice(5)}/${m.slice(2, 4)}`).join(", ")}.
           </span>
-          <button type="button" onClick={() => atualizar(faltando)} className="font-bold underline">
+          <Button type="button" onClick={() => atualizar(faltando)} className="font-bold underline">
             Buscar agora
-          </button>
+          </Button>
         </div>
       )}
       {noitesQ.error && <Erros lista={[`Noites vendidas: ${(noitesQ.error as Error).message}`]} />}
@@ -162,7 +166,9 @@ export function BlocoRendimento() {
           <CartaoUnidade
             key={u}
             unidade={u}
-            carregando={noitesQ.isLoading}
+            carregando={noitesQ.isLoading || (sync.isPending && !noitesQ.data?.length)}
+            disponivel={!noitesQ.error && !syncQ.error && (syncQ.data ?? []).some((s) => s.unidade === u && meses.includes(s.mes.slice(0, 7)))}
+            noites={(noitesQ.data ?? []).filter((n) => n.unidade === u && n.data >= de && n.data <= ate)}
             {...porUnidade[u]}
             mostrarFuturo={fim > hoje}
           />
@@ -227,6 +233,8 @@ function CartaoUnidade({
   futuras,
   reclamacoes,
   mostrarFuturo,
+  disponivel,
+  noites,
 }: {
   unidade: UnidadeDash;
   carregando: boolean;
@@ -234,8 +242,16 @@ function CartaoUnidade({
   futuras: { noites: number; receita: number };
   reclamacoes: ReturnType<typeof reclamacoesPorQuarto>;
   mostrarFuturo: boolean;
+  disponivel: boolean;
+  noites: NoiteLida[];
 }) {
-  const cor = unidade === "Botafogo" ? "#1d4ed8" : "#0f766e";
+  const cor = unidade === "Botafogo" ? "var(--primary)" : "var(--success)";
+  const [detalhe, setDetalhe] = useState<DetalhePainel | null>(null);
+  const abrir = (titulo: string, filtro: (n: NoiteLida) => boolean = () => true) => {
+    const lista = noites.filter(filtro);
+    setDetalhe({ titulo: `${titulo} · ${unidade}`, descricao: `${lista.length} noites · ${dataCurta(r.de)} a ${dataCurta(r.ate)}`, conteudo: lista.length ?
+      <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b border-border"><th className="p-2 text-left">Data</th><th className="p-2 text-left">Quarto</th><th className="p-2 text-left">Reserva / canal</th><th className="p-2 text-right">Diária</th></tr></thead><tbody>{lista.map((n, i) => <tr key={`${n.reservation_id}-${n.data}-${n.quarto}-${i}`} className="border-b border-border"><td className="p-2 whitespace-nowrap">{dataCurta(n.data)}</td><td className="p-2">{n.quarto}</td><td className="p-2">{n.reservation_id}<p className="text-xs text-muted-foreground">{n.origem ?? "Não informado"}</p></td><td className="p-2 text-right whitespace-nowrap">{brl.format(n.valor)}</td></tr>)}</tbody></table></div> : <p className="text-sm text-muted-foreground">Nenhuma noite vendida neste filtro.</p> });
+  };
   if (carregando)
     return (
       <Cartao>
@@ -245,19 +261,20 @@ function CartaoUnidade({
         </p>
       </Cartao>
     );
+  if (!disponivel) return <Cartao><CabecalhoUnidade unidade={unidade} /><p className="text-sm text-muted-foreground">Rendimento ainda não carregado do Cloudbeds. Nenhuma taxa ou receita foi estimada.</p></Cartao>;
   const maxSemana = Math.max(...r.porDiaSemana.map((d) => d.ocupacao));
   return (
     <Cartao>
       <CabecalhoUnidade unidade={unidade} extra={<span className="text-[11px] text-slate-500">{r.quartos} quartos · {r.dias} dias</span>} />
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        <Kpi rotulo="Receita" valor={brl0.format(r.receita)} sub={`${r.noites} noites vendidas`} />
-        <Kpi rotulo="Ocupação" valor={pct(r.ocupacao)} />
-        <Kpi rotulo="Diária média" valor={brl.format(r.diariaMedia)} sub={`RevPAR ${brl.format(r.revpar)}`} />
-        <Kpi rotulo="Reservas" valor={r.reservas} sub={`estadia média ${num(r.estadiaMedia)} noite(s)`} />
-        <Kpi rotulo="Valor médio por reserva" valor={brl0.format(r.ticketMedio)} />
+        <Kpi rotulo="Receita" onClick={() => abrir("Receita")} valor={brl0.format(r.receita)} sub={`${r.noites} noites vendidas`} />
+        <Kpi rotulo="Ocupação" onClick={() => abrir("Ocupação")} valor={pct(r.ocupacao)} />
+        <Kpi rotulo="Diária média" onClick={() => abrir("Diária média")} valor={brl.format(r.diariaMedia)} sub={`RevPAR ${brl.format(r.revpar)}`} />
+        <Kpi rotulo="Reservas" onClick={() => abrir("Reservas")} valor={r.reservas} sub={`estadia média ${num(r.estadiaMedia)} noite(s)`} />
+        <Kpi rotulo="Valor médio por reserva" onClick={() => abrir("Valor médio por reserva")} valor={brl0.format(r.ticketMedio)} />
         <Kpi
-          rotulo="Diária que mais fecha"
+          rotulo="Diária que mais fecha" onClick={() => abrir("Diária que mais fecha")}
           valor={r.faixaMaisVendida ? `${brl0.format(r.faixaMaisVendida.de)}–${brl0.format(r.faixaMaisVendida.ate)}` : "—"}
           sub={r.faixaMaisVendida ? `${pct(r.faixaMaisVendida.parte)} das noites` : undefined}
         />
@@ -269,8 +286,8 @@ function CartaoUnidade({
       )}
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <ListaQuartos titulo="Mais alugados" itens={r.maisAlugados} />
-        <ListaQuartos titulo="Menos alugados" itens={r.menosAlugados} />
+        <ListaQuartos titulo="Mais alugados" itens={r.maisAlugados} abrir={(q) => abrir(`Quarto ${q}`, (n) => n.quarto === q)} />
+        <ListaQuartos titulo="Menos alugados" itens={r.menosAlugados} abrir={(q) => abrir(`Quarto ${q}`, (n) => n.quarto === q)} />
       </div>
 
       <div>
@@ -281,7 +298,7 @@ function CartaoUnidade({
           <ul className="space-y-1">
             {reclamacoes.slice(0, 3).map((q) => (
               <li key={q.quarto} className="flex items-center justify-between rounded-md bg-red-50 px-2 py-1 text-xs">
-                <span className="font-black text-slate-900">Quarto {q.quarto}</span>
+                <Button variant="link" size="sm" onClick={() => setDetalhe({ titulo: `Problemas · ${unidade} · Quarto ${q.quarto}`, conteudo: <div className="space-y-3"><p>{q.chamados} chamado(s) · {q.vistorias} pendência(s) de vistoria · {q.avaliacoesRuins} avaliação(ões) ruins</p><Button asChild variant="outline"><Link to="/painel">Ver chamados</Link></Button><Button asChild variant="outline"><Link to="/historico-vistorias">Ver vistorias</Link></Button><Button asChild variant="outline"><Link to="/gestor/totem">Ver avaliações</Link></Button></div> })}>Quarto {q.quarto}</Button>
                 <span className="text-red-800">
                   {q.total} · {[q.avaliacoesRuins && `${q.avaliacoesRuins} aval. ruim`, q.chamados && `${q.chamados} chamado(s)`, q.vistorias && `${q.vistorias} vistoria(s)`]
                     .filter(Boolean)
@@ -294,23 +311,23 @@ function CartaoUnidade({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <ListaDias titulo="Dias de alta" itens={r.diasAlta.slice(0, 3)} tom="bom" />
-        <ListaDias titulo="Dias de baixa" itens={r.diasBaixa.slice(0, 3)} tom="ruim" />
+        <ListaDias titulo="Dias de alta" itens={r.diasAlta.slice(0, 3)} tom="bom" abrir={(d) => abrir(dataCurta(d), (n) => n.data === d)} />
+        <ListaDias titulo="Dias de baixa" itens={r.diasBaixa.slice(0, 3)} tom="ruim" abrir={(d) => abrir(dataCurta(d), (n) => n.data === d)} />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <p className="text-[11px] font-bold uppercase text-slate-500">Ocupação por dia da semana</p>
-          <div className="h-32">
+          <div className="h-40 min-w-0">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={r.porDiaSemana.map((d) => ({ dia: diaCurto(d.dia), ocupacao: Math.round(d.ocupacao * 100), diaria: d.diariaMedia }))}>
                 <XAxis dataKey="dia" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
                 <YAxis hide domain={[0, 100]} />
                 <Tooltip
                   formatter={(v: number, k: string) => (k === "ocupacao" ? [`${v}%`, "Ocupação"] : [brl.format(v), "Diária"])}
-                  cursor={{ fill: "#f1f5f9" }}
+                  cursor={{ fill: "var(--muted)" }}
                 />
-                <Bar dataKey="ocupacao" radius={[3, 3, 0, 0]}>
+                <Bar dataKey="ocupacao" radius={[3, 3, 0, 0]} onClick={(d) => abrir(`Ocupação · ${d.dia}`, (n) => diaCurto(new Date(`${n.data}T12:00:00Z`).getUTCDay()) === d.dia)}>
                   {r.porDiaSemana.map((d) => (
                     <Cell key={d.dia} fill={cor} fillOpacity={maxSemana && d.ocupacao === maxSemana ? 1 : 0.45} />
                   ))}
@@ -322,7 +339,7 @@ function CartaoUnidade({
         <div>
           <p className="text-[11px] font-bold uppercase text-slate-500">Noites por faixa de diária</p>
           {r.faixas.length ? (
-            <div className="h-32">
+            <div className="h-40 min-w-0">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={r.faixas.map((f) => ({ faixa: `${f.de}`, noites: f.noites, de: f.de, ate: f.ate }))}>
                   <XAxis dataKey="faixa" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
@@ -333,9 +350,9 @@ function CartaoUnidade({
                       const x = p?.[0]?.payload as { de: number; ate: number } | undefined;
                       return x ? `${brl0.format(x.de)} a ${brl0.format(x.ate)}` : "";
                     }}
-                    cursor={{ fill: "#f1f5f9" }}
+                    cursor={{ fill: "var(--muted)" }}
                   />
-                  <Bar dataKey="noites" radius={[3, 3, 0, 0]}>
+                  <Bar dataKey="noites" radius={[3, 3, 0, 0]} onClick={(d) => abrir(`Diárias ${brl0.format(d.de)} a ${brl0.format(d.ate)}`, (n) => n.valor >= d.de && n.valor < d.ate)}>
                     {r.faixas.map((f) => (
                       <Cell key={f.de} fill={cor} fillOpacity={r.faixaMaisVendida?.de === f.de ? 1 : 0.45} />
                     ))}
@@ -349,6 +366,8 @@ function CartaoUnidade({
         </div>
       </div>
 
+      <div className="flex flex-wrap gap-1">{r.porDiaSemana.map((d) => <Button variant="outline" size="sm" key={d.dia} onClick={() => abrir(`Ocupação · ${diaCurto(d.dia)}`, (n) => new Date(`${n.data}T12:00:00Z`).getUTCDay() === d.dia)}>{diaCurto(d.dia)} {pct(d.ocupacao)}</Button>)}</div>
+      <div className="flex flex-wrap gap-1">{r.faixas.map((f) => <Button variant="outline" size="sm" key={f.de} onClick={() => abrir(`Diárias ${brl0.format(f.de)} a ${brl0.format(f.ate)}`, (n) => n.valor >= f.de && n.valor < f.ate)}>{brl0.format(f.de)}–{brl0.format(f.ate)} · {f.noites}</Button>)}</div>
       {r.canais.length > 0 && (
         <div>
           <p className="mb-1 text-[11px] font-bold uppercase text-slate-500">Por canal</p>
@@ -356,7 +375,7 @@ function CartaoUnidade({
             <tbody>
               {r.canais.slice(0, 4).map((c) => (
                 <tr key={c.origem} className="border-t border-slate-100">
-                  <td className="py-1 font-semibold text-slate-800">{c.origem}</td>
+                  <td className="py-1 font-semibold text-slate-800"><Button variant="link" size="sm" onClick={() => abrir(c.origem, (n) => (n.origem?.trim() || "Não informado") === c.origem)}>{c.origem}</Button></td>
                   <td className="py-1 text-right text-slate-600">{c.noites} noites</td>
                   <td className="py-1 text-right text-slate-600">{brl0.format(c.diariaMedia)}/noite</td>
                   <td className="py-1 text-right font-bold text-slate-900">{brl0.format(c.receita)}</td>
@@ -367,6 +386,7 @@ function CartaoUnidade({
         </div>
       )}
 
+      <DetalhesPainel detalhe={detalhe} fechar={() => setDetalhe(null)} />
       {(r.noitesSemValor > 0 || r.noitesSemQuarto > 0) && (
         <p className="text-[11px] text-amber-800">
           {r.noitesSemValor > 0 && `${r.noitesSemValor} noite(s) sem valor no Cloudbeds. `}
@@ -377,14 +397,14 @@ function CartaoUnidade({
   );
 }
 
-function ListaQuartos({ titulo, itens }: { titulo: string; itens: IndicadorQuarto[] }) {
+function ListaQuartos({ titulo, itens, abrir }: { titulo: string; itens: IndicadorQuarto[]; abrir: (q: string) => void }) {
   return (
     <div>
       <p className="mb-1 text-[11px] font-bold uppercase text-slate-500">{titulo}</p>
       <ul className="space-y-1">
         {itens.map((q) => (
           <li key={q.quarto} className="flex items-center justify-between rounded-md bg-slate-50 px-2 py-1 text-xs">
-            <span className="font-black text-slate-900">{q.quarto}</span>
+            <Button variant="link" size="sm" onClick={() => abrir(q.quarto)}>Quarto {q.quarto}</Button>
             <span className="text-slate-600">
               {q.noites} noites · {pct(q.ocupacao)} · {brl0.format(q.receita)}
             </span>
@@ -395,7 +415,7 @@ function ListaQuartos({ titulo, itens }: { titulo: string; itens: IndicadorQuart
   );
 }
 
-function ListaDias({ titulo, itens, tom }: { titulo: string; itens: ResumoRendimento["diasAlta"]; tom: "bom" | "ruim" }) {
+function ListaDias({ titulo, itens, tom, abrir }: { titulo: string; itens: ResumoRendimento["diasAlta"]; tom: "bom" | "ruim"; abrir: (d: string) => void }) {
   return (
     <div>
       <p className="mb-1 text-[11px] font-bold uppercase text-slate-500">{titulo}</p>
@@ -405,7 +425,7 @@ function ListaDias({ titulo, itens, tom }: { titulo: string; itens: ResumoRendim
             key={d.data}
             className={cn("flex items-center justify-between rounded-md px-2 py-1 text-xs", tom === "bom" ? "bg-emerald-50" : "bg-amber-50")}
           >
-            <span className="font-semibold text-slate-900">{dataCurta(d.data)}</span>
+            <Button variant="link" size="sm" onClick={() => abrir(d.data)}>{dataCurta(d.data)}</Button>
             <span className="text-slate-600">
               {pct(d.ocupacao)} · {brl0.format(d.receita)}
             </span>

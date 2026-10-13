@@ -40,7 +40,7 @@ export function BlocoOperacao() {
                   extra={<span className="text-[11px] text-slate-500">Cloudbeds {q.isLoading ? "…" : horaCurta(metrica?.updated_at ?? r.atualizadoEm)}</span>}
                 />
                 <div className="grid grid-cols-3 gap-2">
-                  <Kpi rotulo="Ocupação" valor={pct(metrica ? metrica.occupancy_percentage / 100 : null, 2)} sub={metrica ? "Taxa informada pelo Cloudbeds" : "Taxa indisponível"} onClick={() => setDetalhe({ titulo: `Ocupação · ${u}`, descricao: "Cloudbeds · operação de hoje", conteudo: <div className="space-y-3"><p className="text-2xl font-bold">{pct(metrica ? metrica.occupancy_percentage / 100 : null, 2)}</p><p>Ocupação informada pelo Cloudbeds, sem inferir presença pelo nome do hóspede.</p><Kpi rotulo="Abrir operação" valor="Ver quartos na Gestão" to="/gestao" unidade={u} /></div> })} />
+                  <Kpi rotulo="Ocupação" valor={pct(taxaOcupacaoCloudbeds(metrica?.occupancy_percentage), 2)} sub={metrica ? "Taxa informada pelo Cloudbeds" : "Taxa indisponível"} onClick={() => setDetalhe({ titulo: `Ocupação · ${u}`, descricao: "Cloudbeds · operação de hoje", conteudo: <div className="space-y-3"><p className="text-2xl font-bold">{pct(taxaOcupacaoCloudbeds(metrica?.occupancy_percentage), 2)}</p><p>Ocupação informada pelo Cloudbeds, sem inferir presença pelo nome do hóspede.</p><Kpi rotulo="Abrir operação" valor="Ver quartos na Gestão" to="/gestao" unidade={u} /></div> })} />
                   <Kpi rotulo="Chegadas" valor={r.chegadas} onClick={() => abrir(u, "Chegadas", (r) => !!r.next_guest_name)} />
                   <Kpi rotulo="Saídas" valor={r.saidas} onClick={() => abrir(u, "Saídas", (r) => !!r.departing_guest_name)} />
                 </div>
