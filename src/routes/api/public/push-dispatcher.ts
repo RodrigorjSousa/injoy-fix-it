@@ -66,6 +66,13 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         tag: `previsao-${d.unidade}-${d.data}-${d.tipo}`,
       };
     case "previsao_reforco":
+      if (d.lancado)
+        return {
+          title: "Reforço lançado na limpeza",
+          body: `${d.nome ?? "Recepção"} lançou ${d.freelancer ?? "freelancer"} · ${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.valor != null ? ` · ${Number(d.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para conferir ou corrigir.`,
+          url: "/gestor/previsao-carga",
+          tag: `reforco-${d.id}`,
+        };
       return {
         title: "Pedido de reforço na limpeza",
         body: `${d.nome ?? "Recepção"} pede freelancer · ${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.ocupacao_pct != null ? ` (carga ${d.ocupacao_pct}%)` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para autorizar.`,

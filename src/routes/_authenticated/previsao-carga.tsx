@@ -5,19 +5,33 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Bloco, SERVICOS, contarServicosPrevistos, useQuartosServico } from "@/components/gestao/servicos-quartos";
+import {
+  Bloco,
+  SERVICOS,
+  contarServicosPrevistos,
+  useQuartosServico,
+} from "@/components/gestao/servicos-quartos";
 import { requireGestor } from "@/lib/require-gestor";
 import { usePrevisaoCarga, useRecalcularPrevisao, type ForecastRow } from "@/lib/previsao-carga";
 import {
   STATUS_PEDIDO,
+  lancadosDoDia,
   pedidoDoDia,
   useCancelarReforco,
+  useLancarReforco,
+  useOpcoesReforco,
   usePedidosReforco,
-  usePedirReforco,
   type PedidoReforco,
 } from "@/lib/previsao-reforco";
 import { useMe } from "@/lib/store";
@@ -38,7 +52,12 @@ const NIVEL = {
 } as const;
 
 const dataCurta = (v: string) =>
-  new Intl.DateTimeFormat("pt-BR", { weekday: "short", day: "2-digit", month: "2-digit", timeZone: "UTC" }).format(new Date(`${v}T12:00:00Z`));
+  new Intl.DateTimeFormat("pt-BR", {
+    weekday: "short",
+    day: "2-digit",
+    month: "2-digit",
+    timeZone: "UTC",
+  }).format(new Date(`${v}T12:00:00Z`));
 
 function Page() {
   const previsao = usePrevisaoCarga();
@@ -69,15 +88,20 @@ function Page() {
           </Badge>
           <h1 className="text-2xl font-black">Previsão de Carga</h1>
           <p className="mt-1 text-sm text-slate-500">
-            Serviços de limpeza previstos pelo Cloudbeds e a equipe escalada. Viu sobrecarga? Avise o gestor para autorizar
-            freelancer.
+            Serviços de limpeza previstos pelo Cloudbeds e a equipe escalada. Viu sobrecarga? Lance
+            o reforço (freelancer e valor): ele entra na escala e o gestor é avisado.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" onClick={atualizar} disabled={recalcular.isPending}>
-            <RefreshCw className={cn("mr-2 h-4 w-4", recalcular.isPending && "animate-spin")} /> Atualizar agora
+            <RefreshCw className={cn("mr-2 h-4 w-4", recalcular.isPending && "animate-spin")} />{" "}
+            Atualizar agora
           </Button>
-          <Button onClick={() => setPedindo({ unidade: "Botafogo", data: addCivilDays(hoje, 1), livre: true })}>
+          <Button
+            onClick={() =>
+              setPedindo({ unidade: "Botafogo", data: addCivilDays(hoje, 1), livre: true })
+            }
+          >
             <BellRing className="mr-2 h-4 w-4" /> Pedir reforço
           </Button>
         </div>
@@ -90,7 +114,20 @@ function Page() {
       )}
 
       {grupos.map((g) => (
-        <UnidadeSecao key={g.unidade} unidade={g.unidade} dias={g.dias} pedidos={pedidos.data} onPedir={(r) => setPedindo({ unidade: r.unidade as "Botafogo" | "Ipanema", data: r.data, carga: Number(r.ocupacao_carga_pct) })} carregando={previsao.isLoading} />
+        <UnidadeSecao
+          key={g.unidade}
+          unidade={g.unidade}
+          dias={g.dias}
+          pedidos={pedidos.data}
+          onPedir={(r) =>
+            setPedindo({
+              unidade: r.unidade as "Botafogo" | "Ipanema",
+              data: r.data,
+              carga: Number(r.ocupacao_carga_pct),
+            })
+          }
+          carregando={previsao.isLoading}
+        />
       ))}
 
       <PedirDialog row={pedindo} onClose={() => setPedindo(null)} />
@@ -117,11 +154,20 @@ function UnidadeSecao({
     <section className="space-y-3">
       <h2 className="text-lg font-black">{unidade}</h2>
       {!dias.length ? (
-        <Card className="p-6 text-sm text-slate-500">{carregando ? "Carregando…" : "Previsão ainda não calculada. Clique em Atualizar agora."}</Card>
+        <Card className="p-6 text-sm text-slate-500">
+          {carregando ? "Carregando…" : "Previsão ainda não calculada. Clique em Atualizar agora."}
+        </Card>
       ) : (
         <div className="grid gap-3 lg:grid-cols-2">
           {dias.map((row) => (
-            <DiaCard key={row.id} row={row} totalQuartos={totalQuartos} pedido={pedidoDoDia(pedidos, unidade, row.data)} onPedir={() => onPedir(row)} />
+            <DiaCard
+              key={row.id}
+              row={row}
+              totalQuartos={totalQuartos}
+              pedido={pedidoDoDia(pedidos, unidade, row.data)}
+              lancados={lancadosDoDia(pedidos, unidade, row.data)}
+              onPedir={() => onPedir(row)}
+            />
           ))}
         </div>
       )}
@@ -129,19 +175,40 @@ function UnidadeSecao({
   );
 }
 
-function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; totalQuartos: number; pedido: PedidoReforco | null; onPedir: () => void }) {
+function DiaCard({
+  row,
+  totalQuartos,
+  pedido,
+  lancados,
+  onPedir,
+}: {
+  row: ForecastRow;
+  totalQuartos: number;
+  pedido: PedidoReforco | null;
+  lancados: PedidoReforco[];
+  onPedir: () => void;
+}) {
   const { data: me } = useMe();
   const cancelar = useCancelarReforco();
   const c = contarServicosPrevistos(row, totalQuartos);
   const nivel = NIVEL[row.nivel];
-  const reforcoOk = pedido?.status === "autorizado" || row.freelancers_escalados > 0;
-  const podeCancelar = pedido?.status === "pendente" && (pedido.solicitado_por === me?.userId || me?.isGestor || me?.isAdmin);
+  const reforcoOk =
+    pedido?.status === "autorizado" || lancados.length > 0 || row.freelancers_escalados > 0;
+  const podeCancelar =
+    pedido?.status === "pendente" &&
+    (pedido.solicitado_por === me?.userId || me?.isGestor || me?.isAdmin);
   return (
-    <Card className={cn("space-y-3 p-4", reforcoOk && row.nivel !== "verde" ? "border-teal-400 bg-teal-50" : nivel.cls)}>
+    <Card
+      className={cn(
+        "space-y-3 p-4",
+        reforcoOk && row.nivel !== "verde" ? "border-teal-400 bg-teal-50" : nivel.cls,
+      )}
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="capitalize">{dataCurta(row.data)}</strong>
         <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-black uppercase">
-          {reforcoOk && row.nivel !== "verde" ? "Reforço chamado" : nivel.txt} · carga {Math.round(Number(row.ocupacao_carga_pct))}%
+          {reforcoOk && row.nivel !== "verde" ? "Reforço chamado" : nivel.txt} · carga{" "}
+          {Math.round(Number(row.ocupacao_carga_pct))}%
         </span>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -150,31 +217,73 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
         ))}
       </div>
       <p className="text-xs font-semibold text-slate-700">
-        {row.qtd_checkins} chegadas · {row.qtd_checkouts} saídas · {row.camareiras_escaladas} camareira(s) na escala
+        {row.qtd_checkins} chegadas · {row.qtd_checkouts} saídas · {row.camareiras_escaladas}{" "}
+        camareira(s) na escala
         {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} reforço(s)` : ""}
         {row.chegada_mais_cedo ? ` · 1ª chegada ${row.chegada_mais_cedo.slice(0, 5)}` : ""}
       </p>
 
-      {pedido ? (
-        <div className={cn("space-y-1 rounded-lg border p-2 text-xs", STATUS_PEDIDO[pedido.status].cls)}>
+      {lancados.length > 0 && (
+        <div className={cn("space-y-1 rounded-lg border p-2 text-xs", STATUS_PEDIDO.lancado.cls)}>
           <p className="flex items-center gap-1 font-black">
-            {pedido.status === "autorizado" ? <CheckCircle2 className="h-4 w-4" /> : pedido.status === "negado" ? <XCircle className="h-4 w-4" /> : <BellRing className="h-4 w-4" />}
+            <CheckCircle2 className="h-4 w-4" /> Reforço lançado
+          </p>
+          {lancados.map((l) => (
+            <p key={l.id}>
+              <b>{l.freelancer_nome ?? "Freelancer"}</b>
+              {l.valor != null
+                ? ` · ${Number(l.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}`
+                : ""}{" "}
+              · por {l.solicitado_nome ?? "—"}
+              {!l.escala_dia_id ? " · removido da escala pelo gestor" : ""}
+            </p>
+          ))}
+        </div>
+      )}
+      {pedido ? (
+        <div
+          className={cn(
+            "space-y-1 rounded-lg border p-2 text-xs",
+            STATUS_PEDIDO[pedido.status].cls,
+          )}
+        >
+          <p className="flex items-center gap-1 font-black">
+            {pedido.status === "autorizado" ? (
+              <CheckCircle2 className="h-4 w-4" />
+            ) : pedido.status === "negado" ? (
+              <XCircle className="h-4 w-4" />
+            ) : (
+              <BellRing className="h-4 w-4" />
+            )}
             {STATUS_PEDIDO[pedido.status].txt}
           </p>
           <p>
             Pedido por {pedido.solicitado_nome ?? "—"} em{" "}
-            {new Date(pedido.solicitado_em).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+            {new Date(pedido.solicitado_em).toLocaleString("pt-BR", {
+              day: "2-digit",
+              month: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
             {pedido.mensagem ? ` · "${pedido.mensagem}"` : ""}
           </p>
           {pedido.decidido_nome && (
             <p>
-              {pedido.status === "autorizado" ? "Autorizado" : "Respondido"} por {pedido.decidido_nome}
+              {pedido.status === "autorizado" ? "Autorizado" : "Respondido"} por{" "}
+              {pedido.decidido_nome}
               {pedido.resposta ? `: "${pedido.resposta}"` : ""}
             </p>
           )}
           <div className="flex gap-2 pt-1">
             {podeCancelar && (
-              <Button size="sm" variant="outline" disabled={cancelar.isPending} onClick={() => cancelar.mutate(pedido.id, { onError: (e) => toast.error(e.message) })}>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={cancelar.isPending}
+                onClick={() =>
+                  cancelar.mutate(pedido.id, { onError: (e) => toast.error(e.message) })
+                }
+              >
                 Cancelar pedido
               </Button>
             )}
@@ -198,8 +307,15 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
           ) : (
             <span />
           )}
-          <Button size="sm" variant={row.nivel === "verde" ? "outline" : "default"} onClick={onPedir}>
-            <BellRing className="mr-1.5 h-4 w-4" /> {row.freelancers_escalados > 0 ? "Pedir mais reforço" : "Avisar gestor / pedir reforço"}
+          <Button
+            size="sm"
+            variant={row.nivel === "verde" ? "outline" : "default"}
+            onClick={onPedir}
+          >
+            <BellRing className="mr-1.5 h-4 w-4" />{" "}
+            {row.freelancers_escalados > 0 || lancados.length > 0
+              ? "Pedir mais reforço"
+              : "Pedir reforço"}
           </Button>
         </div>
       )}
@@ -207,39 +323,70 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
   );
 }
 
-type PedidoAlvo = { unidade: "Botafogo" | "Ipanema"; data: string; carga?: number; livre?: boolean };
+type PedidoAlvo = {
+  unidade: "Botafogo" | "Ipanema";
+  data: string;
+  carga?: number;
+  livre?: boolean;
+};
 
 function PedirDialog({ row, onClose }: { row: PedidoAlvo | null; onClose: () => void }) {
-  const pedir = usePedirReforco();
-  const [msg, setMsg] = useState("");
+  const lancar = useLancarReforco();
   const [unidade, setUnidade] = useState<"Botafogo" | "Ipanema">("Botafogo");
   const [data, setData] = useState("");
+  const [escolhido, setEscolhido] = useState(""); // id do freelancer ou "novo"
+  const [novoNome, setNovoNome] = useState("");
+  const [valor, setValor] = useState("");
+  const [entrada, setEntrada] = useState("");
+  const [msg, setMsg] = useState("");
   const [erro, setErro] = useState<string | null>(null);
+  const opcoes = useOpcoesReforco(row ? unidade : null);
   const hoje = todaySP();
   useEffect(() => {
     if (row) {
       setUnidade(row.unidade);
       setData(row.data);
+      setEscolhido("");
+      setNovoNome("");
+      setEntrada("");
+      setMsg("");
       setErro(null);
     }
   }, [row]);
+  useEffect(() => {
+    if (opcoes.data) setValor((v) => v || String(opcoes.data.valor_padrao));
+  }, [opcoes.data]);
+  useEffect(() => {
+    const f = opcoes.data?.freelancers.find((x) => x.id === escolhido);
+    if (f?.hora_entrada) setEntrada(f.hora_entrada);
+  }, [escolhido, opcoes.data]);
   const fechar = () => {
     setErro(null);
+    setValor("");
     onClose();
   };
   const enviar = () => {
     if (!row) return;
-    if (!data || data < hoje) {
-      setErro("Escolha hoje ou um dia futuro.");
-      return;
-    }
+    const v = Number(valor.replace(",", "."));
+    if (!data || data < hoje) return setErro("Escolha hoje ou um dia futuro.");
+    if (!escolhido) return setErro('Escolha o freelancer ou "Outro (digitar nome)".');
+    if (escolhido === "novo" && novoNome.trim().length < 3)
+      return setErro("Digite o nome completo do freelancer.");
+    if (!(v >= 0) || valor.trim() === "") return setErro("Informe o valor.");
     setErro(null);
-    pedir.mutate(
-      { unidade, data, mensagem: msg },
+    lancar.mutate(
+      {
+        unidade,
+        data,
+        colaboradorId: escolhido === "novo" ? null : escolhido,
+        novoNome: escolhido === "novo" ? novoNome.trim() : null,
+        valor: v,
+        horaEntrada: entrada || null,
+        mensagem: msg,
+      },
       {
         onSuccess: () => {
-          toast.success("Gestor avisado. Aguarde a autorização para chamar o freelancer.");
-          setMsg("");
+          toast.success("Reforço lançado na escala. O gestor foi avisado.");
           fechar();
         },
         onError: (e) => {
@@ -251,11 +398,12 @@ function PedirDialog({ row, onClose }: { row: PedidoAlvo | null; onClose: () => 
   };
   return (
     <Dialog open={!!row} onOpenChange={(v) => !v && fechar()}>
-      <DialogContent>
+      <DialogContent className="max-h-[92vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Pedir reforço ao gestor</DialogTitle>
+          <DialogTitle>Pedir reforço</DialogTitle>
           <DialogDescription>
-            O gestor recebe uma notificação e autoriza ou não. Só chame o freelancer depois de autorizado.
+            O freelancer entra direto na escala do dia e o gestor recebe uma notificação. Para
+            corrigir depois, fale com o gestor.
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-3 sm:grid-cols-2">
@@ -265,7 +413,10 @@ function PedirDialog({ row, onClose }: { row: PedidoAlvo | null; onClose: () => 
               className="h-10 w-full rounded-md border bg-background px-3 text-sm"
               value={unidade}
               disabled={!row?.livre}
-              onChange={(e) => setUnidade(e.target.value as "Botafogo" | "Ipanema")}
+              onChange={(e) => {
+                setUnidade(e.target.value as "Botafogo" | "Ipanema");
+                setEscolhido("");
+              }}
             >
               <option value="Botafogo">Botafogo</option>
               <option value="Ipanema">Ipanema</option>
@@ -273,21 +424,89 @@ function PedirDialog({ row, onClose }: { row: PedidoAlvo | null; onClose: () => 
           </div>
           <div className="space-y-1">
             <Label>Dia</Label>
-            <Input type="date" min={hoje} value={data} disabled={!row?.livre} onChange={(e) => setData(e.target.value)} />
+            <Input
+              type="date"
+              min={hoje}
+              value={data}
+              disabled={!row?.livre}
+              onChange={(e) => setData(e.target.value)}
+            />
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label>Freelancer</Label>
+            <select
+              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+              value={escolhido}
+              onChange={(e) => setEscolhido(e.target.value)}
+            >
+              <option value="">{opcoes.isLoading ? "Carregando…" : "Escolha…"}</option>
+              {(opcoes.data?.freelancers ?? []).map((f) => (
+                <option key={f.id} value={f.id}>
+                  {f.nome}
+                </option>
+              ))}
+              <option value="novo">Outro (digitar nome)</option>
+            </select>
+            {opcoes.error && (
+              <p className="text-xs text-red-700">{(opcoes.error as Error).message}</p>
+            )}
+          </div>
+          {escolhido === "novo" && (
+            <div className="space-y-1 sm:col-span-2">
+              <Label>Nome completo do freelancer</Label>
+              <Input
+                value={novoNome}
+                onChange={(e) => setNovoNome(e.target.value)}
+                placeholder="Ex.: Joana Silva"
+              />
+              <p className="text-[11px] text-slate-500">
+                O cadastro dele(a) é criado na escala automaticamente.
+              </p>
+            </div>
+          )}
+          <div className="space-y-1">
+            <Label>Valor (R$)</Label>
+            <Input inputMode="decimal" value={valor} onChange={(e) => setValor(e.target.value)} />
+            {opcoes.data?.modalidade && (
+              <p className="text-[11px] text-slate-500">
+                Padrão: {opcoes.data.modalidade} · {opcoes.data.horas_padrao} h
+              </p>
+            )}
+          </div>
+          <div className="space-y-1">
+            <Label>Entrada</Label>
+            <Input
+              type="time"
+              value={entrada}
+              onChange={(e) => setEntrada(e.target.value)}
+              placeholder="08:00"
+            />
+            <p className="text-[11px] text-slate-500">Vazio = horário do cadastro (ou 08:00).</p>
           </div>
         </div>
-        {row?.carga != null && <p className="text-xs text-slate-500">Carga prevista: {Math.round(row.carga)}%</p>}
+        {row?.carga != null && (
+          <p className="text-xs text-slate-500">Carga prevista: {Math.round(row.carga)}%</p>
+        )}
         <div className="space-y-2">
           <Label>Observação (opcional)</Label>
-          <Textarea value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Ex.: 6 gerais com check-in antes das 14h" />
+          <Textarea
+            value={msg}
+            onChange={(e) => setMsg(e.target.value)}
+            placeholder="Ex.: 6 gerais com check-in antes das 14h"
+          />
         </div>
-        {erro && <p className="rounded-md border border-red-200 bg-red-50 p-2 text-sm font-semibold text-red-700">{erro}</p>}
+        {erro && (
+          <p className="rounded-md border border-red-200 bg-red-50 p-2 text-sm font-semibold text-red-700">
+            {erro}
+          </p>
+        )}
         <DialogFooter className="gap-2">
           <Button variant="outline" onClick={fechar}>
             Cancelar
           </Button>
-          <Button onClick={enviar} disabled={pedir.isPending}>
-            <BellRing className="mr-2 h-4 w-4" /> {pedir.isPending ? "Enviando…" : "Avisar gestor"}
+          <Button onClick={enviar} disabled={lancar.isPending}>
+            <BellRing className="mr-2 h-4 w-4" />{" "}
+            {lancar.isPending ? "Lançando…" : "Lançar reforço"}
           </Button>
         </DialogFooter>
       </DialogContent>
