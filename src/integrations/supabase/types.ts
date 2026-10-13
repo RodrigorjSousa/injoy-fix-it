@@ -1298,6 +1298,7 @@ export type Database = {
           id: string
           numero_documento: string | null
           observacoes: string | null
+          origem_beneficio: string | null
           origem_escala: string | null
           qtd_diarias: number | null
           recorrencia_id: string | null
@@ -1327,6 +1328,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_beneficio?: string | null
           origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
@@ -1356,6 +1358,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_beneficio?: string | null
           origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
@@ -3914,6 +3917,10 @@ export type Database = {
           _unidade: string
         }
         Returns: undefined
+      }
+      escala_lancar_beneficios: {
+        Args: { _competencia: string; _itens: Json }
+        Returns: Json
       }
       escala_publicar_mes:
         | {

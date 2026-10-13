@@ -358,6 +358,13 @@
       "when": 1791862944199,
       "tag": "0050_room_housekeeping_noites_chegada",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1791887588831,
+      "tag": "0051_escala_beneficios_financeiro",
+      "breakpoints": true
     }
   ]
 }
