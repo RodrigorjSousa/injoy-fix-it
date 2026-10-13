@@ -116,7 +116,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
     6 tentativas ou 12 h (`falhou`, aparece nas pendências do dashboard) ou se o quarto deixou de estar
     finalizado / ficou em Não perturbe. Regras em `supabase/functions/_shared/cloudbeds-limpeza.ts`
     (testes em `src/lib/cloudbeds/cloudbeds-limpeza.test.ts`). Cada tentativa fica em `cloudbeds_limpeza_logs`.
-  - Não perturbe e a vistoria da recepção NÃO mandam limpo ao Cloudbeds.
+  - Não perturbe e a vistoria da recepção NÃO mandam limpo ao Cloudbeds (decisão do Rodrigo, 13/10/2026:
+    a vistoria fica só no app).
 
 - Previsão de Carga — REFORÇO x SUBSTITUIÇÃO: extra com `substitui_colaborador_id` (cobre férias,
   folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem
