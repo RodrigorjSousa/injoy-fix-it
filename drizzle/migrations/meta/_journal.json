@@ -421,6 +421,13 @@
       "when": 1791915386797,
       "tag": "0059_0059_totem_pagamento_documentos",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1791915468353,
+      "tag": "0060_totem_documentos_storage_policies",
+      "breakpoints": true
     }
   ]
 }

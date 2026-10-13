@@ -1,9 +1,3 @@
--- 0060 — Políticas do bucket privado "documentos-hospedes" (fotos de documentos do totem).
--- PRÉ-REQUISITO: o bucket "documentos-hospedes" (PRIVADO, não público) precisa existir —
--- crie pela ferramenta de armazenamento antes de aplicar esta migração.
--- O totem grava pelo servidor (chave de serviço); aqui só liberamos a LEITURA para gestor/admin.
--- Pode ser aplicada mais de uma vez.
-
 DROP POLICY IF EXISTS "Documentos hospedes: gestores leem" ON storage.objects;
 CREATE POLICY "Documentos hospedes: gestores leem" ON storage.objects FOR SELECT TO authenticated
   USING (
