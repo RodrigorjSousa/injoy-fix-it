@@ -684,6 +684,8 @@ export type Database = {
           turno_padrao: string | null
           unidade: string
           updated_at: string
+          vale_alimentacao: number | null
+          vale_transporte_dia: number | null
           vinculo: string
         }
         Insert: {
@@ -700,6 +702,8 @@ export type Database = {
           turno_padrao?: string | null
           unidade: string
           updated_at?: string
+          vale_alimentacao?: number | null
+          vale_transporte_dia?: number | null
           vinculo: string
         }
         Update: {
@@ -716,6 +720,8 @@ export type Database = {
           turno_padrao?: string | null
           unidade?: string
           updated_at?: string
+          vale_alimentacao?: number | null
+          vale_transporte_dia?: number | null
           vinculo?: string
         }
         Relationships: [

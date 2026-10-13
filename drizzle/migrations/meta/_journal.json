@@ -365,6 +365,20 @@
       "when": 1791887588831,
       "tag": "0051_escala_beneficios_financeiro",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1791887609771,
+      "tag": "0052_escala_beneficio_por_funcionario",
+      "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1791887619957,
+      "tag": "0053_escala_horario_freelancer",
+      "breakpoints": true
     }
   ]
 }
