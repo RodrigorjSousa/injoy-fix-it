@@ -86,6 +86,7 @@ const sections: { title: string; items: HubItem[] }[] = [
       { label: "Recepção", description: "Tela da recepção: chegadas, saídas e caixa", to: "/recepcao", icon: ConciergeBell, tone: "bg-sky-700" },
       { label: "Camareiras", description: "Quartos, serviços e lavanderia das camareiras", to: "/camareiras", icon: BedDouble, tone: "bg-pink-600" },
       { label: "Manutenção", description: "Tela do técnico de manutenção", to: "/manutencao", icon: Cog, tone: "bg-teal-700" },
+      { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },
     ],
   },
   {
@@ -97,7 +98,6 @@ const sections: { title: string; items: HubItem[] }[] = [
       { label: "Chat", description: "Mensagens da equipe", to: "/chat", icon: MessageSquare, tone: "bg-slate-600" },
       { label: "Previsão de Carga", description: "Sinalizador de reforço da limpeza", to: "/gestor/previsao-carga", icon: Gauge, tone: "bg-amber-600" },
       { label: "Lavanderia", description: "Operações e conta corrente", to: "/relatorio-operacoes", icon: Shirt, tone: "bg-sky-600" },
-      { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },
       { label: "Tarefas Extras", description: "Cards das áreas comuns: criar e editar", to: "/gestor/tarefas-extras", icon: Sparkles, tone: "bg-fuchsia-600" },
       { label: "Almoxarifado", description: "Estoque e movimentações", to: "/almoxarifado", icon: Package, tone: "bg-violet-600" },
       { label: "Estoque Geral", description: "Consulta consolidada", to: "/estoque-geral", icon: ClipboardList, tone: "bg-indigo-600" },
