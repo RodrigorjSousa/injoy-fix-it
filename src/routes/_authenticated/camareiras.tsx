@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
+import { cloudbedsMarcarQuartoLimpo } from "@/lib/cloudbeds-housekeeping.functions";
 
 import { toast } from "sonner";
 import { DndModal } from "@/components/camareiras/dnd-modal";
@@ -64,6 +65,7 @@ type RoomRow = {
   departing_guest_name: string | null;
   next_guest_name: string | null;
   next_arrival_time: string | null;
+  next_nights?: number | null;
   next_pax: number | null;
   pax: number | null;
   has_pending_payment: boolean | null;
@@ -165,6 +167,7 @@ function PainelCamareiras() {
   // Situação das Tarefas Extras agora fica no TarefasExtrasPainel.
 
   const doCheckout = useServerFn(cloudbedsCheckoutRoom);
+  const marcarLimpoCloudbeds = useServerFn(cloudbedsMarcarQuartoLimpo);
 
   const fazerCheckoutCloudbeds = useCallback(async (q: RoomRow) => {
     const chave = `${q.property}-${q.room_number}`;
@@ -398,7 +401,16 @@ function PainelCamareiras() {
     if (histErr) console.error("[camareiras] falha ao gravar histórico", histErr);
 
     toast.success("Serviço finalizado — quarto liberado");
-  }, [nomeAutomatico]);
+
+    // Marca o quarto como LIMPO no Cloudbeds (não bloqueia a camareira se o Cloudbeds falhar).
+    try {
+      await marcarLimpoCloudbeds({ data: { property: q.property, roomNumber: q.room_number } });
+      toast.success(`Quarto ${q.room_number} marcado como limpo no Cloudbeds`);
+    } catch (err) {
+      console.error("[camareiras] Cloudbeds limpo", err);
+      toast.warning(`Quarto liberado no app, mas o Cloudbeds não confirmou como limpo: ${err instanceof Error ? err.message : "erro"}. Avise a recepção.`, { duration: 10000 });
+    }
+  }, [nomeAutomatico, marcarLimpoCloudbeds]);
 
 
   const carregar = useCallback(async () => {
@@ -800,9 +812,14 @@ function PainelCamareiras() {
                         {q.next_pax} pax
                       </span>
                     ) : null}
-                    {q.next_arrival_time ? (
-                      <span className="ml-auto font-bold">{q.next_arrival_time}</span>
+                    {q.next_nights && q.next_nights > 0 ? (
+                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded">
+                        {q.next_nights} {q.next_nights === 1 ? "noite" : "noites"}
+                      </span>
                     ) : null}
+                    <span className="ml-auto inline-flex items-center gap-1 font-black">
+                      <Clock size={12} /> {q.next_arrival_time || "A definir"}
+                    </span>
                   </div>
                 ) : null}
                 {q.arrival_time &&

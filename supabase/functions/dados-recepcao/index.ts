@@ -12,6 +12,8 @@ import {
   scanEciLco,
   somarDias,
   type TipoBloqueio,
+  horaHHMM,
+  horariosDeChegada,
 } from "../_shared/cloudbeds-quarto.ts"
 
 const corsHeaders = {
@@ -154,6 +156,18 @@ serve(async (req) => {
       if (!mapaReservas.has(id)) mapaReservas.set(id, r)
     }
     const todasReservas = Array.from(mapaReservas.values())
+    // Hora prevista de chegada das entradas de hoje (só vem no detalhe da reserva).
+    {
+      const semHora = todasReservas.filter((r: any) => {
+        const ci = String(r?.startDate ?? r?.reservationCheckIn ?? '').slice(0, 10)
+        return ci === hoje && !horaHHMM(r?.estimatedArrivalTime)
+      })
+      const horas = await horariosDeChegada(API_BASE, apiKey, semHora.map((r: any) => String(r.reservationID ?? '')))
+      for (const r of semHora) {
+        const h = horas.get(String(r.reservationID ?? ''))
+        if (h) r.estimatedArrivalTime = h
+      }
+    }
     const reservasJson = { success: true, data: todasReservas }
 
     // Índice do painel das camareiras por número normalizado (só dígitos)
@@ -395,6 +409,7 @@ serve(async (req) => {
           checkedIn: emCasa,
           startISO,
           chegadaHoje: startISO === hoje,
+          noites: startISO && endISO ? Math.max(0, Math.round((Date.parse(endISO) - Date.parse(startISO)) / 86400000)) : 0,
           saindoHoje: endISO === hoje,
           hasEci: eciLco.eci,
           hasLco: eciLco.lco,
@@ -465,6 +480,8 @@ serve(async (req) => {
         proximoHospede: prox?.hospede ?? '',
         proximoChegadaHora: prox?.chegadaHora ?? '',
         proximoPax: prox?.pax ?? 0,
+        proximoNoites: prox?.noites ?? 0,
+        noites: r?.noites ?? 0,
         proximoPagamentoPendente: prox?.pagamentoPendente ?? false,
         proximoPagamentoValor: prox?.pagamentoValor ?? 0,
         proximoDocPendente: prox?.docPendente ?? false,

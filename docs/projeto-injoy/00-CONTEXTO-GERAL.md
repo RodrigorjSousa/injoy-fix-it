@@ -102,6 +102,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   (confirmado/nao_confirmado/falhou) + recado `to_recepcao`. A Recepção de Botafogo vê o quadro
   "Check-outs feitos pelas camareiras" e marca "Conferi" (`checkout_log_conferir`, 0050).
 
+- Card do quarto: hora prevista de chegada vem do DETALHE da reserva (`horariosDeChegada` em
+  `_shared/cloudbeds-quarto.ts`, a listagem não traz); noites do próximo hóspede em `next_nights` (0052).
+  Camareira "Finalizar serviço" marca o quarto LIMPO no Cloudbeds (`cloudbedsMarcarQuartoLimpo`).
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 

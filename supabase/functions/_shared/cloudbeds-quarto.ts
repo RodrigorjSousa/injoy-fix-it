@@ -192,3 +192,48 @@ export async function cloudbedsGet(url: string, apiKey: string, tentativas = 3):
   }
   throw new CloudbedsIndisponivel(`Cloudbeds indisponível em ${url.split('?')[0].split('/').pop()}: ${ultimoErro}`)
 }
+
+// ------------------------------------------------------------- hora de chegada
+/** "15:00", "15:00:00", "3:00 PM" → "15:00". */
+export function horaHHMM(v: unknown): string {
+  if (v === null || v === undefined) return ''
+  const s = String(v).trim()
+  const m = s.match(/(\d{1,2}):(\d{2})(?::\d{2})?\s*([AaPp][Mm])?/)
+  if (!m) return ''
+  let h = Number(m[1])
+  const ap = m[3]?.toLowerCase()
+  if (ap === 'pm' && h < 12) h += 12
+  if (ap === 'am' && h === 12) h = 0
+  if (h > 23) return ''
+  return `${String(h).padStart(2, '0')}:${m[2]}`
+}
+
+/**
+ * A listagem do Cloudbeds (getReservations) normalmente NÃO traz a hora prevista de chegada;
+ * ela só vem no detalhe (getReservation). Busca o detalhe das chegadas do dia e devolve
+ * reservationID → "HH:MM". Nunca lança erro: sem hora, o card mostra "A definir".
+ */
+export async function horariosDeChegada(apiBase: string, apiKey: string, ids: string[]): Promise<Map<string, string>> {
+  const out = new Map<string, string>()
+  const unicos = [...new Set(ids.filter(Boolean))].slice(0, 40)
+  for (let i = 0; i < unicos.length; i += 5) {
+    await Promise.all(
+      unicos.slice(i, i + 5).map(async (id) => {
+        try {
+          const j = await cloudbedsGet(`${apiBase}/getReservation?reservationID=${encodeURIComponent(id)}`, apiKey, 2)
+          const d = j?.data ?? {}
+          const quartos = [...(Array.isArray(d.assigned) ? d.assigned : []), ...(Array.isArray(d.unassigned) ? d.unassigned : [])]
+          const hora =
+            horaHHMM(d.estimatedArrivalTime) ||
+            horaHHMM(d.arrivalTime) ||
+            quartos.map((q: any) => horaHHMM(q?.estimatedArrivalTime ?? q?.arrivalTime)).find(Boolean) ||
+            ''
+          if (hora) out.set(id, hora)
+        } catch {
+          /* sem hora para esta reserva */
+        }
+      }),
+    )
+  }
+  return out
+}
