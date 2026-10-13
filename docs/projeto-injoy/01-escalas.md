@@ -101,6 +101,16 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     (`escala_colaboradores.hora_entrada/hora_saida`). O turno passa a ser gravado também para freelancers
     (antes ficava nulo e o calendário usava "dia"); a entrada vira a sugestão em + Freelancer, Cobrir folgas
     e Férias. A saída ao escalar continua calculada pelas horas da modalidade.
+- Regras fixas (branch `feat/escala-manutencao-ipanema`, sem migração; código em `src/lib/escala-cobertura.ts`):
+  - **Ipanema NÃO tem recepção**: quem dá suporte é a recepção de Botafogo. No card "Hoje" da home, Recepção de Ipanema
+    mostra "administrada pela recepção de Botafogo" e não conta como cobertura pendente.
+  - **Manutenção**: trabalha sempre de segunda a sexta (feriado em dia útil: paga 100% do dia, sem aviso de
+    "trabalha em feriado"). Sábado e domingo só em urgência, chamado como extra pelo botão + Freelancer
+    (fixo de folga). Adicional: **sábado trabalhado 50%**, **domingo 100%** (o aviso aparece ao chamar e no
+    resumo do mês "Manutenção: adicionais do mês"; o valor em R$ é lançado por quem paga).
+  - Divisão de unidades da manutenção continua 12 dias Botafogo / 10 Ipanema (modo "em blocos"), mas **não é rígida**:
+    na home, quando ele está na outra unidade pela escala, a manutenção aparece como informativo
+    ("está em Botafogo pela escala; se houver urgência aqui, ele vem"), não como pendência.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
