@@ -351,6 +351,13 @@
       "when": 1791799654820,
       "tag": "0049_checkout_ipanema_confirmacao",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1791862944199,
+      "tag": "0050_room_housekeeping_noites_chegada",
+      "breakpoints": true
     }
   ]
 }

@@ -3061,6 +3061,7 @@ export type Database = {
           lco_time: string | null
           next_arrival_time: string | null
           next_guest_name: string | null
+          next_nights: number | null
           next_pax: number | null
           pax: number | null
           pending_payment_amount: number | null
@@ -3096,6 +3097,7 @@ export type Database = {
           lco_time?: string | null
           next_arrival_time?: string | null
           next_guest_name?: string | null
+          next_nights?: number | null
           next_pax?: number | null
           pax?: number | null
           pending_payment_amount?: number | null
@@ -3131,6 +3133,7 @@ export type Database = {
           lco_time?: string | null
           next_arrival_time?: string | null
           next_guest_name?: string | null
+          next_nights?: number | null
           next_pax?: number | null
           pax?: number | null
           pending_payment_amount?: number | null
