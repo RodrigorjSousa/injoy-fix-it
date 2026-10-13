@@ -142,6 +142,19 @@ export function useQuartosHoje() {
   });
 }
 
+export function useOcupacaoHoje() {
+  return useQuery({
+    queryKey: ["dashboard", "ocupacao-hoje", todaySP()],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await supabase.from("hotel_metrics")
+        .select("property,occupancy_percentage,updated_at").eq("date", todaySP());
+      if (error) throw new Error(msg(error));
+      return data;
+    },
+  });
+}
+
 // ---------------------------------------------------------------------------------------------
 // C · Mês em curso
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { resumoOperacao, situacaoQuarto, type LinhaQuarto } from "./operacao";
+import { resumoOperacao, situacaoQuarto, taxaOcupacaoCloudbeds, type LinhaQuarto } from "./operacao";
 
 const q = (p: Partial<LinhaQuarto>): LinhaQuarto => ({
   property: "Botafogo",
@@ -26,7 +26,7 @@ describe("situacaoQuarto", () => {
 });
 
 describe("resumoOperacao", () => {
-  it("conta só a unidade pedida e calcula a ocupação sobre os vendáveis", () => {
+  it("conta só a unidade pedida sem inferir ocupação pelos nomes", () => {
     const r = resumoOperacao(
       [
         q({ guest_name: "A", has_pending_payment: true, pending_payment_amount: 150.5 }),
@@ -40,7 +40,6 @@ describe("resumoOperacao", () => {
     expect(r).toMatchObject({
       quartos: 4,
       vendaveis: 3,
-      ocupados: 2,
       prontos: 2,
       sujos: 1,
       bloqueados: 1,
@@ -51,10 +50,22 @@ describe("resumoOperacao", () => {
       docsPendentes: 1,
       atualizadoEm: "2026-10-13T11:05:00Z",
     });
-    expect(r.ocupacao).toBeCloseTo(2 / 3);
   });
 
   it("unidade sem dados não divide por zero", () => {
-    expect(resumoOperacao([], "Ipanema").ocupacao).toBe(0);
+    expect(resumoOperacao([], "Ipanema").quartos).toBe(0);
+  });
+});
+
+describe("taxaOcupacaoCloudbeds", () => {
+  it("preserva a taxa real de Botafogo, sem excluir bloqueados do denominador", () => {
+    expect(taxaOcupacaoCloudbeds(52.63)).toBe(0.5263);
+  });
+  it("preserva a taxa real de Ipanema", () => {
+    expect(taxaOcupacaoCloudbeds(50)).toBe(0.5);
+  });
+  it("zero é uma ocupação válida e ausência não vira zero", () => {
+    expect(taxaOcupacaoCloudbeds(0)).toBe(0);
+    expect(taxaOcupacaoCloudbeds(undefined)).toBeNull();
   });
 });

@@ -120,7 +120,7 @@ export const sincronizarRendimentoMes = createServerFn({ method: "POST" })
     if (semQuarto) avisos.push(`${semQuarto} noite(s) de reservas ainda sem quarto atribuído.`);
     const qtdReservas = new Set(noites.map((n) => n.reservation_id)).size;
 
-    const rpc = supabase.rpc as unknown as (
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
       f: string,
       a: Record<string, unknown>,
     ) => Promise<{ data: number | null; error: { message: string } | null }>;

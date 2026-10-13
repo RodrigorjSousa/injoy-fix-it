@@ -2,6 +2,11 @@
 
 export type SituacaoQuarto = "prontos" | "emFaxina" | "sujos" | "bloqueados";
 
+/** A taxa de ocupação vem do dashboard Cloudbeds, não dos nomes nos cartões. */
+export function taxaOcupacaoCloudbeds(percentual: number | null | undefined): number | null {
+  return percentual == null || !Number.isFinite(percentual) || percentual < 0 || percentual > 100 ? null : percentual / 100;
+}
+
 export type LinhaQuarto = {
   property: string;
   status: string | null;
@@ -29,8 +34,6 @@ export function situacaoQuarto(r: Pick<LinhaQuarto, "status" | "service_status" 
 export type ResumoOperacao = {
   quartos: number;
   vendaveis: number;
-  ocupados: number;
-  ocupacao: number; // 0..1 sobre os vendáveis
   prontos: number;
   emFaxina: number;
   sujos: number;
@@ -48,14 +51,11 @@ export function resumoOperacao(linhas: LinhaQuarto[], unidade: string): ResumoOp
   const cont = { prontos: 0, emFaxina: 0, sujos: 0, bloqueados: 0 };
   for (const l of q) cont[situacaoQuarto(l)] += 1;
   const vendaveis = q.length - cont.bloqueados;
-  const ocupados = q.filter((l) => !!l.guest_name && l.condition !== "maintenance").length;
   const comSaldo = q.filter((l) => l.has_pending_payment === true);
   const atualizado = q.map((l) => l.updated_at).filter(Boolean).sort().at(-1) ?? null;
   return {
     quartos: q.length,
     vendaveis,
-    ocupados,
-    ocupacao: vendaveis > 0 ? Math.min(1, ocupados / vendaveis) : 0,
     ...cont,
     chegadas: q.filter((l) => !!l.next_guest_name).length,
     saidas: q.filter((l) => !!l.departing_guest_name).length,

@@ -87,6 +87,9 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   `hotel_metrics.rating = null` (a nota fixa saiu; ninguém lia o campo).
 
 ## Estado atual
+- Revisão no Lovable: ocupação de hoje usa `hotel_metrics.occupancy_percentage` do Cloudbeds, não nomes de hóspedes. Conferência real: Botafogo 52,63%, Ipanema 50%.
+- Indicadores da operação abrem quartos filtrados; indicadores mensais levam aos módulos; rendimento, quartos, dias, canais e barras abrem os registros resumidos. Valores longos quebram linha sem esconder os dados.
+- Corrigida a atualização do rendimento: a chamada RPC mantém o vínculo com o cliente. Busca real do mês gravou 351 noites em Botafogo e 245 em Ipanema; 43 barras renderizadas, 25 janelas de indicadores verificadas, quatro gráficos clicados, 30 testes passando e sem erros no navegador. Publicar para atualizar o aplicativo da equipe.
 - Entrega 1 pronta na branch `feat/dashboard-gestor`: tsc, vitest (176 testes, 22 novos) e build passando.
   SQL da 0054 testado em Postgres local (17 verificações: gestor, admin, recepção, anônimo; aplicada 2x).
 - Para ativar: (1) merge; (2) aplicar a `0054_dashboard_rendimento.sql` no Lovable; (3) Publicar → Atualizar.

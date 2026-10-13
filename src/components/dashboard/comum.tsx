@@ -1,5 +1,8 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+import { useUnidade } from "@/lib/unidade-context";
 
 export const brl = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 export const brl0 = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL", maximumFractionDigits: 0 });
@@ -52,14 +55,17 @@ export function CabecalhoUnidade({ unidade, extra }: { unidade: "Botafogo" | "Ip
   );
 }
 
-export function Kpi({ rotulo, valor, sub, tom }: { rotulo: string; valor: ReactNode; sub?: ReactNode; tom?: "ruim" | "bom" }) {
-  return (
-    <div className="min-w-0 rounded-lg bg-slate-50 px-3 py-2">
-      <p className="truncate text-[10px] font-bold uppercase tracking-wide text-slate-500">{rotulo}</p>
-      <p className={cn("truncate text-lg font-black text-slate-900", tom === "ruim" && "text-red-600", tom === "bom" && "text-emerald-700")}>{valor}</p>
-      {sub && <p className="truncate text-[11px] text-slate-500">{sub}</p>}
+export function Kpi({ rotulo, valor, sub, tom, onClick, to, unidade }: { rotulo: string; valor: ReactNode; sub?: ReactNode; tom?: "ruim" | "bom"; onClick?: () => void; to?: "/gestor/financeiro" | "/gestao" | "/bonificacao" | "/gestor/totem" | "/relatorio-operacoes"; unidade?: "Botafogo" | "Ipanema" }) {
+  const { setUnidade } = useUnidade();
+  const content = (
+    <div className="w-full min-w-0 rounded-lg bg-muted px-3 py-2 text-left">
+      <p className="whitespace-normal break-words text-[10px] font-bold uppercase text-slate-500">{rotulo}</p>
+      <p className={cn("whitespace-normal break-words text-lg font-black text-slate-900", tom === "ruim" && "text-red-600", tom === "bom" && "text-emerald-700")}>{valor}</p>
+      {sub && <p className="whitespace-normal break-words text-[11px] text-slate-500">{sub}</p>}
     </div>
   );
+  if (to) return <Button asChild variant="ghost" className="h-auto min-w-0 p-0"><Link to={to} onClick={() => { if (unidade) setUnidade(unidade); }}>{content}</Link></Button>;
+  return onClick ? <Button variant="ghost" onClick={onClick} aria-label={rotulo} className="h-auto min-w-0 p-0">{content}</Button> : content;
 }
 
 export function Cartao({ children, className }: { children: ReactNode; className?: string }) {
