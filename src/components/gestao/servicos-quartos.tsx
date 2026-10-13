@@ -275,7 +275,7 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
             );
           const c = contarServicosPrevistos(row, totalQuartos);
           return (
-            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", (row.freelancers_escalados > 0 || reforcos?.has(`${unidade}|${d}`)) && row.nivel !== "verde" ? "border-teal-400 bg-teal-50 text-teal-900" : TOM[row.nivel])}>
+            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", reforcos?.has(`${unidade}|${d}`) && row.nivel !== "verde" ? "border-teal-400 bg-teal-50 text-teal-900" : TOM[row.nivel])}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <strong className="capitalize">{i === 0 ? "Amanhã" : "Depois de amanhã"} · {dataCurta(d)}</strong>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black uppercase">
@@ -289,7 +289,7 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
               </div>
               <p className="text-xs font-semibold">
                 {row.qtd_checkins} chegadas · {row.qtd_checkouts} saídas · {row.camareiras_escaladas} camareira(s) na escala
-                {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} freelancer(s)` : ""}
+                {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} reforço(s)` : ""}
               </p>
               {row.freelancers_escalados > 0 ? (
                 <p className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
