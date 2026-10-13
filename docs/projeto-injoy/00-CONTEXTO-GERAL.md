@@ -161,4 +161,8 @@ das selfies antigas do ponto foi oferecida.
   - outros bloqueios → BLOQUEADO;
   - motivo com ECI/LCO (também "early check-in", "saída atrasada" etc.) → só aviso, não bloqueia.
 - Se o Cloudbeds falhar (com 3 tentativas), a unidade NÃO é regravada: fica o último dado bom.
-- Sincronização automática a cada 5 min (migração 0051).
+- Sincronização automática a cada 5 min (migração 0058; a 0051_room_housekeeping_bloqueio_cloudbeds nunca chegou ao
+  banco porque o Lovable aplicou a outra 0051).
+- Motivo e tipo do bloqueio no card das camareiras: colunas `room_housekeeping.block_kind/block_reason` (0057). Sem
+  elas a sincronização gravava os quartos sem o motivo e o card da camareira mostrava só o texto genérico; a Recepção
+  via o motivo porque lê o Cloudbeds ao vivo (`dados-recepcao`). Os dois cards usam `AvisosCloudbedsQuarto`.
