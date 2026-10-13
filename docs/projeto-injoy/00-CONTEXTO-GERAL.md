@@ -106,6 +106,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   `_shared/cloudbeds-quarto.ts`, a listagem não traz); noites do próximo hóspede em `next_nights` (0052).
   Camareira "Finalizar serviço" marca o quarto LIMPO no Cloudbeds (`cloudbedsMarcarQuartoLimpo`).
 
+- Previsão de Carga — REFORÇO x SUBSTITUIÇÃO: extra com `substitui_colaborador_id` (cobre férias,
+  folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem
+  `substitui_colaborador_id`. `freelancers_escalados` e "Reforço chamado" contam só reforço.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 

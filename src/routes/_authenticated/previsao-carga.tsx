@@ -151,7 +151,7 @@ function DiaCard({ row, totalQuartos, pedido, onPedir }: { row: ForecastRow; tot
       </div>
       <p className="text-xs font-semibold text-slate-700">
         {row.qtd_checkins} chegadas · {row.qtd_checkouts} saídas · {row.camareiras_escaladas} camareira(s) na escala
-        {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} freelancer(s)` : ""}
+        {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} reforço(s)` : ""}
         {row.chegada_mais_cedo ? ` · 1ª chegada ${row.chegada_mais_cedo.slice(0, 5)}` : ""}
       </p>
 
