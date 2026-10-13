@@ -12,6 +12,8 @@ import {
   mergeEciLco,
   scanEciLco,
   somarDias,
+  horaHHMM,
+  horariosDeChegada,
 } from "../_shared/cloudbeds-quarto.ts"
 
 const corsHeaders = {
@@ -171,6 +173,19 @@ serve(async (req) => {
         }
       }
       const reservasRaw: any[] = Array.from(mapReservas.values())
+
+      // Hora prevista de chegada das entradas de hoje (só vem no detalhe da reserva).
+      {
+        const semHora = reservasRaw.filter((r: any) => {
+          const ci = String(r?.startDate ?? r?.reservationCheckIn ?? '').slice(0, 10)
+          return ci === hojeStr && !horaHHMM(r?.estimatedArrivalTime)
+        })
+        const horas = await horariosDeChegada(API_BASE, apiKey, semHora.map((r: any) => String(r.reservationID ?? '')))
+        for (const r of semHora) {
+          const h = horas.get(String(r.reservationID ?? ''))
+          if (h) r.estimatedArrivalTime = h
+        }
+      }
 
       // Normaliza reservas: EXPANDE por quarto atribuído.
       // Reservas multi-quarto (mesmo hóspede aluga 107 + 109) precisam gerar
@@ -513,6 +528,9 @@ serve(async (req) => {
           next_guest_name: nextGuestName,
           next_arrival_time: nextArrivalTime,
           next_pax: proximaReserva ? proximaReserva.numberOfGuests || 0 : null,
+          next_nights: proximaReserva && proximaReserva._checkInDate && proximaReserva._checkOutDate
+            ? Math.max(0, Math.round((Date.parse(proximaReserva._checkOutDate) - Date.parse(proximaReserva._checkInDate)) / 86400000))
+            : null,
           pax,
           has_pending_payment: hasPendingPayment,
           pending_payment_amount: pendingAmount,
@@ -671,9 +689,9 @@ serve(async (req) => {
       let { error: upErr } = await supabaseClient
         .from('room_housekeeping')
         .upsert(linhas, { onConflict: 'property,room_number' })
-      if (upErr && /block_kind|block_reason/i.test(upErr.message)) {
-        console.warn('[consolidar-dados] colunas block_* ausentes; gravando sem elas')
-        const semColunas = linhas.map(({ block_kind, block_reason, ...resto }: any) => resto)
+      if (upErr && /block_kind|block_reason|next_nights/i.test(upErr.message)) {
+        console.warn('[consolidar-dados] colunas novas ausentes; gravando sem elas')
+        const semColunas = linhas.map(({ block_kind, block_reason, next_nights, ...resto }: any) => resto)
         ;({ error: upErr } = await supabaseClient
           .from('room_housekeeping')
           .upsert(semColunas, { onConflict: 'property,room_number' }))

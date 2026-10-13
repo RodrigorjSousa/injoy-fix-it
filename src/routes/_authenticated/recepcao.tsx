@@ -100,6 +100,8 @@ interface QuartoRecepcao {
   proximoHospede?: string;
   proximoChegadaHora?: string;
   proximoPax?: number;
+  proximoNoites?: number;
+  noites?: number;
   proximoPagamentoPendente?: boolean;
   proximoPagamentoValor?: number;
   proximoDocPendente?: boolean;
@@ -565,7 +567,7 @@ function RecepcaoPage() {
                         <User size={16} className="text-slate-400" />
                         <span className="truncate">{q.hospede}</span>
                         <span className="text-xs font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
-                          {q.pax} pax
+                          {q.pax} pax{q.noites ? ` · ${q.noites} ${q.noites === 1 ? "noite" : "noites"}` : ""}
                         </span>
                         {q.hospedeSaindoHoje ? (
                           <span className="text-[10px] font-black text-orange-700 bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
@@ -659,7 +661,7 @@ function RecepcaoPage() {
                             <span className="truncate">{q.proximoHospede}</span>
                             {q.proximoPax ? (
                               <span className="text-[11px] font-normal text-blue-700 bg-white/70 px-2 py-0.5 rounded-md shrink-0 border border-blue-100">
-                                {q.proximoPax} pax
+                                {q.proximoPax} pax{q.proximoNoites ? ` · ${q.proximoNoites} ${q.proximoNoites === 1 ? "noite" : "noites"}` : ""}
                               </span>
                             ) : null}
                           </div>
