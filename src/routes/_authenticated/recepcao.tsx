@@ -39,7 +39,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { buscarRecepcaoCloudbeds } from "@/lib/cloudbeds-sync";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
-import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
@@ -422,7 +421,6 @@ function RecepcaoPage() {
         autorNome={me?.funcionario?.nome ?? me?.email ?? "Recepção"}
       />
 
-      <ChegadasCheckinCards unidade={unidadeAtiva} title="Chegadas de Hoje" />
 
 
       <div className="p-4 space-y-4">
