@@ -684,6 +684,8 @@ export type Database = {
           turno_padrao: string | null
           unidade: string
           updated_at: string
+          vale_alimentacao: number | null
+          vale_transporte_dia: number | null
           vinculo: string
         }
         Insert: {
@@ -700,6 +702,8 @@ export type Database = {
           turno_padrao?: string | null
           unidade: string
           updated_at?: string
+          vale_alimentacao?: number | null
+          vale_transporte_dia?: number | null
           vinculo: string
         }
         Update: {
@@ -716,6 +720,8 @@ export type Database = {
           turno_padrao?: string | null
           unidade?: string
           updated_at?: string
+          vale_alimentacao?: number | null
+          vale_transporte_dia?: number | null
           vinculo?: string
         }
         Relationships: [
@@ -1298,6 +1304,7 @@ export type Database = {
           id: string
           numero_documento: string | null
           observacoes: string | null
+          origem_beneficio: string | null
           origem_escala: string | null
           qtd_diarias: number | null
           recorrencia_id: string | null
@@ -1327,6 +1334,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_beneficio?: string | null
           origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
@@ -1356,6 +1364,7 @@ export type Database = {
           id?: string
           numero_documento?: string | null
           observacoes?: string | null
+          origem_beneficio?: string | null
           origem_escala?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
@@ -3914,6 +3923,10 @@ export type Database = {
           _unidade: string
         }
         Returns: undefined
+      }
+      escala_lancar_beneficios: {
+        Args: { _competencia: string; _itens: Json }
+        Returns: Json
       }
       escala_publicar_mes:
         | {
