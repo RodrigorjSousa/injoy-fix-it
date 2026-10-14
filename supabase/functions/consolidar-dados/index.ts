@@ -4,7 +4,7 @@ import { lerHousekeeping, reenviarLimpezasPendentes, type QuartoHousekeeping } f
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
-  bloqueioDoHousekeeping,
+  bloqueioDeHoje,
   CloudbedsIndisponivel,
   cloudbedsGet,
   emptyEciLco,
@@ -132,7 +132,7 @@ serve(async (req) => {
         cloudbedsGet(`${API_BASE}/getDashboard`, apiKey).catch(() => ({})),
         // Bloqueios (manutenção, bloqueado, ECI, LCO): janela de ontem a amanhã e filtro do dia
         // feito aqui — evita perder bloqueio que começou antes ou termina hoje.
-        cloudbedsGet(`${API_BASE}/getRoomBlocks?startDate=${somarDias(hojeStr, -1)}&endDate=${somarDias(hojeStr, 1)}`, apiKey),
+        cloudbedsGet(`${API_BASE}/getRoomBlocks?startDate=${somarDias(hojeStr, -1)}&endDate=${somarDias(hojeStr, 1)}&pageSize=100`, apiKey),
         // Janela padrão: reservas do dia (arrivals/departures/short-stay)
         fetchTodasReservas({ checkInFrom: janelaInicio, checkInTo: janelaFim }),
         // Consulta independente por CHECK-OUT. Sem ela, uma estadia antiga que
@@ -416,10 +416,17 @@ serve(async (req) => {
 
         const cond = String(room.roomCondition ?? '').toLowerCase()
         // Bloqueio real = bloqueio ativo HOJE em getRoomBlocks (manutenção / bloqueado) ou
-        // roomCondition fora de serviço. `roomBlocked=true` do housekeeping NÃO é usado:
-        // o Cloudbeds marca isso também para quarto com reserva atribuída.
+        // roomCondition fora de serviço. `roomBlocked=true` sozinho NÃO bloqueia (o Cloudbeds marca
+        // isso também para quarto com reserva); `roomBlocked=false` libera (ver bloqueioDeHoje).
         const flagsBloco = flagsPorRoomId.get(String(room.roomID ?? '').trim()) ?? flagsVazias()
-        const tipoBloqueio = flagsBloco.bloqueio ?? bloqueioDoHousekeeping(room)
+        // Regra única com a Recepção: reserva para esta noite ou housekeeping liberado derrubam
+        // um bloqueio que o getRoomBlocks ainda devolve (desbloqueio feito no Cloudbeds).
+        const reservaNestaNoite = !!(reservaEntrandoHoje || hospedeAtualInHouse || reservaAtivaSobreposta)
+        const bloqueio = bloqueioDeHoje(flagsBloco, room, reservaNestaNoite)
+        if (bloqueio.descartado) {
+          console.log(`[consolidar-dados] ${nomeUnidade} ${numQuarto}: bloqueio do Cloudbeds ignorado (${bloqueio.descartado})`)
+        }
+        const tipoBloqueio = bloqueio.tipo
         const blocked = !!tipoBloqueio
 
         let status = 'dirty'
@@ -522,7 +529,7 @@ serve(async (req) => {
           status,
           condition: blocked ? 'maintenance' : 'normal',
           block_kind: tipoBloqueio,
-          block_reason: blocked ? flagsBloco.motivoBloqueio : null,
+          block_reason: blocked ? bloqueio.motivo : null,
           assigned_task: tarefaSugerida,
           color_code: corLegenda,
           guest_name: guestName,
@@ -610,7 +617,10 @@ serve(async (req) => {
       .map((q) => {
         const key = `${q.property}::${q.room_number}`
         const atual = mapaExistente.get(key)
-        const preservarStatus = atual ? atual.status ?? q.status : q.status
+        // 'maintenance' no status é só o reflexo do bloqueio: quando o Cloudbeds desbloqueia, o
+        // status volta para o do Cloudbeds (antes ficava 'maintenance' para sempre).
+        const travadoEmManutencao = atual?.status === 'maintenance' && q.status !== 'maintenance'
+        const preservarStatus = atual && !travadoEmManutencao ? atual.status ?? q.status : q.status
         // condition sempre do Cloudbeds — sem preservação local
         return { ...q, status: preservarStatus, condition: q.condition }
       })

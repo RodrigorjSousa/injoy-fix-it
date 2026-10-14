@@ -3,10 +3,9 @@ import { canalPrePago, saldoACobrar } from '../_shared/canal-pagamento.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
-  bloqueioDoHousekeeping,
+  bloqueioDeHoje,
   cloudbedsGet,
   emptyEciLco,
-  flagsVazias,
   hojeNoHotel,
   mergeEciLco,
   scanEciLco,
@@ -143,7 +142,7 @@ serve(async (req) => {
       fetchTodasReservas(janelaInicio, janelaFim),
       fetchTodasReservas(janelaLonga, janelaFim, '&status=checked_in'),
       cb(`/getHousekeepingStatus`, apiKey),
-      cb(`/getRoomBlocks?startDate=${somarDias(hoje, -1)}&endDate=${somarDias(hoje, 1)}`, apiKey),
+      cb(`/getRoomBlocks?startDate=${somarDias(hoje, -1)}&endDate=${somarDias(hoje, 1)}&pageSize=100`, apiKey),
       fetchRoomHousekeeping(),
     ])
     const flagsPorRoomId = analisarRoomBlocks(roomBlocksJson, hoje)
@@ -216,6 +215,7 @@ serve(async (req) => {
       bloqueado: boolean
       bloqueioTipo: TipoBloqueio | null
       bloqueioMotivo: string | null
+      room: any
     }
     const quartosFisicos: Record<string, HKRoom> = {}
     const hkList = hkJson?.data ?? []
@@ -230,19 +230,17 @@ serve(async (req) => {
         let statusLimpeza: 'Limpo' | 'Sujo' | 'Em Limpeza' = 'Em Limpeza'
         if (cond === 'clean' || cond === 'inspected') statusLimpeza = 'Limpo'
         else if (cond === 'dirty') statusLimpeza = 'Sujo'
-        // Bloqueio real = bloqueio ativo HOJE em getRoomBlocks ou roomCondition fora de serviço.
-        // (roomBlocked=true do housekeeping também aparece para quarto com reserva — não usamos.)
+        // Bloqueio: decidido no fim (bloqueioDeHoje), depois de saber se há reserva para esta noite.
         const roomId = String(room.roomID ?? '').trim()
-        const flags = flagsPorRoomId.get(roomId) ?? flagsVazias()
-        const bloqueioTipo = flags.bloqueio ?? bloqueioDoHousekeeping(room)
         quartosFisicos[num] = {
           quarto: num,
           roomId,
           tipoQuarto: room.roomTypeName || room.roomType || 'Standard',
           statusLimpeza,
-          bloqueado: !!bloqueioTipo,
-          bloqueioTipo,
-          bloqueioMotivo: bloqueioTipo ? flags.motivoBloqueio : null,
+          bloqueado: false,
+          bloqueioTipo: null,
+          bloqueioMotivo: null,
+          room,
         }
       }
     }
@@ -445,7 +443,19 @@ serve(async (req) => {
       const statusLimpeza = cam?.status ?? hk.statusLimpeza
       const roomBlockEciLco = flagsPorRoomId.get(hk.roomId) ?? emptyEciLco()
 
-      // Fonte da verdade do bloqueio: Cloudbeds (getHousekeepingStatus).
+      // Bloqueio de HOJE (regra única com as Camareiras). Reserva para esta noite = chega hoje
+      // ou hóspede em casa que não sai hoje: aí o Cloudbeds já não tem o quarto bloqueado.
+      const reservaNestaNoite = [bucket.atual, bucket.proximo].some(
+        (x) => !!x && (x.chegadaHoje || (x.checkedIn && !x.saindoHoje)),
+      )
+      const bloqueio = bloqueioDeHoje(flagsPorRoomId.get(hk.roomId), hk.room, reservaNestaNoite)
+      if (bloqueio.descartado) {
+        console.log(`[dados-recepcao] ${propriedade} ${hk.quarto}: bloqueio do Cloudbeds ignorado (${bloqueio.descartado})`)
+      }
+      hk.bloqueado = !!bloqueio.tipo
+      hk.bloqueioTipo = bloqueio.tipo
+      hk.bloqueioMotivo = bloqueio.motivo
+
       let ocupacao: 'Livre' | 'Ocupado' | 'Bloqueado' = 'Livre'
       if (hk.bloqueado) ocupacao = 'Bloqueado'
       else if (bucket.atual?.checkedIn) ocupacao = 'Ocupado'
