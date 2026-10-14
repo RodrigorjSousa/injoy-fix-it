@@ -97,9 +97,16 @@ export type TipoBloqueio = 'manutencao' | 'bloqueado'
 export type FlagsDoQuarto = EciLcoInfo & {
   bloqueio: TipoBloqueio | null
   motivoBloqueio: string | null
+  /** true quando o único bloqueio do quarto começou antes e termina HOJE (dia de "saída" do bloco). */
+  bloqueioTerminaHoje?: boolean
 }
 
-export const flagsVazias = (): FlagsDoQuarto => ({ ...emptyEciLco(), bloqueio: null, motivoBloqueio: null })
+export const flagsVazias = (): FlagsDoQuarto => ({
+  ...emptyEciLco(),
+  bloqueio: null,
+  motivoBloqueio: null,
+  bloqueioTerminaHoje: false,
+})
 
 const MANUTENCAO_RE = /manut|maint|out[\s_-]*of[\s_-]*service|fora\s+de\s+servi|repar|conserto|obra|reforma|vazamento|infiltra|quebrad|el[eé]tric|hidr[aá]ul|ar[\s-]*condicionado|pintura/i
 
@@ -110,8 +117,9 @@ const dataDe = (v: unknown) => String(v ?? '').slice(0, 10)
  *  - bloqueio de MANUTENÇÃO (tipo out_of_service ou motivo de manutenção);
  *  - BLOQUEIO comum (qualquer outro bloqueio ativo hoje, exceto "courtesy hold");
  *  - ECI / LCO (bloqueios cujo motivo cita entrada antecipada / saída atrasada).
- * Considera o bloqueio de hoje quando início <= hoje <= fim (datas inclusivas). Um ECI lançado
- * como bloqueio da noite anterior (termina hoje) também conta.
+ * Considera o bloqueio de hoje quando início <= hoje <= fim. Um ECI lançado como bloqueio da
+ * noite anterior (termina hoje) também conta. Bloqueio comum que começou antes e termina hoje
+ * fica marcado `bloqueioTerminaHoje` — quem decide se ainda vale é `bloqueioDeHoje`.
  */
 export function analisarRoomBlocks(json: unknown, hoje: string): Map<string, FlagsDoQuarto> {
   const mapa = new Map<string, FlagsDoQuarto>()
@@ -141,12 +149,23 @@ export function analisarRoomBlocks(json: unknown, hoje: string): Map<string, Fla
         mapa.set(roomId, { ...atual, ...mergeEciLco(atual, eciLco) })
         continue
       }
+      // Bloco que começou antes e termina HOJE: a data final pode ser o dia de "saída" do bloqueio
+      // (última noite bloqueada = ontem). Fica marcado para a decisão final em `bloqueioDeHoje`.
+      const terminaHoje = fim === hoje && inicio < hoje
       const ehManutencao = tipo.includes('out_of_service') || tipo.includes('maint') || MANUTENCAO_RE.test(motivo)
+      const jaTinha = !!atual.bloqueio
+      const soTerminando = (jaTinha ? !!atual.bloqueioTerminaHoje : true) && terminaHoje
+      // Motivo: o de um bloqueio que continua vale mais que o de um que está acabando.
+      const motivoBloqueio =
+        jaTinha && atual.bloqueioTerminaHoje && !terminaHoje
+          ? motivo || atual.motivoBloqueio
+          : atual.motivoBloqueio ?? (motivo || null)
       const bloqueio: TipoBloqueio = ehManutencao || atual.bloqueio === 'manutencao' ? 'manutencao' : 'bloqueado'
       mapa.set(roomId, {
         ...atual,
         bloqueio,
-        motivoBloqueio: atual.motivoBloqueio ?? (motivo || null),
+        motivoBloqueio,
+        bloqueioTerminaHoje: soTerminando,
       })
     }
   }
@@ -158,6 +177,54 @@ export function bloqueioDoHousekeeping(room: any): TipoBloqueio | null {
   const cond = String(room?.roomCondition ?? '').toLowerCase()
   if (cond === 'out_of_service' || cond === 'maintenance' || cond === 'out_of_order') return 'manutencao'
   return null
+}
+
+/**
+ * `roomBlocked` do getHousekeepingStatus: true/false quando o Cloudbeds manda, null quando não manda.
+ * O Cloudbeds marca true também para quarto com reserva, por isso o true sozinho NÃO bloqueia;
+ * mas o false explícito garante que o quarto não está bloqueado agora.
+ */
+export function housekeepingRoomBlocked(room: any): boolean | null {
+  const v = room?.roomBlocked
+  if (v === true || v === 1) return true
+  if (v === false || v === 0) return false
+  const s = String(v ?? '').trim().toLowerCase()
+  if (s === 'true' || s === '1' || s === 'yes') return true
+  if (s === 'false' || s === '0' || s === 'no') return false
+  return null
+}
+
+export type BloqueioDeHoje = {
+  tipo: TipoBloqueio | null
+  motivo: string | null
+  /** Por que um bloqueio do getRoomBlocks foi descartado (para log). */
+  descartado: null | 'reserva_hoje' | 'housekeeping_livre' | 'termina_hoje'
+}
+
+/**
+ * Decide se o quarto está bloqueado HOJE. Regra única das duas telas (Recepção e Camareiras).
+ * Um bloqueio do getRoomBlocks NÃO vale quando:
+ *  - o quarto tem reserva para esta noite (entra hoje ou hóspede que fica) — o Cloudbeds não deixa
+ *    reserva e bloqueio na mesma noite; se a reserva está lá, o bloqueio já foi tirado/encurtado;
+ *  - o housekeeping do Cloudbeds diz roomBlocked=false (quarto liberado agora);
+ *  - o bloco termina hoje (começou antes) e o housekeeping não confirma roomBlocked=true.
+ * Caso de 14/10/2026: o bloqueio foi tirado no Cloudbeds, mas o getRoomBlocks ainda devolvia um
+ * bloco que "terminava hoje" e o app manteve o quarto bloqueado, escondendo o check-in.
+ */
+export function bloqueioDeHoje(
+  flags: FlagsDoQuarto | undefined,
+  room: any,
+  reservaNestaNoite: boolean,
+): BloqueioDeHoje {
+  const tipo = flags?.bloqueio ?? bloqueioDoHousekeeping(room)
+  if (!tipo) return { tipo: null, motivo: null, descartado: null }
+  if (reservaNestaNoite) return { tipo: null, motivo: null, descartado: 'reserva_hoje' }
+  const hk = housekeepingRoomBlocked(room)
+  if (hk === false) return { tipo: null, motivo: null, descartado: 'housekeeping_livre' }
+  if (flags?.bloqueio && flags.bloqueioTerminaHoje && hk !== true && !bloqueioDoHousekeeping(room)) {
+    return { tipo: null, motivo: null, descartado: 'termina_hoje' }
+  }
+  return { tipo, motivo: flags?.bloqueio ? flags.motivoBloqueio : null, descartado: null }
 }
 
 // ------------------------------------------------------------- chamadas HTTP

@@ -169,3 +169,17 @@ das selfies antigas do ponto foi oferecida.
 - Motivo e tipo do bloqueio no card das camareiras: colunas `room_housekeeping.block_kind/block_reason` (0057). Sem
   elas a sincronização gravava os quartos sem o motivo e o card da camareira mostrava só o texto genérico; a Recepção
   via o motivo porque lê o Cloudbeds ao vivo (`dados-recepcao`). Os dois cards usam `AvisosCloudbedsQuarto`.
+- **Desbloqueio (episódio de 14/10/2026)**: 3 quartos desbloqueados no Cloudbeds continuaram bloqueados na Recepção e
+  nas Camareiras, e as camareiras não viram o check-in de dois deles. Causa: o `getRoomBlocks` ainda devolvia um
+  bloco que "terminava hoje" (a data final do bloco funciona como dia de saída) e o app contava o dia final como
+  bloqueado; nas Camareiras o `status = 'maintenance'` ainda ficava preso para sempre no banco. Regra única agora em
+  `bloqueioDeHoje` (as duas telas): um bloqueio do `getRoomBlocks` NÃO vale quando
+  1. o quarto tem reserva para esta noite (chega hoje ou hóspede em casa que não sai hoje) — o Cloudbeds não aceita
+     reserva e bloqueio na mesma noite, então a reserva prova o desbloqueio;
+  2. o `getHousekeepingStatus` diz `roomBlocked=false`;
+  3. o bloco começou antes e termina hoje, e o housekeeping não confirma `roomBlocked=true`.
+  Bloqueio descartado aparece no log da função ("bloqueio do Cloudbeds ignorado (motivo)"). `getRoomBlocks` agora
+  pede `pageSize=100` (o padrão do Cloudbeds é 20).
+- Camareiras: faixa amarela "Cloudbeds sem atualizar há X min" quando a última sincronização da unidade
+  (`hotel_metrics.updated_at`) passa de 15 min, com botão Atualizar — falha de sincronização não fica mais calada.
+  A Recepção já avisava ("Mostrando os últimos dados").

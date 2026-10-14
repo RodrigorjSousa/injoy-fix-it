@@ -24,6 +24,7 @@ import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-qu
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { supabase } from "@/integrations/supabase/client";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
+import { AvisoSyncCloudbeds } from "@/components/aviso-sync-cloudbeds";
 import { cn } from "@/lib/utils";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
@@ -608,7 +609,8 @@ function PainelCamareiras() {
         </div>
       </div>
 
-      <div className="px-4 pt-4">
+      <div className="px-4 pt-4 space-y-3">
+        <AvisoSyncCloudbeds unidade={unidadeAtiva} sincronizando={syncing} onSincronizar={sincronizar} />
         <RecadosGestorAlert setor="camareiras" unidade={unidadeAtiva} />
       </div>
 
