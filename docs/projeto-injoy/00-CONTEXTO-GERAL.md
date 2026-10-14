@@ -1,7 +1,7 @@
 # PROJETO INJOY — Contexto geral
 
 > Leia este arquivo inteiro antes de qualquer trabalho. Depois leia o arquivo do assunto
-> (01 a 05). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
+> (01 a 07). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
 
 ## O negócio
 - **IN.JOY Hostel Design Pousada** (INJOY HOTÉIS — injoyhoteis.com), Rio de Janeiro.
@@ -149,6 +149,7 @@ Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do ass
 4. Totem (auto check-in, check-out e avaliação) — `04-totem.md`
 5. Mercado autônomo no hall — `05-mercado-autonomo.md`
 6. Dashboard do gestor — `06-dashboard.md`
+7. Recepção — `07-recepcao.md`
 
 Pendências gerais: Fase 3 (licenças e vistorias obrigatórias: bombeiros, vigilância sanitária,
 caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começou; limpeza automática
