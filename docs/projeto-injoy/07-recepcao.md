@@ -141,8 +141,11 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
 - **Segredos** (Lovable Cloud, nunca no código): `STRIPE_KEY_BOTAFOGO`, `STRIPE_KEY_IPANEMA` (só chave RESTRITA `rk_`;
   `sk_` é recusada) e `STRIPE_WEBHOOK_SECRET_BOTAFOGO/IPANEMA`. Permissões da chave restrita: Customers leitura,
   PaymentMethods leitura, PaymentIntents gravação, Charges leitura, Invoices gravação, Events leitura.
-- **Modo de teste** (`rk_test_`): nada é gravado no Cloudbeds (nem pagamento, nem nota de pagamento); a tentativa mostra
-  "[teste]". A nota de Pgto. no check-in é real em qualquer modo.
+- **Modo de teste** (`rk_test_`): nada é gravado no Cloudbeds (nem pagamento, nem nota de pagamento) e o "Cobrado?" da
+  reserva NÃO muda (a reserva é real; um "Pago" de teste a travaria). A tentativa aparece no cartão com "[teste]" e a
+  trava de "já cobrada nos últimos 7 dias" não vale (para repetir o teste). A nota de Pgto. no check-in é real em
+  qualquer modo. Teste: no Stripe em modo de teste, criar um Cliente com o MESMO e-mail da reserva no Cloudbeds e
+  descrição "Injoy Suítes & Aparts Botafogo - Reservas: <nº>", com o cartão 4242 4242 4242 4242.
 - Peças: `stripe.server.ts` (Stripe por `fetch`, só servidor), `cloudbeds-reserva.server.ts`,
   `cobranca-stripe.server.ts` (sequência de cada botão), `cobranca-stripe.functions.ts`, `components/reservas/acoes-cobranca.tsx`.
 
