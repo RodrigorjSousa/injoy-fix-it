@@ -57,6 +57,54 @@ De cima para baixo:
 | Check-in digital (Tuya) | `CheckInDigitalButton` → função `tuya-password` |
 | Deixar recado camareira | `recados_camareiras` |
 
+## Tela Reservas — cobrança de reservas (migrações 0061 e 0062)
+Origem: documento "Regras de cobrança – InJoy (NR e Standard)", 14/10/2026. O app **só lista** as reservas a
+cobrar; a recepção cobra no Cloudbeds, no cartão da reserva (Stripe). Cobrança automática não é possível
+(o `postCharge` só funciona com Cloudbeds Payments).
+
+**Peças**
+| O quê | Onde |
+|---|---|
+| Regras (puras, com testes) | `src/lib/reservas/cobranca.ts` · `cobranca.test.ts` |
+| Busca no Cloudbeds e gravação | `src/lib/reservas/cobranca-sync.server.ts` |
+| Agendamento (1 h, minuto 7) | `private.run_reservas_cobranca_sync` → `/api/public/reservas-cobranca` (segredo do push-dispatcher); cron na 0062 |
+| Botão "Atualizar agora" | `src/lib/reservas/cobranca.functions.ts` |
+| Tela | rota `/reservas`, `src/components/reservas/*` (dados em `src/lib/reservas/use-reservas.ts`) |
+| Menu | item "Reservas" logo abaixo de Recepção (`app-shell.tsx`); gestor abre pelos Atalhos do Início da Área |
+
+**Fonte**: `GET https://api.cloudbeds.com/api/v1.3/getReservationsWithRateDetails` com as mesmas chaves
+`CLOUDBEDS_API_KEY_BOTAFOGO/IPANEMA` (vai `x-api-key` e `Authorization`). Duas buscas por unidade, juntadas por
+`reservationID`: por data da reserva (`resultsFrom` = hoje − 30 dias) e por estadia (`reservationCheckOutFrom` =
+hoje até +90 dias, `resultsFrom` = hoje − 2 anos). Paginação de 100 até vir página menor. Reserva que estava na
+lista e não veio nas buscas é consultada pelo número (`reservationID=a,b,c`) antes de sair.
+Campos da v1.3 conferidos na documentação: o hóspede vem em `rooms[].guestName` (não há `guestName` no topo), o
+plano em `rooms[].rateName` e o `paymentCollect` dentro de `source`.
+
+**Regras**: filtros status `confirmed`/`not_confirmed`, saldo > 0, origem não Airbnb, `paymentCollect` ≠ channel.
+NR = algum plano com "nao reembolsavel", "non refundable" ou a palavra "NR" (sem acento/maiúscula).
+NR com antecedência < 8 → entra na hora; NR com antecedência ≥ 8 → no 8º dia após a reserva; Standard → de 2 dias
+antes do check-in até o dia. Canais que recebem do hóspede: lista `CANAIS_QUE_RECEBEM_DO_HOSPEDE` em
+`cobranca.ts` (hoje só "airbnb"; para incluir Expedia Collect etc., acrescentar o nome ali).
+
+**Tabelas**: `reservas_cobranca` (uma linha por unidade+reserva; `ativa`; o servidor nunca grava
+`cobrado`/`observacao`), `reservas_cobranca_historico` (uma vez por reserva, ao entrar; `notificado`),
+`reservas_cobranca_conferencia` (tudo o que foi consultado na última atualização, só gestor),
+`reservas_cobranca_sync` (última tentativa, última boa, erro), `reservas_acessos` (quem o gestor liberou/bloqueou).
+
+**Decisões do Rodrigo (16/10/2026)**
+- Gestor e admin sempre veem. **Recepcionista só vê quando o gestor libera** (Reservas › Quem vê, ou "reservas" em
+  Equipe › Telas). Quem é liberado vê a lista completa e anota. Regra única: `private.pode_ver_reservas`
+  (rota, menu, tela, RLS e aviso no celular usam a mesma).
+- A tela segue o seletor de unidade do topo.
+- "Cobrado? = Sim" ou "Cancelada" continuam na lista até o Cloudbeds zerar o saldo / cancelar (não somem na mão).
+- Extras: "Abrir no Cloudbeds" em cada reserva; aviso no celular quando entra reserva nova (só das 7h às 22h; o que
+  entrar de noite avisa às 7h); Conferência e Histórico só para o gestor.
+- Se o Cloudbeds falhar, a lista da unidade não é mexida e a tela mostra a falha com a mensagem real.
+
+**Limites conhecidos**: estadia Standard com saída a mais de 90 dias não é achada pela 2ª busca; NR feita há mais
+de 30 dias e com saída a mais de 90 dias só continua se já estava na lista (consulta pelo número). A chave do
+Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva).
+
 ## Regras compartilhadas com as Camareiras
 - `supabase/functions/_shared/cloudbeds-quarto.ts`, usado por `dados-recepcao` (Recepção, ao vivo) e
   `consolidar-dados` (Camareiras/Gestão, grava `room_housekeeping` a cada 5 min). Testes em
@@ -104,5 +152,8 @@ De cima para baixo:
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 16/10/2026: tela **Reservas** (cobrança NR/Standard) feita na branch `feat/reservas-cobranca` (migrações 0061 e
+  0062). Falta: merge, aplicar 0061 e depois 0062 no Lovable, Publicar → Atualizar, e o gestor liberar as
+  recepcionistas em Reservas › Quem vê. Os 4 pontos de decisão acima continuam em aberto.
 - 14/10/2026: arquivo criado (mapa da Recepção conferido no código da main `578d400`, com o PR #76).
   Nenhuma mudança de código. Próximo passo: Rodrigo escolhe o que fazer (itens acima ou outro).

@@ -1,5 +1,5 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone, Gauge } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone, Gauge, CreditCard } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { usePermissaoBonificacao } from "@/lib/bonificacao";
 import { usePermissaoPrevisao } from "@/lib/previsao-reforco";
+import { usePermissaoReservas } from "@/lib/reservas/use-reservas";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { BotaoVoltar } from "@/components/botao-voltar";
 import { PushNotificationsButton } from "@/components/push-notifications-button";
@@ -44,6 +45,7 @@ const MOBILE_PRIORITY: Record<string, number> = {
   preventiva: 3,
   manutencao: 4,
   recepcao: 5,
+  reservas: 5,
   camareiras: 6,
   chat: 7,
 };
@@ -102,6 +104,7 @@ const podePainel = (me: Me) => {
 // (Bonificação › Acessos), e não mais pelo nome do funcionário.
 const BONIFICACAO_NAV: NavItem = { to: "/bonificacao", label: "Bonificação", icon: Trophy };
 const PREVISAO_NAV: NavItem = { to: "/previsao-carga", label: "Previsão de Carga", icon: Gauge };
+const RESERVAS_NAV: NavItem = { to: "/reservas", label: "Reservas", icon: CreditCard };
 
 
 const ALL_NAV: NavItem[] = [
@@ -162,6 +165,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const listaCustom = me?.funcionario?.telasPermitidas ?? null;
   const { data: permBonif } = usePermissaoBonificacao();
   const { data: permPrevisao } = usePermissaoPrevisao();
+  const { data: permReservas } = usePermissaoReservas();
   const navBase: NavItem[] = (() => {
     // Gestor/admin: a lateral fica só com ÁREA DO GESTOR › INÍCIO DA ÁREA. As demais telas
     // (inclusive Recepção, Camareiras e Manutenção) abrem pelos cards de Atalhos do Início da Área.
@@ -183,7 +187,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Bonificação aparece para quem o gestor liberou, mesmo com lista personalizada.
   // Previsão de Carga: Recepção ou quem o gestor liberar em Equipe (regra no banco).
   const nav: NavItem[] = (() => {
-    let lista = navBase.filter((n) => n.to !== "/bonificacao" && n.to !== "/previsao-carga");
+    let lista = navBase.filter((n) => n.to !== "/bonificacao" && n.to !== "/previsao-carga" && n.to !== "/reservas");
     const antesDoChat = (item: NavItem) => {
       const idxChat = lista.findIndex((n) => n.to === "/chat");
       const pos = idxChat >= 0 ? idxChat : lista.length;
@@ -191,6 +195,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     if (me && !isAdmin(me) && permBonif?.podeRegistrar) antesDoChat(BONIFICACAO_NAV);
     if (me && !isAdmin(me) && permPrevisao) antesDoChat(PREVISAO_NAV);
+    // Reservas: logo depois de Recepção (quem o banco libera; gestor abre pelos Atalhos).
+    if (me && !isAdmin(me) && permReservas?.ve) {
+      const idxRecepcao = lista.findIndex((n) => n.to === "/recepcao");
+      if (idxRecepcao >= 0) lista = [...lista.slice(0, idxRecepcao + 1), RESERVAS_NAV, ...lista.slice(idxRecepcao + 1)];
+      else antesDoChat(RESERVAS_NAV);
+    }
     return lista;
   })();
 

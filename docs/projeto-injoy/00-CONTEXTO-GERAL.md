@@ -138,6 +138,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem
   `substitui_colaborador_id`. `freelancers_escalados` e "Reforço chamado" contam só reforço.
 
+- Reservas (0061 + agendamento 0062): tela `/reservas` com as reservas com saldo em aberto que a recepção deve cobrar
+  no Cloudbeds (regras NR do 8º dia e Standard 2 dias antes do check-in). Recepcionista só vê quando o gestor libera
+  (Reservas › Quem vê). Ver `07-recepcao.md`.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 

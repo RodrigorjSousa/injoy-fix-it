@@ -40,6 +40,7 @@ import { Route as AuthenticatedPrevisaoCargaRouteImport } from './routes/_authen
 import { Route as AuthenticatedRecepcaoRouteImport } from './routes/_authenticated/recepcao'
 import { Route as AuthenticatedRelatorioOperacoesRouteImport } from './routes/_authenticated/relatorio-operacoes'
 import { Route as AuthenticatedRelatoriosTurnoRouteImport } from './routes/_authenticated/relatorios-turno'
+import { Route as AuthenticatedReservasRouteImport } from './routes/_authenticated/reservas'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
@@ -57,6 +58,7 @@ import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/publ
 import { Route as ApiPublicPagarmeWebhookRouteImport } from './routes/api/public/pagarme-webhook'
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
+import { Route as ApiPublicReservasCobrancaRouteImport } from './routes/api/public/reservas-cobranca'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -229,6 +231,11 @@ const AuthenticatedRelatoriosTurnoRoute =
     path: '/relatorios-turno',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedReservasRoute = AuthenticatedReservasRouteImport.update({
+  id: '/reservas',
+  path: '/reservas',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedServicosRoute = AuthenticatedServicosRouteImport.update({
   id: '/servicos',
   path: '/servicos',
@@ -322,6 +329,12 @@ const ApiPublicPushDispatcherRoute = ApiPublicPushDispatcherRouteImport.update({
   path: '/api/public/push-dispatcher',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicReservasCobrancaRoute =
+  ApiPublicReservasCobrancaRouteImport.update({
+    id: '/api/public/reservas-cobranca',
+    path: '/api/public/reservas-cobranca',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
   id: '/api/public/tuya-cleanup',
   path: '/api/public/tuya-cleanup',
@@ -359,6 +372,7 @@ export interface FileRoutesByFullPath {
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
+  '/reservas': typeof AuthenticatedReservasRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -375,6 +389,7 @@ export interface FileRoutesByFullPath {
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor/': typeof AuthenticatedGestorIndexRoute
 }
@@ -406,6 +421,7 @@ export interface FileRoutesByTo {
   '/recepcao': typeof AuthenticatedRecepcaoRoute
   '/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
+  '/reservas': typeof AuthenticatedReservasRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -423,6 +439,7 @@ export interface FileRoutesByTo {
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor': typeof AuthenticatedGestorIndexRoute
 }
@@ -458,6 +475,7 @@ export interface FileRoutesById {
   '/_authenticated/recepcao': typeof AuthenticatedRecepcaoRoute
   '/_authenticated/relatorio-operacoes': typeof AuthenticatedRelatorioOperacoesRoute
   '/_authenticated/relatorios-turno': typeof AuthenticatedRelatoriosTurnoRoute
+  '/_authenticated/reservas': typeof AuthenticatedReservasRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/vistoria': typeof AuthenticatedVistoriaRoute
   '/auth/admin': typeof AuthAdminRoute
@@ -475,6 +493,7 @@ export interface FileRoutesById {
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
+  '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/_authenticated/gestor/': typeof AuthenticatedGestorIndexRoute
 }
@@ -511,6 +530,7 @@ export interface FileRouteTypes {
     | '/recepcao'
     | '/relatorio-operacoes'
     | '/relatorios-turno'
+    | '/reservas'
     | '/servicos'
     | '/vistoria'
     | '/auth/admin'
@@ -527,6 +547,7 @@ export interface FileRouteTypes {
     | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
+    | '/api/public/reservas-cobranca'
     | '/api/public/tuya-cleanup'
     | '/gestor/'
   fileRoutesByTo: FileRoutesByTo
@@ -558,6 +579,7 @@ export interface FileRouteTypes {
     | '/recepcao'
     | '/relatorio-operacoes'
     | '/relatorios-turno'
+    | '/reservas'
     | '/servicos'
     | '/vistoria'
     | '/auth/admin'
@@ -575,6 +597,7 @@ export interface FileRouteTypes {
     | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
+    | '/api/public/reservas-cobranca'
     | '/api/public/tuya-cleanup'
     | '/gestor'
   id:
@@ -609,6 +632,7 @@ export interface FileRouteTypes {
     | '/_authenticated/recepcao'
     | '/_authenticated/relatorio-operacoes'
     | '/_authenticated/relatorios-turno'
+    | '/_authenticated/reservas'
     | '/_authenticated/servicos'
     | '/_authenticated/vistoria'
     | '/auth/admin'
@@ -626,6 +650,7 @@ export interface FileRouteTypes {
     | '/api/public/pagarme-webhook'
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
+    | '/api/public/reservas-cobranca'
     | '/api/public/tuya-cleanup'
     | '/_authenticated/gestor/'
   fileRoutesById: FileRoutesById
@@ -640,6 +665,7 @@ export interface RootRouteChildren {
   ApiPublicPagarmeWebhookRoute: typeof ApiPublicPagarmeWebhookRoute
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
+  ApiPublicReservasCobrancaRoute: typeof ApiPublicReservasCobrancaRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
 }
 
@@ -862,6 +888,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedRelatoriosTurnoRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/reservas': {
+      id: '/_authenticated/reservas'
+      path: '/reservas'
+      fullPath: '/reservas'
+      preLoaderRoute: typeof AuthenticatedReservasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/servicos': {
       id: '/_authenticated/servicos'
       path: '/servicos'
@@ -981,6 +1014,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicPushDispatcherRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/reservas-cobranca': {
+      id: '/api/public/reservas-cobranca'
+      path: '/api/public/reservas-cobranca'
+      fullPath: '/api/public/reservas-cobranca'
+      preLoaderRoute: typeof ApiPublicReservasCobrancaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tuya-cleanup': {
       id: '/api/public/tuya-cleanup'
       path: '/api/public/tuya-cleanup'
@@ -1046,6 +1086,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedRecepcaoRoute: typeof AuthenticatedRecepcaoRoute
   AuthenticatedRelatorioOperacoesRoute: typeof AuthenticatedRelatorioOperacoesRoute
   AuthenticatedRelatoriosTurnoRoute: typeof AuthenticatedRelatoriosTurnoRoute
+  AuthenticatedReservasRoute: typeof AuthenticatedReservasRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedVistoriaRoute: typeof AuthenticatedVistoriaRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
@@ -1079,6 +1120,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedRecepcaoRoute: AuthenticatedRecepcaoRoute,
   AuthenticatedRelatorioOperacoesRoute: AuthenticatedRelatorioOperacoesRoute,
   AuthenticatedRelatoriosTurnoRoute: AuthenticatedRelatoriosTurnoRoute,
+  AuthenticatedReservasRoute: AuthenticatedReservasRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedVistoriaRoute: AuthenticatedVistoriaRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
@@ -1110,6 +1152,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPagarmeWebhookRoute: ApiPublicPagarmeWebhookRoute,
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
+  ApiPublicReservasCobrancaRoute: ApiPublicReservasCobrancaRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
 }
 export const routeTree = rootRouteImport

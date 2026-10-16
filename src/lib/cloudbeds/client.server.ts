@@ -57,6 +57,12 @@ async function getOAuthAccessToken(property: CloudbedsProperty): Promise<string>
   return json.access_token;
 }
 
+/** Cabeçalho `x-api-key` (pedido por endpoints v1.3, como getReservationsWithRateDetails). */
+export function cloudbedsApiKeyHeaders(property: CloudbedsProperty): Record<string, string> {
+  const { apiKey } = envFor(property);
+  return apiKey ? { "x-api-key": apiKey } : {};
+}
+
 async function getAuthHeader(property: CloudbedsProperty): Promise<string> {
   const { apiKey } = envFor(property);
   if (apiKey) return `Bearer ${apiKey}`;
