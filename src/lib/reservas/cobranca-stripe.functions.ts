@@ -82,3 +82,12 @@ export const verificarLinkFn = createServerFn({ method: "POST" })
     const { verificarLink } = await import("./cobranca-stripe.server");
     return verificarLink(data.linhaId);
   });
+
+export const aguardandoAutenticacaoFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ linhaId: id }).parse(i))
+  .handler(async ({ data, context }) => {
+    const quem = await quemPode(context as unknown as Ctx);
+    const { aguardandoAutenticacao } = await import("./cobranca-stripe.server");
+    return aguardandoAutenticacao(data.linhaId, quem);
+  });
