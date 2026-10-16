@@ -33,6 +33,7 @@ import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
 import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
 import { BlocoMes } from "@/components/dashboard/bloco-mes";
 import { BlocoRendimento } from "@/components/dashboard/bloco-rendimento";
+import { usePiscaReservas } from "@/components/reservas/pisca-reservas";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
   head: () => ({
@@ -133,6 +134,7 @@ const sections: { title: string; items: HubItem[] }[] = [
 ];
 
 function GestorHub() {
+  const pisca = usePiscaReservas();
   return (
     <div className="space-y-8">
       <BlocoPendencias />
@@ -148,14 +150,26 @@ function GestorHub() {
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {section.items.map((item) => {
               const Icon = item.icon;
+              // Reserva nova para cobrar: o ícone pisca na cor da modalidade até o gestor abrir.
+              const piscando = item.to === "/reservas" && pisca.ativo;
               return (
-                <Link key={item.to} to={item.to} className="flex min-h-24 items-center gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-blue-400">
-                  <div className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white ${item.tone}`}>
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  style={piscando ? { borderColor: pisca.cor } : undefined}
+                  className={`flex min-h-24 items-center gap-3 rounded-xl border bg-white p-4 shadow-sm transition-colors hover:border-blue-400 ${piscando ? "border-2" : "border-slate-200"}`}
+                >
+                  <div
+                    style={piscando ? pisca.style : undefined}
+                    className={`grid h-11 w-11 shrink-0 place-items-center rounded-lg text-white ${item.tone} ${piscando ? pisca.className : ""}`}
+                  >
                     <Icon className="h-5 w-5" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="font-black text-slate-900">{item.label}</p>
-                    <p className="text-xs text-slate-500">{item.description}</p>
+                    <p className="text-xs text-slate-500" style={piscando ? { color: pisca.cor, fontWeight: 700 } : undefined}>
+                      {piscando ? pisca.descricao : item.description}
+                    </p>
                   </div>
                   <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
                 </Link>
