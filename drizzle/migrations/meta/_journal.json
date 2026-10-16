@@ -428,6 +428,20 @@
       "when": 1791915468353,
       "tag": "0060_totem_documentos_storage_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1792170758430,
+      "tag": "0061_reservas_cobranca",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1792170789940,
+      "tag": "0062_reservas_cobranca_agendamento",
+      "breakpoints": true
     }
   ]
 }
