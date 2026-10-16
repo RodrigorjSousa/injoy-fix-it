@@ -41,15 +41,28 @@ export const COR_MOTIVO: Record<MotivoCobranca, string> = {
 /** Ordem de urgência (o botão pisca nas cores das novidades, nesta ordem). */
 export const ORDEM_URGENCIA: MotivoCobranca[] = ["nr_checkin_proximo", "standard", "nr_8o_dia"];
 
-/** Opções da coluna "Cobrado?" preenchida pela recepção. */
-export const OPCOES_COBRADO = ["sim", "recusado", "link_enviado", "cancelada"] as const;
+/**
+ * Situação da cobrança ("Cobrado?"). Decisão do Rodrigo, 16/10/2026: "Cancelada" saiu; entraram
+ * "Aguardando autenticação" e "Pagamento no check-in".
+ *   sim                      → Cobrar agora (Stripe) aprovado: "Pagamento OK // nome" na reserva
+ *   link_enviado             → link de pagamento do Stripe enviado ao hóspede
+ *   pagamento_checkin        → hóspede paga no local: "Pagamento no check in // nome" na reserva
+ *   recusado / aguardando_autenticacao → anotações (o app também marca sozinho quando o Stripe responde assim)
+ * sim, link_enviado e pagamento_checkin só o servidor grava (depois do Stripe/Cloudbeds responderem).
+ */
+export const OPCOES_COBRADO = ["sim", "recusado", "link_enviado", "aguardando_autenticacao", "pagamento_checkin"] as const;
 export type Cobrado = (typeof OPCOES_COBRADO)[number];
 export const COBRADO_TEXTO: Record<Cobrado, string> = {
-  sim: "Sim",
+  sim: "Pago",
   recusado: "Recusado",
   link_enviado: "Link enviado",
-  cancelada: "Cancelada",
+  aguardando_autenticacao: "Aguardando autenticação",
+  pagamento_checkin: "Pagamento no check-in",
 };
+/** Marcações que a recepção faz à mão (sem Stripe nem nota no Cloudbeds). */
+export const MARCACAO_MANUAL: Cobrado[] = ["recusado", "aguardando_autenticacao"];
+/** Já resolvidas: saem da conta do "pendente" e podem ser escondidas pelo filtro. */
+export const cobrancaResolvida = (c: Cobrado | null | undefined) => c === "sim" || c === "pagamento_checkin";
 
 /**
  * Canais que recebem o pagamento do hóspede (a recepção NÃO cobra).

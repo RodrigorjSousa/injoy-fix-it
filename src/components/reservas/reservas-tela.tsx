@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 import { ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 import { CobrancaCard, TOM_MOTIVO, brl, textoPrazo } from "@/components/reservas/cobranca-card";
 import { ConferenciaCobrancas, HistoricoCobrancas, QuemVeReservas } from "@/components/reservas/painel-gestor";
-import { compararParaLista, type MotivoCobranca } from "@/lib/reservas/cobranca";
+import { cobrancaResolvida, compararParaLista, type MotivoCobranca } from "@/lib/reservas/cobranca";
 import {
   useAtualizarAgora,
   useListaCobranca,
@@ -16,6 +16,7 @@ import {
   useNovidadesReservas,
   usePermissaoReservas,
   useSyncCobranca,
+  useTentativasCobranca,
   type LinhaCobranca,
 } from "@/lib/reservas/use-reservas";
 
@@ -38,7 +39,7 @@ function haQuanto(iso: string | null | undefined): string {
   return h < 24 ? `há ${h} h` : `há ${Math.floor(h / 24)} dias`;
 }
 
-const tratada = (l: LinhaCobranca) => l.cobrado === "sim" || l.cobrado === "cancelada";
+const tratada = (l: LinhaCobranca) => cobrancaResolvida(l.cobrado);
 
 export function ReservasTela() {
   const { unidade } = useUnidade();
@@ -106,6 +107,7 @@ function ListaACobrar({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
   const sync = useSyncCobranca(unidade);
   const atualizar = useAtualizarAgora(unidade);
   const marcar = useMarcarCobranca(unidade);
+  const tentativas = useTentativasCobranca(unidade);
   const [filtro, setFiltro] = useState<Filtro>("todas");
   const [busca, setBusca] = useState("");
   const [esconderTratadas, setEsconderTratadas] = useState(false);
@@ -202,8 +204,8 @@ function ListaACobrar({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
           </div>
         </div>
         <p className="border-t border-white/10 px-5 py-3 text-xs text-slate-300 sm:px-7">
-          A cobrança é feita no Cloudbeds, no cartão da reserva. Aqui você anota o resultado; a reserva sai sozinha quando o
-          saldo zera.
+          "Cobrar agora" cobra pelo Stripe o cartão guardado na reserva e lança o pagamento e a nota no Cloudbeds. A reserva sai
+          sozinha quando o saldo zera.
         </p>
       </header>
 
@@ -260,7 +262,7 @@ function ListaACobrar({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
           onChange={(e) => setEsconderTratadas(e.target.checked)}
           className="h-4 w-4 rounded border-slate-300 accent-[#0f8b8d]"
         />
-        Esconder as já anotadas como Sim ou Cancelada
+        Esconder as já pagas e as de pagamento no check-in
       </label>
 
       {lista.isLoading ? (
@@ -288,13 +290,13 @@ function ListaACobrar({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
             titulo="Antes do check-in"
             explicacao="NR com check-in a menos de 8 dias da reserva e Standard a até 2 dias do check-in, por data de check-in."
             linhas={antesDoCheckin}
-            renderLinha={(l) => <CobrancaCard key={l.id} linha={l} salvando={marcar.isPending && marcar.variables?.id === l.id} onMarcar={marcarLinha(l)} />}
+            renderLinha={(l) => <CobrancaCard key={l.id} linha={l} tentativas={tentativas.data?.get(l.reservation_id)} salvando={marcar.isPending && marcar.variables?.id === l.id} onMarcar={marcarLinha(l)} />}
           />
           <Grupo
             titulo="NR liberadas no 8º dia"
             explicacao="Passado o prazo de arrependimento de 7 dias. As mais atrasadas primeiro."
             linhas={oitavoDia}
-            renderLinha={(l) => <CobrancaCard key={l.id} linha={l} salvando={marcar.isPending && marcar.variables?.id === l.id} onMarcar={marcarLinha(l)} />}
+            renderLinha={(l) => <CobrancaCard key={l.id} linha={l} tentativas={tentativas.data?.get(l.reservation_id)} salvando={marcar.isPending && marcar.variables?.id === l.id} onMarcar={marcarLinha(l)} />}
           />
         </div>
       )}
@@ -307,7 +309,7 @@ function ListaACobrar({ unidade }: { unidade: "Botafogo" | "Ipanema" }) {
           </summary>
           <div className="space-y-3 px-4 pb-4">
             {sairam.map((l) => (
-              <CobrancaCard key={l.id} linha={l} salvando={false} onMarcar={async () => undefined} />
+              <CobrancaCard key={l.id} linha={l} tentativas={tentativas.data?.get(l.reservation_id)} salvando={false} onMarcar={async () => undefined} />
             ))}
           </div>
         </details>
