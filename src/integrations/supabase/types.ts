@@ -3148,6 +3148,213 @@ export type Database = {
         }
         Relationships: []
       }
+      reservas_acessos: {
+        Row: {
+          definido_por: string | null
+          liberado: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          definido_por?: string | null
+          liberado: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          definido_por?: string | null
+          liberado?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reservas_cobranca: {
+        Row: {
+          ativa: boolean
+          atualizado_em: string
+          checkin: string | null
+          checkout: string | null
+          cobrado: string | null
+          data_reserva: string | null
+          entrou_em: string
+          hospede: string
+          id: string
+          marcado_em: string | null
+          marcado_nome: string | null
+          marcado_por: string | null
+          motivo: string | null
+          motivo_saida: string | null
+          observacao: string | null
+          origem: string | null
+          plano: string | null
+          property_id: string | null
+          reservation_id: string
+          saiu_em: string | null
+          saldo: number
+          status_cloudbeds: string | null
+          unidade: string
+        }
+        Insert: {
+          ativa?: boolean
+          atualizado_em?: string
+          checkin?: string | null
+          checkout?: string | null
+          cobrado?: string | null
+          data_reserva?: string | null
+          entrou_em?: string
+          hospede?: string
+          id?: string
+          marcado_em?: string | null
+          marcado_nome?: string | null
+          marcado_por?: string | null
+          motivo?: string | null
+          motivo_saida?: string | null
+          observacao?: string | null
+          origem?: string | null
+          plano?: string | null
+          property_id?: string | null
+          reservation_id: string
+          saiu_em?: string | null
+          saldo?: number
+          status_cloudbeds?: string | null
+          unidade: string
+        }
+        Update: {
+          ativa?: boolean
+          atualizado_em?: string
+          checkin?: string | null
+          checkout?: string | null
+          cobrado?: string | null
+          data_reserva?: string | null
+          entrou_em?: string
+          hospede?: string
+          id?: string
+          marcado_em?: string | null
+          marcado_nome?: string | null
+          marcado_por?: string | null
+          motivo?: string | null
+          motivo_saida?: string | null
+          observacao?: string | null
+          origem?: string | null
+          plano?: string | null
+          property_id?: string | null
+          reservation_id?: string
+          saiu_em?: string | null
+          saldo?: number
+          status_cloudbeds?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
+      reservas_cobranca_conferencia: {
+        Row: {
+          checkin: string | null
+          consultado_em: string
+          data_reserva: string | null
+          entra_em: string | null
+          exclusao: string | null
+          hospede: string | null
+          motivo: string | null
+          nr: boolean
+          origem: string | null
+          planos: string | null
+          reservation_id: string
+          saldo: number
+          status_cloudbeds: string | null
+          unidade: string
+        }
+        Insert: {
+          checkin?: string | null
+          consultado_em?: string
+          data_reserva?: string | null
+          entra_em?: string | null
+          exclusao?: string | null
+          hospede?: string | null
+          motivo?: string | null
+          nr?: boolean
+          origem?: string | null
+          planos?: string | null
+          reservation_id: string
+          saldo?: number
+          status_cloudbeds?: string | null
+          unidade: string
+        }
+        Update: {
+          checkin?: string | null
+          consultado_em?: string
+          data_reserva?: string | null
+          entra_em?: string | null
+          exclusao?: string | null
+          hospede?: string | null
+          motivo?: string | null
+          nr?: boolean
+          origem?: string | null
+          planos?: string | null
+          reservation_id?: string
+          saldo?: number
+          status_cloudbeds?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
+      reservas_cobranca_historico: {
+        Row: {
+          hospede: string
+          id: string
+          motivo: string | null
+          notificado: boolean
+          registrado_em: string
+          reservation_id: string
+          saldo: number
+          unidade: string
+        }
+        Insert: {
+          hospede?: string
+          id?: string
+          motivo?: string | null
+          notificado?: boolean
+          registrado_em?: string
+          reservation_id: string
+          saldo?: number
+          unidade: string
+        }
+        Update: {
+          hospede?: string
+          id?: string
+          motivo?: string | null
+          notificado?: boolean
+          registrado_em?: string
+          reservation_id?: string
+          saldo?: number
+          unidade?: string
+        }
+        Relationships: []
+      }
+      reservas_cobranca_sync: {
+        Row: {
+          consultadas: number | null
+          erro: string | null
+          ultima_ok: string | null
+          ultima_tentativa: string | null
+          unidade: string
+        }
+        Insert: {
+          consultadas?: number | null
+          erro?: string | null
+          ultima_ok?: string | null
+          ultima_tentativa?: string | null
+          unidade: string
+        }
+        Update: {
+          consultadas?: number | null
+          erro?: string | null
+          ultima_ok?: string | null
+          ultima_tentativa?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
       reservation_payments: {
         Row: {
           amount: number
@@ -4399,6 +4606,7 @@ export type Database = {
       }
       minha_permissao_bonificacao: { Args: never; Returns: Json }
       minha_permissao_previsao_carga: { Args: never; Returns: boolean }
+      minha_permissao_reservas: { Args: never; Returns: Json }
       open_room_inspection_issue: {
         Args: {
           _category?: string
@@ -4528,6 +4736,31 @@ export type Database = {
         }
         Returns: undefined
       }
+      reservas_acessos_listar: {
+        Args: never
+        Returns: {
+          email: string
+          gestor: boolean
+          nome: string
+          origem: string
+          papeis: string[]
+          user_id: string
+          ve: boolean
+        }[]
+      }
+      reservas_cobranca_marcar: {
+        Args: { _cobrado: string; _id: string; _observacao: string }
+        Returns: undefined
+      }
+      reservas_cobranca_notificar: {
+        Args: { _payload: Json }
+        Returns: undefined
+      }
+      reservas_definir_acesso: {
+        Args: { _liberado: boolean; _user_id: string }
+        Returns: undefined
+      }
+      reservas_destinatarios: { Args: never; Returns: string[] }
       resolve_room_inspection_issue: {
         Args: { _issue_id: string }
         Returns: undefined
