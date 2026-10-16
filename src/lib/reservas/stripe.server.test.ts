@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { assinaturaValida, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
+import { anularFatura, assinaturaValida, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
 
 type Chamada = { url: string; init: RequestInit };
 let chamadas: Chamada[] = [];
@@ -90,6 +90,20 @@ describe("link (fatura)", () => {
     // cada passo com a sua chave de idempotência
     const chaves = chamadas.map((c) => (c.init.headers as Record<string, string>)["Idempotency-Key"]);
     expect(new Set(chaves).size).toBe(4);
+  });
+});
+
+describe("cancelar link", () => {
+  it("anula a fatura pelo endpoint void, com idempotência", async () => {
+    respostas.push({ status: 200, body: { id: "in_9", status: "void" } });
+    const f = await anularFatura("Botafogo", "in_9");
+    expect(f.status).toBe("void");
+    expect(chamadas[0].url).toBe("https://api.stripe.com/v1/invoices/in_9/void");
+    expect((chamadas[0].init.headers as Record<string, string>)["Idempotency-Key"]).toBe("injoy-anular-in_9");
+  });
+  it("fatura já paga não pode ser anulada: o erro sobe (o app não cobra de novo)", async () => {
+    respostas.push({ status: 400, body: { error: { type: "invalid_request_error", message: "You can only pass in open invoices." } } });
+    await expect(anularFatura("Botafogo", "in_paga")).rejects.toThrow(/open invoices/);
   });
 });
 

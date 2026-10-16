@@ -124,7 +124,7 @@ export type Preparo = {
   emailDestino: string | null;
   cartoes: OpcaoCartao[];
   bloqueio: string | null;
-  linkAberto: { url: string | null; enviadoEm: string | null } | null;
+  linkAberto: { url: string | null; enviadoEm: string | null; faturas: string[] } | null;
   clienteId: string | null;
 };
 
@@ -192,6 +192,7 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
     base.linkAberto = {
       url: typeof f.hosted_invoice_url === "string" ? f.hosted_invoice_url : null,
       enviadoEm: f.created ? new Date(Number(f.created) * 1000).toISOString() : null,
+      faturas: abertas.map((x) => String(x.id)),
     };
   }
   return base;
@@ -229,6 +230,48 @@ async function lancarNoCloudbeds(
   return { pagamento, nota, mensagem };
 }
 
+// ------------------------------------------------------------------ link aberto
+
+/**
+ * Anula os links (faturas) abertos da reserva e marca as tentativas como "link_cancelado".
+ * Usado antes do Cobrar agora (para o hóspede não pagar duas vezes) e no botão "Cancelar link".
+ * Se algum não puder ser anulado (ex.: o hóspede acabou de pagar), lança erro: NÃO cobre.
+ */
+async function anularLinksAbertos(unidade: Unidade, reservationId: string, faturas: string[], motivo: string) {
+  const { anularFatura } = await import("./stripe.server");
+  const c = await db();
+  for (const id of faturas) {
+    try {
+      await anularFatura(unidade, id);
+    } catch (e) {
+      throw new Error(
+        `Não foi possível cancelar o link aberto desta reserva (${(e as Error).message}). O hóspede pode ter acabado de pagar. Nada foi cobrado: atualize e confira antes de tentar de novo.`,
+      );
+    }
+    await c
+      .from("reservas_cobranca_pagamentos")
+      .update({ status: "link_cancelado", mensagem: motivo, atualizado_em: new Date().toISOString() })
+      .eq("stripe_invoice_id", id)
+      .eq("unidade", unidade)
+      .eq("reservation_id", reservationId)
+      .eq("status", "link_enviado");
+  }
+}
+
+export async function cancelarLink(linhaId: string, quem: Quem): Promise<{ mensagem: string }> {
+  const prep = await conferirTudo(linhaId, null);
+  if (!prep.linkAberto?.faturas.length) throw new Error("Não há link aberto para esta reserva.");
+  await anularLinksAbertos(prep.unidade, prep.reservationId, prep.linkAberto.faturas, `Link cancelado por ${quem.nome}.`);
+  const c = await db();
+  await c
+    .from("reservas_cobranca")
+    .update({ cobrado: null, marcado_por: quem.userId, marcado_nome: quem.nome, marcado_em: new Date().toISOString() })
+    .eq("unidade", prep.unidade)
+    .eq("reservation_id", prep.reservationId)
+    .eq("cobrado", "link_enviado");
+  return { mensagem: "Link cancelado. O hóspede não consegue mais pagar por ele." };
+}
+
 // ------------------------------------------------------------------ Cobrar agora
 
 export type ResultadoCobranca = {
@@ -245,6 +288,11 @@ export async function cobrarAgora(linhaId: string, valorConfirmado: number, cart
   if (!cartao?.podeCobrar) throw new Error(cartao?.porque ? `Cartão não liberado: ${cartao.porque}.` : "Escolha um cartão desta reserva.");
   const modo = prep.modo as ModoStripe;
   const saldo = prep.saldo as number;
+
+  // Link aberto para esta reserva: cancela ANTES de cobrar, para o hóspede não pagar duas vezes.
+  if (prep.linkAberto?.faturas.length) {
+    await anularLinksAbertos(prep.unidade, prep.reservationId, prep.linkAberto.faturas, `Link cancelado: ${quem.nome} usou "Cobrar agora".`);
+  }
 
   const t = await abrirTentativa({
     unidade: prep.unidade,

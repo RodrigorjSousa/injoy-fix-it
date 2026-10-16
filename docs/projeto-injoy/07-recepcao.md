@@ -135,6 +135,9 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
 - Enviar link: fatura do Stripe (`send_invoice`, vence em 2 dias) por e-mail ao Cliente; criada sem itens pendentes e
   com o item dentro dela. Quando o hóspede paga, o webhook `/api/public/stripe-webhook?unidade=<U>` (evento
   `invoice.paid`, assinatura conferida) lança no Cloudbeds e escreve "Pagamento OK // quem enviou o link".
+- Link aberto (migração 0065, status `link_cancelado`): "Cobrar agora" ANULA o link aberto da reserva antes de cobrar
+  (para o hóspede não pagar duas vezes); se o Stripe não deixar anular (ex.: acabou de ser pago), não cobra. O cartão da
+  reserva tem "Cancelar link" (volta o "Cobrado?" para sem marcação). Chave restrita precisa de Invoices gravação (já pedida).
 - Pgto. no check-in: nota **"Pagamento no check in // nome logado"** na reserva; fica na lista (roxo) até o saldo zerar.
 - Só o servidor grava Pago / Link enviado / Pgto. no check-in (a RPC `reservas_cobranca_marcar` recusa à mão);
   reserva paga não troca de marcação.
@@ -200,6 +203,9 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 16/10/2026: testes no modo de teste do Stripe (Botafogo): cobrança aprovada OK e cartão recusado OK (4000 0000 0000 0341).
+  O cartão que sempre pede autenticação não pôde ser salvo pelo painel. Branch `fix/reservas-link-aberto` (0065): cancela o
+  link aberto antes de cobrar + botão "Cancelar link". Falta: chave real, webhook, Ipanema.
 - 16/10/2026: cobrança pelo Stripe (branch `feat/reservas-stripe`, migração 0064). Falta: merge, aplicar 0064, Publicar →
   Atualizar, segredo `STRIPE_KEY_BOTAFOGO` (teste primeiro) e depois o webhook. Ipanema em seguida.
 - 16/10/2026: botão "Reservas" pisca na cor da modalidade até ser aberto (branch `feat/reservas-piscar`, migração

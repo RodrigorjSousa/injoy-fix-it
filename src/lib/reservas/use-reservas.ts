@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { atualizarCobrancasAgora } from "./cobranca.functions";
 import {
+  cancelarLinkFn,
   cobrarAgoraFn,
   enviarLinkFn,
   pagamentoNoCheckinFn,
@@ -229,7 +230,16 @@ export type TentativaCobranca = {
   unidade: Unidade;
   reservation_id: string;
   tipo: "cobranca" | "link" | "checkin";
-  status: "processando" | "aprovado" | "autenticacao" | "recusado" | "erro" | "link_enviado" | "link_pago" | "registrado";
+  status:
+    | "processando"
+    | "aprovado"
+    | "autenticacao"
+    | "recusado"
+    | "erro"
+    | "link_enviado"
+    | "link_pago"
+    | "link_cancelado"
+    | "registrado";
   modo: "teste" | "real";
   valor: number | null;
   cartao: string | null;
@@ -298,6 +308,7 @@ export const usePrepararCobranca = () => {
 export const useCobrarAgora = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(cobrarAgoraFn));
 export const useEnviarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(enviarLinkFn));
 export const usePagamentoNoCheckin = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(pagamentoNoCheckinFn));
+export const useCancelarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(cancelarLinkFn));
 export const useRelancarNoCloudbeds = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(relancarNoCloudbedsFn));
 
 // ------------------------------------------------------------------ botão "Reservas" piscando
