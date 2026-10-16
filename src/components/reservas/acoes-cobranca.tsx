@@ -148,6 +148,16 @@ export function CobrarAgoraDialog({ linha, aberto, onFechar }: { linha: LinhaCob
             {p.modo === "teste" && <SeloTeste />}
             <Resumo linha={linha} saldo={p.saldo} />
 
+            {p.linkAberto && !resultado && (
+              <p className="flex gap-2 rounded-xl bg-sky-50 p-3 text-sm text-sky-900 ring-1 ring-sky-200">
+                <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>
+                  Há um link de pagamento aberto para esta reserva. Ao cobrar, o app <span className="font-semibold">cancela o link
+                  antes</span>, para o hóspede não pagar duas vezes.
+                </span>
+              </p>
+            )}
+
             {resultado ? (
               <div
                 role="alert"

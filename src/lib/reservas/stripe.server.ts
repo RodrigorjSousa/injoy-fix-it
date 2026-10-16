@@ -100,6 +100,14 @@ export async function faturasAbertasDoCliente(unidade: Unidade, clienteId: strin
   return lista(await chamar(unidade, "GET", "/invoices", { customer: clienteId, status: "open", limit: 100 }));
 }
 
+/**
+ * Cancela (anula) uma fatura aberta: o link para de aceitar pagamento. Se o hóspede já pagou, o Stripe recusa
+ * e o erro sobe (quem chama não deve cobrar de novo).
+ */
+export async function anularFatura(unidade: Unidade, faturaId: string): Promise<Obj> {
+  return chamar(unidade, "POST", `/invoices/${encodeURIComponent(faturaId)}/void`, {}, `injoy-anular-${faturaId}`);
+}
+
 export type MetaCobranca = { reservationId: string; unidade: Unidade; tentativa: string; usuario: string };
 
 const metadata = (m: MetaCobranca) => ({

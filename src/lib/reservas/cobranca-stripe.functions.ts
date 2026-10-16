@@ -64,3 +64,12 @@ export const relancarNoCloudbedsFn = createServerFn({ method: "POST" })
     const { relancarNoCloudbeds } = await import("./cobranca-stripe.server");
     return relancarNoCloudbeds(data.tentativaId);
   });
+
+export const cancelarLinkFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ linhaId: id }).parse(i))
+  .handler(async ({ data, context }) => {
+    const quem = await quemPode(context as unknown as Ctx);
+    const { cancelarLink } = await import("./cobranca-stripe.server");
+    return cancelarLink(data.linhaId, quem);
+  });

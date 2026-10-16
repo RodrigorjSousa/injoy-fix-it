@@ -14,7 +14,7 @@ import {
   type Cobrado,
   type MotivoCobranca,
 } from "@/lib/reservas/cobranca";
-import { useRelancarNoCloudbeds, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
+import { useCancelarLink, useRelancarNoCloudbeds, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
 import { CheckinDialog, CobrarAgoraDialog, EnviarLinkDialog } from "./acoes-cobranca";
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -83,8 +83,10 @@ const quando = (iso: string) =>
   new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
 /** Uma linha sobre a última ação com dinheiro desta reserva (e o alerta se faltou lançar no Cloudbeds). */
-function UltimaAcao({ t, unidade }: { t: TentativaCobranca; unidade: LinhaCobranca["unidade"] }) {
+function UltimaAcao({ t, linha }: { t: TentativaCobranca; linha: LinhaCobranca }) {
+  const unidade = linha.unidade;
   const relancar = useRelancarNoCloudbeds(unidade);
+  const cancelar = useCancelarLink(unidade);
   const valor = t.valor ? brl(t.valor) : "";
   const quem = t.usuario_nome ? ` por ${t.usuario_nome}` : "";
   const teste = t.modo === "teste" ? " [teste]" : "";
@@ -153,6 +155,22 @@ function UltimaAcao({ t, unidade }: { t: TentativaCobranca; unidade: LinhaCobran
           className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#0f8b8d] hover:underline"
         >
           <Copy className="h-3.5 w-3.5" /> Copiar link
+        </button>
+      )}
+      {t.tipo === "link" && t.status === "link_enviado" && (
+        <button
+          type="button"
+          disabled={cancelar.isPending}
+          onClick={() => {
+            if (!window.confirm(`Cancelar o link de ${valor} de ${linha.hospede}? Ele para de aceitar pagamento.`)) return;
+            cancelar.mutate(
+              { linhaId: linha.id },
+              { onSuccess: (r) => toast.success(r.mensagem), onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível cancelar.") },
+            );
+          }}
+          className="inline-flex shrink-0 items-center gap-1 font-semibold text-red-700 hover:underline disabled:opacity-60"
+        >
+          {cancelar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : null} Cancelar link
         </button>
       )}
     </p>
@@ -369,7 +387,7 @@ export function CobrancaCard({
             const alvo = tentativas.find(
               (t) => (t.status === "aprovado" || t.status === "link_pago") && (t.cloudbeds_pagamento === "falhou" || t.cloudbeds_nota === "falhou"),
             ) ?? ultima;
-            return alvo ? <UltimaAcao t={alvo} unidade={linha.unidade} /> : null;
+            return alvo ? <UltimaAcao t={alvo} linha={linha} /> : null;
           })()}
 
           {linha.marcado_nome && linha.marcado_em && (!ultima || new Date(linha.marcado_em) > new Date(ultima.criado_em)) && (
