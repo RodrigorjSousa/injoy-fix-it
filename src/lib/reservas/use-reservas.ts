@@ -5,6 +5,13 @@ import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
 import { atualizarCobrancasAgora } from "./cobranca.functions";
+import {
+  cobrarAgoraFn,
+  enviarLinkFn,
+  pagamentoNoCheckinFn,
+  prepararCobranca,
+  relancarNoCloudbedsFn,
+} from "./cobranca-stripe.functions";
 import type { Cobrado, Exclusao, MotivoCobranca, MotivoSaida } from "./cobranca";
 
 export type LinhaCobranca = {
@@ -214,6 +221,84 @@ export function useConferenciaCobranca(unidade: Unidade, ativo: boolean) {
     },
   });
 }
+
+// ------------------------------------------------------------------ cobrança pelo Stripe
+
+export type TentativaCobranca = {
+  id: string;
+  unidade: Unidade;
+  reservation_id: string;
+  tipo: "cobranca" | "link" | "checkin";
+  status: "processando" | "aprovado" | "autenticacao" | "recusado" | "erro" | "link_enviado" | "link_pago" | "registrado";
+  modo: "teste" | "real";
+  valor: number | null;
+  cartao: string | null;
+  link_url: string | null;
+  email_destino: string | null;
+  cloudbeds_pagamento: string | null;
+  cloudbeds_nota: string | null;
+  mensagem: string | null;
+  usuario_nome: string | null;
+  criado_em: string;
+};
+
+/** Tentativas de cobrança da unidade (últimos 60 dias), ao vivo. Chave: nº da reserva → mais recente primeiro. */
+export function useTentativasCobranca(unidade: Unidade) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    const ch = supabase
+      .channel(`reservas-tentativas-${unidade}-${Math.random().toString(36).slice(2)}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "reservas_cobranca_pagamentos", filter: `unidade=eq.${unidade}` },
+        () => void qc.invalidateQueries({ queryKey: ["reservas_tentativas", unidade] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [qc, unidade]);
+  return useQuery({
+    queryKey: ["reservas_tentativas", unidade],
+    queryFn: async (): Promise<Map<string, TentativaCobranca[]>> => {
+      const desde = new Date(Date.now() - 60 * 86_400_000).toISOString();
+      const { data, error } = await tabela("reservas_cobranca_pagamentos")
+        .select("*")
+        .eq("unidade", unidade)
+        .gte("criado_em", desde)
+        .order("criado_em", { ascending: false })
+        .limit(1000);
+      if (error) throw erroDe(error);
+      const mapa = new Map<string, TentativaCobranca[]>();
+      for (const t of (data ?? []) as unknown as TentativaCobranca[]) {
+        const l = mapa.get(t.reservation_id) ?? [];
+        l.push({ ...t, valor: t.valor === null ? null : Number(t.valor) });
+        mapa.set(t.reservation_id, l);
+      }
+      return mapa;
+    },
+  });
+}
+
+function useAcaoCobranca<I, O>(unidade: Unidade, fn: (input: { data: I }) => Promise<O>) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: I) => fn({ data: input }),
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: ["reservas_cobranca", unidade] });
+      void qc.invalidateQueries({ queryKey: ["reservas_tentativas", unidade] });
+    },
+  });
+}
+
+export const usePrepararCobranca = () => {
+  const fn = useServerFn(prepararCobranca);
+  return useMutation({ mutationFn: (linhaId: string) => fn({ data: { linhaId } }) });
+};
+export const useCobrarAgora = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(cobrarAgoraFn));
+export const useEnviarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(enviarLinkFn));
+export const usePagamentoNoCheckin = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(pagamentoNoCheckinFn));
+export const useRelancarNoCloudbeds = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(relancarNoCloudbedsFn));
 
 // ------------------------------------------------------------------ botão "Reservas" piscando
 

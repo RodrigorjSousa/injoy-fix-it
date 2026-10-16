@@ -59,6 +59,7 @@ import { Route as ApiPublicPagarmeWebhookRouteImport } from './routes/api/public
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicReservasCobrancaRouteImport } from './routes/api/public/reservas-cobranca'
+import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -335,6 +336,11 @@ const ApiPublicReservasCobrancaRoute =
     path: '/api/public/reservas-cobranca',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
+  id: '/api/public/stripe-webhook',
+  path: '/api/public/stripe-webhook',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
   id: '/api/public/tuya-cleanup',
   path: '/api/public/tuya-cleanup',
@@ -390,6 +396,7 @@ export interface FileRoutesByFullPath {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor/': typeof AuthenticatedGestorIndexRoute
 }
@@ -440,6 +447,7 @@ export interface FileRoutesByTo {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/gestor': typeof AuthenticatedGestorIndexRoute
 }
@@ -494,6 +502,7 @@ export interface FileRoutesById {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/_authenticated/gestor/': typeof AuthenticatedGestorIndexRoute
 }
@@ -548,6 +557,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/gestor/'
   fileRoutesByTo: FileRoutesByTo
@@ -598,6 +608,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/gestor'
   id:
@@ -651,6 +662,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/_authenticated/gestor/'
   fileRoutesById: FileRoutesById
@@ -666,6 +678,7 @@ export interface RootRouteChildren {
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
   ApiPublicReservasCobrancaRoute: typeof ApiPublicReservasCobrancaRoute
+  ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
 }
 
@@ -1021,6 +1034,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReservasCobrancaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/stripe-webhook': {
+      id: '/api/public/stripe-webhook'
+      path: '/api/public/stripe-webhook'
+      fullPath: '/api/public/stripe-webhook'
+      preLoaderRoute: typeof ApiPublicStripeWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/tuya-cleanup': {
       id: '/api/public/tuya-cleanup'
       path: '/api/public/tuya-cleanup'
@@ -1153,6 +1173,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
   ApiPublicReservasCobrancaRoute: ApiPublicReservasCobrancaRoute,
+  ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
 }
 export const routeTree = rootRouteImport

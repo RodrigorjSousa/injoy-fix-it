@@ -112,6 +112,40 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
   (também se entrar reserva nova com a tela aberta). Quem não vê as Reservas recebe tudo zero.
 - Peças: `src/components/reservas/pisca-reservas.tsx`, `.animate-pisca-reservas` em `src/styles.css`.
 
+**Cobrança pelo Stripe (migração 0064)** — decisões do Rodrigo, 16/10/2026
+- Botões de "Cobrado?": **Cobrar agora** (era "Sim"), **Recusado**, **Enviar link** (era "Link enviado"),
+  **Aguard. autenticação** (vermelho) e **Pgto. no check-in** (roxo). "Cancelada" saiu (as marcadas ficaram sem marcação).
+- O Stripe é o motor de cobrança do Cloudbeds: ao guardar um cartão, o Cloudbeds cria no Stripe da unidade um Cliente
+  com descrição "Injoy Suítes & Aparts Botafogo - Reservas: <nº>". A mesma pessoa tem vários Clientes (um por reserva)
+  e vários cartões. Regras em `src/lib/reservas/stripe-regras.ts` (testes `stripe-regras.test.ts`):
+  1. saldo e status relidos no Cloudbeds NA HORA (`getReservation` v1.3); cobra só esse saldo, e se mudou pede nova
+     confirmação; só `confirmed`/`not_confirmed`;
+  2. Cliente achado pelo e-mail da reserva e escolhido só se a descrição tem EXATAMENTE o nº da reserva (nenhum ou mais
+     de um = não cobra);
+  3. cartão do Cliente que também está na reserva do Cloudbeds (`cardsOnFile`: bandeira + final) e não venceu; com mais
+     de um, a recepcionista escolhe; no modo de teste o cartão de teste fica liberado com aviso;
+  4. bloqueia se há cobrança do app aprovada nos últimos 7 dias, qualquer cobrança em processamento no Stripe, ou
+     pagamento do Stripe que não entrou no Cloudbeds;
+  5. trava no banco: uma operação em andamento por reserva (índice único em `reservas_cobranca_pagamentos`) e chave de
+     idempotência do Stripe = id da tentativa (dois cliques/duas pessoas = uma cobrança).
+- Aprovado → `postPayment` no Cloudbeds (tipo credit) + nota **"Pagamento OK // nome logado"** (`postReservationNote`
+  v1.3) e marca "Pago". Banco pediu confirmação (3D Secure) → marca "Aguardando autenticação" e oferece o link.
+  Recusado → marca "Recusado" com o motivo. Se o Cloudbeds falhar depois de cobrar: alerta vermelho "Pago no Stripe,
+  falta lançar no Cloudbeds" com botão **Lançar no Cloudbeds** (só lança se o saldo ainda comporta o valor).
+- Enviar link: fatura do Stripe (`send_invoice`, vence em 2 dias) por e-mail ao Cliente; criada sem itens pendentes e
+  com o item dentro dela. Quando o hóspede paga, o webhook `/api/public/stripe-webhook?unidade=<U>` (evento
+  `invoice.paid`, assinatura conferida) lança no Cloudbeds e escreve "Pagamento OK // quem enviou o link".
+- Pgto. no check-in: nota **"Pagamento no check in // nome logado"** na reserva; fica na lista (roxo) até o saldo zerar.
+- Só o servidor grava Pago / Link enviado / Pgto. no check-in (a RPC `reservas_cobranca_marcar` recusa à mão);
+  reserva paga não troca de marcação.
+- **Segredos** (Lovable Cloud, nunca no código): `STRIPE_KEY_BOTAFOGO`, `STRIPE_KEY_IPANEMA` (só chave RESTRITA `rk_`;
+  `sk_` é recusada) e `STRIPE_WEBHOOK_SECRET_BOTAFOGO/IPANEMA`. Permissões da chave restrita: Customers leitura,
+  PaymentMethods leitura, PaymentIntents gravação, Charges leitura, Invoices gravação, Events leitura.
+- **Modo de teste** (`rk_test_`): nada é gravado no Cloudbeds (nem pagamento, nem nota de pagamento); a tentativa mostra
+  "[teste]". A nota de Pgto. no check-in é real em qualquer modo.
+- Peças: `stripe.server.ts` (Stripe por `fetch`, só servidor), `cloudbeds-reserva.server.ts`,
+  `cobranca-stripe.server.ts` (sequência de cada botão), `cobranca-stripe.functions.ts`, `components/reservas/acoes-cobranca.tsx`.
+
 **Limites conhecidos**: estadia Standard com saída a mais de 90 dias não é achada pela 2ª busca; NR feita há mais
 de 30 dias e com saída a mais de 90 dias só continua se já estava na lista (consulta pelo número). A chave do
 Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva).
@@ -163,6 +197,8 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 16/10/2026: cobrança pelo Stripe (branch `feat/reservas-stripe`, migração 0064). Falta: merge, aplicar 0064, Publicar →
+  Atualizar, segredo `STRIPE_KEY_BOTAFOGO` (teste primeiro) e depois o webhook. Ipanema em seguida.
 - 16/10/2026: botão "Reservas" pisca na cor da modalidade até ser aberto (branch `feat/reservas-piscar`, migração
   0063). Falta: merge, aplicar 0063 no Lovable, Publicar → Atualizar. Na primeira vez, pisca para todos com as
   reservas que já estão na lista, até cada um abrir a tela.
