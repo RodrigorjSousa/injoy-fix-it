@@ -166,13 +166,35 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
   base.saldo = conf.saldo;
   base.hospede = reserva.hospede || linha.hospede;
 
-  // 2) Cliente do Stripe com EXATAMENTE esta reserva na descrição.
-  if (!reserva.emails.length) {
-    return { ...base, bloqueio: "A reserva não tem e-mail no Cloudbeds: não dá para achar o cartão no Stripe. Cobre pelo Cloudbeds." };
+  // 2) Cliente do Stripe com EXATAMENTE esta reserva na descrição. Procura pelo e-mail e, se não achar,
+  //    pelo nome do hóspede (o Cliente pode ter outro e-mail, ex.: e-mail mascarado da Booking).
+  const nomes = reserva.nomes.length ? reserva.nomes : linha.hospede ? [linha.hospede] : [];
+  if (!reserva.emails.length && !nomes.length) {
+    return { ...base, bloqueio: "A reserva não tem e-mail nem nome no Cloudbeds: não dá para achar o cartão no Stripe. Cobre pelo Cloudbeds." };
   }
-  const clientes = await clientesPorEmail(linha.unidade, reserva.emails);
-  const escolha = clienteDaReserva(clientes as never, linha.reservation_id);
-  if (!escolha.ok) return { ...base, bloqueio: escolha.texto };
+  let clientes = reserva.emails.length ? await clientesPorEmail(linha.unidade, reserva.emails) : [];
+  let escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  if (!escolha.ok && escolha.motivo === "nenhum" && nomes.length) {
+    const { clientesPorNome } = await import("./stripe.server");
+    clientes = [...clientes, ...(await clientesPorNome(linha.unidade, nomes))];
+    escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  }
+  if (!escolha.ok) {
+    if (escolha.motivo === "varios") return { ...base, bloqueio: escolha.texto };
+    const achados = new Set(clientes.map((x) => String(x.id))).size;
+    const procurou = [
+      reserva.emails.length ? `e-mail ${reserva.emails.join(", ")}` : null,
+      nomes.length ? `nome ${nomes.join(", ")}` : null,
+    ]
+      .filter(Boolean)
+      .join(" e ");
+    return {
+      ...base,
+      bloqueio:
+        `Procurei no Stripe pelo ${procurou}: ${achados === 0 ? "nenhum cliente encontrado" : `${achados} cliente(s) encontrado(s), mas nenhum com a reserva ${linha.reservation_id} na descrição`}. ` +
+        "O cartão pode estar guardado só no Cloudbeds (ex.: cartão virtual da Booking): cobre por lá.",
+    };
+  }
   base.clienteId = escolha.cliente.id;
   base.emailDestino = escolha.cliente.email ?? null;
 

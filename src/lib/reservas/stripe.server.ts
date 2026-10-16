@@ -86,6 +86,21 @@ export async function clientesPorEmail(unidade: Unidade, emails: string[]): Prom
   return todos;
 }
 
+/** Texto seguro dentro de aspas na busca do Stripe. */
+const aspas = (v: string) => v.replace(/\\/g, "").replace(/"/g, "").trim();
+
+/**
+ * Clientes pelo NOME (busca do Stripe). Usado quando o e-mail do Cliente não bate com o da reserva
+ * (ex.: e-mail mascarado da Booking). A escolha final continua exigindo o nº da reserva na descrição.
+ */
+export async function clientesPorNome(unidade: Unidade, nomes: string[]): Promise<Obj[]> {
+  const todos: Obj[] = [];
+  for (const nome of [...new Set(nomes.map((n) => aspas(n)).filter((n) => n.length >= 3))]) {
+    todos.push(...lista(await chamar(unidade, "GET", "/customers/search", { query: `name~"${nome}"`, limit: 100 })));
+  }
+  return todos;
+}
+
 export async function cartoesDoCliente(unidade: Unidade, clienteId: string): Promise<Obj[]> {
   return lista(
     await chamar(unidade, "GET", `/customers/${encodeURIComponent(clienteId)}/payment_methods`, { type: "card", limit: 100 }),

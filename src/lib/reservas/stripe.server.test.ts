@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anularFatura, assinaturaValida, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
+import { anularFatura, assinaturaValida, clientesPorNome, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
 
 type Chamada = { url: string; init: RequestInit };
 let chamadas: Chamada[] = [];
@@ -90,6 +90,18 @@ describe("link (fatura)", () => {
     // cada passo com a sua chave de idempotência
     const chaves = chamadas.map((c) => (c.init.headers as Record<string, string>)["Idempotency-Key"]);
     expect(new Set(chaves).size).toBe(4);
+  });
+});
+
+describe("achar cliente pelo nome", () => {
+  it("usa a busca do Stripe por nome, sem aspas soltas, e ignora nomes curtos", async () => {
+    respostas.push({ status: 200, body: { data: [{ id: "cus_A", description: "Injoy - Reservas: 9996102405704" }] } });
+    const r = await clientesPorNome("Botafogo", ['Thiago "Linhares"', "Al", "Thiago Linhares"]);
+    expect(r).toHaveLength(1);
+    expect(chamadas).toHaveLength(1);
+    const url = new URL(chamadas[0].url);
+    expect(url.pathname).toBe("/v1/customers/search");
+    expect(url.searchParams.get("query")).toBe('name~"Thiago Linhares"');
   });
 });
 

@@ -24,6 +24,8 @@ export type ReservaAgora = {
   status: string;
   balance: number;
   hospede: string;
+  /** Nome do hóspede principal e dos acompanhantes (para achar o Cliente no Stripe pelo nome). */
+  nomes: string[];
   emails: string[];
   cartoes: { cardNumber?: unknown; cardType?: unknown }[];
 };
@@ -36,16 +38,21 @@ export async function lerReservaAgora(unidade: Unidade, reservationId: string): 
   const json = await respostaJson(res, "ler a reserva");
   const d = (json.data ?? {}) as Obj;
   const emails: string[] = [];
+  const nomes: string[] = [];
   if (typeof d.guestEmail === "string") emails.push(d.guestEmail);
+  if (typeof d.guestName === "string") nomes.push(d.guestName);
   const gl = d.guestList;
   for (const g of Array.isArray(gl) ? gl : gl && typeof gl === "object" ? Object.values(gl) : []) {
-    const e = (g as Obj)?.guestEmail;
-    if (typeof e === "string") emails.push(e);
+    const o = (g ?? {}) as Obj;
+    if (typeof o.guestEmail === "string") emails.push(o.guestEmail);
+    const nome = String(o.guestName ?? `${o.guestFirstName ?? ""} ${o.guestLastName ?? ""}`).trim();
+    if (nome) nomes.push(nome);
   }
   return {
     status: String(d.status ?? "").toLowerCase(),
     balance: Math.round(Number(d.balance ?? 0) * 100) / 100,
     hospede: String(d.guestName ?? "").trim(),
+    nomes: [...new Set(nomes.map((n) => n.replace(/\s+/g, " ").trim()).filter(Boolean))],
     emails: [...new Set(emails.map((e) => e.trim()).filter((e) => e.includes("@")))],
     cartoes: Array.isArray(d.cardsOnFile) ? (d.cardsOnFile as Obj[]) : [],
   };
