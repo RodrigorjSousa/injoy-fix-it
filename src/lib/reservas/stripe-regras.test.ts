@@ -4,6 +4,8 @@ import {
   clienteDaReserva,
   conferirReserva,
   modoDaChave,
+  NOTA_AGUARDANDO_AUTENTICACAO,
+  notaLinkEnviado,
   notaPagamentoNoCheckin,
   notaPagamentoOk,
   opcoesDeCartao,
@@ -143,6 +145,8 @@ describe("notas e resultado", () => {
   it("texto das notas como o Rodrigo pediu", () => {
     expect(notaPagamentoOk("Mayara")).toBe("Pagamento OK // Mayara");
     expect(notaPagamentoNoCheckin("Júlia")).toBe("Pagamento no check in // Júlia");
+    expect(notaLinkEnviado("Mayara")).toBe("Link de pagamento enviado // Mayara");
+    expect(NOTA_AGUARDANDO_AUTENTICACAO).toBe("Aguardando autenticação CC");
   });
   it("status do Stripe", () => {
     expect(resultadoDoIntent("succeeded")).toBe("aprovado");

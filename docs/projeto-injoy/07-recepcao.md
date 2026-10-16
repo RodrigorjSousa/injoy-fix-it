@@ -142,6 +142,10 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
   "Verificar pagamento" do cartão leem no Stripe as faturas dos links enviados; paga → mesmo caminho do webhook
   (`linkPago`, processa uma vez só); anulada no Stripe → `link_cancelado`. Caso real 16/10: destino do webhook do modo
   real criado depois do pagamento, 0 entregas.
+- Decisão 16/10 (noite): botão **Recusado** saiu (o "Cobrar agora" ainda marca "Recusado" sozinho quando o cartão é
+  recusado). **Enviar link** escreve no Cloudbeds **"Link de pagamento enviado // nome logado"** (só modo real; se a nota
+  falhar, o link vale e o aviso pede para escrever à mão). **Aguard. autenticação** escreve **"Aguardando autenticação
+  CC"** (botão e também quando o banco pede confirmação no "Cobrar agora"); desmarcar não apaga a nota.
 - Pgto. no check-in: nota **"Pagamento no check in // nome logado"** na reserva; fica na lista (roxo) até o saldo zerar.
 - Só o servidor grava Pago / Link enviado / Pgto. no check-in (a RPC `reservas_cobranca_marcar` recusa à mão);
   reserva paga não troca de marcação.

@@ -14,6 +14,8 @@ import {
   centavos,
   clienteDaReserva,
   conferirReserva,
+  NOTA_AGUARDANDO_AUTENTICACAO,
+  notaLinkEnviado,
   notaPagamentoNoCheckin,
   notaPagamentoOk,
   opcoesDeCartao,
@@ -348,6 +350,7 @@ export async function cobrarAgora(linhaId: string, valorConfirmado: number, cart
         mensagem: "O banco pediu que o hóspede confirme a compra.",
       });
       await marcarLinha(prep.unidade, prep.reservationId, "aguardando_autenticacao", quem, modo);
+      if (modo === "real") await notaAguardandoAutenticacao(prep.unidade, prep.reservationId).catch(() => undefined);
       return {
         resultado: "autenticacao",
         modo,
@@ -406,7 +409,19 @@ export async function enviarLink(linhaId: string, valorConfirmado: number, quem:
     const url = typeof fatura.hosted_invoice_url === "string" ? fatura.hosted_invoice_url : null;
     await atualizarTentativa(t.id, { status: "link_enviado", stripe_invoice_id: String(fatura.id), link_url: url });
     await marcarLinha(prep.unidade, prep.reservationId, "link_enviado", quem, modo);
-    return { modo, url, mensagem: `Link de ${brl(saldo)} enviado para ${prep.emailDestino}.` };
+    // Nota no Cloudbeds: "Link de pagamento enviado // nome" (no modo de teste nada vai ao Cloudbeds).
+    let aviso = "";
+    if (modo === "real") {
+      try {
+        const { escreverNotaNoCloudbeds } = await import("./cloudbeds-reserva.server");
+        await escreverNotaNoCloudbeds(prep.unidade, prep.reservationId, notaLinkEnviado(quem.nome));
+        await atualizarTentativa(t.id, { cloudbeds_nota: "lancada" });
+      } catch (e) {
+        await atualizarTentativa(t.id, { cloudbeds_nota: "falhou", mensagem: (e as Error).message.slice(0, 500) });
+        aviso = " Mas a nota não entrou no Cloudbeds: escreva à mão.";
+      }
+    }
+    return { modo, url, mensagem: `Link de ${brl(saldo)} enviado para ${prep.emailDestino}.${aviso}` };
   } catch (e) {
     await atualizarTentativa(t.id, { status: "erro", mensagem: (e as Error).message.slice(0, 500) });
     throw e;
@@ -437,6 +452,29 @@ export async function pagamentoNoCheckin(linhaId: string, quem: Quem): Promise<{
   await atualizarTentativa(t.id, { status: "registrado", cloudbeds_nota: "lancada", mensagem: nota });
   await marcarLinha(linha.unidade, linha.reservation_id, "pagamento_checkin", quem);
   return { mensagem: `Nota "${nota}" escrita na reserva ${linha.reservation_id}.` };
+}
+
+// ------------------------------------------------------------------ Aguardando autenticação
+
+/**
+ * Botão "Aguard. autenticação": escreve "Aguardando autenticação CC" na reserva do Cloudbeds e marca a reserva.
+ * Também usado quando o "Cobrar agora" recebe do banco o pedido de confirmação do hóspede.
+ */
+async function notaAguardandoAutenticacao(unidade: Unidade, reservationId: string): Promise<void> {
+  const { escreverNotaNoCloudbeds } = await import("./cloudbeds-reserva.server");
+  await escreverNotaNoCloudbeds(unidade, reservationId, NOTA_AGUARDANDO_AUTENTICACAO);
+}
+
+export async function aguardandoAutenticacao(linhaId: string, quem: Quem): Promise<{ mensagem: string }> {
+  const linha = await linhaDaLista(linhaId);
+  if (linha.cobrado === "sim") throw new Error("O pagamento desta reserva já foi confirmado.");
+  try {
+    await notaAguardandoAutenticacao(linha.unidade, linha.reservation_id);
+  } catch (e) {
+    throw new Error(`Não foi possível escrever a nota no Cloudbeds: ${(e as Error).message}`);
+  }
+  await marcarLinha(linha.unidade, linha.reservation_id, "aguardando_autenticacao", quem);
+  return { mensagem: `Nota "${NOTA_AGUARDANDO_AUTENTICACAO}" escrita na reserva ${linha.reservation_id}.` };
 }
 
 // ------------------------------------------------------------------ Lançar no Cloudbeds de novo

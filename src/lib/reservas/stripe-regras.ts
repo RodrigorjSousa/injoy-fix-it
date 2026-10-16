@@ -200,6 +200,8 @@ export function bloqueioPorCobrancaAnterior(
 
 export const notaPagamentoOk = (nome: string) => `Pagamento OK // ${nome}`;
 export const notaPagamentoNoCheckin = (nome: string) => `Pagamento no check in // ${nome}`;
+export const notaLinkEnviado = (nome: string) => `Link de pagamento enviado // ${nome}`;
+export const NOTA_AGUARDANDO_AUTENTICACAO = "Aguardando autenticação CC";
 
 // ------------------------------------------------------------------ resultado da cobrança
 

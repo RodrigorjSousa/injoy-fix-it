@@ -14,7 +14,7 @@ import {
   type Cobrado,
   type MotivoCobranca,
 } from "@/lib/reservas/cobranca";
-import { useCancelarLink, useRelancarNoCloudbeds, useVerificarLink, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
+import { useAguardandoAutenticacao, useCancelarLink, useRelancarNoCloudbeds, useVerificarLink, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
 import { CheckinDialog, CobrarAgoraDialog, EnviarLinkDialog } from "./acoes-cobranca";
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -241,6 +241,14 @@ export function CobrancaCard({
     void salvar(novo, linha.observacao, novo ? `${linha.hospede}: ${COBRADO_TEXTO[novo]}` : `${linha.hospede}: marcação removida`);
   };
 
+  const aut = useAguardandoAutenticacao(linha.unidade);
+  /** Aguardando autenticação: escreve "Aguardando autenticação CC" no Cloudbeds e marca. Desmarcar não apaga a nota. */
+  const marcarAutenticacao = () =>
+    aut.mutate(
+      { linhaId: linha.id },
+      { onSuccess: (r) => toast.success(r.mensagem), onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível marcar.") },
+    );
+
   const salvarObs = () => {
     if (!obsMudou) return;
     void salvar(linha.cobrado, obs.trim() || null, "Observação salva");
@@ -253,7 +261,7 @@ export function CobrancaCard({
         key={opcao}
         type="button"
         aria-pressed={ativo}
-        disabled={salvando || pago || emAndamento}
+        disabled={salvando || pago || emAndamento || aut.isPending}
         onClick={onClick}
         className={cn(
           "inline-flex h-9 items-center justify-center gap-1.5 whitespace-nowrap rounded-lg border px-3 text-sm font-semibold transition-colors sm:h-8 disabled:cursor-not-allowed disabled:opacity-50",
@@ -331,7 +339,6 @@ export function CobrancaCard({
                 () => setJanela("cobrar"),
                 pago ? "col-span-2 sm:col-span-1" : "col-span-2 border-[#0f8b8d] bg-[#0f8b8d] text-white hover:bg-[#0c7a7c] hover:text-white sm:col-span-1",
               )}
-              {botao("recusado", "Recusado", () => alternar("recusado"))}
               {botao(
                 "link_enviado",
                 linha.cobrado === "link_enviado" ? "Link enviado" : (
@@ -347,7 +354,7 @@ export function CobrancaCard({
                   <span className="sm:hidden">Aguard. aut.</span>
                   <span className="hidden sm:inline">Aguard. autenticação</span>
                 </>,
-                () => alternar("aguardando_autenticacao"),
+                () => (linha.cobrado === "aguardando_autenticacao" ? alternar("aguardando_autenticacao") : marcarAutenticacao()),
               )}
               {botao("pagamento_checkin", "Pgto. no check-in", () =>
                 linha.cobrado === "pagamento_checkin" ? alternar("pagamento_checkin") : setJanela("checkin"),
