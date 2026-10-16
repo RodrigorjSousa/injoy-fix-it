@@ -61,7 +61,12 @@ async function linhaDaLista(linhaId: string): Promise<Linha> {
   return data as Linha;
 }
 
-async function marcarLinha(unidade: Unidade, reservationId: string, cobrado: string, quem: Quem) {
+/**
+ * Muda o "Cobrado?" da reserva na lista. No MODO DE TESTE não muda nada: a reserva é real e uma marcação
+ * de teste (ex.: "Pago") travaria a reserva sem ela ter sido paga. A tentativa fica registrada com [teste].
+ */
+async function marcarLinha(unidade: Unidade, reservationId: string, cobrado: string, quem: Quem, modo: ModoStripe = "real") {
+  if (modo === "teste") return;
   const c = await db();
   await c
     .from("reservas_cobranca")
@@ -175,7 +180,8 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
   // 4) Nenhuma cobrança do app já aprovada ou em processamento.
   const intents = await cobrancasDoCliente(linha.unidade, escolha.cliente.id);
   const anterior = bloqueioPorCobrancaAnterior(intents as never, linha.reservation_id, Math.floor(Date.now() / 1000));
-  if (anterior) return { ...base, bloqueio: anterior };
+  // No modo de teste, repetir o teste na mesma reserva é esperado (as cobranças de teste não são dinheiro).
+  if (anterior && base.modo === "real") return { ...base, bloqueio: anterior };
 
   // Link já enviado e ainda aberto?
   const abertas = (await faturasAbertasDoCliente(linha.unidade, escolha.cliente.id)).filter(
@@ -276,7 +282,7 @@ export async function cobrarAgora(linhaId: string, valorConfirmado: number, cart
         nota: notaPagamentoOk(quem.nome),
         modo,
       });
-      await marcarLinha(prep.unidade, prep.reservationId, "sim", quem);
+      await marcarLinha(prep.unidade, prep.reservationId, "sim", quem, modo);
       const okCb = cb.pagamento !== "falhou" && cb.nota !== "falhou";
       return {
         resultado: "aprovado",
@@ -293,7 +299,7 @@ export async function cobrarAgora(linhaId: string, valorConfirmado: number, cart
         stripe_payment_intent_id: piId,
         mensagem: "O banco pediu que o hóspede confirme a compra.",
       });
-      await marcarLinha(prep.unidade, prep.reservationId, "aguardando_autenticacao", quem);
+      await marcarLinha(prep.unidade, prep.reservationId, "aguardando_autenticacao", quem, modo);
       return {
         resultado: "autenticacao",
         modo,
@@ -311,7 +317,7 @@ export async function cobrarAgora(linhaId: string, valorConfirmado: number, cart
     }
     const motivo = textoRecusa(erro?.code as string | undefined, erro?.decline_code as string | undefined);
     await atualizarTentativa(t.id, { status: "recusado", stripe_payment_intent_id: piId, mensagem: motivo });
-    await marcarLinha(prep.unidade, prep.reservationId, "recusado", quem);
+    await marcarLinha(prep.unidade, prep.reservationId, "recusado", quem, modo);
     return { resultado: "recusado", modo, cloudbedsOk: true, mensagem: `${motivo} Nada foi cobrado.` };
   } catch (e) {
     await atualizarTentativa(t.id, { status: "erro", mensagem: (e as Error).message.slice(0, 500) });
@@ -351,7 +357,7 @@ export async function enviarLink(linhaId: string, valorConfirmado: number, quem:
     });
     const url = typeof fatura.hosted_invoice_url === "string" ? fatura.hosted_invoice_url : null;
     await atualizarTentativa(t.id, { status: "link_enviado", stripe_invoice_id: String(fatura.id), link_url: url });
-    await marcarLinha(prep.unidade, prep.reservationId, "link_enviado", quem);
+    await marcarLinha(prep.unidade, prep.reservationId, "link_enviado", quem, modo);
     return { modo, url, mensagem: `Link de ${brl(saldo)} enviado para ${prep.emailDestino}.` };
   } catch (e) {
     await atualizarTentativa(t.id, { status: "erro", mensagem: (e as Error).message.slice(0, 500) });
@@ -455,6 +461,6 @@ export async function linkPago(unidade: Unidade, fatura: Obj): Promise<string> {
     nota: notaPagamentoOk(nome),
     modo: t.modo as ModoStripe,
   });
-  await marcarLinha(unidade, String(t.reservation_id), "sim", { userId: String(t.usuario_id ?? ""), nome });
+  await marcarLinha(unidade, String(t.reservation_id), "sim", { userId: String(t.usuario_id ?? ""), nome }, t.modo as ModoStripe);
   return "lançado";
 }
