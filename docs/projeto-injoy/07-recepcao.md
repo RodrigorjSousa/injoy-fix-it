@@ -120,8 +120,9 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
   e vários cartões. Regras em `src/lib/reservas/stripe-regras.ts` (testes `stripe-regras.test.ts`):
   1. saldo e status relidos no Cloudbeds NA HORA (`getReservation` v1.3); cobra só esse saldo, e se mudou pede nova
      confirmação; só `confirmed`/`not_confirmed`;
-  2. Cliente achado pelo e-mail da reserva e, se não achar, pelo NOME do hóspede (busca do Stripe `name~"..."`; o
-     e-mail do Cliente pode ser outro, ex.: Booking). Só é escolhido se a descrição tem EXATAMENTE o nº da reserva
+  2. Cliente achado pelo e-mail da reserva; se não achar, pelo **nº da reserva** (o mesmo no Cloudbeds e no Stripe: a
+     busca do Stripe não filtra descrição, então o app lista os Clientes criados desde a data da reserva − 2 dias, até
+     4.000, e confere a descrição); se ainda não achar, pelo NOME do hóspede (`name~"..."`). Só é escolhido se a descrição tem EXATAMENTE o nº da reserva
      (nenhum ou mais de um = não cobra). A mensagem diz o que foi procurado e quantos Clientes apareceram;
   3. cartão do Cliente que também está na reserva do Cloudbeds (`cardsOnFile`: bandeira + final) e não venceu; com mais
      de um, a recepcionista escolhe; no modo de teste o cartão de teste fica liberado com aviso;

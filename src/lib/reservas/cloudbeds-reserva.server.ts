@@ -24,6 +24,8 @@ export type ReservaAgora = {
   status: string;
   balance: number;
   hospede: string;
+  /** Data em que a reserva foi feita (AAAA-MM-DD), para procurar o Cliente no Stripe a partir dela. */
+  dataReserva: string | null;
   /** Nome do hóspede principal e dos acompanhantes (para achar o Cliente no Stripe pelo nome). */
   nomes: string[];
   emails: string[];
@@ -50,6 +52,7 @@ export async function lerReservaAgora(unidade: Unidade, reservationId: string): 
   }
   return {
     status: String(d.status ?? "").toLowerCase(),
+    dataReserva: /^\d{4}-\d{2}-\d{2}/.test(String(d.dateCreated ?? "")) ? String(d.dateCreated).slice(0, 10) : null,
     balance: Math.round(Number(d.balance ?? 0) * 100) / 100,
     hospede: String(d.guestName ?? "").trim(),
     nomes: [...new Set(nomes.map((n) => n.replace(/\s+/g, " ").trim()).filter(Boolean))],
