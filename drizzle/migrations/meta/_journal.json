@@ -449,6 +449,13 @@
       "when": 1792175950719,
       "tag": "0063_reservas_novidades",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1792183244533,
+      "tag": "0064_0064_reservas_cobranca_stripe",
+      "breakpoints": true
     }
   ]
 }

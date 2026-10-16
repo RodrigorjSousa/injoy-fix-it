@@ -3331,6 +3331,78 @@ export type Database = {
         }
         Relationships: []
       }
+      reservas_cobranca_pagamentos: {
+        Row: {
+          atualizado_em: string
+          cartao: string | null
+          cloudbeds_nota: string | null
+          cloudbeds_pagamento: string | null
+          criado_em: string
+          email_destino: string | null
+          id: string
+          link_url: string | null
+          mensagem: string | null
+          modo: string
+          reservation_id: string
+          status: string
+          stripe_customer_id: string | null
+          stripe_invoice_id: string | null
+          stripe_payment_intent_id: string | null
+          stripe_payment_method_id: string | null
+          tipo: string
+          unidade: string
+          usuario_id: string | null
+          usuario_nome: string | null
+          valor: number | null
+        }
+        Insert: {
+          atualizado_em?: string
+          cartao?: string | null
+          cloudbeds_nota?: string | null
+          cloudbeds_pagamento?: string | null
+          criado_em?: string
+          email_destino?: string | null
+          id?: string
+          link_url?: string | null
+          mensagem?: string | null
+          modo?: string
+          reservation_id: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          tipo: string
+          unidade: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor?: number | null
+        }
+        Update: {
+          atualizado_em?: string
+          cartao?: string | null
+          cloudbeds_nota?: string | null
+          cloudbeds_pagamento?: string | null
+          criado_em?: string
+          email_destino?: string | null
+          id?: string
+          link_url?: string | null
+          mensagem?: string | null
+          modo?: string
+          reservation_id?: string
+          status?: string
+          stripe_customer_id?: string | null
+          stripe_invoice_id?: string | null
+          stripe_payment_intent_id?: string | null
+          stripe_payment_method_id?: string | null
+          tipo?: string
+          unidade?: string
+          usuario_id?: string | null
+          usuario_nome?: string | null
+          valor?: number | null
+        }
+        Relationships: []
+      }
       reservas_cobranca_sync: {
         Row: {
           consultadas: number | null
