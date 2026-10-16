@@ -442,6 +442,13 @@
       "when": 1792170789940,
       "tag": "0062_reservas_cobranca_agendamento",
       "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1792175950719,
+      "tag": "0063_reservas_novidades",
+      "breakpoints": true
     }
   ]
 }
