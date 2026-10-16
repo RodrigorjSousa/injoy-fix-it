@@ -73,3 +73,12 @@ export const cancelarLinkFn = createServerFn({ method: "POST" })
     const { cancelarLink } = await import("./cobranca-stripe.server");
     return cancelarLink(data.linhaId, quem);
   });
+
+export const verificarLinkFn = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((i) => z.object({ linhaId: id }).parse(i))
+  .handler(async ({ data, context }) => {
+    await quemPode(context as unknown as Ctx);
+    const { verificarLink } = await import("./cobranca-stripe.server");
+    return verificarLink(data.linhaId);
+  });

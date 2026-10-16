@@ -280,6 +280,11 @@ export async function avisarNovas(): Promise<number> {
 
 export async function sincronizarCobrancas(unidades: Unidade[] = UNIDADES) {
   const resultados: ResultadoUnidade[] = [];
+  // Antes de recalcular a lista: links já pagos no Stripe entram no Cloudbeds (caso o aviso do Stripe falhe).
+  const { conferirLinksEnviados } = await import("./cobranca-stripe.server");
+  for (const u of unidades) {
+    await conferirLinksEnviados(u).catch((e) => console.error(`[reservas-cobranca] links ${u}:`, (e as Error).message));
+  }
   for (const u of unidades) resultados.push(await sincronizarUnidade(u));
   const avisadas = await avisarNovas().catch(() => 0);
   return { resultados, avisadas };
