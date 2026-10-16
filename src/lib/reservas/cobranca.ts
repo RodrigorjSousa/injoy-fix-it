@@ -28,6 +28,19 @@ export const MOTIVO_CURTO: Record<MotivoCobranca, string> = {
   standard: "Standard",
 };
 
+/**
+ * Cor de cada modalidade (a mesma dos cartões da tela e do botão "Reservas" quando pisca).
+ * NR check-in próximo = laranja, NR 8º dia = âmbar, Standard = azul.
+ */
+export const COR_MOTIVO: Record<MotivoCobranca, string> = {
+  nr_checkin_proximo: "#d9480f",
+  nr_8o_dia: "#b7791f",
+  standard: "#3b5bdb",
+};
+
+/** Ordem de urgência (o botão pisca nas cores das novidades, nesta ordem). */
+export const ORDEM_URGENCIA: MotivoCobranca[] = ["nr_checkin_proximo", "standard", "nr_8o_dia"];
+
 /** Opções da coluna "Cobrado?" preenchida pela recepção. */
 export const OPCOES_COBRADO = ["sim", "recusado", "link_enviado", "cancelada"] as const;
 export type Cobrado = (typeof OPCOES_COBRADO)[number];

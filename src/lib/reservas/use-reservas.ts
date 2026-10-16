@@ -215,6 +215,62 @@ export function useConferenciaCobranca(unidade: Unidade, ativo: boolean) {
   });
 }
 
+// ------------------------------------------------------------------ botão "Reservas" piscando
+
+export type NovidadesReservas = Record<MotivoCobranca, number>;
+const SEM_NOVIDADES: NovidadesReservas = { nr_checkin_proximo: 0, nr_8o_dia: 0, standard: 0 };
+
+/**
+ * Reservas que entraram na lista desde a última vez que a pessoa abriu a tela (as duas unidades),
+ * por modalidade. Atualiza sozinho quando a lista muda e a cada minuto.
+ */
+export function useNovidadesReservas(ativo: boolean) {
+  const qc = useQueryClient();
+  useEffect(() => {
+    if (!ativo) return;
+    const ch = supabase
+      .channel(`reservas-novidades-${Math.random().toString(36).slice(2)}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reservas_cobranca" }, () =>
+        void qc.invalidateQueries({ queryKey: ["reservas_novidades"] }),
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(ch);
+    };
+  }, [qc, ativo]);
+  return useQuery({
+    queryKey: ["reservas_novidades"],
+    enabled: ativo,
+    queryFn: async (): Promise<NovidadesReservas> => {
+      const { data, error } = await rpc("reservas_novidades");
+      if (error) throw new Error(error.message);
+      const d = (data ?? {}) as Partial<NovidadesReservas>;
+      return {
+        nr_checkin_proximo: Number(d.nr_checkin_proximo ?? 0),
+        nr_8o_dia: Number(d.nr_8o_dia ?? 0),
+        standard: Number(d.standard ?? 0),
+      };
+    },
+    refetchInterval: 60_000,
+    retry: 1,
+  });
+}
+
+/** Abriu a tela Reservas: o botão para de piscar (em todos os aparelhos da pessoa). */
+export function useMarcarReservasVistas() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async () => {
+      const { error } = await rpc("reservas_marcar_vistas");
+      if (error) throw new Error(error.message);
+    },
+    onMutate: () => {
+      qc.setQueryData(["reservas_novidades"], SEM_NOVIDADES);
+    },
+    onSettled: () => void qc.invalidateQueries({ queryKey: ["reservas_novidades"] }),
+  });
+}
+
 export function useAcessosReservas(ativo: boolean) {
   return useQuery({
     queryKey: ["reservas_acessos"],

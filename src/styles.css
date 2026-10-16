@@ -155,3 +155,26 @@
 .animate-pulse-attention {
   animation: pulse-attention 1.2s ease-in-out infinite;
 }
+
+/* Botão "Reservas" piscando na cor da modalidade (a cor vem em --pisca-cor).
+   Sem 0%/100%: o começo e o fim usam a aparência normal do botão, então ele de fato apaga e acende. */
+@keyframes pisca-reservas {
+  35%, 75% {
+    background-color: var(--pisca-cor);
+    color: #fff;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--pisca-cor) 35%, transparent);
+  }
+}
+
+.animate-pisca-reservas {
+  animation: pisca-reservas 1.1s ease-in-out infinite;
+}
+
+/* Quem pede menos movimento no aparelho vê o botão aceso na cor, sem piscar. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-pisca-reservas {
+    animation: none;
+    background-color: var(--pisca-cor);
+    color: #fff;
+  }
+}

@@ -1,5 +1,5 @@
 // Tela Reservas (cobrança): lista a cobrar para todos que têm acesso; Histórico, Conferência e Quem vê para o gestor.
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { AlertTriangle, CreditCard, RefreshCw, Search } from "lucide-react";
 import { toast } from "sonner";
 import { useUnidade } from "@/lib/unidade-context";
@@ -12,6 +12,8 @@ import {
   useAtualizarAgora,
   useListaCobranca,
   useMarcarCobranca,
+  useMarcarReservasVistas,
+  useNovidadesReservas,
   usePermissaoReservas,
   useSyncCobranca,
   type LinhaCobranca,
@@ -43,6 +45,23 @@ export function ReservasTela() {
   const perm = usePermissaoReservas();
   const gestor = perm.data?.gestor === true;
   const [aba, setAba] = useState<Aba>("lista");
+
+  // Abriu a tela: o botão "Reservas" do menu para de piscar. Se entrar reserva nova com a tela
+  // aberta, marca de novo (a pessoa já está vendo a lista).
+  const ve = perm.data?.ve === true;
+  const novidades = useNovidadesReservas(ve);
+  const totalNovas = novidades.data
+    ? novidades.data.nr_checkin_proximo + novidades.data.nr_8o_dia + novidades.data.standard
+    : 0;
+  const marcarVistas = useMarcarReservasVistas();
+  const marcouAoAbrir = useRef(false);
+  useEffect(() => {
+    if (!ve) return;
+    if (marcouAoAbrir.current && totalNovas === 0) return;
+    marcouAoAbrir.current = true;
+    marcarVistas.mutate();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ve, totalNovas]);
 
   return (
     <div className="mx-auto max-w-5xl space-y-5 pb-16">

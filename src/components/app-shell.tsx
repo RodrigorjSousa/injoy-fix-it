@@ -9,6 +9,7 @@ import { useMe } from "@/lib/store";
 import { usePermissaoBonificacao } from "@/lib/bonificacao";
 import { usePermissaoPrevisao } from "@/lib/previsao-reforco";
 import { usePermissaoReservas } from "@/lib/reservas/use-reservas";
+import { ContadorReservas, usePiscaReservas } from "@/components/reservas/pisca-reservas";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
 import { BotaoVoltar } from "@/components/botao-voltar";
 import { PushNotificationsButton } from "@/components/push-notifications-button";
@@ -166,6 +167,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { data: permBonif } = usePermissaoBonificacao();
   const { data: permPrevisao } = usePermissaoPrevisao();
   const { data: permReservas } = usePermissaoReservas();
+  // Reserva nova na lista de cobrança: o botão Reservas pisca na cor da modalidade até ser aberto.
+  const pisca = usePiscaReservas();
+  const piscaEm = (to?: string) => to === "/reservas" && pisca.ativo;
   const navBase: NavItem[] = (() => {
     // Gestor/admin: a lateral fica só com ÁREA DO GESTOR › INÍCIO DA ÁREA. As demais telas
     // (inclusive Recepção, Camareiras e Manutenção) abrem pelos cards de Atalhos do Início da Área.
@@ -241,6 +245,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   const mobileNav = mobileNavItems.slice(0, 4);
   const mobileMoreNav = mobileNavItems.slice(4);
+  // Reservas caiu dentro do "Mais": quem pisca é o botão Mais.
+  const reservasNoMais = pisca.ativo && mobileMoreNav.some((c) => c.to === "/reservas");
 
   // Unidade ativa vinda do contexto global
   const { unidade, setUnidade, unidades: UNIDADES } = useUnidade();
@@ -348,19 +354,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               );
             }
             const active = isActive(item.to!, item.exact);
+            const piscando = piscaEm(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to!}
+                title={piscando ? pisca.descricao : undefined}
+                style={piscando ? pisca.style : undefined}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-colors",
                   active
                     ? "bg-sidebar-primary text-sidebar-primary-foreground shadow-sm"
                     : "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground text-sidebar-foreground/80",
+                  piscando && cn(pisca.className, "font-bold"),
                 )}
               >
                 <Icon className="h-4 w-4 shrink-0" />
                 <span className="truncate">{item.label}</span>
+                {piscando && (
+                  <>
+                    <ContadorReservas pisca={pisca} className="ml-auto" />
+                    <span className="sr-only">{pisca.descricao}</span>
+                  </>
+                )}
               </Link>
             );
           })}
@@ -441,17 +457,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {mobileNav.map((item) => {
             const active = isActive(item.to, item.exact);
             const Icon = item.icon;
+            const piscando = piscaEm(item.to);
             return (
               <Link
                 key={item.to}
                 to={item.to}
+                style={piscando ? pisca.style : undefined}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                  "relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
                   active ? "text-primary" : "text-muted-foreground",
+                  piscando && cn(pisca.className, "rounded-xl font-bold"),
                 )}
               >
                 <Icon className={cn("h-5 w-5", active && "scale-110")} />
                 <span className="truncate max-w-[72px]">{item.label}</span>
+                {piscando && (
+                  <>
+                    <ContadorReservas pisca={pisca} className="absolute right-2 top-1" />
+                    <span className="sr-only">{pisca.descricao}</span>
+                  </>
+                )}
               </Link>
             );
           })}
@@ -459,14 +484,17 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <button
               type="button"
               onClick={() => setMaisOpen(true)}
+              style={reservasNoMais ? pisca.style : undefined}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
+                "relative flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition-colors",
                 maisOpen || moreActive ? "text-primary" : "text-muted-foreground",
+                reservasNoMais && cn(pisca.className, "rounded-xl font-bold"),
               )}
-              aria-label="Mais opções"
+              aria-label={reservasNoMais ? `Mais opções. ${pisca.descricao}` : "Mais opções"}
             >
               <MoreHorizontal className="h-5 w-5" />
               <span className="truncate max-w-[72px]">Mais</span>
+              {reservasNoMais && <ContadorReservas pisca={pisca} className="absolute right-2 top-1" />}
             </button>
           )}
         </div>
@@ -489,20 +517,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {mobileMoreNav.map((c) => {
                 const active = isActive(c.to, c.exact);
                 const CIcon = c.icon;
+                const piscando = piscaEm(c.to);
                 return (
                   <Link
                     key={c.to}
                     to={c.to}
                     onClick={() => setMaisOpen(false)}
+                    style={piscando ? pisca.style : undefined}
                     className={cn(
                       "flex items-center gap-3 rounded-xl px-3 py-3 text-sm font-semibold transition-colors",
                       active
                         ? "bg-primary text-primary-foreground"
                         : "bg-muted/40 hover:bg-muted text-foreground",
+                      piscando && pisca.className,
                     )}
                   >
                     <CIcon className="h-4 w-4 shrink-0" />
                     <span className="truncate">{c.label}</span>
+                    {piscando && (
+                      <>
+                        <ContadorReservas pisca={pisca} className="ml-auto" />
+                        <span className="sr-only">{pisca.descricao}</span>
+                      </>
+                    )}
                   </Link>
                 );
               })}

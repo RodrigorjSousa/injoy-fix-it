@@ -101,6 +101,17 @@ antes do check-in até o dia. Canais que recebem do hóspede: lista `CANAIS_QUE_
   entrar de noite avisa às 7h); Conferência e Histórico só para o gestor.
 - Se o Cloudbeds falhar, a lista da unidade não é mexida e a tela mostra a falha com a mensagem real.
 
+**Botão "Reservas" piscando (migração 0063)**: quando entra reserva nova na lista (qualquer unidade), o botão
+Reservas do menu pisca na cor da modalidade até a pessoa abrir a tela: NR check-in próximo = laranja `#d9480f`,
+Standard = azul `#3b5bdb`, NR 8º dia = âmbar `#b7791f` (`COR_MOTIVO` em `cobranca.ts`, as mesmas dos cartões; um teste
+garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgência, com a quantidade ao lado.
+- Pisca na lateral (computador), na barra de baixo do celular (ou no "Mais", se Reservas estiver lá dentro) e no
+  atalho da Área do Gestor. Quem pede menos movimento no aparelho vê o botão aceso, sem piscar.
+- "Visto" fica no banco por pessoa (`reservas_vistas`), então vale em todos os aparelhos. `reservas_novidades()` conta
+  as linhas ativas com `entrou_em` depois do último `visto_em`; abrir a tela chama `reservas_marcar_vistas()`
+  (também se entrar reserva nova com a tela aberta). Quem não vê as Reservas recebe tudo zero.
+- Peças: `src/components/reservas/pisca-reservas.tsx`, `.animate-pisca-reservas` em `src/styles.css`.
+
 **Limites conhecidos**: estadia Standard com saída a mais de 90 dias não é achada pela 2ª busca; NR feita há mais
 de 30 dias e com saída a mais de 90 dias só continua se já estava na lista (consulta pelo número). A chave do
 Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva).
@@ -152,6 +163,9 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 16/10/2026: botão "Reservas" pisca na cor da modalidade até ser aberto (branch `feat/reservas-piscar`, migração
+  0063). Falta: merge, aplicar 0063 no Lovable, Publicar → Atualizar. Na primeira vez, pisca para todos com as
+  reservas que já estão na lista, até cada um abrir a tela.
 - 16/10/2026: tela **Reservas** (cobrança NR/Standard) feita na branch `feat/reservas-cobranca` (migrações 0061 e
   0062). Falta: merge, aplicar 0061 e depois 0062 no Lovable, Publicar → Atualizar, e o gestor liberar as
   recepcionistas em Reservas › Quem vê. Os 4 pontos de decisão acima continuam em aberto.
