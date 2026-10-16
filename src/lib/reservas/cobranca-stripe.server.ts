@@ -512,3 +512,51 @@ export async function linkPago(unidade: Unidade, fatura: Obj): Promise<string> {
   await marcarLinha(unidade, String(t.reservation_id), "sim", { userId: String(t.usuario_id ?? ""), nome }, t.modo as ModoStripe);
   return "lançado";
 }
+
+// ------------------------------------------------------------------ conferir links sem depender do webhook
+
+/**
+ * Confere no Stripe os links enviados que ainda aguardam pagamento. Pago → mesmo caminho do webhook
+ * (lança no Cloudbeds + nota "Pagamento OK"); anulado no Stripe → "link_cancelado".
+ * Roda na atualização de hora em hora e no botão "Verificar pagamento". Seguro repetir: linkPago só
+ * processa uma vez por fatura.
+ */
+export async function conferirLinksEnviados(unidade: Unidade, reservationId?: string): Promise<{ pagos: number; cancelados: number; abertos: number }> {
+  const c = await db();
+  let q = c
+    .from("reservas_cobranca_pagamentos")
+    .select("id, reservation_id, stripe_invoice_id")
+    .eq("unidade", unidade)
+    .eq("status", "link_enviado")
+    .not("stripe_invoice_id", "is", null)
+    .gte("criado_em", new Date(Date.now() - 45 * 86_400_000).toISOString());
+  if (reservationId) q = q.eq("reservation_id", reservationId);
+  const { data, error } = await q.limit(200);
+  if (error) throw new Error(error.message);
+  const { lerFatura } = await import("./stripe.server");
+  const r = { pagos: 0, cancelados: 0, abertos: 0 };
+  for (const t of (data ?? []) as { id: string; reservation_id: string; stripe_invoice_id: string }[]) {
+    const fatura = await lerFatura(unidade, t.stripe_invoice_id);
+    const status = String(fatura.status ?? "");
+    if (status === "paid") {
+      if ((await linkPago(unidade, fatura)) === "lançado") r.pagos++;
+    } else if (status === "void" || status === "uncollectible") {
+      await c
+        .from("reservas_cobranca_pagamentos")
+        .update({ status: "link_cancelado", mensagem: "Link cancelado no Stripe.", atualizado_em: new Date().toISOString() })
+        .eq("id", t.id)
+        .eq("status", "link_enviado");
+      r.cancelados++;
+    } else r.abertos++;
+  }
+  return r;
+}
+
+/** Botão "Verificar pagamento" do cartão da reserva. */
+export async function verificarLink(linhaId: string): Promise<{ mensagem: string; pago: boolean }> {
+  const linha = await linhaDaLista(linhaId);
+  const r = await conferirLinksEnviados(linha.unidade, linha.reservation_id);
+  if (r.pagos) return { pago: true, mensagem: "O hóspede pagou pelo link. Pagamento e nota lançados no Cloudbeds." };
+  if (r.cancelados) return { pago: false, mensagem: "O link foi cancelado no Stripe." };
+  return { pago: false, mensagem: "O link ainda não foi pago." };
+}

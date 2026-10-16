@@ -138,6 +138,10 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
 - Link aberto (migração 0065, status `link_cancelado`): "Cobrar agora" ANULA o link aberto da reserva antes de cobrar
   (para o hóspede não pagar duas vezes); se o Stripe não deixar anular (ex.: acabou de ser pago), não cobra. O cartão da
   reserva tem "Cancelar link" (volta o "Cobrado?" para sem marcação). Chave restrita precisa de Invoices gravação (já pedida).
+- Link pago sem depender do webhook: a atualização de hora em hora (antes de recalcular a lista) e o botão
+  "Verificar pagamento" do cartão leem no Stripe as faturas dos links enviados; paga → mesmo caminho do webhook
+  (`linkPago`, processa uma vez só); anulada no Stripe → `link_cancelado`. Caso real 16/10: destino do webhook do modo
+  real criado depois do pagamento, 0 entregas.
 - Pgto. no check-in: nota **"Pagamento no check in // nome logado"** na reserva; fica na lista (roxo) até o saldo zerar.
 - Só o servidor grava Pago / Link enviado / Pgto. no check-in (a RPC `reservas_cobranca_marcar` recusa à mão);
   reserva paga não troca de marcação.
@@ -203,6 +207,8 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 16/10/2026: modo real em Botafogo. "Cobrar agora" real OK (reserva da Rita, R$ 2,00, lançou no Cloudbeds). Link real
+  pago não entrou (webhook do modo real sem entregas) → branch `fix/reservas-conferir-links` confere os links sozinho.
 - 16/10/2026: testes no modo de teste do Stripe (Botafogo): cobrança aprovada OK e cartão recusado OK (4000 0000 0000 0341).
   O cartão que sempre pede autenticação não pôde ser salvo pelo painel. Branch `fix/reservas-link-aberto` (0065): cancela o
   link aberto antes de cobrar + botão "Cancelar link". Falta: chave real, webhook, Ipanema.

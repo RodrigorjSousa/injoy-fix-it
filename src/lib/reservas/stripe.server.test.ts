@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anularFatura, assinaturaValida, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
+import { anularFatura, assinaturaValida, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
 
 type Chamada = { url: string; init: RequestInit };
 let chamadas: Chamada[] = [];
@@ -90,6 +90,17 @@ describe("link (fatura)", () => {
     // cada passo com a sua chave de idempotência
     const chaves = chamadas.map((c) => (c.init.headers as Record<string, string>)["Idempotency-Key"]);
     expect(new Set(chaves).size).toBe(4);
+  });
+});
+
+describe("conferir link", () => {
+  it("lê a fatura pelo GET, sem idempotência nem corpo", async () => {
+    respostas.push({ status: 200, body: { id: "in_7", status: "paid", amount_paid: 200 } });
+    const f = await lerFatura("Botafogo", "in_7");
+    expect(f.status).toBe("paid");
+    expect(chamadas[0].url).toBe("https://api.stripe.com/v1/invoices/in_7");
+    expect(chamadas[0].init.method).toBe("GET");
+    expect(chamadas[0].init.body).toBeUndefined();
   });
 });
 

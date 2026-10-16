@@ -12,6 +12,7 @@ import {
   pagamentoNoCheckinFn,
   prepararCobranca,
   relancarNoCloudbedsFn,
+  verificarLinkFn,
 } from "./cobranca-stripe.functions";
 import type { Cobrado, Exclusao, MotivoCobranca, MotivoSaida } from "./cobranca";
 
@@ -308,6 +309,7 @@ export const usePrepararCobranca = () => {
 export const useCobrarAgora = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(cobrarAgoraFn));
 export const useEnviarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(enviarLinkFn));
 export const usePagamentoNoCheckin = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(pagamentoNoCheckinFn));
+export const useVerificarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(verificarLinkFn));
 export const useCancelarLink = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(cancelarLinkFn));
 export const useRelancarNoCloudbeds = (unidade: Unidade) => useAcaoCobranca(unidade, useServerFn(relancarNoCloudbedsFn));
 

@@ -14,7 +14,7 @@ import {
   type Cobrado,
   type MotivoCobranca,
 } from "@/lib/reservas/cobranca";
-import { useCancelarLink, useRelancarNoCloudbeds, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
+import { useCancelarLink, useRelancarNoCloudbeds, useVerificarLink, type LinhaCobranca, type TentativaCobranca } from "@/lib/reservas/use-reservas";
 import { CheckinDialog, CobrarAgoraDialog, EnviarLinkDialog } from "./acoes-cobranca";
 
 export const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -87,6 +87,7 @@ function UltimaAcao({ t, linha }: { t: TentativaCobranca; linha: LinhaCobranca }
   const unidade = linha.unidade;
   const relancar = useRelancarNoCloudbeds(unidade);
   const cancelar = useCancelarLink(unidade);
+  const verificar = useVerificarLink(unidade);
   const valor = t.valor ? brl(t.valor) : "";
   const quem = t.usuario_nome ? ` por ${t.usuario_nome}` : "";
   const teste = t.modo === "teste" ? " [teste]" : "";
@@ -155,6 +156,24 @@ function UltimaAcao({ t, linha }: { t: TentativaCobranca; linha: LinhaCobranca }
           className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#0f8b8d] hover:underline"
         >
           <Copy className="h-3.5 w-3.5" /> Copiar link
+        </button>
+      )}
+      {t.tipo === "link" && t.status === "link_enviado" && (
+        <button
+          type="button"
+          disabled={verificar.isPending}
+          onClick={() =>
+            verificar.mutate(
+              { linhaId: linha.id },
+              {
+                onSuccess: (r) => (r.pago ? toast.success(r.mensagem) : toast.info(r.mensagem)),
+                onError: (e) => toast.error(e instanceof Error ? e.message : "Não foi possível verificar."),
+              },
+            )
+          }
+          className="inline-flex shrink-0 items-center gap-1 font-semibold text-[#0e2a30] hover:underline disabled:opacity-60"
+        >
+          {verificar.isPending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <RotateCcw className="h-3.5 w-3.5" />} Verificar pagamento
         </button>
       )}
       {t.tipo === "link" && t.status === "link_enviado" && (
