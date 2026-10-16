@@ -3355,6 +3355,21 @@ export type Database = {
         }
         Relationships: []
       }
+      reservas_vistas: {
+        Row: {
+          user_id: string
+          visto_em: string
+        }
+        Insert: {
+          user_id: string
+          visto_em?: string
+        }
+        Update: {
+          user_id?: string
+          visto_em?: string
+        }
+        Relationships: []
+      }
       reservation_payments: {
         Row: {
           amount: number
@@ -4761,6 +4776,8 @@ export type Database = {
         Returns: undefined
       }
       reservas_destinatarios: { Args: never; Returns: string[] }
+      reservas_marcar_vistas: { Args: never; Returns: undefined }
+      reservas_novidades: { Args: never; Returns: Json }
       resolve_room_inspection_issue: {
         Args: { _issue_id: string }
         Returns: undefined
