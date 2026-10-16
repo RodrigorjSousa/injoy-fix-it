@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buscarPermissaoBonificacao } from "@/lib/bonificacao";
 import { buscarPermissaoPrevisao } from "@/lib/previsao-reforco";
+import { buscarPermissaoReservas } from "@/lib/reservas/use-reservas";
 
 export type TelaGestorCompartilhada =
   | "almoxarifado"
@@ -11,7 +12,8 @@ export type TelaGestorCompartilhada =
   | "bonificacao"
   | "check-in-digital"
   | "preventiva"
-  | "previsao-carga";
+  | "previsao-carga"
+  | "reservas";
 
 type Role = "admin" | "gestor" | "funcionario" | "recepcao" | "camareira";
 
@@ -53,6 +55,18 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
     }
     if (pode) return { gestor: false, userId: auth.user.id };
     negarAcesso("Seu login não está liberado na Previsão de Carga. Peça ao gestor para liberar em Equipe.");
+  }
+
+  // Reservas (cobrança): quem decide é o banco (gestor/admin ou quem o gestor liberou em "Quem vê" ou Equipe).
+  if (!options.somenteGestor && options.tela === "reservas") {
+    let perm = { ve: false, gestor: false };
+    try {
+      perm = await buscarPermissaoReservas();
+    } catch (e) {
+      negarAcesso(e instanceof Error ? e.message : "Não foi possível verificar seu acesso.");
+    }
+    if (perm.ve) return { gestor: perm.gestor, userId: auth.user.id };
+    negarAcesso("Seu login não está liberado nas Reservas. Peça ao gestor para liberar em Reservas › Quem vê.");
   }
 
   const [{ data: roleRows, error: rolesError }, { data: funcionario, error: funcionarioError }] =

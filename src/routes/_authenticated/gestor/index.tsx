@@ -27,6 +27,7 @@ import {
   Cog,
   LayoutGrid,
   MessageSquare,
+  CreditCard,
 } from "lucide-react";
 import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
 import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
@@ -70,6 +71,7 @@ type HubPath =
   | "/gestor/totem"
   | "/gestor/tarefas-extras"
   | "/recepcao"
+  | "/reservas"
   | "/camareiras"
   | "/manutencao"
   | "/servicos"
@@ -84,6 +86,7 @@ const sections: { title: string; items: HubItem[] }[] = [
     title: "Telas da equipe",
     items: [
       { label: "Recepção", description: "Tela da recepção: chegadas, saídas e caixa", to: "/recepcao", icon: ConciergeBell, tone: "bg-sky-700" },
+      { label: "Reservas", description: "Reservas a cobrar: NR e Standard", to: "/reservas", icon: CreditCard, tone: "bg-[#0e2a30]" },
       { label: "Camareiras", description: "Quartos, serviços e lavanderia das camareiras", to: "/camareiras", icon: BedDouble, tone: "bg-pink-600" },
       { label: "Manutenção", description: "Tela do técnico de manutenção", to: "/manutencao", icon: Cog, tone: "bg-teal-700" },
       { label: "Preventiva AC", description: "Limpezas e vencimentos", to: "/preventiva", icon: Snowflake, tone: "bg-cyan-600" },

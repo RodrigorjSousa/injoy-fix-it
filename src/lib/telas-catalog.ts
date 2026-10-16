@@ -9,6 +9,7 @@ import {
   ClipboardList,
   Cog,
   ConciergeBell,
+  CreditCard,
   Gauge,
   GlassWater,
   LayoutDashboard,
@@ -56,6 +57,7 @@ const LABELS: Record<string, string> = {
   "relatorio-operacoes": "Relatório de Operações",
   "relatorios-turno": "Relatórios de Turno",
   "previsao-carga": "Previsão de Carga",
+  reservas: "Reservas",
 };
 
 // Ícones por slug (fallback: LayoutGrid)
@@ -82,6 +84,7 @@ const ICONS: Record<string, IconType> = {
   "relatorio-operacoes": ClipboardList,
   "relatorios-turno": ClipboardList,
   "previsao-carga": Gauge,
+  reservas: CreditCard,
 };
 
 function humanize(slug: string): string {

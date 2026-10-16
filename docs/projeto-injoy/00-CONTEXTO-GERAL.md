@@ -1,7 +1,7 @@
 # PROJETO INJOY — Contexto geral
 
 > Leia este arquivo inteiro antes de qualquer trabalho. Depois leia o arquivo do assunto
-> (01 a 05). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
+> (01 a 07). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
 
 ## O negócio
 - **IN.JOY Hostel Design Pousada** (INJOY HOTÉIS — injoyhoteis.com), Rio de Janeiro.
@@ -138,6 +138,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   folga ou falta) é substituição (soma na capacidade, não conta como reforço). Reforço = extra sem
   `substitui_colaborador_id`. `freelancers_escalados` e "Reforço chamado" contam só reforço.
 
+- Reservas (0061 + agendamento 0062): tela `/reservas` com as reservas com saldo em aberto que a recepção deve cobrar
+  no Cloudbeds (regras NR do 8º dia e Standard 2 dias antes do check-in). Recepcionista só vê quando o gestor libera
+  (Reservas › Quem vê). Ver `07-recepcao.md`.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 
@@ -149,6 +153,7 @@ Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do ass
 4. Totem (auto check-in, check-out e avaliação) — `04-totem.md`
 5. Mercado autônomo no hall — `05-mercado-autonomo.md`
 6. Dashboard do gestor — `06-dashboard.md`
+7. Recepção — `07-recepcao.md`
 
 Pendências gerais: Fase 3 (licenças e vistorias obrigatórias: bombeiros, vigilância sanitária,
 caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começou; limpeza automática

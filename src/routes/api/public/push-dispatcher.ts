@@ -14,7 +14,8 @@ type EventKind =
   | "previsao_reforco_resposta"
   | "ponto_pendente"
   | "ponto_atestado"
-  | "ponto_atestado_resposta";
+  | "ponto_atestado_resposta"
+  | "reservas_cobranca";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
@@ -114,6 +115,16 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         url: "/ponto",
         tag: `atestado-resposta-${d.id}`,
       };
+    case "reservas_cobranca": {
+      const qtd = Number(d.quantidade ?? 0);
+      const total = Number(d.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      return {
+        title: qtd === 1 ? "💳 Reserva para cobrar" : `💳 ${qtd} reservas para cobrar`,
+        body: `${qtd === 1 && d.hospede ? `${d.hospede} · ` : ""}${d.unidades ?? ""} · ${total} em aberto. Toque para ver a lista.`,
+        url: "/reservas",
+        tag: `reservas-cobranca-${d.data ?? "hoje"}`,
+      };
+    }
     case "escala_publicada": {
       const date = String(d.competencia ?? "");
       const [year, month] = date.split("-");
@@ -186,6 +197,14 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       return byRoles(["admin", "gestor"]);
     case "previsao_reforco":
       return byRoles(["admin", "gestor"]);
+    case "reservas_cobranca": {
+      // Quem vê a tela Reservas (gestor/admin e liberados) — regra única no banco.
+      const { data } = await supabaseAdmin.rpc("reservas_destinatarios" as never);
+      const lista = Array.isArray(data) ? (data as unknown[]) : [];
+      return lista
+        .map((x) => (typeof x === "string" ? x : (x as Record<string, unknown>)?.reservas_destinatarios))
+        .filter((id): id is string => typeof id === "string");
+    }
     case "previsao_reforco_resposta":
     case "ponto_atestado_resposta":
     case "escala_alterada":
