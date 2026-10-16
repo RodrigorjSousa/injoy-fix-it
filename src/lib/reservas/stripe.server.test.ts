@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anularFatura, assinaturaValida, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
+import { anularFatura, assinaturaValida, clientesPelaReserva, clientesPorNome, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
 
 type Chamada = { url: string; init: RequestInit };
 let chamadas: Chamada[] = [];
@@ -90,6 +90,46 @@ describe("link (fatura)", () => {
     // cada passo com a sua chave de idempotência
     const chaves = chamadas.map((c) => (c.init.headers as Record<string, string>)["Idempotency-Key"]);
     expect(new Set(chaves).size).toBe(4);
+  });
+});
+
+describe("achar cliente pelo nº da reserva", () => {
+  it("lista os clientes criados desde a data e filtra pela descrição, página por página", async () => {
+    respostas.push(
+      { status: 200, body: { has_more: true, data: [{ id: "cus_1", description: "Injoy - Reservas: 111" }, { id: "cus_2", description: null }] } },
+      { status: 200, body: { has_more: false, data: [{ id: "cus_3", description: "Injoy Suítes & Aparts Botafogo - Reservas: 9996102405704" }] } },
+    );
+    const r = await clientesPelaReserva("Botafogo", "9996102405704", 1_760_000_000);
+    expect(r.clientes.map((c) => c.id)).toEqual(["cus_3"]);
+    expect(r.vistos).toBe(3);
+    expect(r.completo).toBe(true);
+    const u1 = new URL(chamadas[0].url);
+    expect(u1.pathname).toBe("/v1/customers");
+    expect(u1.searchParams.get("created[gte]")).toBe("1760000000");
+    expect(u1.searchParams.get("limit")).toBe("100");
+    expect(new URL(chamadas[1].url).searchParams.get("starting_after")).toBe("cus_2");
+  });
+  it("para ao achar dois (já bloqueia) e avisa busca parcial no limite de páginas", async () => {
+    respostas.push({ status: 200, body: { has_more: true, data: [{ id: "a", description: "Reservas: 9" }, { id: "b", description: "Reservas: 9" }] } });
+    const dois = await clientesPelaReserva("Botafogo", "9", 0);
+    expect(dois.clientes).toHaveLength(2);
+    expect(chamadas).toHaveLength(1);
+    chamadas = [];
+    respostas.push({ status: 200, body: { has_more: true, data: [{ id: "x", description: "" }] } });
+    const parcial = await clientesPelaReserva("Botafogo", "9", 0, 1);
+    expect(parcial.completo).toBe(false);
+  });
+});
+
+describe("achar cliente pelo nome", () => {
+  it("usa a busca do Stripe por nome, sem aspas soltas, e ignora nomes curtos", async () => {
+    respostas.push({ status: 200, body: { data: [{ id: "cus_A", description: "Injoy - Reservas: 9996102405704" }] } });
+    const r = await clientesPorNome("Botafogo", ['Thiago "Linhares"', "Al", "Thiago Linhares"]);
+    expect(r).toHaveLength(1);
+    expect(chamadas).toHaveLength(1);
+    const url = new URL(chamadas[0].url);
+    expect(url.pathname).toBe("/v1/customers/search");
+    expect(url.searchParams.get("query")).toBe('name~"Thiago Linhares"');
   });
 });
 

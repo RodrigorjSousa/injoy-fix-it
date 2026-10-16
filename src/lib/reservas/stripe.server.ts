@@ -86,6 +86,56 @@ export async function clientesPorEmail(unidade: Unidade, emails: string[]): Prom
   return todos;
 }
 
+/**
+ * Clientes cuja DESCRIÇÃO cita o nº da reserva ("... - Reservas: <nº>", como o Cloudbeds grava).
+ * A busca do Stripe não filtra por descrição, então lista os Clientes criados desde `desdeSeg`
+ * (data da reserva − 2 dias) e confere a descrição de cada um. Para de procurar ao achar 2
+ * (2 já bloqueia a cobrança) ou depois de `maxPaginas` páginas de 100.
+ */
+export async function clientesPelaReserva(
+  unidade: Unidade,
+  reservationId: string,
+  desdeSeg: number,
+  maxPaginas = 40,
+): Promise<{ clientes: Obj[]; vistos: number; completo: boolean }> {
+  const achados: Obj[] = [];
+  let vistos = 0;
+  let depois: string | undefined;
+  for (let p = 0; p < maxPaginas; p++) {
+    const json = await chamar(unidade, "GET", "/customers", {
+      limit: 100,
+      created: { gte: Math.max(0, Math.floor(desdeSeg)) },
+      ...(depois ? { starting_after: depois } : {}),
+    });
+    const pagina = lista(json);
+    vistos += pagina.length;
+    for (const c of pagina) {
+      const desc = String(c.description ?? "");
+      if (desc.includes(reservationId)) achados.push(c);
+    }
+    if (achados.length >= 2 || json.has_more !== true || !pagina.length) {
+      return { clientes: achados, vistos, completo: json.has_more !== true || achados.length >= 2 };
+    }
+    depois = String(pagina[pagina.length - 1].id);
+  }
+  return { clientes: achados, vistos, completo: false };
+}
+
+/** Texto seguro dentro de aspas na busca do Stripe. */
+const aspas = (v: string) => v.replace(/\\/g, "").replace(/"/g, "").trim();
+
+/**
+ * Clientes pelo NOME (busca do Stripe). Usado quando o e-mail do Cliente não bate com o da reserva
+ * (ex.: e-mail mascarado da Booking). A escolha final continua exigindo o nº da reserva na descrição.
+ */
+export async function clientesPorNome(unidade: Unidade, nomes: string[]): Promise<Obj[]> {
+  const todos: Obj[] = [];
+  for (const nome of [...new Set(nomes.map((n) => aspas(n)).filter((n) => n.length >= 3))]) {
+    todos.push(...lista(await chamar(unidade, "GET", "/customers/search", { query: `name~"${nome}"`, limit: 100 })));
+  }
+  return todos;
+}
+
 export async function cartoesDoCliente(unidade: Unidade, clienteId: string): Promise<Obj[]> {
   return lista(
     await chamar(unidade, "GET", `/customers/${encodeURIComponent(clienteId)}/payment_methods`, { type: "card", limit: 100 }),

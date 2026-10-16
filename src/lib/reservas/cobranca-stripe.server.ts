@@ -49,13 +49,20 @@ export async function nomeDoUsuario(userId: string, emailReserva?: string | null
   return u?.user?.email ?? emailReserva ?? "Recepção";
 }
 
-type Linha = { id: string; unidade: Unidade; reservation_id: string; hospede: string; cobrado: string | null };
+type Linha = {
+  id: string;
+  unidade: Unidade;
+  reservation_id: string;
+  hospede: string;
+  cobrado: string | null;
+  data_reserva: string | null;
+};
 
 async function linhaDaLista(linhaId: string): Promise<Linha> {
   const c = await db();
   const { data, error } = await c
     .from("reservas_cobranca")
-    .select("id, unidade, reservation_id, hospede, cobrado")
+    .select("id, unidade, reservation_id, hospede, cobrado, data_reserva")
     .eq("id", linhaId)
     .maybeSingle();
   if (error) throw new Error(error.message);
@@ -145,9 +152,7 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
     linkAberto: null,
     clienteId: null,
   };
-  const { chaveStripe, clientesPorEmail, cartoesDoCliente, cobrancasDoCliente, faturasAbertasDoCliente } = await import(
-    "./stripe.server"
-  );
+  const { chaveStripe, cartoesDoCliente, cobrancasDoCliente, faturasAbertasDoCliente } = await import("./stripe.server");
   try {
     base.modo = chaveStripe(linha.unidade).modo;
   } catch (e) {
@@ -166,13 +171,42 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
   base.saldo = conf.saldo;
   base.hospede = reserva.hospede || linha.hospede;
 
-  // 2) Cliente do Stripe com EXATAMENTE esta reserva na descrição.
-  if (!reserva.emails.length) {
-    return { ...base, bloqueio: "A reserva não tem e-mail no Cloudbeds: não dá para achar o cartão no Stripe. Cobre pelo Cloudbeds." };
+  // 2) Cliente do Stripe com EXATAMENTE esta reserva na descrição. O nº da reserva é o mesmo no Cloudbeds e no
+  //    Stripe (descrição "... - Reservas: <nº>"). Ordem: e-mail (rápido) → nº da reserva (lista os Clientes criados
+  //    desde a data da reserva) → nome. Em todos, a escolha exige o nº exato na descrição.
+  const stripe = await import("./stripe.server");
+  const nomes = reserva.nomes.length ? reserva.nomes : linha.hospede ? [linha.hospede] : [];
+  let clientes = reserva.emails.length ? await stripe.clientesPorEmail(linha.unidade, reserva.emails) : [];
+  let escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  let busca: { vistos: number; completo: boolean } | null = null;
+  const dataRef = reserva.dataReserva ?? linha.data_reserva;
+  if (!escolha.ok && escolha.motivo === "nenhum" && dataRef) {
+    const desde = Date.parse(`${dataRef}T00:00:00-03:00`) / 1000 - 2 * 86_400;
+    const r = await stripe.clientesPelaReserva(linha.unidade, linha.reservation_id, desde);
+    busca = { vistos: r.vistos, completo: r.completo };
+    clientes = [...clientes, ...r.clientes];
+    escolha = clienteDaReserva(clientes as never, linha.reservation_id);
   }
-  const clientes = await clientesPorEmail(linha.unidade, reserva.emails);
-  const escolha = clienteDaReserva(clientes as never, linha.reservation_id);
-  if (!escolha.ok) return { ...base, bloqueio: escolha.texto };
+  if (!escolha.ok && escolha.motivo === "nenhum" && nomes.length) {
+    clientes = [...clientes, ...(await stripe.clientesPorNome(linha.unidade, nomes))];
+    escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  }
+  if (!escolha.ok) {
+    if (escolha.motivo === "varios") return { ...base, bloqueio: escolha.texto };
+    const partes = [
+      reserva.emails.length ? `pelo e-mail ${reserva.emails.join(", ")}` : null,
+      busca
+        ? `pelo nº ${linha.reservation_id} em ${busca.vistos} cliente(s) criados desde ${dataRef?.split("-").reverse().join("/")}${busca.completo ? "" : " (busca parcial)"}`
+        : null,
+      nomes.length ? `pelo nome ${nomes.join(", ")}` : null,
+    ].filter(Boolean);
+    return {
+      ...base,
+      bloqueio:
+        `Procurei no Stripe ${partes.join(", ")} e nenhum cliente tem a reserva ${linha.reservation_id} na descrição. ` +
+        "O cartão pode estar guardado só no Cloudbeds (ex.: cartão virtual da Booking): cobre por lá.",
+    };
+  }
   base.clienteId = escolha.cliente.id;
   base.emailDestino = escolha.cliente.email ?? null;
 
