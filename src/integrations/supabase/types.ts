@@ -3427,6 +3427,33 @@ export type Database = {
         }
         Relationships: []
       }
+      reservas_stripe_indice: {
+        Row: {
+          erro: string | null
+          historico_apos: string | null
+          historico_concluido: boolean
+          indexados: number
+          ultima_execucao: string | null
+          unidade: string
+        }
+        Insert: {
+          erro?: string | null
+          historico_apos?: string | null
+          historico_concluido?: boolean
+          indexados?: number
+          ultima_execucao?: string | null
+          unidade: string
+        }
+        Update: {
+          erro?: string | null
+          historico_apos?: string | null
+          historico_concluido?: boolean
+          indexados?: number
+          ultima_execucao?: string | null
+          unidade?: string
+        }
+        Relationships: []
+      }
       reservas_vistas: {
         Row: {
           user_id: string

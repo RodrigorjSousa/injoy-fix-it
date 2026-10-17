@@ -463,6 +463,13 @@
       "when": 1792186521693,
       "tag": "0065_0065_reservas_link_cancelado",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1792241227199,
+      "tag": "0066_0066_reservas_indice_stripe",
+      "breakpoints": true
     }
   ]
 }
