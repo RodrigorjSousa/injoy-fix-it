@@ -31,6 +31,25 @@ export function reservasDaDescricao(descricao: unknown): string[] {
   return achados;
 }
 
+/** Chave da metadata gravada no Cliente do Stripe para achá-lo pelo nº da reserva (busca exata). */
+export const chaveMetaReserva = (reservationId: string) => `injoy_reserva_${String(reservationId).trim()}`;
+
+/** Nºs de reserva da descrição que viram etiqueta (só identificadores plausíveis: 6+ letras/dígitos, máx. 20). */
+export function reservasParaIndice(descricao: unknown): string[] {
+  return [...new Set(reservasDaDescricao(descricao).filter((t) => /^[0-9A-Za-z]{6,26}$/.test(t)))].slice(0, 20);
+}
+
+/** Etiquetas que faltam no Cliente (vazio = já indexado). */
+export function metadataFaltando(descricao: unknown, metadata: Record<string, unknown> | null | undefined): Record<string, string> {
+  const m = metadata ?? {};
+  const falta: Record<string, string> = {};
+  for (const r of reservasParaIndice(descricao)) {
+    const k = chaveMetaReserva(r);
+    if (m[k] !== "1") falta[k] = "1";
+  }
+  return falta;
+}
+
 export type ClienteStripe = { id: string; description?: string | null; email?: string | null; deleted?: boolean };
 
 export type EscolhaCliente =

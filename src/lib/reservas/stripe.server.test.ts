@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { anularFatura, assinaturaValida, clientesPelaReserva, clientesPorNome, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
+import { anularFatura, assinaturaValida, clientesPelaEtiqueta, clientesPelaReserva, clientesPorNome, lerFatura, chaveStripe, cobrarCartao, enviarFatura } from "./stripe.server";
 
 type Chamada = { url: string; init: RequestInit };
 let chamadas: Chamada[] = [];
@@ -90,6 +90,17 @@ describe("link (fatura)", () => {
     // cada passo com a sua chave de idempotência
     const chaves = chamadas.map((c) => (c.init.headers as Record<string, string>)["Idempotency-Key"]);
     expect(new Set(chaves).size).toBe(4);
+  });
+});
+
+describe("achar cliente pela etiqueta", () => {
+  it("busca exata na metadata injoy_reserva_<nº>", async () => {
+    respostas.push({ status: 200, body: { data: [{ id: "cus_K" }] } });
+    const r = await clientesPelaEtiqueta("Botafogo", "3994900033060");
+    expect(r.map((c) => c.id)).toEqual(["cus_K"]);
+    const u = new URL(chamadas[0].url);
+    expect(u.pathname).toBe("/v1/customers/search");
+    expect(u.searchParams.get("query")).toBe('metadata["injoy_reserva_3994900033060"]:"1"');
   });
 });
 

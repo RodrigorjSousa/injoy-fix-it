@@ -176,8 +176,14 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
   //    desde a data da reserva) → nome. Em todos, a escolha exige o nº exato na descrição.
   const stripe = await import("./stripe.server");
   const nomes = reserva.nomes.length ? reserva.nomes : linha.hospede ? [linha.hospede] : [];
-  let clientes = reserva.emails.length ? await stripe.clientesPorEmail(linha.unidade, reserva.emails) : [];
+  // 2a) Etiqueta gravada pelo índice (metadata injoy_reserva_<nº>): busca direta. Falha da busca não bloqueia.
+  let clientes: Obj[] = await stripe.clientesPelaEtiqueta(linha.unidade, linha.reservation_id).catch(() => []);
   let escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  const achouPelaEtiqueta = escolha.ok;
+  if (!escolha.ok && escolha.motivo === "nenhum" && reserva.emails.length) {
+    clientes = [...clientes, ...(await stripe.clientesPorEmail(linha.unidade, reserva.emails))];
+    escolha = clienteDaReserva(clientes as never, linha.reservation_id);
+  }
   let busca: { vistos: number; completo: boolean } | null = null;
   const dataRef = reserva.dataReserva ?? linha.data_reserva;
   if (!escolha.ok && escolha.motivo === "nenhum" && dataRef) {
@@ -206,6 +212,13 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
         `Procurei no Stripe ${partes.join(", ")} e nenhum cliente tem a reserva ${linha.reservation_id} na descrição. ` +
         "O cartão pode estar guardado só no Cloudbeds (ex.: cartão virtual da Booking): cobre por lá.",
     };
+  }
+  // Achou por outro caminho: já etiqueta para a próxima vez ser direta.
+  const escolhidoId = escolha.cliente.id;
+  if (!achouPelaEtiqueta) {
+    const { etiquetarAgora } = await import("./stripe-indice.server");
+    const cli = clientes.find((x) => String(x.id) === escolhidoId);
+    if (cli) await etiquetarAgora(linha.unidade, cli);
   }
   base.clienteId = escolha.cliente.id;
   base.emailDestino = escolha.cliente.email ?? null;
