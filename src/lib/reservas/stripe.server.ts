@@ -121,6 +121,31 @@ export async function clientesPelaReserva(
   return { clientes: achados, vistos, completo: false };
 }
 
+/** Clientes etiquetados com o nº da reserva (metadata injoy_reserva_<nº> = "1"): busca exata e direta. */
+export async function clientesPelaEtiqueta(unidade: Unidade, reservationId: string): Promise<Obj[]> {
+  const { chaveMetaReserva } = await import("./stripe-regras");
+  const chave = chaveMetaReserva(reservationId).replace(/[^0-9A-Za-z_]/g, "");
+  return lista(await chamar(unidade, "GET", "/customers/search", { query: `metadata["${chave}"]:"1"`, limit: 10 }));
+}
+
+/** Uma página de Clientes (mais novos primeiro). */
+export async function paginaDeClientes(
+  unidade: Unidade,
+  p: { desdeSeg?: number; depoisDe?: string },
+): Promise<{ clientes: Obj[]; temMais: boolean }> {
+  const json = await chamar(unidade, "GET", "/customers", {
+    limit: 100,
+    ...(p.desdeSeg !== undefined ? { created: { gte: Math.max(0, Math.floor(p.desdeSeg)) } } : {}),
+    ...(p.depoisDe ? { starting_after: p.depoisDe } : {}),
+  });
+  return { clientes: lista(json), temMais: json.has_more === true };
+}
+
+/** Grava etiquetas (metadata) no Cliente. Não apaga as que já existem. Precisa de Customers: Gravação. */
+export async function etiquetarCliente(unidade: Unidade, clienteId: string, metadata: Record<string, string>): Promise<void> {
+  await chamar(unidade, "POST", `/customers/${encodeURIComponent(clienteId)}`, { metadata });
+}
+
 /** Texto seguro dentro de aspas na busca do Stripe. */
 const aspas = (v: string) => v.replace(/\\/g, "").replace(/"/g, "").trim();
 

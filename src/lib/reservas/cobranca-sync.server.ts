@@ -286,6 +286,11 @@ export async function sincronizarCobrancas(unidades: Unidade[] = UNIDADES) {
     await conferirLinksEnviados(u).catch((e) => console.error(`[reservas-cobranca] links ${u}:`, (e as Error).message));
   }
   for (const u of unidades) resultados.push(await sincronizarUnidade(u));
+  // Depois: etiqueta os Clientes do Stripe com o nº da reserva (busca direta no "Cobrar agora").
+  const { indexarClientes } = await import("./stripe-indice.server");
+  for (const u of unidades) {
+    await indexarClientes(u).catch((e) => console.error(`[reservas-cobranca] índice ${u}:`, (e as Error).message));
+  }
   const avisadas = await avisarNovas().catch(() => 0);
   return { resultados, avisadas };
 }

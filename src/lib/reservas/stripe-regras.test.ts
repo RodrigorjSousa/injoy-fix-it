@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  chaveMetaReserva,
+  metadataFaltando,
+  reservasParaIndice,
   bloqueioPorCobrancaAnterior,
   clienteDaReserva,
   conferirReserva,
@@ -153,5 +156,21 @@ describe("notas e resultado", () => {
     expect(resultadoDoIntent("requires_action")).toBe("autenticacao");
     expect(resultadoDoIntent("requires_payment_method")).toBe("recusado");
     expect(resultadoDoIntent("processing")).toBe("processando");
+  });
+});
+
+describe("etiqueta do nº da reserva no Cliente", () => {
+  it("chave dentro do limite do Stripe (40) e só para identificadores plausíveis", () => {
+    expect(chaveMetaReserva("3994900033060")).toBe("injoy_reserva_3994900033060");
+    expect(chaveMetaReserva("3994900033060").length).toBeLessThanOrEqual(40);
+    expect(reservasParaIndice("Injoy Suítes & Aparts Botafogo - Reservas: 3994900033060")).toEqual(["3994900033060"]);
+    expect(reservasParaIndice("X - Reservas: 111, 3994900033060")).toEqual(["3994900033060"]);
+    expect(reservasParaIndice("Cliente sem reserva")).toEqual([]);
+  });
+  it("só grava o que falta", () => {
+    const d = "Injoy - Reservas: 3994900033060";
+    expect(metadataFaltando(d, {})).toEqual({ injoy_reserva_3994900033060: "1" });
+    expect(metadataFaltando(d, { injoy_reserva_3994900033060: "1" })).toEqual({});
+    expect(metadataFaltando(null, null)).toEqual({});
   });
 });

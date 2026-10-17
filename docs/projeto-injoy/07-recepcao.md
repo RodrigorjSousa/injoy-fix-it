@@ -120,7 +120,12 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
   e vários cartões. Regras em `src/lib/reservas/stripe-regras.ts` (testes `stripe-regras.test.ts`):
   1. saldo e status relidos no Cloudbeds NA HORA (`getReservation` v1.3); cobra só esse saldo, e se mudou pede nova
      confirmação; só `confirmed`/`not_confirmed`;
-  2. Cliente achado pelo e-mail da reserva; se não achar, pelo **nº da reserva** (o mesmo no Cloudbeds e no Stripe: a
+  2. Cliente achado primeiro pela **etiqueta** (migração 0066): de hora em hora o app lê a descrição dos Clientes do
+     Stripe e grava `metadata.injoy_reserva_<nº> = "1"` (Clientes dos últimos 3 dias + varredura do histórico que
+     continua de onde parou, em `reservas_stripe_indice`; ~20 s por unidade a cada hora). A busca
+     `metadata["injoy_reserva_<nº>"]:"1"` é direta. Precisa de **Customers: Gravação** na chave; sem ela o erro fica em
+     `reservas_stripe_indice.erro` e a busca segue pelos outros caminhos. Cliente achado por outro caminho é etiquetado
+     na hora. Depois: e-mail da reserva; se não achar, pelo **nº da reserva** (o mesmo no Cloudbeds e no Stripe: a
      busca do Stripe não filtra descrição, então o app lista os Clientes criados desde a data da reserva − 2 dias, até
      4.000, e confere a descrição); se ainda não achar, pelo NOME do hóspede (`name~"..."`). Só é escolhido se a descrição tem EXATAMENTE o nº da reserva
      (nenhum ou mais de um = não cobra). A mensagem diz o que foi procurado e quantos Clientes apareceram;
@@ -151,6 +156,9 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
 - Pgto. no check-in: nota **"Pagamento no check in // nome logado"** na reserva; fica na lista (roxo) até o saldo zerar.
 - Só o servidor grava Pago / Link enviado / Pgto. no check-in (a RPC `reservas_cobranca_marcar` recusa à mão);
   reserva paga não troca de marcação.
+- Permissões da chave restrita (atualizado 17/10): Customers **Gravação** (índice), PaymentMethods leitura,
+  PaymentIntents gravação, Charges leitura, Invoices gravação (link), Events leitura. O documento da Rita
+  "Stripe – Integração do App Injoy" (16/10) não lista Invoices: sem ela o "Enviar link" para.
 - **Segredos** (Lovable Cloud, nunca no código): `STRIPE_KEY_BOTAFOGO`, `STRIPE_KEY_IPANEMA` (só chave RESTRITA `rk_`;
   `sk_` é recusada) e `STRIPE_WEBHOOK_SECRET_BOTAFOGO/IPANEMA`. Permissões da chave restrita: Customers leitura,
   PaymentMethods leitura, PaymentIntents gravação, Charges leitura, Invoices gravação, Events leitura.
