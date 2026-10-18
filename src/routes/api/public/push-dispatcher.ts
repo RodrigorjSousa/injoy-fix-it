@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
 import { duracaoChamado } from "@/lib/chamado-tempo";
+import { juntar, usuariosDaRecepcao } from "@/lib/push-destinatarios";
 
 type EventKind =
   | "chamado"
@@ -27,7 +28,7 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
   switch (evt.event) {
     case "chamado":
       return {
-        title: "🔧 Novo chamado",
+        title: `🔧 Novo chamado${d.unidade ? ` · ${d.unidade}` : ""}`,
         body: `${d.categoria ?? "Chamado"} — ${String(d.descricao ?? "").slice(0, 120)}`,
         url: d.id ? `/chamados/${d.id}` : `/painel`,
         tag: `chamado-${d.id}`,
@@ -42,7 +43,7 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
     case "chamado_concluido": {
       const levou = duracaoChamado(d.aberto_em as string, d.concluido_em as string);
       return {
-        title: "✅ Seu chamado foi finalizado",
+        title: `✅ Chamado finalizado${d.unidade ? ` · ${d.unidade}` : ""}`,
         body: `${String(d.descricao ?? "").slice(0, 100)} — fechado${d.concluido_por_nome ? ` por ${d.concluido_por_nome}` : ""}${levou ? ` · levou ${levou}` : ""}.`,
         url: d.id ? `/chamados/${d.id}` : "/painel",
         tag: `chamado-concluido-${d.id}`,
@@ -191,6 +192,18 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     return (data ?? []).map((r) => r.user_id as string);
   };
 
+  // Recepção = papel recepcao OU tela Recepção liberada no cadastro (mesma regra do menu).
+  const recepcao = async () => {
+    const [{ data: papeis }, { data: funcs }] = await Promise.all([
+      supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "recepcao" as never),
+      supabaseAdmin.from("funcionarios").select("user_id, telas_permitidas"),
+    ]);
+    return usuariosDaRecepcao(
+      (papeis ?? []) as { user_id: string | null; role: string }[],
+      (funcs ?? []) as { user_id: string | null; telas_permitidas: string[] | null }[],
+    );
+  };
+
   switch (evt.event) {
     case "chamado": {
       // Técnico designado + gestores/admin
@@ -204,6 +217,8 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
         if (data?.user_id) ids.add(data.user_id as string);
       }
       (await byRoles(["admin", "gestor"])).forEach((u) => ids.add(u));
+      // Recepção acompanha o Painel: sabe quando um quarto tem chamado aberto.
+      (await recepcao()).forEach((u) => ids.add(u));
       return [...ids];
     }
     case "chamado_designado": {
@@ -216,19 +231,21 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       return data?.user_id ? [data.user_id as string] : [];
     }
     case "chamado_concluido":
-      // Quem abriu o chamado (o banco já não manda quando foi a mesma pessoa que fechou).
-      return typeof d.criado_por === "string" ? [d.criado_por] : [];
+      // Quem abriu o chamado + a recepção (quarto liberado). O banco não manda quando quem
+      // abriu foi quem fechou; aí só a recepção recebe.
+      return juntar(
+        typeof d.criado_por === "string" && d.criado_por !== d.concluido_por ? [d.criado_por] : [],
+        await recepcao(),
+      ).filter((u) => u !== d.concluido_por);
     case "teste":
       return typeof d.user_id === "string" ? [d.user_id] : [];
     case "recado_camareira": {
-      const roles =
-        d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao"
-          ? ["recepcao", "admin", "gestor"]
-          : ["camareira", "admin", "gestor"];
-      return byRoles(roles);
+      const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
+      if (paraRecepcao) return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
+      return byRoles(["camareira", "admin", "gestor"]);
     }
     case "troca_turno":
-      return byRoles(["admin", "gestor", "recepcao"]);
+      return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
     case "purchase_request":
       return byRoles(["admin", "gestor"]);
     case "finance_due":
@@ -242,9 +259,11 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       // Quem vê a tela Reservas (gestor/admin e liberados) — regra única no banco.
       const { data } = await supabaseAdmin.rpc("reservas_destinatarios" as never);
       const lista = Array.isArray(data) ? (data as unknown[]) : [];
-      return lista
+      const liberados = lista
         .map((x) => (typeof x === "string" ? x : (x as Record<string, unknown>)?.reservas_destinatarios))
         .filter((id): id is string => typeof id === "string");
+      // A recepção é quem cobra: recebe sempre o aviso de reservas.
+      return juntar(liberados, await recepcao());
     }
     case "previsao_reforco_resposta":
     case "ponto_atestado_resposta":

@@ -195,6 +195,11 @@ das selfies antigas do ponto foi oferecida.
 - Quem recebe chamado novo: o técnico designado + gestor/admin. Chamado redesignado (troca de técnico): o novo
   técnico (`chamado_designado`, migração 0068). Chamado finalizado: quem abriu (`chamado_concluido`, 0069), menos
   quando foi a mesma pessoa que fechou. Toque no aviso abre o próprio chamado.
+- Recepção (18/10): quem é "da recepção" para os avisos = mesma regra do menu (`usuariosDaRecepcao` em
+  `src/lib/push-destinatarios.ts`): tela Recepção liberada no cadastro, ou papel `recepcao` quando não há lista de
+  telas. Antes o envio olhava só o papel e quem entrou pela lista de telas não recebia nada. A recepção recebe:
+  chamado novo (Painel), chamado finalizado (0070 manda em todo fechamento; quem fechou não recebe), troca de turno,
+  reservas para cobrar (além dos liberados em Reservas) e recados que as camareiras mandam para a recepção.
 - Fechamento (0069): ao virar "Concluído" o BANCO grava `concluido_em`, `concluido_por` e `concluido_por_nome`
   (o app só muda o status; não dá para forjar). Reabrir apaga. Painel e tela do chamado mostram "Fechado por X em
   dd/mm hh:mm · levou N" (`src/lib/chamado-tempo.ts`). Chamados fechados antes da 0069 podem não ter quem/quando.
