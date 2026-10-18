@@ -1,9 +1,11 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
+import { duracaoChamado } from "@/lib/chamado-tempo";
 
 type EventKind =
   | "chamado"
   | "chamado_designado"
+  | "chamado_concluido"
   | "teste"
   | "recado_camareira"
   | "troca_turno"
@@ -37,6 +39,15 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         url: d.id ? `/chamados/${d.id}` : "/painel",
         tag: `chamado-designado-${d.id}`,
       };
+    case "chamado_concluido": {
+      const levou = duracaoChamado(d.aberto_em as string, d.concluido_em as string);
+      return {
+        title: "✅ Seu chamado foi finalizado",
+        body: `${String(d.descricao ?? "").slice(0, 100)} — fechado${d.concluido_por_nome ? ` por ${d.concluido_por_nome}` : ""}${levou ? ` · levou ${levou}` : ""}.`,
+        url: d.id ? `/chamados/${d.id}` : "/painel",
+        tag: `chamado-concluido-${d.id}`,
+      };
+    }
     case "teste":
       return {
         title: "✅ Notificações funcionando",
@@ -204,6 +215,9 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
         .maybeSingle();
       return data?.user_id ? [data.user_id as string] : [];
     }
+    case "chamado_concluido":
+      // Quem abriu o chamado (o banco já não manda quando foi a mesma pessoa que fechou).
+      return typeof d.criado_por === "string" ? [d.criado_por] : [];
     case "teste":
       return typeof d.user_id === "string" ? [d.user_id] : [];
     case "recado_camareira": {

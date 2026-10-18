@@ -40,6 +40,7 @@ import { cn } from "@/lib/utils";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
 import { AREA_COMUM, QUARTOS_POR_UNIDADE, filtrarChamadosPainel } from "@/lib/chamados-quarto";
+import { dataHoraBR, duracaoChamado } from "@/lib/chamado-tempo";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) =>
@@ -237,6 +238,13 @@ function Painel() {
                       {c.criadoPorNome && (
                         <span className="flex items-center gap-1">Aberto por: <span className="font-medium text-foreground">{c.criadoPorNome}</span></span>
                       )}
+                      {c.status === "Concluído" && c.concluidoEm && (
+                        <span className="text-success">
+                          Fechado {dataHoraBR(c.concluidoEm)}
+                          {c.concluidoPorNome ? ` por ${c.concluidoPorNome}` : ""}
+                          {duracaoChamado(c.criadoEm, c.concluidoEm) ? ` · levou ${duracaoChamado(c.criadoEm, c.concluidoEm)}` : ""}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -288,9 +296,14 @@ function ChamadoCard({
               </Badge>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span
+            className="text-[10px] text-muted-foreground flex items-center gap-1"
+            title={c.status === "Concluído" && c.concluidoEm ? `Aberto em ${dataHoraBR(c.criadoEm)}` : undefined}
+          >
             <Clock className="h-3 w-3" />
-            {new Date(c.criadoEm).toLocaleDateString("pt-BR")}
+            {c.status === "Concluído" && c.concluidoEm
+              ? `Fechado ${dataHoraBR(c.concluidoEm)}`
+              : new Date(c.criadoEm).toLocaleDateString("pt-BR")}
           </span>
         </div>
         <div className="text-sm font-medium line-clamp-2">{c.descricao}</div>
@@ -301,6 +314,12 @@ function ChamadoCard({
         {c.criadoPorNome && (
           <div className="mt-1 text-[11px] text-muted-foreground truncate">
             Aberto por <span className="font-medium text-foreground">{c.criadoPorNome}</span>
+          </div>
+        )}
+        {c.status === "Concluído" && (c.concluidoPorNome || c.concluidoEm) && (
+          <div className="mt-1 text-[11px] text-success truncate">
+            {c.concluidoPorNome ? <>Fechado por <span className="font-medium">{c.concluidoPorNome}</span></> : "Fechado"}
+            {duracaoChamado(c.criadoEm, c.concluidoEm) && <> · levou {duracaoChamado(c.criadoEm, c.concluidoEm)}</>}
           </div>
         )}
       </Link>

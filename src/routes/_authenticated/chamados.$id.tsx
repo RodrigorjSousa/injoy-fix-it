@@ -35,6 +35,7 @@ import {
   type Status,
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { dataHoraBR, duracaoChamado } from "@/lib/chamado-tempo";
 import { MediaCapture } from "@/components/media-capture";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
@@ -106,8 +107,26 @@ function ChamadoDetalhe() {
         <p className="text-sm text-muted-foreground">
           Responsável: <span className="font-medium text-foreground">{responsavel?.nome ?? "—"}</span> ·
           Aberto por <span className="font-medium text-foreground">{chamado.criadoPorNome ?? "—"}</span> ·
-          Aberto em {new Date(chamado.criadoEm).toLocaleString("pt-BR")}
+          Aberto em {dataHoraBR(chamado.criadoEm)}
         </p>
+        {chamado.status === "Concluído" && (
+          <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-sm">
+            <span className="font-semibold text-success">Fechado</span>
+            {chamado.concluidoPorNome && (
+              <> por <span className="font-medium text-foreground">{chamado.concluidoPorNome}</span></>
+            )}
+            {chamado.concluidoEm ? (
+              <>
+                {" "}em <span className="font-medium text-foreground">{dataHoraBR(chamado.concluidoEm)}</span>
+                {duracaoChamado(chamado.criadoEm, chamado.concluidoEm) && (
+                  <> · levou <span className="font-medium text-foreground">{duracaoChamado(chamado.criadoEm, chamado.concluidoEm)}</span></>
+                )}
+              </>
+            ) : (
+              <span className="text-muted-foreground"> · data de fechamento não registrada (chamado antigo)</span>
+            )}
+          </div>
+        )}
       </header>
 
       <Card className="p-4 sm:p-5 space-y-3">

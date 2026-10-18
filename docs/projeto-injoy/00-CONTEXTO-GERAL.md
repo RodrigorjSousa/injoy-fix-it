@@ -193,7 +193,11 @@ das selfies antigas do ponto foi oferecida.
 - Caminho: gatilho no banco → `private.enqueue_push_notification` (lê `app_settings.push_dispatcher_url/secret`) →
   `/api/public/push-dispatcher` (confere `PUSH_DISPATCH_SECRET`) → `push_subscriptions` → aparelho (`public/push-sw.js`).
 - Quem recebe chamado novo: o técnico designado + gestor/admin. Chamado redesignado (troca de técnico): o novo
-  técnico (`chamado_designado`, migração 0068). Toque no aviso abre o próprio chamado.
+  técnico (`chamado_designado`, migração 0068). Chamado finalizado: quem abriu (`chamado_concluido`, 0069), menos
+  quando foi a mesma pessoa que fechou. Toque no aviso abre o próprio chamado.
+- Fechamento (0069): ao virar "Concluído" o BANCO grava `concluido_em`, `concluido_por` e `concluido_por_nome`
+  (o app só muda o status; não dá para forjar). Reabrir apaga. Painel e tela do chamado mostram "Fechado por X em
+  dd/mm hh:mm · levou N" (`src/lib/chamado-tempo.ts`). Chamados fechados antes da 0069 podem não ter quem/quando.
 - Relato de 18/10 ("sininho ativo e não chega"). Causas encontradas: (1) o aparelho é uma inscrição só; em
   celular/tablet usado por mais de uma pessoa a linha ficava com a primeira, e a regra de segurança recusava a
   troca, então os avisos iam para outra pessoa; (2) o sininho ficava verde só por o navegador estar inscrito, mesmo
