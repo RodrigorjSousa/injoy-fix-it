@@ -484,6 +484,13 @@
       "when": 1792337062249,
       "tag": "0068_0068_push_aparelho_chamado",
       "breakpoints": true
+    },
+    {
+      "idx": 69,
+      "version": "7",
+      "when": 1792337111882,
+      "tag": "0069_0069_chamado_fechamento",
+      "breakpoints": true
     }
   ]
 }
