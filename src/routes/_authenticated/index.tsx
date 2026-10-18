@@ -32,6 +32,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { AudioDictationButton } from "@/components/audio-dictation-button";
 import { MediaCapture } from "@/components/media-capture";
+import { AREA_COMUM, QUARTOS_POR_UNIDADE } from "@/lib/chamados-quarto";
 
 type TecnicoRPC = { id: string; nome: string; categorias: string[] | null };
 
@@ -80,17 +81,6 @@ const CORES_CATEGORIA: Partial<Record<Categoria, { base: string; ativo: string; 
     icone: "bg-pink-100 text-pink-600",
     iconeAtivo: "bg-pink-500 text-white",
   },
-};
-
-const AREA_COMUM = "Área comum";
-const QUARTOS_POR_UNIDADE: Record<Unidade, string[]> = {
-  Botafogo: [
-    "01","02","03","05","06","107","108","109","110","111",
-    "112","113","114","115","117","118","301","401","501", AREA_COMUM,
-  ],
-  Ipanema: [
-    "01","02","103","104","205","206","307","308","309","410","411","412", AREA_COMUM,
-  ],
 };
 
 function NovoChamado() {

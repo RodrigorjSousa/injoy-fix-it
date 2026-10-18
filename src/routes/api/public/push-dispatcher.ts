@@ -3,6 +3,8 @@ import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server"
 
 type EventKind =
   | "chamado"
+  | "chamado_designado"
+  | "teste"
   | "recado_camareira"
   | "troca_turno"
   | "purchase_request"
@@ -25,8 +27,22 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
       return {
         title: "🔧 Novo chamado",
         body: `${d.categoria ?? "Chamado"} — ${String(d.descricao ?? "").slice(0, 120)}`,
-        url: `/painel`,
+        url: d.id ? `/chamados/${d.id}` : `/painel`,
         tag: `chamado-${d.id}`,
+      };
+    case "chamado_designado":
+      return {
+        title: "🔧 Chamado designado para você",
+        body: `${d.categoria ?? "Chamado"} — ${String(d.descricao ?? "").slice(0, 120)}`,
+        url: d.id ? `/chamados/${d.id}` : "/painel",
+        tag: `chamado-designado-${d.id}`,
+      };
+    case "teste":
+      return {
+        title: "✅ Notificações funcionando",
+        body: "Este aparelho vai receber os avisos do INJOY.",
+        url: "/",
+        tag: `teste-${Date.now()}`,
       };
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
@@ -179,6 +195,17 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       (await byRoles(["admin", "gestor"])).forEach((u) => ids.add(u));
       return [...ids];
     }
+    case "chamado_designado": {
+      if (!d.responsavel_id) return [];
+      const { data } = await supabaseAdmin
+        .from("funcionarios")
+        .select("user_id")
+        .eq("id", d.responsavel_id as string)
+        .maybeSingle();
+      return data?.user_id ? [data.user_id as string] : [];
+    }
+    case "teste":
+      return typeof d.user_id === "string" ? [d.user_id] : [];
     case "recado_camareira": {
       const roles =
         d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao"
@@ -287,6 +314,13 @@ export const Route = createFileRoute("/api/public/push-dispatcher")({
         const sent = results.filter(
           (r) => r.status === "fulfilled" && (r.value as { ok: boolean }).ok,
         ).length;
+        // Log para conferir no painel do Lovable quando alguém disser que não chegou.
+        const falhas = results
+          .map((r) => (r.status === "fulfilled" ? (r.value.ok ? null : `${r.value.status}`) : "erro"))
+          .filter(Boolean);
+        console.log(
+          `[push] ${payload.event}: ${sent}/${subs.length} aparelho(s) de ${userIds.length} pessoa(s)${falhas.length ? ` · falhas: ${falhas.join(",")}` : ""}`,
+        );
         return Response.json({ sent, total: subs.length });
       },
     },

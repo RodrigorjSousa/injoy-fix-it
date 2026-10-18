@@ -188,3 +188,23 @@ das selfies antigas do ponto foi oferecida.
 - Camareiras: faixa amarela "Cloudbeds sem atualizar há X min" quando a última sincronização da unidade
   (`hotel_metrics.updated_at`) passa de 15 min, com botão Atualizar — falha de sincronização não fica mais calada.
   A Recepção já avisava ("Mostrando os últimos dados").
+
+## Notificações (push) e Painel de chamados
+- Caminho: gatilho no banco → `private.enqueue_push_notification` (lê `app_settings.push_dispatcher_url/secret`) →
+  `/api/public/push-dispatcher` (confere `PUSH_DISPATCH_SECRET`) → `push_subscriptions` → aparelho (`public/push-sw.js`).
+- Quem recebe chamado novo: o técnico designado + gestor/admin. Chamado redesignado (troca de técnico): o novo
+  técnico (`chamado_designado`, migração 0068). Toque no aviso abre o próprio chamado.
+- Relato de 18/10 ("sininho ativo e não chega"). Causas encontradas: (1) o aparelho é uma inscrição só; em
+  celular/tablet usado por mais de uma pessoa a linha ficava com a primeira, e a regra de segurança recusava a
+  troca, então os avisos iam para outra pessoa; (2) o sininho ficava verde só por o navegador estar inscrito, mesmo
+  sem a linha no banco (apagada por 404/410 ou recusada); (3) inscrição feita com chave VAPID antiga nunca recebe.
+  Correção: `push_registrar_aparelho` (0068) passa o aparelho para quem está logado; ao abrir o app e a cada login
+  o app confere o aparelho e refaz a inscrição se a chave mudou; o sininho só fica verde com a linha no banco;
+  ao ativar, chega um aviso de teste pelo mesmo caminho dos chamados (`enviarNotificacaoTeste`) e, se falhar, a
+  tela diz o motivo (endereço/senha do banco, nenhum aparelho, push recusado). Envio com `Urgency: high`.
+- Regra prática: um aparelho avisa só a última pessoa que entrou nele. iPhone só recebe com o app instalado na
+  tela inicial (Safari → Compartilhar → Adicionar à Tela de Início) e iOS 16.4+.
+- Log do envio no Lovable: `[push] <evento>: enviados/aparelhos de N pessoa(s) · falhas: <status>`.
+- Painel (`/painel`): Kanban/Lista com os filtros ao lado (Unidade → Quartos → Categoria). Quartos só libera com a
+  unidade escolhida e mostra os chamados ABERTOS (A Fazer + Fazendo) daquele quarto; lista de quartos única em
+  `src/lib/chamados-quarto.ts` (a mesma da tela de abrir chamado). "Minha escala" no Painel começa recolhida.

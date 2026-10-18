@@ -8,7 +8,10 @@ import {
   isCurrentlySubscribed,
   isPreviewContext,
   isPushSupported,
+  sincronizarAparelho,
 } from "@/lib/push-client";
+import { enviarNotificacaoTeste } from "@/lib/push.functions";
+import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 
 type Props = { className?: string; compact?: boolean };
@@ -25,7 +28,18 @@ export function PushNotificationsButton({ className, compact }: Props) {
     setSupported(nextSupported);
     setPreview(isPreviewContext());
     setHydrated(true);
-    if (nextSupported) isCurrentlySubscribed().then(setSubscribed);
+    if (!nextSupported) return;
+    // Ao abrir o app (e a cada novo login), confirma que ESTE aparelho avisa QUEM está logado.
+    // Só fica verde quando o banco tem o aparelho gravado para esta pessoa.
+    const conferir = () =>
+      sincronizarAparelho()
+        .then((ok) => (ok ? true : isCurrentlySubscribed()))
+        .then(setSubscribed);
+    void conferir();
+    const { data } = supabase.auth.onAuthStateChange((evento) => {
+      if (evento === "SIGNED_IN") void conferir();
+    });
+    return () => data.subscription.unsubscribe();
   }, []);
 
   if (!hydrated || !supported) return null;
@@ -41,7 +55,13 @@ export function PushNotificationsButton({ className, compact }: Props) {
         const res = await enablePushNotifications();
         if (res.ok) {
           setSubscribed(true);
-          toast.success("Notificações ativadas");
+          // Aviso de teste pelo mesmo caminho dos chamados: confirma que vai chegar.
+          const teste = await enviarNotificacaoTeste().catch(() => null);
+          if (teste?.ok) toast.success("Notificações ativadas. Enviamos um aviso de teste para este aparelho.");
+          else
+            toast.warning(
+              `Notificações ativadas, mas o teste não chegou${teste?.motivo ? `: ${teste.motivo}` : "."} Avise o gestor.`,
+            );
         } else {
           toast.error(res.reason);
         }
