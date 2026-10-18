@@ -470,6 +470,13 @@
       "when": 1792241227199,
       "tag": "0066_0066_reservas_indice_stripe",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1792290217155,
+      "tag": "0067_0067_reservas_situacao_stripe",
+      "breakpoints": true
     }
   ]
 }
