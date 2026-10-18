@@ -68,6 +68,8 @@ export interface Chamado {
   criadoPorNome: string | null;
   responsavelNome?: string | null;
   concluidoEm?: string | null;
+  /** Quem marcou como concluído (gravado pelo banco, migração 0069). */
+  concluidoPorNome?: string | null;
 }
 
 
@@ -106,6 +108,7 @@ type ChamadoRow = {
   created_at: string;
   responsavel_nome?: string | null;
   concluido_em?: string | null;
+  concluido_por_nome?: string | null;
 };
 
 type AtivoRow = {
@@ -142,6 +145,7 @@ const mapChamado = (r: ChamadoRow, nomeCriador: string | null = null): Chamado =
   criadoPorNome: nomeCriador,
   responsavelNome: r.responsavel_nome,
   concluidoEm: r.concluido_em,
+  concluidoPorNome: r.concluido_por_nome ?? null,
 });
 
 const mapAtivo = (r: AtivoRow): AtivoAr => ({
@@ -155,6 +159,23 @@ const mapAtivo = (r: AtivoRow): AtivoAr => ({
 });
 
 /* ------------------------------ queries ----------------------------- */
+
+const COLUNAS_CHAMADO =
+  "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at, responsavel_nome, concluido_em, concluido_por_nome";
+
+/**
+ * Busca chamados com "quem fechou" (migração 0069). Se o banco ainda não tiver a coluna,
+ * busca sem ela para o Painel não parar.
+ */
+async function comColunasFechamento<T extends { error: { message: string } | null }>(
+  consulta: (colunas: string) => PromiseLike<T>,
+): Promise<T> {
+  const r = await consulta(COLUNAS_CHAMADO);
+  if (r.error && /concluido_por_nome/.test(r.error.message)) {
+    return consulta(COLUNAS_CHAMADO.replace(", concluido_por_nome", ""));
+  }
+  return r;
+}
 
 export function useFuncionarios() {
   return useQuery({
@@ -190,14 +211,11 @@ export function useChamados() {
   return useQuery({
     queryKey: ["chamados"],
     queryFn: async (): Promise<Chamado[]> => {
-      const { data, error } = await supabase
-        .from("chamados")
-        .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at, responsavel_nome, concluido_em",
-        )
-        .order("created_at", { ascending: false });
+      const { data, error } = await comColunasFechamento((colunas) =>
+        supabase.from("chamados").select(colunas).order("created_at", { ascending: false }),
+      );
       if (error) throw error;
-      const rows = (data ?? []) as ChamadoRow[];
+      const rows = (data ?? []) as unknown as ChamadoRow[];
       const ids = Array.from(new Set(rows.map((r) => r.criado_por).filter((v): v is string => !!v)));
       const nomes = new Map<string, string>();
       if (ids.length) {
@@ -231,16 +249,12 @@ export function useChamado(id: string) {
   return useQuery({
     queryKey: ["chamados", id],
     queryFn: async (): Promise<Chamado | null> => {
-      const { data, error } = await supabase
-        .from("chamados")
-        .select(
-          "id, unidade, categoria, descricao, status, responsavel_id, foto_antes, foto_depois, midias, criado_por, created_at, responsavel_nome, concluido_em",
-        )
-        .eq("id", id)
-        .maybeSingle();
+      const { data, error } = await comColunasFechamento((colunas) =>
+        supabase.from("chamados").select(colunas).eq("id", id).maybeSingle(),
+      );
       if (error) throw error;
       if (!data) return null;
-      const row = data as ChamadoRow;
+      const row = data as unknown as ChamadoRow;
       let nome: string | null = null;
       if (row.criado_por) {
         const { data: prof } = await supabase

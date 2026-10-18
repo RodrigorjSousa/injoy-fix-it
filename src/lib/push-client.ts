@@ -49,6 +49,84 @@ function arrayBufferToBase64Url(buffer: ArrayBuffer | null): string {
   return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** A inscrição do navegador foi feita com a chave VAPID atual? (chave trocada = push nunca chega) */
+function inscritoComChave(sub: PushSubscription, vapidPublicKey: string): boolean {
+  const atual = sub.options?.applicationServerKey;
+  if (!atual) return true; // navegador não informa: não dá para comparar
+  const a = new Uint8Array(atual);
+  const b = urlBase64ToUint8Array(vapidPublicKey);
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) if (a[i] !== b[i]) return false;
+  return true;
+}
+
+/**
+ * Grava o aparelho para QUEM está logado agora. Usa a função do banco (0068), que passa o
+ * aparelho de um usuário para outro (celular/tablet compartilhado); sem ela, cai no upsert antigo.
+ */
+async function registrarNoBanco(subscription: PushSubscription): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const json = subscription.toJSON();
+  const p256dh = json.keys?.p256dh ?? arrayBufferToBase64Url(subscription.getKey("p256dh"));
+  const auth = json.keys?.auth ?? arrayBufferToBase64Url(subscription.getKey("auth"));
+  const userAgent = navigator.userAgent.slice(0, 300);
+
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    f: string,
+    a: Record<string, unknown>,
+  ) => Promise<{ error: { message: string; code?: string } | null }>;
+  const { error } = await rpc("push_registrar_aparelho", {
+    _endpoint: subscription.endpoint,
+    _p256dh: p256dh,
+    _auth: auth,
+    _user_agent: userAgent,
+  });
+  if (!error) return { ok: true };
+  if (!/push_registrar_aparelho|PGRST202|function/i.test(`${error.code ?? ""} ${error.message}`)) {
+    return { ok: false, reason: error.message };
+  }
+
+  const { data: userData } = await supabase.auth.getUser();
+  const userId = userData.user?.id;
+  if (!userId) return { ok: false, reason: "Faça login novamente." };
+  const { error: upErr } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: userId,
+      endpoint: subscription.endpoint,
+      p256dh,
+      auth_key: auth,
+      user_agent: userAgent,
+      last_used_at: new Date().toISOString(),
+    },
+    { onConflict: "endpoint" },
+  );
+  return upErr ? { ok: false, reason: upErr.message } : { ok: true };
+}
+
+async function inscricaoValida(
+  reg: ServiceWorkerRegistration,
+  vapidPublicKey: string,
+  criar: boolean,
+): Promise<PushSubscription | null> {
+  let subscription = await reg.pushManager.getSubscription();
+  if (subscription && !inscritoComChave(subscription, vapidPublicKey)) {
+    // Chave do servidor mudou: a inscrição antiga nunca mais recebe nada. Refaz.
+    await subscription.unsubscribe().catch(() => undefined);
+    subscription = null;
+    criar = true;
+  }
+  if (!subscription && criar) {
+    const keyBytes = urlBase64ToUint8Array(vapidPublicKey);
+    subscription = await reg.pushManager.subscribe({
+      userVisibleOnly: true,
+      applicationServerKey: keyBytes.buffer.slice(
+        keyBytes.byteOffset,
+        keyBytes.byteOffset + keyBytes.byteLength,
+      ) as ArrayBuffer,
+    });
+  }
+  return subscription;
+}
+
 export async function enablePushNotifications(): Promise<
   { ok: true } | { ok: false; reason: string }
 > {
@@ -68,39 +146,32 @@ export async function enablePushNotifications(): Promise<
   const vapidPublicKey = await getVapidPublicKey();
   if (!vapidPublicKey) return { ok: false, reason: "Chave VAPID não configurada." };
 
-  let subscription = await reg.pushManager.getSubscription();
-  if (!subscription) {
-    const keyBytes = urlBase64ToUint8Array(vapidPublicKey);
-    subscription = await reg.pushManager.subscribe({
-      userVisibleOnly: true,
-      applicationServerKey: keyBytes.buffer.slice(
-        keyBytes.byteOffset,
-        keyBytes.byteOffset + keyBytes.byteLength,
-      ) as ArrayBuffer,
-    });
+  const subscription = await inscricaoValida(reg, vapidPublicKey, true);
+  if (!subscription) return { ok: false, reason: "O navegador não criou a inscrição." };
+  return registrarNoBanco(subscription);
+}
+
+/**
+ * Roda ao abrir o app: se este aparelho já tem permissão e inscrição, confirma que ela está com a
+ * chave atual e gravada para quem está logado AGORA. Devolve true só quando o aviso vai chegar.
+ */
+export async function sincronizarAparelho(): Promise<boolean> {
+  try {
+    if (!isPushSupported() || isPreviewContext()) return false;
+    if (Notification.permission !== "granted") return false;
+    const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
+    if (!reg) return false;
+    const vapidPublicKey = await getVapidPublicKey();
+    if (!vapidPublicKey) return false;
+    const subscription = await inscricaoValida(reg, vapidPublicKey, false);
+    if (!subscription) return false;
+    const r = await registrarNoBanco(subscription);
+    if (!r.ok) console.warn("[push] não registrou o aparelho:", r.reason);
+    return r.ok;
+  } catch (e) {
+    console.warn("[push] sincronização falhou", e);
+    return false;
   }
-
-  const json = subscription.toJSON();
-  const p256dh = json.keys?.p256dh ?? arrayBufferToBase64Url(subscription.getKey("p256dh"));
-  const auth = json.keys?.auth ?? arrayBufferToBase64Url(subscription.getKey("auth"));
-
-  const { data: userData } = await supabase.auth.getUser();
-  const userId = userData.user?.id;
-  if (!userId) return { ok: false, reason: "Faça login novamente." };
-
-  const { error } = await supabase.from("push_subscriptions").upsert(
-    {
-      user_id: userId,
-      endpoint: subscription.endpoint,
-      p256dh,
-      auth_key: auth,
-      user_agent: navigator.userAgent.slice(0, 300),
-      last_used_at: new Date().toISOString(),
-    },
-    { onConflict: "endpoint" },
-  );
-  if (error) return { ok: false, reason: error.message };
-  return { ok: true };
 }
 
 export async function disablePushNotifications(): Promise<void> {
@@ -116,13 +187,19 @@ export async function disablePushNotifications(): Promise<void> {
   }
 }
 
+/** Inscrito de verdade: o navegador tem a inscrição E o banco tem a linha deste usuário. */
 export async function isCurrentlySubscribed(): Promise<boolean> {
   try {
     if (!isPushSupported()) return false;
     const reg = await navigator.serviceWorker.getRegistration(SW_PATH);
-    if (!reg) return false;
-    const sub = await reg.pushManager.getSubscription();
-    return !!sub;
+    const sub = await reg?.pushManager.getSubscription();
+    if (!sub) return false;
+    const { data } = await supabase
+      .from("push_subscriptions")
+      .select("id")
+      .eq("endpoint", sub.endpoint)
+      .maybeSingle();
+    return !!data;
   } catch {
     return false;
   }

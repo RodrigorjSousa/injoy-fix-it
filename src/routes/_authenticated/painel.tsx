@@ -39,6 +39,8 @@ import {
 import { cn } from "@/lib/utils";
 import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/components/ui/data-state";
 import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
+import { AREA_COMUM, QUARTOS_POR_UNIDADE, filtrarChamadosPainel } from "@/lib/chamados-quarto";
+import { dataHoraBR, duracaoChamado } from "@/lib/chamado-tempo";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) =>
@@ -72,14 +74,18 @@ function Painel() {
       : "todas",
   );
 
-  const filtrados = useMemo(() => {
-    return chamados.filter(
-      (c) =>
-        (unidade === "todas" || c.unidade === unidade) &&
-        (categoria === "todas" || c.categoria === categoria) &&
-        (search.tipo !== "emergencia" || isUrgente(c)),
-    );
-  }, [chamados, unidade, categoria, search.tipo]);
+  const [quarto, setQuarto] = useState<string | null>(null);
+  const quartosDaUnidade = unidade === "todas" ? [] : QUARTOS_POR_UNIDADE[unidade] ?? [];
+
+  const filtrados = useMemo(
+    () =>
+      filtrarChamadosPainel(
+        chamados,
+        { unidade, categoria, quarto, soUrgentes: search.tipo === "emergencia" },
+        isUrgente,
+      ),
+    [chamados, unidade, categoria, quarto, search.tipo],
+  );
 
   const nomePor = (id: string | null) => funcionarios.find((f) => f.id === id)?.nome ?? "—";
 
@@ -102,28 +108,16 @@ function Painel() {
             {me?.isGestor ? "Operação" : `Olá, ${me?.funcionario?.nome ?? "técnico"}`}
           </h1>
           <p className="text-muted-foreground mt-1">
-            {isLoading ? "Carregando..." : `${filtrados.length} chamados visíveis`}
+            {isLoading
+              ? "Carregando..."
+              : quarto
+                ? `${filtrados.length} chamado(s) aberto(s) · ${quarto === AREA_COMUM ? AREA_COMUM : `Quarto ${quarto}`} · ${unidade}`
+                : `${filtrados.length} chamados visíveis`}
           </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Select value={unidade} onValueChange={(v) => setUnidade(v as Unidade | "todas")}>
-            <SelectTrigger className="w-[160px] bg-card"><SelectValue placeholder="Unidade" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas unidades</SelectItem>
-              {UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
-            </SelectContent>
-          </Select>
-          <Select value={categoria} onValueChange={(v) => setCategoria(v as Categoria | "todas")}>
-            <SelectTrigger className="w-[180px] bg-card"><SelectValue placeholder="Categoria" /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="todas">Todas categorias</SelectItem>
-              {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-            </SelectContent>
-          </Select>
         </div>
       </header>
 
-      {!me?.isGestor && !me?.isAdmin && <MinhaEscalaCard />}
+      {!me?.isGestor && !me?.isAdmin && <MinhaEscalaCard recolhivel />}
 
       {error ? (
         <ErrorState
@@ -136,10 +130,54 @@ function Painel() {
         <LoadingState label="Carregando chamados..." />
       ) : (
       <Tabs defaultValue="kanban" className="w-full">
-        <TabsList>
-          <TabsTrigger value="kanban">Kanban</TabsTrigger>
-          <TabsTrigger value="lista">Lista</TabsTrigger>
-        </TabsList>
+        <div className="flex flex-wrap items-center gap-2">
+          <TabsList>
+            <TabsTrigger value="kanban">Kanban</TabsTrigger>
+            <TabsTrigger value="lista">Lista</TabsTrigger>
+          </TabsList>
+          <Select
+            value={unidade}
+            onValueChange={(v) => {
+              setUnidade(v as Unidade | "todas");
+              setQuarto(null);
+            }}
+          >
+            <SelectTrigger className="w-[160px] bg-card"><SelectValue placeholder="Unidade" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas unidades</SelectItem>
+              {UNIDADES.map((u) => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          <Select
+            value={quarto ?? "todos"}
+            onValueChange={(v) => setQuarto(v === "todos" ? null : v)}
+            disabled={unidade === "todas"}
+          >
+            <SelectTrigger
+              className="w-[150px] bg-card"
+              aria-label="Quartos"
+              title={unidade === "todas" ? "Escolha a unidade primeiro" : "Chamados abertos do quarto"}
+            >
+              <SelectValue placeholder="Quartos" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todos">{unidade === "todas" ? "Quartos" : "Todos os quartos"}</SelectItem>
+              {quartosDaUnidade.map((q) => (
+                <SelectItem key={q} value={q}>{q === AREA_COMUM ? AREA_COMUM : `Quarto ${q}`}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <Select value={categoria} onValueChange={(v) => setCategoria(v as Categoria | "todas")}>
+            <SelectTrigger className="w-[180px] bg-card"><SelectValue placeholder="Categoria" /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="todas">Todas categorias</SelectItem>
+              {CATEGORIAS.map((c) => <SelectItem key={c} value={c}>{c}</SelectItem>)}
+            </SelectContent>
+          </Select>
+          {unidade === "todas" && (
+            <span className="text-xs text-muted-foreground">Para ver por quarto, escolha a unidade.</span>
+          )}
+        </div>
 
         <TabsContent value="kanban" className="mt-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -200,6 +238,13 @@ function Painel() {
                       {c.criadoPorNome && (
                         <span className="flex items-center gap-1">Aberto por: <span className="font-medium text-foreground">{c.criadoPorNome}</span></span>
                       )}
+                      {c.status === "Concluído" && c.concluidoEm && (
+                        <span className="text-success">
+                          Fechado {dataHoraBR(c.concluidoEm)}
+                          {c.concluidoPorNome ? ` por ${c.concluidoPorNome}` : ""}
+                          {duracaoChamado(c.criadoEm, c.concluidoEm) ? ` · levou ${duracaoChamado(c.criadoEm, c.concluidoEm)}` : ""}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -251,9 +296,14 @@ function ChamadoCard({
               </Badge>
             )}
           </div>
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span
+            className="text-[10px] text-muted-foreground flex items-center gap-1"
+            title={c.status === "Concluído" && c.concluidoEm ? `Aberto em ${dataHoraBR(c.criadoEm)}` : undefined}
+          >
             <Clock className="h-3 w-3" />
-            {new Date(c.criadoEm).toLocaleDateString("pt-BR")}
+            {c.status === "Concluído" && c.concluidoEm
+              ? `Fechado ${dataHoraBR(c.concluidoEm)}`
+              : new Date(c.criadoEm).toLocaleDateString("pt-BR")}
           </span>
         </div>
         <div className="text-sm font-medium line-clamp-2">{c.descricao}</div>
@@ -264,6 +314,12 @@ function ChamadoCard({
         {c.criadoPorNome && (
           <div className="mt-1 text-[11px] text-muted-foreground truncate">
             Aberto por <span className="font-medium text-foreground">{c.criadoPorNome}</span>
+          </div>
+        )}
+        {c.status === "Concluído" && (c.concluidoPorNome || c.concluidoEm) && (
+          <div className="mt-1 text-[11px] text-success truncate">
+            {c.concluidoPorNome ? <>Fechado por <span className="font-medium">{c.concluidoPorNome}</span></> : "Fechado"}
+            {duracaoChamado(c.criadoEm, c.concluidoEm) && <> · levou {duracaoChamado(c.criadoEm, c.concluidoEm)}</>}
           </div>
         )}
       </Link>

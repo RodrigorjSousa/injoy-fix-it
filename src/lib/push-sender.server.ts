@@ -183,7 +183,8 @@ export async function sendWebPush(
       "Content-Type": "application/octet-stream",
       "Content-Encoding": "aes128gcm",
       TTL: "86400",
-      Urgency: "normal",
+      // "high": o Android entrega na hora mesmo com o celular em economia de bateria.
+      Urgency: "high",
       Authorization: `vapid t=${jwt}, k=${vapidKey}`,
     },
     body: body as BodyInit,
