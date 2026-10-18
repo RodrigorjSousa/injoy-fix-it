@@ -3193,6 +3193,8 @@ export type Database = {
           saiu_em: string | null
           saldo: number
           status_cloudbeds: string | null
+          stripe_conferido_em: string | null
+          stripe_situacao: string | null
           unidade: string
         }
         Insert: {
@@ -3218,6 +3220,8 @@ export type Database = {
           saiu_em?: string | null
           saldo?: number
           status_cloudbeds?: string | null
+          stripe_conferido_em?: string | null
+          stripe_situacao?: string | null
           unidade: string
         }
         Update: {
@@ -3243,6 +3247,8 @@ export type Database = {
           saiu_em?: string | null
           saldo?: number
           status_cloudbeds?: string | null
+          stripe_conferido_em?: string | null
+          stripe_situacao?: string | null
           unidade?: string
         }
         Relationships: []
