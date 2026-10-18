@@ -449,6 +449,8 @@ export type Database = {
         Row: {
           categoria: string
           concluido_em: string | null
+          concluido_por: string | null
+          concluido_por_nome: string | null
           created_at: string
           criado_por: string | null
           descricao: string
@@ -465,6 +467,8 @@ export type Database = {
         Insert: {
           categoria: string
           concluido_em?: string | null
+          concluido_por?: string | null
+          concluido_por_nome?: string | null
           created_at?: string
           criado_por?: string | null
           descricao: string
@@ -481,6 +485,8 @@ export type Database = {
         Update: {
           categoria?: string
           concluido_em?: string | null
+          concluido_por?: string | null
+          concluido_por_nome?: string | null
           created_at?: string
           criado_por?: string | null
           descricao?: string
