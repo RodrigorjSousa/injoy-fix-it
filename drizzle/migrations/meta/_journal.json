@@ -477,6 +477,13 @@
       "when": 1792290217155,
       "tag": "0067_0067_reservas_situacao_stripe",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1792337062249,
+      "tag": "0068_0068_push_aparelho_chamado",
+      "breakpoints": true
     }
   ]
 }
