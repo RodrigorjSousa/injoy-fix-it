@@ -84,6 +84,68 @@ async function marcarLinha(unidade: Unidade, reservationId: string, cobrado: str
     .eq("reservation_id", reservationId);
 }
 
+// ------------------------------------------------------------------ situação do cartão no Stripe (selo da lista)
+
+export type SituacaoStripe = "ok" | "sem_cartao" | "sem_cliente";
+
+/** Grava a situação do cartão no Stripe na linha da lista (para o selo). Falha aqui nunca bloqueia nada. */
+export async function gravarSituacao(unidade: Unidade, reservationId: string, situacao: SituacaoStripe): Promise<void> {
+  const c = await db();
+  await c
+    .from("reservas_cobranca")
+    .update({ stripe_situacao: situacao, stripe_conferido_em: new Date().toISOString() })
+    .eq("unidade", unidade)
+    .eq("reservation_id", reservationId)
+    .then(
+      () => undefined,
+      () => undefined,
+    );
+}
+
+/**
+ * Conferência leve (de hora em hora, sem reler o Cloudbeds): acha o Cliente pela etiqueta/metadata do nº da
+ * reserva e vê se tem cartão. Não achar pela etiqueta conta como "sem_cliente" só se nenhum caminho achou antes.
+ */
+export async function conferirSituacoes(unidade: Unidade, limiteMs = 15_000): Promise<number> {
+  const inicio = Date.now();
+  const c = await db();
+  const stripe = await import("./stripe.server");
+  try {
+    // Selo só com a chave real: no modo de teste os Clientes são outros.
+    if (stripe.chaveStripe(unidade).modo !== "real") return 0;
+  } catch {
+    return 0;
+  }
+  const { data } = await c
+    .from("reservas_cobranca")
+    .select("reservation_id, cobrado, stripe_situacao, stripe_conferido_em")
+    .eq("unidade", unidade)
+    .eq("ativa", true)
+    .order("stripe_conferido_em", { ascending: true, nullsFirst: true })
+    .limit(60);
+  let n = 0;
+  for (const l of (data ?? []) as { reservation_id: string; cobrado: string | null; stripe_situacao: string | null }[]) {
+    if (Date.now() - inicio > limiteMs) break;
+    if (l.cobrado === "sim") continue;
+    const clientes = await stripe.clientesPelaEtiqueta(unidade, l.reservation_id).catch(() => null);
+    if (!clientes) continue;
+    const escolha = clienteDaReserva(clientes as never, l.reservation_id);
+    let sit: SituacaoStripe;
+    if (escolha.ok) {
+      const cartoes = await stripe.cartoesDoCliente(unidade, escolha.cliente.id).catch(() => null);
+      if (!cartoes) continue;
+      sit = cartoes.length ? "ok" : "sem_cartao";
+    } else if (escolha.motivo === "nenhum") {
+      // Pela etiqueta não achou: mantém "ok/sem_cartao" achado antes pelo e-mail/nome; senão "sem_cliente".
+      if (l.stripe_situacao === "ok" || l.stripe_situacao === "sem_cartao") continue;
+      sit = "sem_cliente";
+    } else continue;
+    await gravarSituacao(unidade, l.reservation_id, sit);
+    n++;
+  }
+  return n;
+}
+
 // ------------------------------------------------------------------ registro das tentativas
 
 type Tentativa = { id: string };
@@ -135,6 +197,8 @@ export type Preparo = {
   bloqueio: string | null;
   linkAberto: { url: string | null; enviadoEm: string | null; faturas: string[] } | null;
   clienteId: string | null;
+  /** Cliente achado, mas o Stripe não guardou nenhum cartão (só dá link ou Cloudbeds). */
+  semCartao: boolean;
 };
 
 /** Faz TODAS as conferências com dados de agora (Cloudbeds + Stripe + banco). Usado ao abrir a janela e de novo ao cobrar. */
@@ -151,6 +215,7 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
     bloqueio: null,
     linkAberto: null,
     clienteId: null,
+    semCartao: false,
   };
   const { chaveStripe, cartoesDoCliente, cobrancasDoCliente, faturasAbertasDoCliente } = await import("./stripe.server");
   try {
@@ -199,6 +264,7 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
   }
   if (!escolha.ok) {
     if (escolha.motivo === "varios") return { ...base, bloqueio: escolha.texto };
+    if (base.modo === "real" && (!busca || busca.completo)) await gravarSituacao(linha.unidade, linha.reservation_id, "sem_cliente");
     const partes = [
       reserva.emails.length ? `pelo e-mail ${reserva.emails.join(", ")}` : null,
       busca
@@ -225,6 +291,8 @@ export async function conferirTudo(linhaId: string, valorConfirmado: number | nu
 
   // 3) Cartões desse Cliente que também estão na reserva do Cloudbeds.
   base.cartoes = opcoesDeCartao((await cartoesDoCliente(linha.unidade, escolha.cliente.id)) as never, reserva.cartoes, todaySP(), base.modo);
+  base.semCartao = base.cartoes.length === 0;
+  if (base.modo === "real") await gravarSituacao(linha.unidade, linha.reservation_id, base.semCartao ? "sem_cartao" : "ok");
 
   // 4) Nenhuma cobrança do app já aprovada ou em processamento.
   const intents = await cobrancasDoCliente(linha.unidade, escolha.cliente.id);

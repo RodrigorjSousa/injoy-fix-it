@@ -14,6 +14,7 @@ import {
   opcoesDeCartao,
   reservasDaDescricao,
   resultadoDoIntent,
+  reservasDoCliente,
 } from "./stripe-regras";
 
 // Exemplo real (print do Stripe de Botafogo, 16/10/2026).
@@ -47,6 +48,17 @@ describe("Cliente da reserva", () => {
     ];
     const r = clienteDaReserva([...outros, KENYA], "3994900033060");
     expect(r.ok && r.cliente.id).toBe("cus_Uy93qG7yG8YjHD");
+  });
+  it("acha pela metadata que o Cloudbeds grava (Reservas Id), mesmo sem descrição — caso Thiago", () => {
+    const thiago = { id: "cus_VSFRcDAtlqOdF9", email: "x@guest.booking.com", description: null, metadata: { "Reservas Id": "9996102405704" } };
+    expect(reservasDoCliente(thiago)).toEqual(["9996102405704"]);
+    const r = clienteDaReserva([thiago], "9996102405704");
+    expect(r.ok && r.cliente.id).toBe("cus_VSFRcDAtlqOdF9");
+    // a etiqueta do app também vale; nº parecido não
+    expect(reservasDoCliente({ description: null, metadata: { injoy_reserva_111: "1" } })).toEqual(["111"]);
+    expect(clienteDaReserva([{ ...thiago, metadata: { "Reservas Id": "99961024057041" } }], "9996102405704").ok).toBe(false);
+    // descrição e metadata do mesmo Cliente contam uma vez
+    expect(reservasDoCliente({ description: "X - Reservas: 9996102405704", metadata: { "Reservas Id": "9996102405704" } })).toEqual(["9996102405704"]);
   });
   it("nenhum ou mais de um = não cobra", () => {
     expect(clienteDaReserva([], "3994900033060").ok).toBe(false);

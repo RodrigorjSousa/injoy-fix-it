@@ -50,7 +50,34 @@ export function metadataFaltando(descricao: unknown, metadata: Record<string, un
   return falta;
 }
 
-export type ClienteStripe = { id: string; description?: string | null; email?: string | null; deleted?: boolean };
+export type ClienteStripe = {
+  id: string;
+  description?: string | null;
+  email?: string | null;
+  deleted?: boolean;
+  metadata?: Record<string, unknown> | null;
+};
+
+/**
+ * Chaves de metadata que o Cloudbeds grava no Cliente com o nº da reserva. No painel do Stripe aparece como
+ * "Reservas Id"; as variações cobrem a forma exata gravada. Busca e conferência usam esta mesma lista.
+ */
+export const CHAVES_META_CLOUDBEDS = ["Reservas Id", "Reservas ID", "reservas_id", "reservasId", "ReservasId", "reservation_id"];
+
+/** Nºs de reserva ligados ao Cliente: descrição "Reservas: <nº>", metadata do Cloudbeds e etiqueta do app. */
+export function reservasDoCliente(c: Pick<ClienteStripe, "description" | "metadata">): string[] {
+  const ids = new Set(reservasDaDescricao(c.description));
+  const m = (c.metadata ?? {}) as Record<string, unknown>;
+  for (const k of CHAVES_META_CLOUDBEDS) {
+    const v = m[k];
+    if (typeof v === "string") for (const t of v.split(/[^0-9A-Za-z]+/)) if (t) ids.add(t);
+  }
+  for (const [k, v] of Object.entries(m)) {
+    const r = k.match(/^injoy_reserva_([0-9A-Za-z]+)$/);
+    if (r && v === "1") ids.add(r[1]);
+  }
+  return [...ids];
+}
 
 export type EscolhaCliente =
   | { ok: true; cliente: ClienteStripe }
@@ -58,7 +85,8 @@ export type EscolhaCliente =
 
 export function clienteDaReserva(clientes: ClienteStripe[], reservationId: string): EscolhaCliente {
   const id = String(reservationId).trim();
-  const certos = clientes.filter((c) => !c.deleted && reservasDaDescricao(c.description).includes(id));
+  // Vale a descrição ("Reservas: <nº>") ou a metadata com o nº que o Cloudbeds grava ("Reservas Id").
+  const certos = clientes.filter((c) => !c.deleted && reservasDoCliente(c).includes(id));
   // O mesmo Cliente pode vir repetido de buscas diferentes.
   const unicos = [...new Map(certos.map((c) => [c.id, c])).values()];
   if (unicos.length === 1) return { ok: true, cliente: unicos[0] };
@@ -66,7 +94,7 @@ export function clienteDaReserva(clientes: ClienteStripe[], reservationId: strin
     return {
       ok: false,
       motivo: "nenhum",
-      texto: `Nenhum cliente no Stripe com a reserva ${id} na descrição. O cartão pode estar guardado só no Cloudbeds: cobre por lá.`,
+      texto: `Nenhum cliente no Stripe com a reserva ${id}. O cartão pode estar guardado só no Cloudbeds: cobre por lá ou envie o link.`,
     };
   }
   return {

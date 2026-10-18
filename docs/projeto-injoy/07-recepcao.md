@@ -127,8 +127,15 @@ garante). Com mais de uma modalidade nova, alterna as cores nessa ordem de urgê
      `reservas_stripe_indice.erro` e a busca segue pelos outros caminhos. Cliente achado por outro caminho é etiquetado
      na hora. Depois: e-mail da reserva; se não achar, pelo **nº da reserva** (o mesmo no Cloudbeds e no Stripe: a
      busca do Stripe não filtra descrição, então o app lista os Clientes criados desde a data da reserva − 2 dias, até
-     4.000, e confere a descrição); se ainda não achar, pelo NOME do hóspede (`name~"..."`). Só é escolhido se a descrição tem EXATAMENTE o nº da reserva
-     (nenhum ou mais de um = não cobra). A mensagem diz o que foi procurado e quantos Clientes apareceram;
+     4.000, e confere a descrição); se ainda não achar, pelo NOME do hóspede (`name~"..."`). Só é escolhido se a
+     descrição OU a metadata que o próprio Cloudbeds grava (`Reservas Id`, migração 0067) tem EXATAMENTE o nº da
+     reserva (nenhum ou mais de um = não cobra). A busca pela etiqueta já procura também `metadata["Reservas Id"]`
+     (uma consulta só, com OR). A mensagem diz o que foi procurado e quantos Clientes apareceram;
+  2b. **Cliente sem cartão no Stripe** (ex.: Booking com cartão que pede autenticação — o Stripe recusa salvar e o
+     cartão fica só no Cloudbeds): a janela "Cobrar agora" mostra um aviso claro com "Enviar link" (ou o link já
+     aberto) e "Abrir no Cloudbeds". Na lista, selo âmbar **"Sem cartão no Stripe"** (colunas `stripe_situacao`
+     ok/sem_cartao/sem_cliente e `stripe_conferido_em`, migração 0067), conferido de hora em hora (até 60 linhas
+     ativas por unidade, ~15 s, só com chave real) e a cada abertura da janela;
   3. cartão do Cliente que também está na reserva do Cloudbeds (`cardsOnFile`: bandeira + final) e não venceu; com mais
      de um, a recepcionista escolhe; no modo de teste o cartão de teste fica liberado com aviso;
   4. bloqueia se há cobrança do app aprovada nos últimos 7 dias, qualquer cobrança em processamento no Stripe, ou
@@ -221,6 +228,10 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 17/10/2026: branch `feat/reservas-sem-cartao` (migração 0067): busca pela metadata `Reservas Id` do Cloudbeds,
+  aviso claro de Cliente sem cartão (Enviar link / Abrir no Cloudbeds) e selo "Sem cartão no Stripe" de hora em
+  hora. Caso real: Thiago (9996102405704, Booking) tem Cliente no Stripe sem cartão. Falta: merge, aplicar 0067,
+  Publicar → Atualizar.
 - 16/10/2026: modo real em Botafogo. "Cobrar agora" real OK (reserva da Rita, R$ 2,00, lançou no Cloudbeds). Link real
   pago não entrou (webhook do modo real sem entregas) → branch `fix/reservas-conferir-links` confere os links sozinho.
 - 16/10/2026: testes no modo de teste do Stripe (Botafogo): cobrança aprovada OK e cartão recusado OK (4000 0000 0000 0341).

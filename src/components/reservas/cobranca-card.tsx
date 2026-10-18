@@ -297,7 +297,23 @@ export function CobrancaCard({
                 {COBRADO_TEXTO[linha.cobrado]}
               </span>
             )}
+            {(linha.stripe_situacao === "sem_cartao" || linha.stripe_situacao === "sem_cliente") && linha.cobrado !== "sim" && (
+              <span
+                title={
+                  linha.stripe_situacao === "sem_cartao"
+                    ? "O Cliente existe no Stripe, mas o cartão não foi guardado (comum em cartão que pede autenticação). Envie o link ou cobre pelo Cloudbeds."
+                    : "Nenhum Cliente do Stripe com esta reserva: o cartão está só no Cloudbeds. Envie o link ou cobre pelo Cloudbeds."
+                }
+                className="inline-flex items-center gap-1 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-bold text-amber-800"
+              >
+                <CreditCard className="h-3 w-3" aria-hidden />
+                Sem cartão no Stripe
+              </span>
+            )}
           </div>
+          {(linha.stripe_situacao === "sem_cartao" || linha.stripe_situacao === "sem_cliente") && linha.cobrado !== "sim" && (
+            <p className="text-xs font-medium text-amber-800">Envie o link ou cobre pelo Cloudbeds.</p>
+          )}
           <h3 className="truncate font-display text-lg font-extrabold leading-tight text-[#0e2a30]">{linha.hospede}</h3>
           <p className="text-sm text-slate-600">
             Reserva <span className="font-semibold tabular-nums text-slate-800">{linha.reservation_id}</span>
