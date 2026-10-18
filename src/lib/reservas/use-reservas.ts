@@ -39,6 +39,9 @@ export type LinhaCobranca = {
   observacao: string | null;
   marcado_nome: string | null;
   marcado_em: string | null;
+  /** Situação do cartão no Stripe (selo): ok | sem_cartao | sem_cliente. */
+  stripe_situacao?: "ok" | "sem_cartao" | "sem_cliente" | null;
+  stripe_conferido_em?: string | null;
 };
 
 export type SyncCobranca = {

@@ -188,7 +188,49 @@ export function CobrarAgoraDialog({ linha, aberto, onFechar }: { linha: LinhaCob
                 <legend className="mb-1 text-sm font-semibold text-slate-700">
                   {liberados.length > 1 ? "Este hóspede tem mais de um cartão. Escolha qual cobrar:" : "Cartão"}
                 </legend>
-                {p.cartoes.length === 0 && <p className="text-sm text-slate-500">Nenhum cartão guardado no Stripe para esta reserva.</p>}
+                {p.cartoes.length === 0 && (
+                  <div role="alert" className="space-y-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
+                    <p className="flex gap-2 font-semibold">
+                      <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0" />
+                      O Stripe não guardou o cartão deste hóspede
+                    </p>
+                    <p>
+                      O Cliente da reserva existe no Stripe, mas sem cartão (comum em cartão que pede autenticação do banco). O cartão
+                      ficou só no Cloudbeds. Envie o link de pagamento ou cobre pelo Cloudbeds.
+                    </p>
+                    {p.linkAberto ? (
+                      <p className="flex gap-2 rounded-lg bg-white/70 p-2 text-sky-900 ring-1 ring-sky-200">
+                        <Mail className="mt-0.5 h-4 w-4 shrink-0" />
+                        <span>
+                          Já há um link aberto
+                          {p.linkAberto.enviadoEm ? ` (enviado em ${new Date(p.linkAberto.enviadoEm).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" })})` : ""}.
+                          Use "Verificar pagamento" no cartão da reserva.
+                        </span>
+                      </p>
+                    ) : null}
+                    <div className="flex flex-wrap gap-2">
+                      {!p.linkAberto && p.emailDestino && (
+                        <button
+                          type="button"
+                          onClick={mandarLink}
+                          disabled={link.isPending}
+                          className="inline-flex h-9 items-center gap-2 rounded-lg bg-[#0e2a30] px-3 font-semibold text-white disabled:opacity-60"
+                        >
+                          {link.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+                          Enviar link para {p.emailDestino}
+                        </button>
+                      )}
+                      <a
+                        href={linkCloudbeds(linha.property_id, linha.reservation_id)}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex h-9 items-center gap-2 rounded-lg border border-amber-300 bg-white px-3 font-semibold text-amber-900 hover:bg-amber-100"
+                      >
+                        <ExternalLink className="h-4 w-4" /> Abrir no Cloudbeds
+                      </a>
+                    </div>
+                  </div>
+                )}
                 {p.cartoes.map((c) => (
                   <label
                     key={c.id}

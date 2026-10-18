@@ -94,13 +94,24 @@ describe("link (fatura)", () => {
 });
 
 describe("achar cliente pela etiqueta", () => {
-  it("busca exata na metadata injoy_reserva_<nº>", async () => {
+  it("busca exata na etiqueta do app OU na metadata do Cloudbeds (Reservas Id), numa chamada só", async () => {
     respostas.push({ status: 200, body: { data: [{ id: "cus_K" }] } });
     const r = await clientesPelaEtiqueta("Botafogo", "3994900033060");
     expect(r.map((c) => c.id)).toEqual(["cus_K"]);
+    expect(chamadas).toHaveLength(1);
     const u = new URL(chamadas[0].url);
     expect(u.pathname).toBe("/v1/customers/search");
-    expect(u.searchParams.get("query")).toBe('metadata["injoy_reserva_3994900033060"]:"1"');
+    const q = u.searchParams.get("query") ?? "";
+    expect(q.startsWith('metadata["injoy_reserva_3994900033060"]:"1" OR ')).toBe(true);
+    expect(q).toContain('metadata["Reservas Id"]:"3994900033060"');
+    expect(q.split(" OR ").length).toBeLessThanOrEqual(10);
+  });
+  it("nº com caracteres estranhos não quebra a consulta", async () => {
+    respostas.push({ status: 200, body: { data: [] } });
+    await clientesPelaEtiqueta("Botafogo", '99"96 102');
+    const q = new URL(chamadas[0].url).searchParams.get("query") ?? "";
+    expect(q).toContain('"9996102"');
+    expect(q).not.toContain('99"96');
   });
 });
 

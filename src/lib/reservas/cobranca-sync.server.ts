@@ -291,6 +291,11 @@ export async function sincronizarCobrancas(unidades: Unidade[] = UNIDADES) {
   for (const u of unidades) {
     await indexarClientes(u).catch((e) => console.error(`[reservas-cobranca] índice ${u}:`, (e as Error).message));
   }
+  // Selo "sem cartão no Stripe" na lista.
+  const { conferirSituacoes } = await import("./cobranca-stripe.server");
+  for (const u of unidades) {
+    await conferirSituacoes(u).catch((e) => console.error(`[reservas-cobranca] situação ${u}:`, (e as Error).message));
+  }
   const avisadas = await avisarNovas().catch(() => 0);
   return { resultados, avisadas };
 }

@@ -123,9 +123,15 @@ export async function clientesPelaReserva(
 
 /** Clientes etiquetados com o nº da reserva (metadata injoy_reserva_<nº> = "1"): busca exata e direta. */
 export async function clientesPelaEtiqueta(unidade: Unidade, reservationId: string): Promise<Obj[]> {
-  const { chaveMetaReserva } = await import("./stripe-regras");
-  const chave = chaveMetaReserva(reservationId).replace(/[^0-9A-Za-z_]/g, "");
-  return lista(await chamar(unidade, "GET", "/customers/search", { query: `metadata["${chave}"]:"1"`, limit: 10 }));
+  const { chaveMetaReserva, CHAVES_META_CLOUDBEDS } = await import("./stripe-regras");
+  const id = String(reservationId).replace(/[^0-9A-Za-z]/g, "");
+  if (!id) return [];
+  // Etiqueta do app + metadata que o próprio Cloudbeds grava ("Reservas Id"), numa busca só (OR, até 10 cláusulas).
+  const clausulas = [
+    `metadata["${chaveMetaReserva(id)}"]:"1"`,
+    ...CHAVES_META_CLOUDBEDS.map((k) => `metadata["${k}"]:"${id}"`),
+  ].slice(0, 10);
+  return lista(await chamar(unidade, "GET", "/customers/search", { query: clausulas.join(" OR "), limit: 10 }));
 }
 
 /** Uma página de Clientes (mais novos primeiro). */
