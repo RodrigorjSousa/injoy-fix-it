@@ -4843,6 +4843,15 @@ export type Database = {
         Returns: string
       }
       previsao_reforco_opcoes: { Args: { _unidade: string }; Returns: Json }
+      push_registrar_aparelho: {
+        Args: {
+          _auth: string
+          _endpoint: string
+          _p256dh: string
+          _user_agent?: string
+        }
+        Returns: undefined
+      }
       registrar_bonificacao_conjunta: {
         Args: {
           _data: string
