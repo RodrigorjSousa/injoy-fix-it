@@ -182,7 +182,13 @@ export function useOcupacaoHoje() {
 // C · Mês em curso
 
 export type MesUnidade = {
+  /** Receita do mês até hoje: diárias do Cloudbeds (a mesma do Rendimento por unidade). */
   receita: number;
+  /** De onde veio a receita: diárias do Cloudbeds ou, sem elas, receitas lançadas no Financeiro. */
+  receitaFonte: "cloudbeds" | "financeiro";
+  noitesVendidas: number;
+  /** Receitas lançadas no Financeiro (só para referência). */
+  receitaFinanceiro: number;
   despesa: number;
   ocupacaoMedia: number | null; // % (hotel_metrics, dias até hoje)
   diasComMedicao: number;
@@ -208,6 +214,9 @@ export function useMesEmCurso(mes: string) {
       const ate = fimMes(mes);
       const vazio = (): MesUnidade => ({
         receita: 0,
+        receitaFonte: "financeiro",
+        noitesVendidas: 0,
+        receitaFinanceiro: 0,
         despesa: 0,
         ocupacaoMedia: null,
         diasComMedicao: 0,
@@ -224,13 +233,32 @@ export function useMesEmCurso(mes: string) {
       const out: Record<UnidadeDash, MesUnidade> = { Botafogo: vazio(), Ipanema: vazio() };
       const erroGeral = (fonte: string, e: unknown) => UNIDADES_DASH.forEach((u) => out[u].erros.push(`${fonte}: ${msg(e)}`));
 
-      const [fin, cfg, metr, bon, tot, lav] = await Promise.all([
+      // Diárias vendidas até hoje (mesma base e mesmo corte do Rendimento por unidade).
+      const ateHoje = ate > todaySP() ? todaySP() : ate;
+      const lerNoites = async () => {
+        const linhas: { unidade: string; valor: number }[] = [];
+        for (let inicio = 0; inicio < 100_000; inicio += 1000) {
+          const { data, error } = await db
+            .from("dash_reserva_noites")
+            .select("unidade,valor")
+            .gte("data", de)
+            .lte("data", ateHoje)
+            .order("id")
+            .range(inicio, inicio + 999);
+          if (error) return { linhas, erro: error };
+          linhas.push(...((data ?? []) as { unidade: string; valor: number }[]));
+          if (!data || data.length < 1000) break;
+        }
+        return { linhas, erro: null };
+      };
+      const [fin, cfg, metr, bon, tot, lav, noites] = await Promise.all([
         db.from("fin_lancamentos").select("tipo,valor,unidade,status").gte("competencia", de).lte("competencia", ate).neq("status", "cancelado"),
         db.from("fin_config").select("*").limit(1).maybeSingle(),
         db.from("hotel_metrics").select("property,date,occupancy_percentage").gte("date", de).lte("date", ate),
         db.from("registros_bonificacao").select("unidade,nota_geral,nota_funcionarios,nota_limpeza").gte("data", de).lte("data", ate),
         db.from("totem_avaliacoes").select("unidade,nota").gte("criado_em", `${de}T03:00:00Z`).lte("criado_em", `${somarDias(ate, 1)}T03:00:00Z`),
         db.from("lav_taloes").select("unidade, lav_talao_itens(saida_hotel)").gte("data_coleta", de).lte("data_coleta", ate),
+        lerNoites(),
       ]);
 
       // Financeiro: "Ambas" é rateado como na tela do Financeiro (valorRateado + fin_config).
@@ -240,10 +268,25 @@ export function useMesEmCurso(mes: string) {
           for (const u of UNIDADES_DASH) {
             if (l.unidade !== u && l.unidade !== "Ambas") continue;
             const valor = valorRateado(l, u, (cfg.data ?? null) as FinConfig | null) || 0;
-            if (l.tipo === "receita") out[u].receita += valor;
+            if (l.tipo === "receita") out[u].receitaFinanceiro += valor;
             else if (l.tipo === "despesa") out[u].despesa += valor;
           }
         }
+
+      // Receita: diárias do Cloudbeds (Rendimento por unidade). Sem diárias sincronizadas no mês,
+      // usa o que estiver lançado como receita no Financeiro.
+      if (noites.erro) erroGeral("Rendimento", noites.erro);
+      for (const u of UNIDADES_DASH) {
+        const daUnidade = noites.linhas.filter((n) => n.unidade === u);
+        out[u].noitesVendidas = daUnidade.length;
+        if (daUnidade.length) {
+          out[u].receita = Math.round(daUnidade.reduce((s, n) => s + (Number(n.valor) || 0), 0) * 100) / 100;
+          out[u].receitaFonte = "cloudbeds";
+        } else {
+          out[u].receita = out[u].receitaFinanceiro;
+          out[u].receitaFonte = "financeiro";
+        }
+      }
 
       if (metr.error) erroGeral("Ocupação", metr.error);
       else

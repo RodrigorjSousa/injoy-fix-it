@@ -117,3 +117,10 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   com os dados de `dash_reserva_noites`.
 - Busca automática diária por agendamento (hoje só ao abrir o painel).
 - Lista de quartos repetida em `index.tsx`, `vistoria.tsx` e `src/lib/dashboard/rendimento.ts` (unificar).
+
+## Mês em curso: receita do Rendimento (19/10/2026, branch `fix/mes-receita`, sem migração)
+- A "Receita lançada" vinha só das receitas do Financeiro, que não são lançadas, e aparecia R$ 0. Agora a
+  Receita do Mês em curso é a soma das diárias do Cloudbeds do mês até hoje (`dash_reserva_noites`), a mesma do
+  Rendimento por unidade; o card leva ao Rendimento. Sem diárias sincronizadas no mês, cai nas receitas do Financeiro.
+- Despesa continua do Financeiro (com rateio do "Ambas"); Resultado = Receita − Despesa.
+

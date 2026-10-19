@@ -30,8 +30,20 @@ export function BlocoMes() {
                 ) : (
                   <>
                     <div className="grid grid-cols-3 gap-2">
-                      <Kpi rotulo="Receita lançada" to="/gestor/financeiro" unidade={u} valor={brl0.format(d.receita)} />
-                      <Kpi rotulo="Despesa" to="/gestor/financeiro" unidade={u} valor={brl0.format(d.despesa)} />
+                      {d.receitaFonte === "cloudbeds" ? (
+                        <Kpi
+                          rotulo="Receita (diárias)" to="/gestor/rendimento" unidade={u}
+                          valor={brl0.format(d.receita)}
+                          sub={`até hoje · ${d.noitesVendidas} noite(s)`}
+                        />
+                      ) : (
+                        <Kpi
+                          rotulo="Receita lançada" to="/gestor/financeiro" unidade={u}
+                          valor={brl0.format(d.receita)}
+                          sub="Rendimento do mês ainda não carregado"
+                        />
+                      )}
+                      <Kpi rotulo="Despesa" to="/gestor/financeiro" unidade={u} valor={brl0.format(d.despesa)} sub="Financeiro" />
                       <Kpi
                         rotulo="Resultado" to="/gestor/financeiro" unidade={u}
                         valor={brl0.format(resultado)}
