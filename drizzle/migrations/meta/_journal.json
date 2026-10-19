@@ -505,6 +505,13 @@
       "when": 1792373265686,
       "tag": "0071_prazo_dos_chamados",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1792373650731,
+      "tag": "0072_0072_chamados_prazo_agendamento",
+      "breakpoints": true
     }
   ]
 }
