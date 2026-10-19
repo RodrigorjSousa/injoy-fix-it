@@ -203,7 +203,7 @@ das selfies antigas do ponto foi oferecida.
 - Prazo (0071/0072): o chamado tem 3 dias (72 h desde a abertura) para ser concluído. De hora em hora (minuto 13)
   `private.chamados_avisar_atrasados()` manda `chamado_atrasado` URGENTE (fica na tela até tocar, vibração longa)
   para o técnico responsável + gestores, e repete a cada 24 h enquanto continuar aberto (`chamados.prazo_avisado_em`).
-  Gestão: bloco "Chamados fora do prazo" no /gestor e contador em "Precisa de você hoje"; Painel com selo "Atrasado"
+  Gestão: bloco "Chamados fora do prazo" no /gestor (começa recolhido; toque no resumo abre a lista) e contador em "Precisa de você hoje"; Painel com selo "Atrasado"
   e filtro `/painel?tipo=atrasados`. Regra no app em `src/lib/chamado-prazo.ts` (a mesma do banco).
 - Fechamento (0069): ao virar "Concluído" o BANCO grava `concluido_em`, `concluido_por` e `concluido_por_nome`
   (o app só muda o status; não dá para forjar). Reabrir apaga. Painel e tela do chamado mostram "Fechado por X em

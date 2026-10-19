@@ -1,6 +1,14 @@
 import { Link } from "@tanstack/react-router";
-import { AlarmClock, ArrowUpRight, CheckCircle2, Loader2, MapPin, User2 } from "lucide-react";
-import { useMemo } from "react";
+import {
+  AlarmClock,
+  ArrowUpRight,
+  CheckCircle2,
+  ChevronDown,
+  Loader2,
+  MapPin,
+  User2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
 import { useChamados } from "@/lib/store";
 import {
   chamadosAtrasados,
@@ -15,6 +23,8 @@ import { Secao } from "./comum";
 export function BlocoChamadosAtrasados() {
   const q = useChamados();
   const atrasados = useMemo(() => chamadosAtrasados(q.data ?? []), [q.data]);
+  // Começa recolhido para não poluir a Área do Gestor; abre ao tocar no resumo.
+  const [aberto, setAberto] = useState(false);
 
   return (
     <Secao titulo={`Chamados fora do prazo (${PRAZO_DIAS} dias)`}>
@@ -32,10 +42,27 @@ export function BlocoChamadosAtrasados() {
         </div>
       ) : (
         <div className="space-y-2">
-          <div className="flex items-center justify-between gap-2">
-            <p className="text-sm font-bold text-red-700">
-              {atrasados.length} chamado(s) passaram de {PRAZO_DIAS} dias sem conclusão
-            </p>
+          <div className="flex items-center justify-between gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-3">
+            <button
+              type="button"
+              onClick={() => setAberto((v) => !v)}
+              aria-expanded={aberto}
+              className="flex flex-1 items-center gap-2 text-left"
+            >
+              <AlarmClock className="h-4 w-4 shrink-0 text-red-600" />
+              <span className="text-sm font-bold text-red-700">
+                {atrasados.length} chamado(s) passaram de {PRAZO_DIAS} dias sem conclusão
+              </span>
+              <span className="text-xs font-semibold text-red-600/80">
+                {aberto ? "Ocultar" : "Ver lista"}
+              </span>
+              <ChevronDown
+                className={
+                  "h-4 w-4 shrink-0 text-red-600 transition-transform" +
+                  (aberto ? " rotate-180" : "")
+                }
+              />
+            </button>
             <Link
               to="/painel"
               search={{ tipo: "atrasados" }}
@@ -44,39 +71,43 @@ export function BlocoChamadosAtrasados() {
               Ver no Painel <ArrowUpRight className="h-3.5 w-3.5" />
             </Link>
           </div>
-          <div className="divide-y overflow-hidden rounded-lg border border-red-200 bg-white">
-            {atrasados.slice(0, 15).map((c) => {
-              const s = situacaoPrazo(c);
-              return (
-                <Link
-                  key={c.id}
-                  to="/chamados/$id"
-                  params={{ id: c.id }}
-                  className="flex items-start gap-3 px-4 py-3 hover:bg-red-50"
-                >
-                  <AlarmClock className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-semibold text-slate-900">{c.descricao}</p>
-                    <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
-                      <span className="flex items-center gap-1">
-                        <MapPin className="h-3 w-3" />
-                        {c.unidade}
-                      </span>
-                      <span className="flex items-center gap-1">
-                        <User2 className="h-3 w-3" />
-                        {c.responsavelNome ?? "Sem responsável"}
-                      </span>
-                      <span>{c.status === "Em Andamento" ? "Fazendo" : "A fazer"}</span>
-                      <span>Aberto em {dataHoraBR(c.criadoEm)}</span>
-                    </p>
-                    <p className="mt-0.5 text-xs font-bold text-red-700">{textoAtrasoChamado(s)}</p>
-                  </div>
-                  <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
-                </Link>
-              );
-            })}
-          </div>
-          {atrasados.length > 15 && (
+          {aberto && (
+            <div className="divide-y overflow-hidden rounded-lg border border-red-200 bg-white">
+              {atrasados.slice(0, 15).map((c) => {
+                const s = situacaoPrazo(c);
+                return (
+                  <Link
+                    key={c.id}
+                    to="/chamados/$id"
+                    params={{ id: c.id }}
+                    className="flex items-start gap-3 px-4 py-3 hover:bg-red-50"
+                  >
+                    <AlarmClock className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-semibold text-slate-900">{c.descricao}</p>
+                      <p className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {c.unidade}
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <User2 className="h-3 w-3" />
+                          {c.responsavelNome ?? "Sem responsável"}
+                        </span>
+                        <span>{c.status === "Em Andamento" ? "Fazendo" : "A fazer"}</span>
+                        <span>Aberto em {dataHoraBR(c.criadoEm)}</span>
+                      </p>
+                      <p className="mt-0.5 text-xs font-bold text-red-700">
+                        {textoAtrasoChamado(s)}
+                      </p>
+                    </div>
+                    <ArrowUpRight className="h-4 w-4 shrink-0 text-slate-400" />
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+          {aberto && atrasados.length > 15 && (
             <p className="text-xs text-slate-500">
               Mostrando os 15 mais antigos. Veja todos no Painel.
             </p>
