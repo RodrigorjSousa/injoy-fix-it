@@ -178,3 +178,106 @@
     color: #fff;
   }
 }
+
+/* ------------------------------------------------------------------ totem
+   Identidade do site injoyhoteis.com: Jost leve nos títulos (o mesmo desenho
+   das letras do logo), Inter no texto e Montserrat nos botões. As fontes ficam
+   no próprio app (public/totem/fonts, licença OFL) para o totem não depender
+   do Google Fonts nem da internet do saguão para ficar bonito. */
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 300;
+  font-display: swap;
+  src: url("/totem/fonts/jost-latin-300-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/totem/fonts/jost-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Jost";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/totem/fonts/jost-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url("/totem/fonts/inter-latin-400-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url("/totem/fonts/inter-latin-500-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Inter";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/totem/fonts/inter-latin-600-normal.woff2") format("woff2");
+}
+@font-face {
+  font-family: "Montserrat";
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url("/totem/fonts/montserrat-latin-600-normal.woff2") format("woff2");
+}
+.totem-quiosque {
+  font-family: "Inter", system-ui, sans-serif;
+  font-feature-settings: "cv11", "ss01";
+}
+.totem-quiosque :is(h1, h2, legend, .totem-display) {
+  font-family: "Jost", "Inter", system-ui, sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.totem-quiosque h1,
+.totem-quiosque .totem-display-leve {
+  font-weight: 300;
+}
+.totem-quiosque .totem-cta {
+  font-family: "Montserrat", "Inter", system-ui, sans-serif;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+/* O "j" do logo: barra ciano com o ponto em cima, marcando a etapa atual. */
+@keyframes totem-ponto {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(51, 173, 201, 0.55); }
+  60% { box-shadow: 0 0 0 10px rgba(51, 173, 201, 0); }
+}
+.totem-quiosque .totem-ponto {
+  animation: totem-ponto 2.4s ease-out infinite;
+}
+@keyframes totem-entrada {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes totem-foto {
+  from { transform: scale(1.06); }
+  to { transform: scale(1); }
+}
+.totem-quiosque .totem-foto {
+  animation: totem-foto 14s ease-out both;
+}
+.totem-quiosque .totem-entrada {
+  animation: totem-entrada 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .totem-quiosque .totem-ponto,
+  .totem-quiosque .totem-foto,
+  .totem-quiosque .totem-entrada {
+    animation: none;
+  }
+}

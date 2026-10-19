@@ -73,10 +73,19 @@ check-in e check-out pelo totem + avaliação rápida no check-out.
   escolhe em Área do Gestor › Totem. O servidor recusa a ação que não for a do tablet (`exigirModo`).
   - Tablet de check-in: abre direto em "Como você quer encontrar sua reserva?".
   - Tablet de check-out: abre direto no número do quarto.
-- **Layout:**
-  - **Coluna da esquerda:** marca IN JOY (igual à placa do hall), relógio, título, etapas 1-2-3, ajuda
-    e idioma.
-  - **Painel da direita:** a ação.
+- **Layout (identidade do site injoyhoteis.com):**
+  - **Cores do site:** grafite `#26292B`, petróleo `#14708A` / `#0F5C72` (botões), ciano `#33ADC9`
+    (o "j" do logo), névoa `#F5F8F9` (fundo), linha `#E0E6E9`. Ficam como variáveis no `TotemApp`.
+  - **Fontes do site:** Jost (títulos), Inter (texto) e Montserrat em maiúsculas (botões). Ficam em
+    `public/totem/fonts` (OFL), sem depender do Google Fonts nem da internet do saguão.
+  - **Boas-vindas:** foto do pôr do sol na baía de Botafogo (a mesma da capa do site,
+    `public/totem/rio-por-do-sol.jpg`) em tela cheia, logo oficial branco, "Bem-vindo à Injoy" e os
+    dois cartões grandes (check-in/check-out, ou código/documento no tablet só de check-in).
+  - **Durante o fluxo:** coluna grafite à esquerda com logo, relógio, título e as etapas desenhadas
+    como o "j" do logo (barra ciano até a etapa atual, que leva o ponto); painel claro à direita com a
+    ação.
+  - **Logo:** `public/totem/logo-injoy-branco.png` (fundo escuro) e `logo-injoy.png` (fundo claro),
+    extraídos do site.
   - **Teclado:** desenhado na própria tela. O teclado do Android nunca abre e não cobre o formulário.
   - **Inatividade:** depois de um tempo sem toque aparece "Ainda está aí?" com contagem de 15 s e o
     totem volta ao início.

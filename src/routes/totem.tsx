@@ -8,10 +8,11 @@ export const Route = createFileRoute("/totem")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "IN.JOY · Check-in" },
+      { title: "Injoy · Check-in" },
       { name: "robots", content: "noindex" },
-      { name: "theme-color", content: "#0C5A64" },
+      { name: "theme-color", content: "#26292B" },
     ],
+    links: [{ rel: "preload", as: "image", href: "/totem/rio-por-do-sol.jpg" }],
   }),
   component: TotemApp,
 });

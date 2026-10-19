@@ -9,7 +9,7 @@ export const IDIOMAS: Array<{ id: Idioma; rotulo: string; curto: string }> = [
 ];
 
 const pt = {
-  boasVindas: "Bem-vindo ao IN.JOY",
+  boasVindas: "Bem-vindo à Injoy",
   oQueFazer: "O que você quer fazer?",
   checkin: "Fazer check-in",
   checkinSub: "Receba a senha da porta do seu quarto",
@@ -120,15 +120,15 @@ const pt = {
   consentItens: [
     "Uma foto do seu rosto. Vamos pedir para você piscar os olhos, para confirmar que é você mesmo.",
     "Uma foto segurando o documento ao lado do rosto, com a foto do documento virada para a câmera.",
-    "As fotos servem só para o registro da sua hospedagem, ficam guardadas com segurança e apenas a equipe da IN.JOY tem acesso (LGPD, Lei 13.709/2018).",
+    "As fotos servem só para o registro da sua hospedagem, ficam guardadas com segurança e apenas a equipe da Injoy tem acesso (LGPD, Lei 13.709/2018).",
   ],
   consentAceito: "Concordo, vamos lá",
   consentObrigatorio: "As fotos são obrigatórias para liberar a senha da porta.",
   somLigado: "Voz ligada",
   somDesligado: "Voz desligada",
   voz: {
-    inicioAmbos: "Olá! Bem-vindo à IN.JOY. Toque em check-in ou em check-out para começar.",
-    inicioCheckin: "Olá! Bem-vindo à IN.JOY. Escolha como quer encontrar a sua reserva.",
+    inicioAmbos: "Olá! Bem-vindo à Injoy. Toque em check-in ou em check-out para começar.",
+    inicioCheckin: "Olá! Bem-vindo à Injoy. Escolha como quer encontrar a sua reserva.",
     checkinCodigo: "Digite o código da reserva e o seu sobrenome no teclado da tela.",
     checkinDocumento: "Digite o seu nome completo e o número do seu documento.",
     resumo: (nome: string) => `${nome}, encontramos a sua reserva. Confira os dados e toque no botão para continuar.`,
@@ -219,7 +219,7 @@ const pt = {
 type Textos = typeof pt;
 
 const en: Textos = {
-  boasVindas: "Welcome to IN.JOY",
+  boasVindas: "Welcome to Injoy",
   oQueFazer: "What would you like to do?",
   checkin: "Check in",
   checkinSub: "Get the door code for your room",
@@ -329,15 +329,15 @@ const en: Textos = {
   consentItens: [
     "A photo of your face. We will ask you to blink, to confirm it is really you.",
     "A photo holding your ID next to your face, with the ID photo facing the camera.",
-    "The photos are used only for your guest registration, stored securely and seen only by the IN.JOY team (Brazilian data protection law, LGPD).",
+    "The photos are used only for your guest registration, stored securely and seen only by the Injoy team (Brazilian data protection law, LGPD).",
   ],
   consentAceito: "I agree, let's go",
   consentObrigatorio: "The photos are required to release your door code.",
   somLigado: "Voice on",
   somDesligado: "Voice off",
   voz: {
-    inicioAmbos: "Hello! Welcome to IN.JOY. Tap check-in or check-out to start.",
-    inicioCheckin: "Hello! Welcome to IN.JOY. Choose how you want to find your booking.",
+    inicioAmbos: "Hello! Welcome to Injoy. Tap check-in or check-out to start.",
+    inicioCheckin: "Hello! Welcome to Injoy. Choose how you want to find your booking.",
     checkinCodigo: "Type your booking code and your last name on the screen keyboard.",
     checkinDocumento: "Type your full name and your document number.",
     resumo: (nome) => `${nome}, we found your booking. Check the details and tap the button to continue.`,
@@ -426,7 +426,7 @@ const en: Textos = {
 };
 
 const es: Textos = {
-  boasVindas: "Bienvenido a IN.JOY",
+  boasVindas: "Bienvenido a Injoy",
   oQueFazer: "¿Qué quieres hacer?",
   checkin: "Hacer check-in",
   checkinSub: "Recibe la clave de la puerta de tu habitación",
@@ -536,15 +536,15 @@ const es: Textos = {
   consentItens: [
     "Una foto de tu rostro. Te pediremos que parpadees, para confirmar que eres tú.",
     "Una foto sosteniendo el documento al lado del rostro, con la foto del documento hacia la cámara.",
-    "Las fotos sirven solo para el registro de tu hospedaje, se guardan de forma segura y solo el equipo de IN.JOY tiene acceso (ley brasileña de protección de datos, LGPD).",
+    "Las fotos sirven solo para el registro de tu hospedaje, se guardan de forma segura y solo el equipo de Injoy tiene acceso (ley brasileña de protección de datos, LGPD).",
   ],
   consentAceito: "Acepto, vamos",
   consentObrigatorio: "Las fotos son obligatorias para liberar la clave de la puerta.",
   somLigado: "Voz activada",
   somDesligado: "Voz desactivada",
   voz: {
-    inicioAmbos: "¡Hola! Bienvenido a IN.JOY. Toca check-in o check-out para empezar.",
-    inicioCheckin: "¡Hola! Bienvenido a IN.JOY. Elige cómo quieres encontrar tu reserva.",
+    inicioAmbos: "¡Hola! Bienvenido a Injoy. Toca check-in o check-out para empezar.",
+    inicioCheckin: "¡Hola! Bienvenido a Injoy. Elige cómo quieres encontrar tu reserva.",
     checkinCodigo: "Escribe el código de la reserva y tu apellido en el teclado de la pantalla.",
     checkinDocumento: "Escribe tu nombre completo y el número de tu documento.",
     resumo: (nome) => `${nome}, encontramos tu reserva. Revisa los datos y toca el botón para continuar.`,

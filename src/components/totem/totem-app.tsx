@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, IdCard, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanFace, ScanLine, ShieldCheck, Star, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, Check, CornerDownLeft, CreditCard, Delete, DoorOpen, IdCard, KeyRound, Loader2, LogOut, Phone, Printer, QrCode, RotateCcw, ScanFace, ScanLine, ShieldCheck, Star, UserRound, Volume2, VolumeX, Wallet } from "lucide-react";
 import {
   totemAvaliar,
   totemDocumentoEnviar,
@@ -460,9 +460,8 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       );
       break;
     case "inicio":
+      // Com check-in, o início é a tela de boas-vindas (fora do painel).
       if (modo === "checkout") painel = <FormCheckout t={t} onEnviar={consultarCheckout} />;
-      else if (modo === "checkin") painel = <EscolherMetodo t={t} onEscolher={(m) => setTela({ t: "checkin", modo: m })} />;
-      else painel = <EscolherFluxo t={t} onEscolher={(f) => setTela(f === "checkin" ? { t: "checkin", modo: "codigo" } : { t: "checkout" })} />;
       break;
     case "checkin":
       painel = <FormCheckin key={tela.modo} t={t} modo={tela.modo} onTrocarModo={(m) => setTela({ t: "checkin", modo: m })} onEnviar={consultarCheckin} />;
@@ -539,8 +538,8 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
         <Aviso t={t} titulo={tela.nome ? `${t.ola(tela.nome)} ${t.naoDeuCerto}.` : t.naoDeuCerto} telefone={info?.telefoneSuporte ?? null} onFim={irInicio}>
           <ul className="mt-8 space-y-3">
             {tela.motivos.map((m) => (
-              <li key={JSON.stringify(m)} className="flex gap-4 rounded-2xl bg-[var(--pedra)] px-6 py-5 text-xl font-medium">
-                <span aria-hidden className="mt-2 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--madeira)]" />
+              <li key={JSON.stringify(m)} className="flex gap-4 rounded-2xl bg-white px-6 py-5 text-xl ring-1 ring-inset ring-[var(--linha)]">
+                <span aria-hidden className="mt-2.5 h-2.5 w-2.5 shrink-0 rounded-full bg-[var(--ciano)]" />
                 {t.motivo(m, fmt.data, fmt.valor)}
               </li>
             ))}
@@ -611,10 +610,10 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
     case "avaliado":
       painel = (
         <div className="flex h-full flex-col justify-center">
-          <span className="grid h-20 w-20 place-items-center rounded-full bg-[var(--teal)] text-white">
+          <span className="grid h-20 w-20 place-items-center rounded-full bg-[var(--ciano)] text-white">
             <Check className="h-10 w-10" />
           </span>
-          <h2 className="mt-8 text-5xl font-extrabold tracking-tight">{t.avaliacaoEnviada}</h2>
+          <h2 className="totem-display-leve mt-8 text-[3.6rem] leading-tight">{t.avaliacaoEnviada}</h2>
           <p className="mt-4 text-2xl text-[var(--tinta-suave)]">{t.obrigado}</p>
         </div>
       );
@@ -622,6 +621,52 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
   }
 
   const passos = fluxo === "checkout" ? t.passosCheckout4 : t.passosCheckin4;
+  // Tela de boas-vindas: a foto da baía de Botafogo ocupa tudo, como a capa do site.
+  const boasVindas = tela.t === "inicio" && modo !== "checkout";
+
+  const idiomaVoz = (
+    <div className="flex flex-wrap items-center gap-3">
+      {temVoz && (info?.voz ?? true) && (
+        <button
+          type="button"
+          onClick={() => {
+            if (!mudo) calar();
+            setMudo(!mudo);
+          }}
+          aria-pressed={!mudo}
+          aria-label={mudo ? t.somDesligado : t.somLigado}
+          className="grid h-14 w-14 place-items-center rounded-full bg-white/10 text-white ring-1 ring-white/15 backdrop-blur-md focus-visible:outline-2 focus-visible:outline-[var(--ciano)]"
+        >
+          {mudo ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
+        </button>
+      )}
+      <nav aria-label="Idioma / Language / Idioma" className="flex w-fit gap-1 rounded-full bg-white/10 p-1 ring-1 ring-white/15 backdrop-blur-md">
+        {IDIOMAS.map((i) => (
+          <button
+            key={i.id}
+            type="button"
+            onClick={() => setIdioma(i.id)}
+            aria-pressed={idioma === i.id}
+            className={cn(
+              "min-h-12 rounded-full px-5 text-base font-medium transition-colors focus-visible:outline-2 focus-visible:outline-[var(--ciano)]",
+              idioma === i.id ? "bg-white text-[var(--grafite)]" : "text-white/75",
+            )}
+          >
+            {i.rotulo}
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+
+  const ajuda = info?.telefoneSuporte && tela.t !== "parear" && (
+    <p className="flex items-center gap-3 text-lg text-white/70">
+      <Phone className="h-5 w-5 text-[var(--ciano)]" />
+      <span>
+        {t.ajuda} <span className="font-semibold text-white">{info.telefoneSuporte}</span>
+      </span>
+    </p>
+  );
 
   return (
     <VozContexto.Provider value={dizer}>
@@ -629,126 +674,149 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
       onPointerDownCapture={() => {
         interagiu.current = true;
       }}
-      className="totem-quiosque relative min-h-[100dvh] select-none bg-[var(--pedra)] text-[var(--tinta)] antialiased lg:h-[100dvh] lg:overflow-hidden"
+      className="totem-quiosque relative min-h-[100dvh] select-none bg-[var(--grafite)] text-[var(--tinta)] antialiased lg:h-[100dvh] lg:overflow-hidden"
       lang={idioma === "pt" ? "pt-BR" : idioma}
       style={
         {
-          "--pedra": "#ECE6DD",
-          "--linho": "#FBF8F4",
-          "--tinta": "#2B2622",
-          "--tinta-suave": "#2B2622B3",
-          "--madeira": "#B08356",
-          "--luz": "#F2C98A",
-          "--teal": "#0C5A64",
-          "--teal-escuro": "#08434B",
+          // Paleta do site injoyhoteis.com
+          "--grafite": "#26292B",
+          "--pedra": "#EAF0F2",
+          "--linho": "#F5F8F9",
+          "--linha": "#E0E6E9",
+          "--tinta": "#2B2E30",
+          "--tinta-suave": "#5B6063",
+          "--madeira": "#0F5C72",
+          "--ciano": "#33ADC9",
+          "--luz": "#33ADC9",
+          "--teal": "#14708A",
+          "--teal-escuro": "#0F5C72",
         } as CSSProperties
       }
     >
+      {boasVindas ? (
+        <div className="relative min-h-[100dvh] overflow-hidden text-white lg:h-full">
+          <img src={FOTO_RIO} alt="" aria-hidden className="totem-foto absolute inset-0 h-full w-full object-cover object-[50%_40%]" />
+          <div
+            aria-hidden
+            className="absolute inset-0"
+            style={{
+              background:
+                "linear-gradient(90deg, rgba(24,30,33,0.8) 0%, rgba(24,30,33,0.42) 50%, rgba(24,30,33,0.05) 100%), linear-gradient(0deg, rgba(24,30,33,0.9) 0%, rgba(24,30,33,0) 42%)",
+            }}
+          />
+          <div className="relative flex min-h-[100dvh] flex-col px-8 py-8 lg:h-full lg:min-h-0 lg:px-14 lg:py-10">
+            <div className="flex items-start justify-between gap-6">
+              <Marca unidade={info?.unidade} grande />
+              <Relogio idioma={idioma} />
+            </div>
+
+            <div className="totem-entrada my-auto max-w-[46rem] py-10">
+              <h1 className="text-[3.6rem] leading-[1.02] lg:text-[4.75rem]">{t.boasVindas}</h1>
+              <p className="mt-5 max-w-xl text-2xl leading-snug text-white/80">
+                {modo === "checkin" ? t.comoEncontrar : t.subtituloAmbos}
+              </p>
+            </div>
+
+            <div className="totem-entrada [animation-delay:250ms]">
+              {modo === "checkin" ? (
+                <EscolherMetodo t={t} onEscolher={(m) => setTela({ t: "checkin", modo: m })} />
+              ) : (
+                <EscolherFluxo t={t} onEscolher={(f) => setTela(f === "checkin" ? { t: "checkin", modo: "codigo" } : { t: "checkout" })} />
+              )}
+            </div>
+
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-5">
+              {idiomaVoz}
+              {ajuda}
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className="grid min-h-[100dvh] lg:h-full lg:min-h-0 lg:grid-cols-[minmax(0,37fr)_minmax(0,63fr)] lg:grid-rows-[100%]">
         {/* Coluna da marca: quem somos, onde estamos e em que etapa o hóspede está */}
-        <aside className="relative flex min-h-0 flex-col gap-6 px-8 py-7 lg:px-11 lg:py-9">
-          <div className="flex items-start justify-between gap-4">
+        <aside className="relative flex min-h-0 flex-col gap-7 overflow-hidden px-8 py-7 text-white lg:px-11 lg:py-9">
+          <img src={FOTO_RIO} alt="" aria-hidden className="absolute inset-x-0 bottom-0 h-[55%] w-full object-cover object-[50%_35%] opacity-40" />
+          <div aria-hidden className="absolute inset-0 bg-gradient-to-b from-[var(--grafite)] from-45% via-[var(--grafite)]/85 to-[var(--grafite)]/60" />
+
+          <div className="relative flex items-start justify-between gap-4">
             <Marca unidade={info?.unidade} />
             <Relogio idioma={idioma} />
           </div>
 
-          <div className="lg:mt-2">
-            <h1 className="text-[2.6rem] font-extrabold leading-[1.04] tracking-tight xl:text-[2.9rem]">{titulo}</h1>
-            <p className="mt-3 max-w-md text-lg leading-snug text-[var(--tinta-suave)]">{subtitulo}</p>
+          <div className="relative lg:mt-3">
+            <h1 className="text-[2.7rem] leading-[1.05] xl:text-[3rem]">{titulo}</h1>
+            <p className="mt-3 max-w-md text-lg leading-snug text-white/70">{subtitulo}</p>
           </div>
 
-          {mostraPassos && (
-            <ol className="hidden space-y-1 lg:block" aria-label="Etapas">
-              {passos.map((p, i) => {
-                const atual = passoDe(tela);
-                const feito = i < atual;
-                const ativo = i === atual;
-                return (
-                  <li key={p} className="flex items-center gap-4 py-1.5">
-                    <span
-                      className={cn(
-                        "grid h-10 w-10 shrink-0 place-items-center rounded-full text-base font-bold transition-colors",
-                        feito && "bg-[var(--teal)] text-white",
-                        ativo && "bg-[var(--tinta)] text-white",
-                        !feito && !ativo && "border-2 border-[var(--tinta)]/20 text-[var(--tinta)]/40",
-                      )}
-                    >
-                      {feito ? <Check className="h-5 w-5" /> : i + 1}
-                    </span>
-                    <span className={cn("text-xl", ativo ? "font-bold" : feito ? "font-medium text-[var(--tinta-suave)]" : "text-[var(--tinta)]/45")}>{p}</span>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
+          {mostraPassos && <Etapas passos={passos} atual={passoDe(tela)} />}
 
-          <div className="mt-auto space-y-5">
+          <div className="relative mt-auto space-y-5">
             {voltarInicioVisivel && (
               <button
                 type="button"
                 onClick={irInicio}
-                className="inline-flex min-h-14 items-center gap-3 rounded-full bg-white/70 px-6 text-lg font-semibold text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
+                className="inline-flex min-h-14 items-center gap-3 rounded-full bg-white/10 px-6 text-lg font-medium text-white ring-1 ring-white/15 backdrop-blur-md focus-visible:outline-2 focus-visible:outline-[var(--ciano)]"
               >
                 <ArrowLeft className="h-6 w-6" /> {t.inicio}
               </button>
             )}
-            {info?.telefoneSuporte && tela.t !== "parear" && (
-              <p className="flex items-center gap-3 text-lg">
-                <Phone className="h-5 w-5 text-[var(--madeira)]" />
-                <span>
-                  <span className="text-[var(--tinta-suave)]">{t.ajuda} </span>
-                  <span className="font-semibold">{info.telefoneSuporte}</span>
-                </span>
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-3">
-            {temVoz && (info?.voz ?? true) && (
-              <button
-                type="button"
-                onClick={() => {
-                  if (!mudo) calar();
-                  setMudo(!mudo);
-                }}
-                aria-pressed={!mudo}
-                aria-label={mudo ? t.somDesligado : t.somLigado}
-                className="grid h-14 w-14 place-items-center rounded-full bg-white/70 text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
-              >
-                {mudo ? <VolumeX className="h-6 w-6" /> : <Volume2 className="h-6 w-6" />}
-              </button>
-            )}
-            <nav aria-label="Idioma / Language / Idioma" className="flex w-fit gap-1 rounded-full bg-white/70 p-1">
-                {IDIOMAS.map((i) => (
-                  <button
-                    key={i.id}
-                    type="button"
-                    onClick={() => setIdioma(i.id)}
-                    aria-pressed={idioma === i.id}
-                    className={cn(
-                      "min-h-12 rounded-full px-5 text-base font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--teal)]",
-                      idioma === i.id ? "bg-[var(--tinta)] text-white" : "text-[var(--tinta-suave)]",
-                    )}
-                  >
-                    {i.rotulo}
-                  </button>
-                ))}
-            </nav>
-            </div>
+            {ajuda}
+            {idiomaVoz}
           </div>
-          {/* Linha de luz, como o LED do balcão */}
-          <span aria-hidden className="pointer-events-none absolute inset-x-12 bottom-0 hidden h-px bg-gradient-to-r from-transparent via-[var(--luz)] to-transparent lg:block" />
         </aside>
 
         {/* Painel de interação */}
-        <main className="relative min-h-0 bg-[var(--linho)] px-8 py-8 shadow-[-24px_0_60px_-40px_rgba(43,38,34,0.35)] lg:rounded-l-[2.5rem] lg:px-12 lg:py-9">
+        <main className="relative min-h-0 bg-[var(--linho)] px-8 py-8 lg:rounded-l-[2.5rem] lg:px-12 lg:py-9">
           <div className="h-full">{painel}</div>
         </main>
       </div>
+      )}
 
       {restante !== null && (
         <AvisoInativo t={t} segundos={restante} onContinuar={() => window.dispatchEvent(new Event("pointerdown"))} />
       )}
     </div>
     </VozContexto.Provider>
+  );
+}
+
+const FOTO_RIO = "/totem/rio-por-do-sol.jpg";
+
+/**
+ * Etapas do fluxo desenhadas como o "j" do logo: a barra ciano sobe até a etapa
+ * atual, que leva o ponto.
+ */
+function Etapas({ passos, atual }: { passos: string[]; atual: number }) {
+  return (
+    <ol className="relative hidden lg:block" aria-label="Etapas">
+      {passos.map((p, i) => {
+        const feito = i < atual;
+        const ativo = i === atual;
+        return (
+          <li key={p} className="relative flex min-h-[3.25rem] items-center pl-12" aria-current={ativo ? "step" : undefined}>
+            {i > 0 && (
+              <span
+                aria-hidden
+                className={cn("absolute bottom-1/2 left-[13px] h-full w-[3px] rounded-full", i <= atual ? "bg-[var(--ciano)]" : "bg-white/12")}
+              />
+            )}
+            <span
+              aria-hidden
+              className={cn(
+                "absolute left-[14.5px] top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full",
+                ativo && "totem-ponto h-[18px] w-[18px] bg-[var(--ciano)]",
+                feito && "h-[11px] w-[11px] bg-[var(--ciano)]",
+                !feito && !ativo && "h-[11px] w-[11px] border-2 border-white/30 bg-[var(--grafite)]",
+              )}
+            />
+            <span className={cn("text-xl", ativo ? "font-semibold text-white" : feito ? "text-white/60" : "text-white/40")}>
+              {feito && <Check aria-hidden className="mr-2 inline h-5 w-5 -translate-y-px text-[var(--ciano)]" />}
+              {p}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 
@@ -850,17 +918,17 @@ function useOcioso(limite: number | undefined, tela: Tela, aoExpirar: () => void
 
 type T = (typeof TEXTOS)["pt"];
 
-function Marca({ unidade }: { unidade?: string }) {
-  // Mesmo desenho da placa do hall: IN / JOY dentro do quadrado, com o ponto.
+function Marca({ unidade, grande }: { unidade?: string; grande?: boolean }) {
+  // Logo oficial (versão branca do site), com a unidade ao lado.
   return (
-    <div className="flex items-center gap-4">
-      <div className="relative border-[2.5px] border-[var(--tinta)] px-3 pb-2 pt-1.5 text-[1.35rem] font-extrabold leading-[1.05] tracking-[0.06em]">
-        <span className="block">IN</span>
-        <span className="block">
-          JOY<span aria-hidden className="ml-0.5 inline-block h-2 w-2 rounded-full bg-[var(--teal)] align-baseline" />
+    <div className="flex items-end gap-5">
+      <img src="/totem/logo-injoy-branco.png" alt="Injoy Suítes & Aparts" className={cn("w-auto select-none", grande ? "h-28" : "h-[5.25rem]")} draggable={false} />
+      {unidade && (
+        <span className={cn("mb-1 flex items-center gap-2 font-medium text-white/85", grande ? "text-2xl" : "text-lg")}>
+          <span aria-hidden className="h-2 w-2 rounded-full bg-[var(--ciano)]" />
+          {unidade}
         </span>
-      </div>
-      {unidade && <span className="text-lg font-medium text-[var(--tinta-suave)]">{unidade}</span>}
+      )}
     </div>
   );
 }
@@ -874,10 +942,10 @@ function Relogio({ idioma }: { idioma: Idioma }) {
   const locale = idioma === "pt" ? "pt-BR" : idioma === "en" ? "en-GB" : "es-ES";
   return (
     <p className="text-right leading-tight">
-      <span className="block text-2xl font-bold tabular-nums">
+      <span className="totem-display block text-[2rem] font-light tabular-nums text-white">
         {agora.toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" })}
       </span>
-      <span className="block text-sm text-[var(--tinta-suave)] first-letter:uppercase">
+      <span className="block text-sm text-white/65 first-letter:uppercase">
         {agora.toLocaleDateString(locale, { weekday: "long", day: "numeric", month: "long", timeZone: "America/Sao_Paulo" })}
       </span>
     </p>
@@ -901,7 +969,7 @@ function BotaoPrincipal({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex min-h-[4.5rem] w-full items-center justify-center gap-3 rounded-2xl bg-[var(--teal)] px-8 text-2xl font-bold text-white transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--luz)] active:scale-[0.99] disabled:opacity-50",
+        "totem-cta flex min-h-[4.75rem] w-full items-center justify-center gap-3 rounded-2xl bg-[var(--teal)] px-8 text-xl text-white shadow-[0_18px_40px_-22px_rgba(20,112,138,0.9)] transition-[transform,background-color] focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--ciano)] active:scale-[0.99] active:bg-[var(--teal-escuro)] disabled:opacity-50",
         className,
       )}
     >
@@ -916,7 +984,7 @@ function BotaoSecundario({ children, onClick, className }: { children: ReactNode
       type="button"
       onClick={onClick}
       className={cn(
-        "min-h-[4.5rem] w-full rounded-2xl border-2 border-[var(--tinta)]/15 bg-white text-2xl font-bold text-[var(--tinta)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-[0.99]",
+        "totem-cta min-h-[4.75rem] w-full rounded-2xl bg-white text-xl text-[var(--teal-escuro)] ring-1 ring-inset ring-[var(--linha)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-[0.99]",
         className,
       )}
     >
@@ -1030,15 +1098,15 @@ function FormTeclado({
               aria-pressed={sel}
               className="block self-start text-left focus-visible:outline-none"
             >
-              <span className="block text-lg font-semibold">{c.rotulo}</span>
+              <span className="block text-lg font-medium text-[var(--tinta-suave)]">{c.rotulo}</span>
               <span
                 className={cn(
-                  "mt-2 flex min-h-[4.5rem] items-center rounded-2xl border-2 bg-white px-5 text-[1.75rem] font-bold tracking-wide transition-colors",
-                  sel ? "border-[var(--teal)] shadow-[0_0_0_4px_rgba(12,90,100,0.12)]" : "border-[var(--tinta)]/10",
+                  "mt-2 flex min-h-[4.5rem] items-center rounded-2xl border-2 bg-white px-5 text-[1.75rem] font-semibold tracking-wide transition-colors",
+                  sel ? "border-[var(--teal)] shadow-[0_0_0_5px_rgba(51,173,201,0.18)]" : "border-[var(--linha)]",
                 )}
               >
                 <span className="truncate">{c.valor}</span>
-                {sel && <span aria-hidden className="ml-0.5 inline-block h-8 w-[3px] animate-pulse rounded bg-[var(--teal)]" />}
+                {sel && <span aria-hidden className="ml-0.5 inline-block h-8 w-[3px] animate-pulse rounded bg-[var(--ciano)]" />}
               </span>
               {c.ajuda && <span className="mt-1.5 block text-[0.95rem] leading-snug text-[var(--tinta-suave)]">{c.ajuda}</span>}
             </button>
@@ -1068,7 +1136,7 @@ type PropsTeclado = {
 };
 
 const classeTecla =
-  "grid min-h-[3.6rem] place-items-center rounded-xl bg-white text-[1.45rem] font-bold text-[var(--tinta)] shadow-[inset_0_-3px_0_rgba(43,38,34,0.12),0_0_0_1px_rgba(43,38,34,0.06)] active:translate-y-px active:bg-[var(--pedra)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]";
+  "grid min-h-[3.6rem] place-items-center rounded-xl bg-white text-[1.45rem] font-medium text-[var(--tinta)] shadow-[0_1px_0_rgba(38,41,43,0.08),0_0_0_1px_#E0E6E9] transition-colors active:bg-[var(--teal)] active:text-white focus-visible:outline-2 focus-visible:outline-[var(--teal)]";
 
 function TeclaAcao({ acao, enviando, pronto, onConfirmar, className }: { acao: string; enviando: boolean; pronto: boolean; onConfirmar: () => void; className?: string }) {
   return (
@@ -1077,8 +1145,8 @@ function TeclaAcao({ acao, enviando, pronto, onConfirmar, className }: { acao: s
       onClick={onConfirmar}
       disabled={enviando}
       className={cn(
-        "flex min-h-[3.6rem] items-center justify-center gap-2 rounded-xl px-4 text-xl font-bold transition-colors focus-visible:outline-2 focus-visible:outline-[var(--luz)]",
-        pronto ? "bg-[var(--teal)] text-white" : "bg-[var(--tinta)]/80 text-white",
+        "totem-cta flex min-h-[3.6rem] items-center justify-center gap-2 rounded-xl px-4 text-lg transition-colors focus-visible:outline-2 focus-visible:outline-[var(--ciano)]",
+        pronto ? "bg-[var(--teal)] text-white" : "bg-[var(--grafite)] text-white/85",
         className,
       )}
     >
@@ -1200,7 +1268,7 @@ function Parear({
       t={t}
       cabecalho={
         <div className="mb-6">
-          <h2 className="text-4xl font-extrabold tracking-tight">{t.pareamentoTitulo}</h2>
+          <h2 className="text-4xl">{t.pareamentoTitulo}</h2>
           <p className="mt-3 text-xl text-[var(--tinta-suave)]">{t.pareamentoAjuda}</p>
           <BotaoPrincipal onClick={() => setLendo(true)} disabled={conectando} className="mt-5 w-auto px-8">
             <QrCode className="h-7 w-7" /> {t.lerQr}
@@ -1318,7 +1386,7 @@ function LeitorQr({ t, onLido, onCancelar }: { t: T; onLido: (codigo: string) =>
 
   return (
     <div className="flex h-full flex-col">
-      <h2 className="text-4xl font-extrabold tracking-tight">{t.lerQr}</h2>
+      <h2 className="text-4xl">{t.lerQr}</h2>
       <p className="mt-2 text-xl text-[var(--tinta-suave)]">{t.lerQrAjuda}</p>
       <div className="mt-4 flex min-h-0 flex-1 items-start justify-center">
         <div className="relative aspect-video max-h-full w-full overflow-hidden rounded-[1.5rem] bg-[var(--tinta)]">
@@ -1340,48 +1408,45 @@ function LeitorQr({ t, onLido, onCancelar }: { t: T; onLido: (codigo: string) =>
   );
 }
 
+/** Cartão grande da tela de boas-vindas, sobre a foto. */
 function CartaoEscolha({ icone, titulo, texto, onClick, destaque }: { icone: ReactNode; titulo: string; texto: string; onClick: () => void; destaque?: boolean }) {
   return (
     <button
       type="button"
       onClick={onClick}
       className={cn(
-        "group flex min-h-[12rem] flex-col justify-between rounded-[1.75rem] p-8 text-left transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--teal)] active:scale-[0.99]",
-        destaque ? "bg-[var(--teal)] text-white shadow-[0_24px_50px_-28px_rgba(12,90,100,0.9)]" : "bg-white shadow-[0_0_0_1px_rgba(43,38,34,0.08)]",
+        "group relative flex min-h-[12.5rem] items-stretch gap-6 overflow-hidden rounded-[1.75rem] p-8 text-left text-white transition-transform focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-[var(--ciano)] active:scale-[0.985]",
+        destaque
+          ? "bg-[var(--teal)] shadow-[0_30px_60px_-30px_rgba(20,112,138,0.95)]"
+          : "bg-white/10 ring-1 ring-inset ring-white/25 backdrop-blur-xl",
       )}
     >
-      <span className={cn("grid h-16 w-16 place-items-center rounded-2xl", destaque ? "bg-white/15 text-[var(--luz)]" : "bg-[var(--pedra)] text-[var(--teal)]")}>{icone}</span>
-      <span>
-        <span className="block text-3xl font-extrabold tracking-tight">{titulo}</span>
-        <span className={cn("mt-2 block text-lg leading-snug", destaque ? "text-white/80" : "text-[var(--tinta-suave)]")}>{texto}</span>
+      <span className="flex flex-1 flex-col justify-between">
+        <span className={cn("mb-6 grid h-14 w-14 place-items-center rounded-full", destaque ? "bg-white text-[var(--teal)]" : "bg-white/15 text-white")}>{icone}</span>
+        <span>
+          <span className="totem-display block text-[2.15rem] leading-tight">{titulo}</span>
+          <span className="mt-1.5 block text-lg leading-snug text-white/75">{texto}</span>
+        </span>
       </span>
+      <ArrowRight aria-hidden className="mb-2 h-9 w-9 self-end shrink-0 text-white/70 transition-transform group-active:translate-x-1" />
     </button>
   );
 }
 
 function EscolherFluxo({ t, onEscolher }: { t: T; onEscolher: (f: Fluxo) => void }) {
   return (
-    <div className="flex h-full flex-col justify-center gap-5">
-      <h2 className="text-4xl font-extrabold tracking-tight">{t.oQueFazer}</h2>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <CartaoEscolha destaque icone={<KeyRound className="h-8 w-8" />} titulo={t.checkin} texto={t.checkinSub} onClick={() => onEscolher("checkin")} />
-        <CartaoEscolha icone={<LogOut className="h-8 w-8" />} titulo={t.checkout} texto={t.checkoutSub} onClick={() => onEscolher("checkout")} />
-      </div>
+    <div className="grid max-w-[62rem] gap-5 sm:grid-cols-2">
+      <CartaoEscolha destaque icone={<KeyRound className="h-7 w-7" />} titulo={t.checkin} texto={t.checkinSub} onClick={() => onEscolher("checkin")} />
+      <CartaoEscolha icone={<LogOut className="h-7 w-7" />} titulo={t.checkout} texto={t.checkoutSub} onClick={() => onEscolher("checkout")} />
     </div>
   );
 }
 
 function EscolherMetodo({ t, onEscolher }: { t: T; onEscolher: (m: Ident["modo"]) => void }) {
   return (
-    <div className="flex h-full flex-col justify-center gap-6">
-      <div>
-        <p className="text-2xl font-semibold text-[var(--madeira)]">{t.boasVindas}</p>
-        <h2 className="mt-2 text-4xl font-extrabold tracking-tight">{t.comoEncontrar}</h2>
-      </div>
-      <div className="grid gap-5 sm:grid-cols-2">
-        <CartaoEscolha destaque icone={<ScanLine className="h-8 w-8" />} titulo={t.porCodigo} texto={t.porCodigoSub} onClick={() => onEscolher("codigo")} />
-        <CartaoEscolha icone={<UserRound className="h-8 w-8" />} titulo={t.porDocumento} texto={t.porDocumentoSub} onClick={() => onEscolher("documento")} />
-      </div>
+    <div className="grid max-w-[62rem] gap-5 sm:grid-cols-2">
+      <CartaoEscolha destaque icone={<ScanLine className="h-7 w-7" />} titulo={t.porCodigo} texto={t.porCodigoSub} onClick={() => onEscolher("codigo")} />
+      <CartaoEscolha icone={<UserRound className="h-7 w-7" />} titulo={t.porDocumento} texto={t.porDocumentoSub} onClick={() => onEscolher("documento")} />
     </div>
   );
 }
@@ -1404,11 +1469,11 @@ function FormCheckin({ t, modo, onTrocarModo, onEnviar }: { t: T; modo: Ident["m
       t={t}
       cabecalho={
         <div className="mb-7 flex flex-wrap items-center justify-between gap-4">
-          <h2 className="text-[2.1rem] font-extrabold tracking-tight">{modo === "codigo" ? t.porCodigo : t.porDocumento}</h2>
+          <h2 className="text-[2.1rem]">{modo === "codigo" ? t.porCodigo : t.porDocumento}</h2>
           <button
             type="button"
             onClick={() => onTrocarModo(modo === "codigo" ? "documento" : "codigo")}
-            className="min-h-12 rounded-full bg-[var(--pedra)] px-5 text-base font-semibold text-[var(--teal)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
+            className="min-h-12 rounded-full bg-white px-5 text-base font-semibold text-[var(--teal)] ring-1 ring-inset ring-[var(--linha)] focus-visible:outline-2 focus-visible:outline-[var(--teal)]"
           >
             {modo === "codigo" ? t.porDocumento : t.porCodigo}
           </button>
@@ -1435,7 +1500,7 @@ function FormCheckout({ t, onEnviar }: { t: T; onEnviar: (quarto: string, sobren
   return (
     <FormTeclado
       t={t}
-      cabecalho={<h2 className="mb-7 text-[2.1rem] font-extrabold tracking-tight">{t.checkout}</h2>}
+      cabecalho={<h2 className="mb-7 text-[2.1rem]">{t.checkout}</h2>}
       campos={[
         { id: "quarto", rotulo: t.quarto, valor: quarto, teclado: "numerico", max: 6, valido: (x) => x.trim().length >= 1 },
         { id: "sobrenome", rotulo: t.sobrenome, valor: sobrenome, teclado: "texto", max: 60, valido: (x) => x.trim().length >= 2 },
@@ -1468,10 +1533,10 @@ function Resumo({
   const { enviando, enviar } = useEnvio();
   return (
     <div className="flex h-full flex-col justify-center">
-      <h2 className="text-6xl font-extrabold tracking-tight">{titulo}</h2>
-      <div className="mt-8 space-y-3">
+      <h2 className="totem-display-leve text-[4.25rem] leading-[1.02]">{titulo}</h2>
+      <div className="mt-10 space-y-2 rounded-[1.75rem] bg-white py-7 pl-10 pr-8 shadow-[inset_8px_0_0_var(--ciano),inset_0_0_0_1px_var(--linha)]">
         {linhas.filter(Boolean).map((l, i) => (
-          <p key={l} className={cn("first-letter:uppercase", i === 0 ? "text-4xl font-bold text-[var(--teal)]" : "text-2xl text-[var(--tinta-suave)]")}>
+          <p key={l} className={cn("first-letter:uppercase", i === 0 ? "totem-display text-[2.6rem] text-[var(--teal)]" : "text-2xl text-[var(--tinta-suave)]")}>
             {l}
           </p>
         ))}
@@ -1493,11 +1558,13 @@ function Teclas({ senha, grande = true }: { senha: string; grande?: boolean }) {
           key={i}
           aria-hidden="true"
           className={cn(
-            "grid place-items-center font-extrabold tabular-nums",
-            grande ? "h-24 w-[4.5rem] rounded-[1.1rem] text-[3.4rem]" : "h-12 w-10 rounded-xl text-2xl",
+            "totem-display grid place-items-center tabular-nums",
+            grande ? "h-[6.25rem] w-[4.75rem] rounded-[1.1rem] text-[3.6rem] font-normal" : "h-12 w-10 rounded-xl text-2xl font-medium",
             d === "#"
-              ? "bg-[var(--luz)] text-[var(--tinta)] shadow-[inset_0_-5px_0_rgba(43,38,34,0.18)]"
-              : "bg-white text-[var(--teal)] shadow-[inset_0_-5px_0_rgba(12,90,100,0.16),0_0_0_1px_rgba(12,90,100,0.1)]",
+              ? "bg-[var(--ciano)] text-white"
+              : grande
+                ? "bg-white/10 text-white ring-1 ring-inset ring-white/20"
+                : "bg-[var(--linho)] text-[var(--teal-escuro)] ring-1 ring-inset ring-[var(--linha)]",
           )}
         >
           {d}
@@ -1512,27 +1579,28 @@ function TelaSenha({ t, r, validaAte, onFim, imprimir }: { t: T; r: SenhaTela; v
   return (
     <div className="flex h-full flex-col gap-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-6">
-        <h2 className="text-4xl font-extrabold tracking-tight">{t.ola(r.nome)}</h2>
-        <p className="text-3xl font-bold text-[var(--teal)]">{t.seuQuarto(r.quartos)}</p>
+        <h2 className="text-[2.6rem] leading-tight">{t.ola(r.nome)}</h2>
+        <p className="totem-display text-[2.2rem] text-[var(--teal)]">{t.seuQuarto(r.quartos)}</p>
       </div>
-      <div className="rounded-[2rem] bg-[var(--teal)] px-8 py-7 text-white">
-        <p className="text-lg font-semibold text-white/75">{t.suaSenha}</p>
+      <div className="relative overflow-hidden rounded-[2rem] bg-[var(--grafite)] px-8 py-7 text-white">
+        <span aria-hidden className="absolute -right-16 -top-16 h-56 w-56 rounded-full bg-[var(--ciano)]/15 blur-2xl" />
+        <p className="relative text-lg font-medium text-white/70">{t.suaSenha}</p>
         <div className="mt-3">
           <Teclas senha={r.senha} />
         </div>
-        <p className="mt-5 text-[1.4rem] font-semibold leading-snug">{t.comoAbrir}</p>
+        <p className="mt-5 text-[1.4rem] font-medium leading-snug">{t.comoAbrir}</p>
         <p className="mt-1.5 text-base text-white/75">
           {t.ativacao} {t.validaAte(validaAte)}
         </p>
       </div>
       {entrada.length > 0 && (
         <div>
-          <h3 className="text-xl font-bold">{t.outrasPortas}</h3>
-          <ul className="mt-3 divide-y divide-[var(--tinta)]/10 rounded-2xl bg-white">
+          <h3 className="text-lg font-medium text-[var(--tinta-suave)]">{t.outrasPortas}</h3>
+          <ul className="mt-3 divide-y divide-[var(--linha)] rounded-2xl bg-white ring-1 ring-inset ring-[var(--linha)]">
             {entrada.map((p: PortaTotem) => (
               <li key={p.label} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3">
-                <span className="flex items-center gap-3 text-xl font-semibold">
-                  <DoorOpen className="h-6 w-6 text-[var(--madeira)]" /> {p.label}
+                <span className="flex items-center gap-3 text-xl font-medium">
+                  <DoorOpen className="h-6 w-6 text-[var(--teal)]" /> {p.label}
                 </span>
                 {p.senha ? (
                   <Teclas senha={p.senha} grande={false} />
@@ -1550,7 +1618,7 @@ function TelaSenha({ t, r, validaAte, onFim, imprimir }: { t: T; r: SenhaTela; v
           <button
             type="button"
             onClick={imprimir}
-            className="inline-flex min-h-[4.5rem] items-center gap-3 rounded-2xl border-2 border-[var(--tinta)]/15 bg-white px-6 text-lg font-bold focus-visible:outline-4 focus-visible:outline-[var(--teal)]"
+            className="totem-cta inline-flex min-h-[4.75rem] items-center gap-3 rounded-2xl bg-white px-6 text-base text-[var(--teal-escuro)] ring-1 ring-inset ring-[var(--linha)] focus-visible:outline-4 focus-visible:outline-[var(--teal)]"
           >
             <Printer className="h-6 w-6" /> {t.imprimirDeNovo}
           </button>
@@ -1580,10 +1648,10 @@ function Aviso({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <h2 className="max-w-3xl text-4xl font-extrabold leading-tight tracking-tight">{titulo}</h2>
+      <h2 className="max-w-3xl text-[2.6rem] leading-tight">{titulo}</h2>
       {children}
       {telefone && (
-        <p className="mt-8 flex items-center gap-3 text-2xl font-semibold text-[var(--teal)]">
+        <p className="mt-8 flex items-center gap-3 text-2xl font-medium text-[var(--teal)]">
           <Phone className="h-7 w-7" /> {t.ligar(telefone)}
         </p>
       )}
@@ -1609,7 +1677,7 @@ function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, co
     return (
       <FormTeclado
         t={t}
-        cabecalho={<h2 className="mb-6 text-3xl font-extrabold tracking-tight">{t.comoFoi}</h2>}
+        cabecalho={<h2 className="mb-6 text-3xl">{t.comoFoi}</h2>}
         campos={[{ id: "comentario", rotulo: t.comentario, valor: comentario, teclado: "texto", max: 300, valido: () => true }]}
         onChange={(_, v) => setComentario(v)}
         acao={t.enviar}
@@ -1622,14 +1690,14 @@ function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, co
   return (
     <div className="flex h-full flex-col">
       <div className="flex items-center gap-4">
-        <span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--teal)] text-white">
+        <span className="grid h-14 w-14 place-items-center rounded-full bg-[var(--ciano)] text-white">
           <Check className="h-8 w-8" />
         </span>
-        <h2 className="text-4xl font-extrabold tracking-tight">{t.checkoutFeito}</h2>
+        <h2 className="text-[2.6rem]">{t.checkoutFeito}</h2>
       </div>
       <p className="mt-4 text-xl text-[var(--tinta-suave)]">{t.obrigado}</p>
       <fieldset className="mt-12">
-        <legend className="text-3xl font-bold">{t.comoFoi}</legend>
+        <legend className="text-[2rem]">{t.comoFoi}</legend>
         <div className="mt-6 flex flex-wrap gap-3">
           {[1, 2, 3, 4, 5].map((n) => (
             <button
@@ -1638,9 +1706,9 @@ function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, co
               onClick={() => setNota(n)}
               aria-label={`${n}/5`}
               aria-pressed={nota === n}
-              className="grid h-24 w-24 place-items-center rounded-2xl bg-white shadow-[0_0_0_1px_rgba(43,38,34,0.08)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-95"
+              className="grid h-24 w-24 place-items-center rounded-2xl bg-white ring-1 ring-inset ring-[var(--linha)] focus-visible:outline-4 focus-visible:outline-[var(--teal)] active:scale-95"
             >
-              <Star className={cn("h-12 w-12 transition-colors", n <= nota ? "fill-[var(--luz)] text-[#C9963F]" : "text-[var(--tinta)]/20")} />
+              <Star strokeWidth={1.5} className={cn("h-12 w-12 transition-colors", n <= nota ? "fill-[var(--ciano)] text-[var(--ciano)]" : "text-[var(--tinta)]/25")} />
             </button>
           ))}
         </div>
@@ -1665,10 +1733,10 @@ function Avaliacao({ t, onEnviar, onPular }: { t: T; onEnviar: (nota: number, co
 
 function AvisoInativo({ t, segundos, onContinuar }: { t: T; segundos: number; onContinuar: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--tinta)]/45 p-6 backdrop-blur-sm" role="alertdialog" aria-live="assertive">
+    <div className="fixed inset-0 z-50 grid place-items-center bg-[var(--grafite)]/60 p-6 backdrop-blur-md" role="alertdialog" aria-live="assertive">
       <div className="w-full max-w-lg rounded-[2rem] bg-[var(--linho)] p-10 text-center shadow-2xl">
-        <p className="text-7xl font-extrabold tabular-nums text-[var(--teal)]">{segundos}</p>
-        <h2 className="mt-4 text-3xl font-extrabold">{t.inativoTitulo}</h2>
+        <p className="totem-display-leve text-8xl tabular-nums text-[var(--teal)]">{segundos}</p>
+        <h2 className="mt-4 text-[2rem]">{t.inativoTitulo}</h2>
         <p className="mt-3 text-xl text-[var(--tinta-suave)]">{t.inativoTexto(segundos)}</p>
         <BotaoPrincipal className="mt-8" onClick={onContinuar}>
           {t.inativoContinuar}
@@ -1757,7 +1825,7 @@ function EtapaPagamento({
         <span className="grid h-24 w-24 place-items-center rounded-full bg-[var(--teal)] text-white">
           <Check className="h-12 w-12" />
         </span>
-        <h2 className="mt-8 text-5xl font-extrabold tracking-tight">{t.pagamentoAprovado}</h2>
+        <h2 className="mt-8 text-5xl">{t.pagamentoAprovado}</h2>
         <p className="mt-3 text-3xl font-bold text-[var(--teal)]">{valorTexto}</p>
       </div>
     );
@@ -1770,7 +1838,7 @@ function EtapaPagamento({
         <p className="text-xl font-semibold text-[var(--madeira)]">
           {t.metodos[m]} · {valorTexto}
         </p>
-        <h2 className="mt-2 text-5xl font-extrabold tracking-tight">{t.naMaquininha}</h2>
+        <h2 className="mt-2 text-5xl">{t.naMaquininha}</h2>
         <div className="mt-10 flex items-center gap-8">
           {/* A maquininha fica à direita do tablet no balcão */}
           <div className="relative grid h-44 w-32 shrink-0 place-items-center rounded-[1.75rem] border-[3px] border-[var(--tinta)] bg-white">
@@ -1814,11 +1882,11 @@ function EtapaPagamento({
   ];
   return (
     <div className="flex h-full flex-col">
-      <h2 className="text-4xl font-extrabold tracking-tight">{t.pagarTitulo}</h2>
+      <h2 className="text-4xl">{t.pagarTitulo}</h2>
       <p className="mt-2 text-xl text-[var(--tinta-suave)]">{t.pagarTexto(valorTexto)}</p>
       <div className="mt-6 rounded-[1.75rem] bg-[var(--pedra)] px-8 py-6">
         <p className="text-lg font-semibold text-[var(--tinta-suave)]">{t.valorAPagar}</p>
-        <p className="text-6xl font-extrabold tabular-nums tracking-tight">{valorTexto}</p>
+        <p className="totem-display-leve text-7xl tabular-nums">{valorTexto}</p>
       </div>
       {fase.f === "escolher" && fase.aviso && (
         <p role="alert" className="mt-4 rounded-2xl bg-[#A3342B]/10 px-5 py-3 text-lg font-medium text-[#7E2720]">
@@ -1840,7 +1908,7 @@ function EtapaPagamento({
               {fase.f === "iniciando" && fase.metodo === m && <Loader2 className="h-6 w-6 animate-spin" />}
             </span>
             <span>
-              <span className="block text-2xl font-extrabold">{t.metodos[m]}</span>
+              <span className="totem-display block text-[1.75rem]">{t.metodos[m]}</span>
               <span className="mt-1 block text-base leading-snug text-[var(--tinta-suave)]">{t.metodosSub[m]}</span>
             </span>
           </button>
@@ -1933,7 +2001,7 @@ function EtapaDocumentos({
     const icones = [ScanFace, IdCard, ShieldCheck];
     return (
       <div className="flex h-full flex-col">
-        <h2 className="text-[2.1rem] font-extrabold tracking-tight">{t.consentTitulo}</h2>
+        <h2 className="text-[2.1rem]">{t.consentTitulo}</h2>
         <p className="mt-1 text-lg leading-snug text-[var(--tinta-suave)]">
           {t.docsTexto(fila.length)}
         </p>
@@ -1965,10 +2033,10 @@ function EtapaDocumentos({
 
   const cabecalho = (
     <div className="mb-3 flex items-baseline justify-between gap-4">
-      <h2 className="text-[2rem] font-extrabold tracking-tight">
+      <h2 className="text-[2rem]">
         {fase === "dados" ? t.docsTitulo : fase === "rosto" ? t.etapaRosto : t.etapaDocumento}
       </h2>
-      <span className="text-xl font-bold text-[var(--madeira)]">
+      <span className="text-xl font-medium text-[var(--madeira)]">
         {t.adulto(atual.ordem, adultos.length)}
       </span>
     </div>
