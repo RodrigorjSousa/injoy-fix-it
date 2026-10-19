@@ -1,6 +1,7 @@
 // Consultas do dashboard do gestor. Cada bloco busca sozinho e, se uma fonte falhar
 // (ex.: migração ainda não aplicada), só aquele item mostra o erro — o resto continua.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { chamadosAtrasados, PRAZO_DIAS } from "@/lib/chamado-prazo";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { sincronizarRendimentoMes, type ResultadoSincronizacao } from "@/lib/dashboard-rendimento.functions";
@@ -40,6 +41,8 @@ export type Pendencia = {
   qtd: number;
   detalhe?: string;
   link: string;
+  /** Filtro na tela de destino (ex.: Painel só com os atrasados). */
+  search?: Record<string, string>;
   erro?: string;
 };
 
@@ -70,12 +73,15 @@ export function usePendencias() {
         ),
         (async () => {
           try {
-            const { data, error } = await db.from("chamados").select("descricao").neq("status", "Concluído").limit(500);
+            const { data, error } = await db.from("chamados").select("descricao, created_at, status").neq("status", "Concluído").limit(500);
             if (error) return { qtd: 0, erro: msg(error) };
             const urg = (data ?? []).filter((c: { descricao: string }) =>
               /^\s*\[URGENTE\]/i.test(c.descricao) || /urgente|emerg[êe]ncia|bloqueia|sem refriger/i.test(c.descricao),
             ).length;
-            return { qtd: urg, total: (data ?? []).length };
+            const atrasados = chamadosAtrasados(
+              (data ?? []).map((c: { created_at: string; status: string }) => ({ criadoEm: c.created_at, status: c.status })),
+            ).length;
+            return { qtd: urg, total: (data ?? []).length, atrasados };
           } catch (e) {
             return { qtd: 0, erro: msg(e) };
           }
@@ -89,7 +95,7 @@ export function usePendencias() {
         ),
         contar(() => db.from("room_housekeeping").select("id", { count: "exact", head: true }).eq("cloudbeds_limpo_status", "falhou")),
       ]);
-      const ch = chamados as { qtd: number; total?: number; erro?: string };
+      const ch = chamados as { qtd: number; total?: number; erro?: string; atrasados?: number };
       return [
         { chave: "reforco", rotulo: "Pedidos de reforço para autorizar", ...reforco, link: "/gestor/previsao-carga" },
         { chave: "ponto", rotulo: "Batidas de ponto pendentes", ...ponto, link: "/gestor/ponto" },
@@ -102,6 +108,15 @@ export function usePendencias() {
           erro: ch.erro,
           detalhe: ch.total != null ? `${ch.total} chamado(s) abertos no total` : undefined,
           link: "/painel",
+        },
+        {
+          chave: "chamados-atrasados",
+          rotulo: `Chamados fora do prazo (${PRAZO_DIAS} dias)`,
+          qtd: ch.atrasados ?? 0,
+          erro: ch.erro,
+          detalhe: "o responsável já foi avisado com urgência",
+          link: "/painel",
+          search: { tipo: "atrasados" },
         },
         { chave: "checkouts", rotulo: "Check-outs das camareiras sem conferência", ...checkouts, link: "/recepcao" },
         {
