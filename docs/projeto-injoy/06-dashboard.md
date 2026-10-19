@@ -129,3 +129,7 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   receitas lançadas e avisa no card. Despesas, vencidas, próximos 7 dias e Exportar continuam dos lançamentos.
   Meses antigos só aparecem no gráfico depois de atualizados no Rendimento por unidade.
 
+## Almoxarifado e compras no Início da área (19/10/2026, branch `feat/gestor-almoxarifado`, sem migração)
+- "Auditoria de Almoxarifado" e "Solicitações de Compra" saíram da tela da Recepção (que já não via) e ficam em
+  Área do Gestor › Precisa de você hoje, uma fila por unidade (Botafogo e Ipanema), com aprovar/recusar como antes.
+

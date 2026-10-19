@@ -27,9 +27,7 @@ import { RecadoCamareiraModal } from "@/components/recepcao/recado-camareira-mod
 import { RecadosDaCamareiraSection } from "@/components/recepcao/recados-da-camareira";
 import { CheckoutsCamareirasSection } from "@/components/recepcao/checkouts-camareiras";
 import { RecadosEnviadosCamareiraSection } from "@/components/recepcao/recados-enviados-camareira";
-import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
-import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { TrocaTurnoModal } from "@/components/recepcao/troca-turno-modal";
 import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-turno";
@@ -425,13 +423,7 @@ function RecepcaoPage() {
 
       <div className="p-4 space-y-4">
         {unidadeAtiva === "Botafogo" && <HistoricoTrocasTurno unidade={unidadeAtiva} />}
-        {/* Auditoria de Almoxarifado e Solicitações de Compra: só o gestor vê (a Recepção não). */}
-        {(me?.isGestor || me?.isAdmin) && (
-          <>
-            <AuditoriaAlmoxarifadoPanel unidade={unidadeAtiva} />
-            <SolicitacoesCompraPanel unidade={unidadeAtiva} />
-          </>
-        )}
+        {/* Auditoria de Almoxarifado e Solicitações de Compra ficam na Área do Gestor › Precisa de você hoje. */}
       </div>
 
 
