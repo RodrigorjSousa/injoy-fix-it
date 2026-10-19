@@ -1,7 +1,7 @@
 # PROJETO INJOY — Contexto geral
 
 > Leia este arquivo inteiro antes de qualquer trabalho. Depois leia o arquivo do assunto
-> (01 a 07). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
+> (01 a 08). Atualize a seção "Estado atual" do assunto ao terminar cada entrega.
 
 ## O negócio
 - **IN.JOY Hostel Design Pousada** (INJOY HOTÉIS — injoyhoteis.com), Rio de Janeiro.
@@ -142,6 +142,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   no Cloudbeds (regras NR do 8º dia e Standard 2 dias antes do check-in). Recepcionista só vê quando o gestor libera
   (Reservas › Quem vê). Ver `07-recepcao.md`.
 
+- WhatsApp com IA (Joy), entrega E1 (0074): simulador, configuração e execuções em Área do Gestor ›
+  WhatsApp (Joy), sem WhatsApp ainda e sem mensagem real a hóspede. Ver `08-whatsapp-ia.md`.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 
@@ -154,6 +157,7 @@ Uma conversa por assunto. Cada uma começa lendo este arquivo e o arquivo do ass
 5. Mercado autônomo no hall — `05-mercado-autonomo.md`
 6. Dashboard do gestor — `06-dashboard.md`
 7. Recepção — `07-recepcao.md`
+8. WhatsApp humanizado com IA (Joy) — `08-whatsapp-ia.md`
 
 Pendências gerais: Fase 3 (licenças e vistorias obrigatórias: bombeiros, vigilância sanitária,
 caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começou; limpeza automática
