@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -329,7 +330,7 @@ function Configuracoes() {
           {funcionarios.map((f) => (
             <Card key={f.id} className="p-4 flex items-center justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <div className="font-semibold truncate">{f.nome}</div>
+                <div className="font-semibold truncate"><NomeCor funcionarioId={f.id} nome={f.nome} /></div>
                 <div className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5">
                   <Mail className="h-3 w-3" /> {f.email}
                   {f.userId ? (

@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute } from "@tanstack/react-router";
 import {
   Cog,
@@ -1282,7 +1283,7 @@ function ChamadosHistoricoView({ chamados, loading }: { chamados: any[]; loading
                 <div className="flex flex-col gap-1">
                   <span className="text-muted-foreground uppercase font-bold text-[9px]">Técnico</span>
                   <span className="font-medium flex items-center gap-1">
-                    <User2 className="h-3 w-3" /> {c.responsavelNome || "—"}
+                    <User2 className="h-3 w-3" /> {c.responsavelNome ? <NomeCor nome={c.responsavelNome} /> : "—"}
                   </span>
                 </div>
                 <div className="flex flex-col gap-1">

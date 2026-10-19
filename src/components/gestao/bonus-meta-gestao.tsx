@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { useEffect, useMemo, useState } from "react";
 import { Check, Loader2, Plus, RefreshCw, Trash2, UserMinus } from "lucide-react";
 import { toast } from "sonner";
@@ -92,7 +93,7 @@ function Participantes() {
             {pessoas.map((p) => (
               <tr key={p.funcionario_id} className={cn("border-t", !p.ativo && "opacity-50")}>
                 <td className="p-2">
-                  <div className="font-medium">{p.nome}</div>
+                  <div className="font-medium"><NomeCor funcionarioId={p.funcionario_id} nome={p.nome} /></div>
                   <div className="text-[11px] text-muted-foreground">{p.pontomais ? "Pontomais" : "Ponto do app"}</div>
                 </td>
                 <td className="p-2">

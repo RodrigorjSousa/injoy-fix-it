@@ -115,6 +115,15 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Reforço lançado pela Recepção e plantões editáveis (branch `feat/financeiro-coberturas-detalhe`, migração
   `0056_reforco_recepcao_lanca.sql`): ver "Previsão de Carga" e "Plantões de freelancer editáveis" no
   `00-CONTEXTO-GERAL.md`. Regras puras em `src/lib/plantao.ts` (testes em `plantao.test.ts`).
+- Escala para a Recepção + cor de identidade (branch `feat/escala-recepcao-cores`, migração `0073_escala_recepcao_cores.sql`):
+  - Tela **/escala** (menu "Escala") para Recepção (ou quem o gestor liberar a tela "escala" em Equipe): vê o plantão
+    de hoje/amanhã e o calendário do mês, **incluir e remover freelancer** (só os que a recepção lançou, de hoje em
+    diante). Nunca publica, gera mês, edita fixo ou vê valores: tudo passa por funções do banco
+    (`escala_recepcao_painel/opcoes/lancar/remover`); o valor vem da modalidade combinada pelo gestor.
+  - **Cor por pessoa** (`escala_colaboradores.cor`; vazia = automática pela ordem de cadastro, paleta de 24 cores,
+    função `cores_equipe()`). O gestor troca em Equipe › Escala (botão "Cor" no card). A cor aparece no calendário da
+    Escala, resumo, card Hoje, quadro VA/VT, Equipe, Ponto, Camareiras, Bonificação e Manutenção
+    (componentes `NomeCor`/`AvatarCor` em `src/components/pessoa-cor.tsx`; use em qualquer lista nova de pessoas).
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)

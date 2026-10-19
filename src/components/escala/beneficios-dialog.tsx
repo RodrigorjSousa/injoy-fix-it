@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -96,7 +97,7 @@ export function BeneficiosDialog({ open, onClose, people, days, start, end, labe
                 <div className={GRADE + " border-b pb-1 text-[11px] text-muted-foreground"}><span>Funcionário</span><span className="text-right">Dias</span><span className="text-right">VA do mês</span><span className="text-right">VT por dia</span><span className="text-right">VT</span><span className="text-right">Total</span></div>
                 {rows.map((l) => (
                   <div key={l.id} className={GRADE + " items-center border-b py-1.5 text-xs"}>
-                    <span className="truncate font-medium">{l.nome} <span className="font-normal text-muted-foreground">· {l.unidade}</span></span>
+                    <span className="truncate font-medium"><NomeCor colaboradorId={l.id} nome={l.nome} className="mr-1" /> <span className="font-normal text-muted-foreground">· {l.unidade}</span></span>
                     <span className="text-right">{l.dias}</span>
                     <CampoVale titulo={`VA de ${l.nome}`} valor={donos.get(l.id)?.vale_alimentacao} padrao={num(valores.va)} onSalvar={(v) => salvarPessoa(l.id, "vale_alimentacao", v)} />
                     <CampoVale titulo={`VT por dia de ${l.nome}`} valor={donos.get(l.id)?.vale_transporte_dia} padrao={num(valores.vt)} onSalvar={(v) => salvarPessoa(l.id, "vale_transporte_dia", v)} />

@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles, Trash2 } from "lucide-react";
@@ -1261,7 +1262,7 @@ function PainelCamareiras() {
                     <div className="w-9 h-9 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center font-bold">
                       {f.nome.charAt(0).toUpperCase()}
                     </div>
-                    <span className="font-semibold text-slate-800 text-sm">{f.nome}</span>
+                    <span className="font-semibold text-slate-800 text-sm"><NomeCor funcionarioId={f.id} nome={f.nome} /></span>
                   </button>
                 ))
               )}

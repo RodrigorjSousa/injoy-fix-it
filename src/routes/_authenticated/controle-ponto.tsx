@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, RefreshCw, Clock, Calendar as CalendarIcon, Pencil, X, Save, Plus, Trash2 } from "lucide-react";
@@ -288,7 +289,7 @@ function ControlePontoPage() {
                     return (
                       <tr key={f.id} className="border-t border-slate-100">
                         <td className="px-4 py-3">
-                          <div className="font-semibold text-slate-900">{f.nome}</div>
+                          <div className="font-semibold text-slate-900"><NomeCor funcionarioId={f.id} nome={f.nome} /></div>
                           <div className="text-[11px] text-slate-400">{f.email}</div>
                         </td>
                         <td className="px-3 py-3 font-mono text-xs text-slate-600">
