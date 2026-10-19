@@ -36,6 +36,7 @@ import {
 } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { dataHoraBR, duracaoChamado } from "@/lib/chamado-tempo";
+import { PRAZO_DIAS, situacaoPrazo, textoAtrasoChamado } from "@/lib/chamado-prazo";
 import { MediaCapture } from "@/components/media-capture";
 
 export const Route = createFileRoute("/_authenticated/chamados/$id")({
@@ -109,6 +110,16 @@ function ChamadoDetalhe() {
           Aberto por <span className="font-medium text-foreground">{chamado.criadoPorNome ?? "—"}</span> ·
           Aberto em {dataHoraBR(chamado.criadoEm)}
         </p>
+        {chamado.status !== "Concluído" && (() => {
+          const prazo = situacaoPrazo(chamado);
+          return prazo.atrasado ? (
+            <div className="rounded-xl border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm font-semibold text-destructive">
+              Fora do prazo de {PRAZO_DIAS} dias · {textoAtrasoChamado(prazo)}
+            </div>
+          ) : prazo.venceEm ? (
+            <p className="text-xs text-muted-foreground">Prazo para concluir: {dataHoraBR(prazo.venceEm.toISOString())}</p>
+          ) : null;
+        })()}
         {chamado.status === "Concluído" && (
           <div className="rounded-xl border border-success/30 bg-success/10 px-3 py-2 text-sm">
             <span className="font-semibold text-success">Fechado</span>

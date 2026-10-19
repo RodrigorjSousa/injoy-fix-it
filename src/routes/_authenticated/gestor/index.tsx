@@ -30,6 +30,7 @@ import {
   CreditCard,
 } from "lucide-react";
 import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
+import { BlocoChamadosAtrasados } from "@/components/dashboard/bloco-chamados-atrasados";
 import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
 import { BlocoMes } from "@/components/dashboard/bloco-mes";
 import { BlocoRendimento } from "@/components/dashboard/bloco-rendimento";
@@ -138,6 +139,7 @@ function GestorHub() {
   return (
     <div className="space-y-8">
       <BlocoPendencias />
+      <BlocoChamadosAtrasados />
       <BlocoOperacao />
       <BlocoMes />
       <BlocoRendimento />

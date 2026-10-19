@@ -41,6 +41,7 @@ import { EmptyState, ErrorState, LoadingState, friendlyError } from "@/component
 import { MinhaEscalaCard } from "@/components/escala/minha-escala-card";
 import { AREA_COMUM, QUARTOS_POR_UNIDADE, filtrarChamadosPainel } from "@/lib/chamados-quarto";
 import { dataHoraBR, duracaoChamado } from "@/lib/chamado-tempo";
+import { PRAZO_DIAS, situacaoPrazo, textoAtrasoChamado } from "@/lib/chamado-prazo";
 
 export const Route = createFileRoute("/_authenticated/painel")({
   validateSearch: (s: Record<string, unknown>) =>
@@ -83,7 +84,7 @@ function Painel() {
         chamados,
         { unidade, categoria, quarto, soUrgentes: search.tipo === "emergencia" },
         isUrgente,
-      ),
+      ).filter((c) => search.tipo !== "atrasados" || situacaoPrazo(c).atrasado),
     [chamados, unidade, categoria, quarto, search.tipo],
   );
 
@@ -116,6 +117,15 @@ function Painel() {
           </p>
         </div>
       </header>
+
+      {search.tipo === "atrasados" && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-2 text-sm">
+          <span className="font-semibold text-destructive">
+            Mostrando só os chamados abertos há mais de {PRAZO_DIAS} dias
+          </span>
+          <Link to="/painel" className="text-xs font-semibold text-primary">Ver todos</Link>
+        </div>
+      )}
 
       {!me?.isGestor && !me?.isAdmin && <MinhaEscalaCard recolhivel />}
 
@@ -238,6 +248,9 @@ function Painel() {
                       {c.criadoPorNome && (
                         <span className="flex items-center gap-1">Aberto por: <span className="font-medium text-foreground">{c.criadoPorNome}</span></span>
                       )}
+                      {situacaoPrazo(c).atrasado && (
+                        <span className="font-semibold text-destructive">{textoAtrasoChamado(situacaoPrazo(c))}</span>
+                      )}
                       {c.status === "Concluído" && c.concluidoEm && (
                         <span className="text-success">
                           Fechado {dataHoraBR(c.concluidoEm)}
@@ -281,7 +294,12 @@ function ChamadoCard({
   onDelete: (id: string) => void;
 }) {
   return (
-    <div className="relative group bg-card rounded-xl border border-border hover:border-primary/40 hover:shadow-sm transition-all">
+    <div
+      className={cn(
+        "relative group bg-card rounded-xl border hover:shadow-sm transition-all",
+        situacaoPrazo(c).atrasado ? "border-destructive/60 ring-1 ring-destructive/30" : "border-border hover:border-primary/40",
+      )}
+    >
       <Link
         to="/chamados/$id"
         params={{ id: c.id }}
@@ -293,6 +311,11 @@ function ChamadoCard({
             {isUrgente(c) && (
               <Badge variant="destructive" className="text-[10px] font-semibold">
                 <AlertTriangle className="h-3 w-3 mr-1" /> Urgente
+              </Badge>
+            )}
+            {situacaoPrazo(c).atrasado && (
+              <Badge variant="destructive" className="text-[10px] font-semibold" title={textoAtrasoChamado(situacaoPrazo(c))}>
+                <Clock className="h-3 w-3 mr-1" /> Atrasado
               </Badge>
             )}
           </div>
@@ -315,6 +338,9 @@ function ChamadoCard({
           <div className="mt-1 text-[11px] text-muted-foreground truncate">
             Aberto por <span className="font-medium text-foreground">{c.criadoPorNome}</span>
           </div>
+        )}
+        {situacaoPrazo(c).atrasado && (
+          <div className="mt-1 text-[11px] font-semibold text-destructive">{textoAtrasoChamado(situacaoPrazo(c))}</div>
         )}
         {c.status === "Concluído" && (c.concluidoPorNome || c.concluidoEm) && (
           <div className="mt-1 text-[11px] text-success truncate">

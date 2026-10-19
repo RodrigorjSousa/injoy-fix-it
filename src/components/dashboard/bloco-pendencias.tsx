@@ -29,9 +29,10 @@ export function BlocoPendencias() {
             <Link
               key={i.chave}
               to={i.link}
+              search={i.search as never}
               className={cn(
                 "flex items-center gap-3 rounded-lg border px-4 py-3 transition-colors",
-                i.chave === "chamados" || i.chave === "reforco"
+                i.chave === "chamados" || i.chave === "chamados-atrasados" || i.chave === "reforco"
                   ? "border-red-200 bg-red-50 hover:bg-red-100"
                   : "border-amber-200 bg-amber-50 hover:bg-amber-100",
               )}

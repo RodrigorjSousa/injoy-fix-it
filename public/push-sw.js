@@ -25,12 +25,13 @@ self.addEventListener("push", (event) => {
     badge: data.badge || "/icon-192.png",
     tag: data.tag || undefined,
     renotify: true,
-    requireInteraction: false,
+    // Urgente (ex.: chamado fora do prazo): fica na tela até a pessoa tocar, com vibração longa.
+    requireInteraction: data.urgente === true,
     data: {
       url: data.url || "/",
       ...data.data,
     },
-    vibrate: [120, 60, 120],
+    vibrate: data.urgente === true ? [400, 150, 400, 150, 400] : [120, 60, 120],
   };
 
   event.waitUntil(self.registration.showNotification(title, options));

@@ -7,6 +7,7 @@ type EventKind =
   | "chamado"
   | "chamado_designado"
   | "chamado_concluido"
+  | "chamado_atrasado"
   | "teste"
   | "recado_camareira"
   | "troca_turno"
@@ -23,7 +24,7 @@ type EventKind =
   | "reservas_cobranca";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
-function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string } {
+function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string; urgente?: boolean } {
   const d = evt.data as Record<string, unknown>;
   switch (evt.event) {
     case "chamado":
@@ -47,6 +48,16 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         body: `${String(d.descricao ?? "").slice(0, 100)} — fechado${d.concluido_por_nome ? ` por ${d.concluido_por_nome}` : ""}${levou ? ` · levou ${levou}` : ""}.`,
         url: d.id ? `/chamados/${d.id}` : "/painel",
         tag: `chamado-concluido-${d.id}`,
+      };
+    }
+    case "chamado_atrasado": {
+      const dias = Number(d.dias_aberto ?? 3);
+      return {
+        title: `🚨 URGENTE · chamado atrasado${d.unidade ? ` · ${d.unidade}` : ""}`,
+        body: `Aberto há ${dias} dias e ainda não concluído (prazo: 3 dias). ${String(d.descricao ?? "").slice(0, 100)}${d.responsavel_nome ? ` · Resp.: ${d.responsavel_nome}` : ""}`,
+        url: d.id ? `/chamados/${d.id}` : "/painel",
+        tag: `chamado-atrasado-${d.id}`,
+        urgente: true,
       };
     }
     case "teste":
@@ -237,6 +248,20 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
         typeof d.criado_por === "string" && d.criado_por !== d.concluido_por ? [d.criado_por] : [],
         await recepcao(),
       ).filter((u) => u !== d.concluido_por);
+    case "chamado_atrasado": {
+      // Técnico responsável (em caráter de urgência) + gestores, que acompanham o atraso.
+      const ids = new Set<string>();
+      if (d.responsavel_id) {
+        const { data } = await supabaseAdmin
+          .from("funcionarios")
+          .select("user_id")
+          .eq("id", d.responsavel_id as string)
+          .maybeSingle();
+        if (data?.user_id) ids.add(data.user_id as string);
+      }
+      (await byRoles(["admin", "gestor"])).forEach((u) => ids.add(u));
+      return [...ids];
+    }
     case "teste":
       return typeof d.user_id === "string" ? [d.user_id] : [];
     case "recado_camareira": {
@@ -328,6 +353,7 @@ export const Route = createFileRoute("/api/public/push-dispatcher")({
           body: notif.body,
           url: notif.url,
           tag: notif.tag,
+          urgente: notif.urgente === true,
         });
 
         const results = await Promise.allSettled(
