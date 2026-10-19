@@ -28,6 +28,7 @@ import {
   LayoutGrid,
   MessageSquare,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
 import { BlocoChamadosAtrasados } from "@/components/dashboard/bloco-chamados-atrasados";
@@ -60,6 +61,7 @@ type HubPath =
   | "/gestao-boas-vindas"
   | "/configuracoes"
   | "/gestor/escala"
+  | "/gestor/whatsapp"
   | "/controle-ponto"
   | "/bonificacao"
   | "/historico-limpeza"
@@ -108,6 +110,7 @@ const sections: { title: string; items: HubItem[] }[] = [
       { label: "Frigobar", description: "Produtos, vendas e reposição", to: "/frigobar", icon: GlassWater, tone: "bg-emerald-600" },
       { label: "Check-in Digital", description: "Fechaduras e acessos", to: "/check-in-digital", icon: Key, tone: "bg-teal-600" },
       { label: "Totem", description: "Check-in e check-out do hóspede no tablet", to: "/gestor/totem", icon: TabletSmartphone, tone: "bg-teal-800" },
+      { label: "WhatsApp (Joy)", description: "Assistente de IA: simulador e configuração", to: "/gestor/whatsapp", icon: MessageCircle, tone: "bg-green-600" },
       { label: "Boas-vindas", description: "Organização da tela inicial", to: "/gestao-boas-vindas", icon: Settings2, tone: "bg-slate-700" },
     ],
   },

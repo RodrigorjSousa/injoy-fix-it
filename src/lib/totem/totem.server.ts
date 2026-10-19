@@ -189,7 +189,7 @@ export async function totemBloqueado(totem: Totem): Promise<boolean> {
 
 // --------------------------------------------------------------- Cloudbeds
 
-async function listarReservas(property: CloudbedsProperty, filtros: Record<string, string>): Promise<Raw[]> {
+export async function listarReservas(property: CloudbedsProperty, filtros: Record<string, string>): Promise<Raw[]> {
   const out: Raw[] = [];
   for (let pagina = 1; pagina <= 10; pagina++) {
     const qs = new URLSearchParams({

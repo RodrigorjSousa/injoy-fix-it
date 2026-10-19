@@ -54,6 +54,7 @@ import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_
 import { Route as AuthenticatedGestorRendimentoRouteImport } from './routes/_authenticated/gestor/rendimento'
 import { Route as AuthenticatedGestorTarefasExtrasRouteImport } from './routes/_authenticated/gestor/tarefas-extras'
 import { Route as AuthenticatedGestorTotemRouteImport } from './routes/_authenticated/gestor/totem'
+import { Route as AuthenticatedGestorWhatsappRouteImport } from './routes/_authenticated/gestor/whatsapp'
 import { Route as ApiPublicBonusMetaRouteImport } from './routes/api/public/bonus-meta'
 import { Route as ApiPublicCloudbedsWebhookRouteImport } from './routes/api/public/cloudbeds-webhook'
 import { Route as ApiPublicPagarmeWebhookRouteImport } from './routes/api/public/pagarme-webhook'
@@ -311,6 +312,12 @@ const AuthenticatedGestorTotemRoute =
     path: '/totem',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorWhatsappRoute =
+  AuthenticatedGestorWhatsappRouteImport.update({
+    id: '/whatsapp',
+    path: '/whatsapp',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const ApiPublicBonusMetaRoute = ApiPublicBonusMetaRouteImport.update({
   id: '/api/public/bonus-meta',
   path: '/api/public/bonus-meta',
@@ -398,6 +405,7 @@ export interface FileRoutesByFullPath {
   '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
+  '/gestor/whatsapp': typeof AuthenticatedGestorWhatsappRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
@@ -450,6 +458,7 @@ export interface FileRoutesByTo {
   '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
+  '/gestor/whatsapp': typeof AuthenticatedGestorWhatsappRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
@@ -506,6 +515,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/_authenticated/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/_authenticated/gestor/totem': typeof AuthenticatedGestorTotemRoute
+  '/_authenticated/gestor/whatsapp': typeof AuthenticatedGestorWhatsappRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
   '/api/public/cloudbeds-webhook': typeof ApiPublicCloudbedsWebhookRoute
   '/api/public/pagarme-webhook': typeof ApiPublicPagarmeWebhookRoute
@@ -562,6 +572,7 @@ export interface FileRouteTypes {
     | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
+    | '/gestor/whatsapp'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/pagarme-webhook'
@@ -614,6 +625,7 @@ export interface FileRouteTypes {
     | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
+    | '/gestor/whatsapp'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/pagarme-webhook'
@@ -669,6 +681,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/rendimento'
     | '/_authenticated/gestor/tarefas-extras'
     | '/_authenticated/gestor/totem'
+    | '/_authenticated/gestor/whatsapp'
     | '/api/public/bonus-meta'
     | '/api/public/cloudbeds-webhook'
     | '/api/public/pagarme-webhook'
@@ -1012,6 +1025,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorTotemRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/whatsapp': {
+      id: '/_authenticated/gestor/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/gestor/whatsapp'
+      preLoaderRoute: typeof AuthenticatedGestorWhatsappRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/api/public/bonus-meta': {
       id: '/api/public/bonus-meta'
       path: '/api/public/bonus-meta'
@@ -1079,6 +1099,7 @@ interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorRendimentoRoute: typeof AuthenticatedGestorRendimentoRoute
   AuthenticatedGestorTarefasExtrasRoute: typeof AuthenticatedGestorTarefasExtrasRoute
   AuthenticatedGestorTotemRoute: typeof AuthenticatedGestorTotemRoute
+  AuthenticatedGestorWhatsappRoute: typeof AuthenticatedGestorWhatsappRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
 }
 
@@ -1093,6 +1114,7 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
     AuthenticatedGestorTarefasExtrasRoute:
       AuthenticatedGestorTarefasExtrasRoute,
     AuthenticatedGestorTotemRoute: AuthenticatedGestorTotemRoute,
+    AuthenticatedGestorWhatsappRoute: AuthenticatedGestorWhatsappRoute,
     AuthenticatedGestorIndexRoute: AuthenticatedGestorIndexRoute,
   }
 
