@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { AlertTriangle, ArrowUpRight, CheckCircle2, Loader2 } from "lucide-react";
 import { FinanceiroAlertas } from "@/components/financeiro/financeiro-alertas";
+import { AuditoriaAlmoxarifadoPanel } from "@/components/almoxarifado/auditoria-panel";
+import { SolicitacoesCompraPanel } from "@/components/almoxarifado/solicitacoes-compra-panel";
 import { usePendencias } from "@/lib/dashboard/dados";
 import { cn } from "@/lib/utils";
 import { Secao } from "./comum";
@@ -47,6 +49,16 @@ export function BlocoPendencias() {
           ))}
         </div>
       )}
+      {/* Almoxarifado e compras (saíram da tela da Recepção): as duas unidades, cada uma com a sua fila. */}
+      <div className="grid gap-3 lg:grid-cols-2">
+        {(["Botafogo", "Ipanema"] as const).map((u) => (
+          <div key={u} className="space-y-2">
+            <p className="text-[11px] font-black uppercase tracking-wide text-slate-500">Almoxarifado e compras · {u}</p>
+            <AuditoriaAlmoxarifadoPanel unidade={u} />
+            <SolicitacoesCompraPanel unidade={u} />
+          </div>
+        ))}
+      </div>
       {comErro.length > 0 && (
         <p className="flex items-start gap-1.5 text-[11px] text-amber-800">
           <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
