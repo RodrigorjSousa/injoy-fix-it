@@ -33,7 +33,6 @@ import { BlocoPendencias } from "@/components/dashboard/bloco-pendencias";
 import { BlocoChamadosAtrasados } from "@/components/dashboard/bloco-chamados-atrasados";
 import { BlocoOperacao } from "@/components/dashboard/bloco-operacao";
 import { BlocoMes } from "@/components/dashboard/bloco-mes";
-import { BlocoRendimento } from "@/components/dashboard/bloco-rendimento";
 import { usePiscaReservas } from "@/components/reservas/pisca-reservas";
 
 export const Route = createFileRoute("/_authenticated/gestor/")({
@@ -142,7 +141,6 @@ function GestorHub() {
       <BlocoChamadosAtrasados />
       <BlocoOperacao />
       <BlocoMes />
-      <BlocoRendimento />
 
       <h2 className="border-t border-slate-200 pt-6 text-sm font-black uppercase text-slate-700">Atalhos</h2>
 

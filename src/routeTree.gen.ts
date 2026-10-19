@@ -51,6 +51,7 @@ import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authent
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as AuthenticatedGestorPontoRouteImport } from './routes/_authenticated/gestor/ponto'
 import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
+import { Route as AuthenticatedGestorRendimentoRouteImport } from './routes/_authenticated/gestor/rendimento'
 import { Route as AuthenticatedGestorTarefasExtrasRouteImport } from './routes/_authenticated/gestor/tarefas-extras'
 import { Route as AuthenticatedGestorTotemRouteImport } from './routes/_authenticated/gestor/totem'
 import { Route as ApiPublicBonusMetaRouteImport } from './routes/api/public/bonus-meta'
@@ -292,6 +293,12 @@ const AuthenticatedGestorPrevisaoCargaRoute =
     path: '/previsao-carga',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorRendimentoRoute =
+  AuthenticatedGestorRendimentoRouteImport.update({
+    id: '/rendimento',
+    path: '/rendimento',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const AuthenticatedGestorTarefasExtrasRoute =
   AuthenticatedGestorTarefasExtrasRouteImport.update({
     id: '/tarefas-extras',
@@ -388,6 +395,7 @@ export interface FileRoutesByFullPath {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
@@ -439,6 +447,7 @@ export interface FileRoutesByTo {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
@@ -494,6 +503,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/_authenticated/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/_authenticated/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/_authenticated/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/_authenticated/gestor/totem': typeof AuthenticatedGestorTotemRoute
   '/api/public/bonus-meta': typeof ApiPublicBonusMetaRoute
@@ -549,6 +559,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
     | '/api/public/bonus-meta'
@@ -600,6 +611,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
     | '/api/public/bonus-meta'
@@ -654,6 +666,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/financeiro'
     | '/_authenticated/gestor/ponto'
     | '/_authenticated/gestor/previsao-carga'
+    | '/_authenticated/gestor/rendimento'
     | '/_authenticated/gestor/tarefas-extras'
     | '/_authenticated/gestor/totem'
     | '/api/public/bonus-meta'
@@ -978,6 +991,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorPrevisaoCargaRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/rendimento': {
+      id: '/_authenticated/gestor/rendimento'
+      path: '/rendimento'
+      fullPath: '/gestor/rendimento'
+      preLoaderRoute: typeof AuthenticatedGestorRendimentoRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/_authenticated/gestor/tarefas-extras': {
       id: '/_authenticated/gestor/tarefas-extras'
       path: '/tarefas-extras'
@@ -1056,6 +1076,7 @@ interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
   AuthenticatedGestorPontoRoute: typeof AuthenticatedGestorPontoRoute
   AuthenticatedGestorPrevisaoCargaRoute: typeof AuthenticatedGestorPrevisaoCargaRoute
+  AuthenticatedGestorRendimentoRoute: typeof AuthenticatedGestorRendimentoRoute
   AuthenticatedGestorTarefasExtrasRoute: typeof AuthenticatedGestorTarefasExtrasRoute
   AuthenticatedGestorTotemRoute: typeof AuthenticatedGestorTotemRoute
   AuthenticatedGestorIndexRoute: typeof AuthenticatedGestorIndexRoute
@@ -1068,6 +1089,7 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
     AuthenticatedGestorPontoRoute: AuthenticatedGestorPontoRoute,
     AuthenticatedGestorPrevisaoCargaRoute:
       AuthenticatedGestorPrevisaoCargaRoute,
+    AuthenticatedGestorRendimentoRoute: AuthenticatedGestorRendimentoRoute,
     AuthenticatedGestorTarefasExtrasRoute:
       AuthenticatedGestorTarefasExtrasRoute,
     AuthenticatedGestorTotemRoute: AuthenticatedGestorTotemRoute,
