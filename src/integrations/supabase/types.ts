@@ -458,6 +458,7 @@ export type Database = {
           foto_depois: string | null
           id: string
           midias: Json
+          prazo_avisado_em: string | null
           responsavel_id: string | null
           responsavel_nome: string | null
           status: Database["public"]["Enums"]["chamado_status"]
@@ -476,6 +477,7 @@ export type Database = {
           foto_depois?: string | null
           id?: string
           midias?: Json
+          prazo_avisado_em?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
@@ -494,6 +496,7 @@ export type Database = {
           foto_depois?: string | null
           id?: string
           midias?: Json
+          prazo_avisado_em?: string | null
           responsavel_id?: string | null
           responsavel_nome?: string | null
           status?: Database["public"]["Enums"]["chamado_status"]
