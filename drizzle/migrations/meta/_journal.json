@@ -498,6 +498,13 @@
       "when": 1792337823831,
       "tag": "0070_0070_chamado_concluido_recepcao",
       "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1792373265686,
+      "tag": "0071_prazo_dos_chamados",
+      "breakpoints": true
     }
   ]
 }
