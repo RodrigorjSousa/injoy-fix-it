@@ -94,6 +94,10 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   notificações e Sair continuam. A lateral da equipe não mudou.
 - Todas as telas que estavam na lateral têm card em Atalhos. Novos: seção "Telas da equipe" (Recepção,
   Camareiras, Manutenção, Preventiva AC — movida de Operação) e, em Operação, Painel de Chamados, Serviços e Chat.
+- 19/10/2026 (branch `feat/rendimento-tela`, sem migração): o bloco D saiu do Início da área. Agora tem tela
+  própria, **ÁREA DO GESTOR › RENDIMENTO POR UNIDADE** (`/gestor/rendimento`, logo abaixo de INÍCIO DA ÁREA na
+  lateral e na barra do celular), só com o `BlocoRendimento`. O Início ficou com pendências, chamados fora do prazo,
+  operação de hoje, mês em curso e atalhos.
 
 ## Estado atual
 - Revisão no Lovable: ocupação de hoje usa `hotel_metrics.occupancy_percentage` do Cloudbeds, não nomes de hóspedes. Conferência real: Botafogo 52,63%, Ipanema 50%.

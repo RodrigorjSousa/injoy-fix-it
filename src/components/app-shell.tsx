@@ -154,7 +154,10 @@ const ALL_NAV: NavItem[] = [
 const MENU_GESTOR: NavItem = {
   label: "ÁREA DO GESTOR",
   icon: ShieldCheck,
-  children: [{ to: "/gestor", label: "INÍCIO DA ÁREA", icon: ShieldCheck, exact: true }],
+  children: [
+    { to: "/gestor", label: "INÍCIO DA ÁREA", icon: ShieldCheck, exact: true },
+    { to: "/gestor/rendimento", label: "RENDIMENTO POR UNIDADE", icon: BarChart3 },
+  ],
 };
 
 export function AppShell({ children }: { children: React.ReactNode }) {
