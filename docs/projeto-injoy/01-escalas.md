@@ -124,6 +124,10 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     função `cores_equipe()`). O gestor troca em Equipe › Escala (botão "Cor" no card). A cor aparece no calendário da
     Escala, resumo, card Hoje, quadro VA/VT, Equipe, Ponto, Camareiras, Bonificação e Manutenção
     (componentes `NomeCor`/`AvatarCor` em `src/components/pessoa-cor.tsx`; use em qualquer lista nova de pessoas).
+- Financeiro › Lançamentos › **A pagar por pessoa** (branch `feat/financeiro-a-pagar-por-pessoa`, sem migração):
+  botão que soma, por pessoa (funcionário vinculado ou freelancer pelo nome), o que falta pagar no mês/unidade do filtro
+  (a pagar + vencido), o já pago e o detalhe por categoria e por lançamento; exporta planilha e PDF. Despesas sem pessoa
+  (fornecedores/contas) aparecem só num aviso. Código: `src/lib/financeiro-por-pessoa.ts`.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
