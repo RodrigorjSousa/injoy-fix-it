@@ -123,4 +123,9 @@ sem abrir dez telas. O Rodrigo decide o conteúdo a partir do mapeamento abaixo.
   Receita do Mês em curso é a soma das diárias do Cloudbeds do mês até hoje (`dash_reserva_noites`), a mesma do
   Rendimento por unidade; o card leva ao Rendimento. Sem diárias sincronizadas no mês, cai nas receitas do Financeiro.
 - Despesa continua do Financeiro (com rateio do "Ambas"); Resultado = Receita − Despesa.
+- Financeiro › Painel (mesma correção, branch `fix/receita-financeiro`): "Receita do mês", o gráfico "Receita x
+  despesa · 12 meses", o Resultado e "Pessoal / receita" usam as diárias do Cloudbeds (`src/lib/receita-diarias.ts`,
+  regra única com testes), com o filtro de unidade (Consolidado soma as duas). Mês sem diárias sincronizadas usa as
+  receitas lançadas e avisa no card. Despesas, vencidas, próximos 7 dias e Exportar continuam dos lançamentos.
+  Meses antigos só aparecem no gráfico depois de atualizados no Rendimento por unidade.
 
