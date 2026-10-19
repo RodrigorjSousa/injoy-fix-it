@@ -4401,6 +4401,213 @@ export type Database = {
         }
         Relationships: []
       }
+      wa_config: {
+        Row: {
+          atualizado_por: string | null
+          conhecimento: Json
+          espera_segundos: number
+          id: string
+          modelo: string
+          prompt: string
+          updated_at: string
+          wifi: Json
+        }
+        Insert: {
+          atualizado_por?: string | null
+          conhecimento?: Json
+          espera_segundos?: number
+          id?: string
+          modelo?: string
+          prompt?: string
+          updated_at?: string
+          wifi?: Json
+        }
+        Update: {
+          atualizado_por?: string | null
+          conhecimento?: Json
+          espera_segundos?: number
+          id?: string
+          modelo?: string
+          prompt?: string
+          updated_at?: string
+          wifi?: Json
+        }
+        Relationships: []
+      }
+      wa_conversas: {
+        Row: {
+          canal: string
+          contato_nome: string | null
+          created_at: string
+          criado_por: string | null
+          etapa: string
+          id: string
+          modo: string
+          reserva_id: string | null
+          reserva_unidade: string | null
+          telefone: string | null
+          ultima_msg_cliente_em: string | null
+          unidade: string | null
+          updated_at: string
+        }
+        Insert: {
+          canal?: string
+          contato_nome?: string | null
+          created_at?: string
+          criado_por?: string | null
+          etapa?: string
+          id?: string
+          modo?: string
+          reserva_id?: string | null
+          reserva_unidade?: string | null
+          telefone?: string | null
+          ultima_msg_cliente_em?: string | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Update: {
+          canal?: string
+          contato_nome?: string | null
+          created_at?: string
+          criado_por?: string | null
+          etapa?: string
+          id?: string
+          modo?: string
+          reserva_id?: string | null
+          reserva_unidade?: string | null
+          telefone?: string | null
+          ultima_msg_cliente_em?: string | null
+          unidade?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      wa_ia_execucoes: {
+        Row: {
+          bloqueios: Json
+          canal: string
+          chamadas_modelo: number
+          conversa_id: string | null
+          created_at: string
+          duracao_ms: number
+          erro: string | null
+          ferramentas: Json
+          id: string
+          modelo: string
+          tokens_entrada: number
+          tokens_saida: number
+        }
+        Insert: {
+          bloqueios?: Json
+          canal?: string
+          chamadas_modelo?: number
+          conversa_id?: string | null
+          created_at?: string
+          duracao_ms?: number
+          erro?: string | null
+          ferramentas?: Json
+          id?: string
+          modelo?: string
+          tokens_entrada?: number
+          tokens_saida?: number
+        }
+        Update: {
+          bloqueios?: Json
+          canal?: string
+          chamadas_modelo?: number
+          conversa_id?: string | null
+          created_at?: string
+          duracao_ms?: number
+          erro?: string | null
+          ferramentas?: Json
+          id?: string
+          modelo?: string
+          tokens_entrada?: number
+          tokens_saida?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_ia_execucoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_mensagens: {
+        Row: {
+          autor: string
+          conversa_id: string
+          created_at: string
+          id: string
+          meta: Json
+          texto: string
+        }
+        Insert: {
+          autor: string
+          conversa_id: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          texto?: string
+        }
+        Update: {
+          autor?: string
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          meta?: Json
+          texto?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_mensagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_passagens: {
+        Row: {
+          conversa_id: string
+          created_at: string
+          id: string
+          motivo: string
+          resolvido_em: string | null
+          resolvido_por: string | null
+          urgencia: string
+        }
+        Insert: {
+          conversa_id: string
+          created_at?: string
+          id?: string
+          motivo?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          urgencia?: string
+        }
+        Update: {
+          conversa_id?: string
+          created_at?: string
+          id?: string
+          motivo?: string
+          resolvido_em?: string | null
+          resolvido_por?: string | null
+          urgencia?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_passagens_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       escala_alertas_financeiros: {
@@ -4769,6 +4976,7 @@ export type Database = {
       minha_permissao_escala_recepcao: { Args: never; Returns: boolean }
       minha_permissao_previsao_carga: { Args: never; Returns: boolean }
       minha_permissao_reservas: { Args: never; Returns: Json }
+      minha_permissao_whatsapp: { Args: never; Returns: Json }
       open_room_inspection_issue: {
         Args: {
           _category?: string

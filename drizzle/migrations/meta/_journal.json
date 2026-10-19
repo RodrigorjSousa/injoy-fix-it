@@ -519,6 +519,13 @@
       "when": 1792378425478,
       "tag": "0073_0073_escala_recepcao_cores",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1792386734278,
+      "tag": "0074_0074_whatsapp_joy",
+      "breakpoints": true
     }
   ]
 }
