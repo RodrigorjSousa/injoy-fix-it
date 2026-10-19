@@ -804,6 +804,7 @@ export type Database = {
       escala_colaboradores: {
         Row: {
           ativo: boolean
+          cor: string | null
           created_at: string
           funcionario_id: string | null
           hora_entrada: string | null
@@ -822,6 +823,7 @@ export type Database = {
         }
         Insert: {
           ativo?: boolean
+          cor?: string | null
           created_at?: string
           funcionario_id?: string | null
           hora_entrada?: string | null
@@ -840,6 +842,7 @@ export type Database = {
         }
         Update: {
           ativo?: boolean
+          cor?: string | null
           created_at?: string
           funcionario_id?: string | null
           hora_entrada?: string | null
@@ -4592,6 +4595,17 @@ export type Database = {
         }
         Returns: string
       }
+      cores_equipe: {
+        Args: never
+        Returns: {
+          colaborador_id: string
+          cor: string
+          cor_propria: boolean
+          funcionario_id: string
+          nome: string
+          user_id: string
+        }[]
+      }
       dash_gravar_noites: {
         Args: {
           _avisos?: string
@@ -4636,6 +4650,24 @@ export type Database = {
             }
             Returns: undefined
           }
+      escala_recepcao_lancar: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _hora_entrada?: string
+          _mensagem?: string
+          _modalidade_id: string
+          _substitui?: string
+          _unidade: string
+        }
+        Returns: string
+      }
+      escala_recepcao_opcoes: { Args: { _unidade: string }; Returns: Json }
+      escala_recepcao_painel: {
+        Args: { _fim: string; _inicio: string }
+        Returns: Json
+      }
+      escala_recepcao_remover: { Args: { _dia_id: string }; Returns: undefined }
       escala_regenerar_mes: {
         Args: {
           _competencia: string
@@ -4734,6 +4766,7 @@ export type Database = {
         }[]
       }
       minha_permissao_bonificacao: { Args: never; Returns: Json }
+      minha_permissao_escala_recepcao: { Args: never; Returns: boolean }
       minha_permissao_previsao_carga: { Args: never; Returns: boolean }
       minha_permissao_reservas: { Args: never; Returns: Json }
       open_room_inspection_issue: {
