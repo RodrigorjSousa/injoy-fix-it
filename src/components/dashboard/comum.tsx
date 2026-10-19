@@ -55,7 +55,7 @@ export function CabecalhoUnidade({ unidade, extra }: { unidade: "Botafogo" | "Ip
   );
 }
 
-export function Kpi({ rotulo, valor, sub, tom, onClick, to, unidade }: { rotulo: string; valor: ReactNode; sub?: ReactNode; tom?: "ruim" | "bom"; onClick?: () => void; to?: "/gestor/financeiro" | "/gestao" | "/bonificacao" | "/gestor/totem" | "/relatorio-operacoes"; unidade?: "Botafogo" | "Ipanema" }) {
+export function Kpi({ rotulo, valor, sub, tom, onClick, to, unidade }: { rotulo: string; valor: ReactNode; sub?: ReactNode; tom?: "ruim" | "bom"; onClick?: () => void; to?: "/gestor/financeiro" | "/gestor/rendimento" | "/gestao" | "/bonificacao" | "/gestor/totem" | "/relatorio-operacoes"; unidade?: "Botafogo" | "Ipanema" }) {
   const { setUnidade } = useUnidade();
   const content = (
     <div className="w-full min-w-0 rounded-lg bg-muted px-3 py-2 text-left">
