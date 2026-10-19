@@ -3,6 +3,7 @@ import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { buscarPermissaoBonificacao } from "@/lib/bonificacao";
 import { buscarPermissaoPrevisao } from "@/lib/previsao-reforco";
+import { buscarPermissaoEscalaRecepcao } from "@/lib/escala-recepcao";
 import { buscarPermissaoReservas } from "@/lib/reservas/use-reservas";
 
 export type TelaGestorCompartilhada =
@@ -13,7 +14,8 @@ export type TelaGestorCompartilhada =
   | "check-in-digital"
   | "preventiva"
   | "previsao-carga"
-  | "reservas";
+  | "reservas"
+  | "escala";
 
 type Role = "admin" | "gestor" | "funcionario" | "recepcao" | "camareira";
 
@@ -55,6 +57,18 @@ export async function requireGestor(options: AccessOptions = { somenteGestor: tr
     }
     if (pode) return { gestor: false, userId: auth.user.id };
     negarAcesso("Seu login não está liberado na Previsão de Carga. Peça ao gestor para liberar em Equipe.");
+  }
+
+  // Escala (Recepção): quem decide é o banco (gestor, Recepção ou quem foi liberado em Equipe).
+  if (!options.somenteGestor && options.tela === "escala") {
+    let pode = false;
+    try {
+      pode = await buscarPermissaoEscalaRecepcao();
+    } catch (e) {
+      negarAcesso(e instanceof Error ? e.message : "Não foi possível verificar seu acesso.");
+    }
+    if (pode) return { gestor: false, userId: auth.user.id };
+    negarAcesso("Seu login não está liberado na Escala. Peça ao gestor para liberar em Equipe.");
   }
 
   // Reservas (cobrança): quem decide é o banco (gestor/admin ou quem o gestor liberou em "Quem vê" ou Equipe).

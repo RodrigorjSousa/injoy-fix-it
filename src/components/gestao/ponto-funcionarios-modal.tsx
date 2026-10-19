@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { toast } from "sonner";
@@ -281,7 +282,7 @@ export function PontoFuncionariosModal({
                       {initials(f.nome)}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-bold text-white truncate">{f.nome}</p>
+                      <p className="font-bold text-white truncate"><NomeCor funcionarioId={f.id} nome={f.nome} /></p>
                       <p className="text-[11px] text-slate-500 truncate">
                         {f.categorias.join(" · ") || "Sem categoria"}
                       </p>

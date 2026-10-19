@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { useMemo } from "react";
 import { Eye, ListChecks, Target, Trophy } from "lucide-react";
 import { SETOR_META, SITUACAO_INFO, avaliarMetaSetores, useMetaSituacao, type SetorMeta } from "@/lib/bonus-meta";
@@ -165,7 +166,7 @@ export function BonificacaoVisualizacaoDialog({
               <ul className="space-y-1">
                 {meta.pessoas.filter((p) => p.ativo).map((p) => (
                   <li key={p.funcionario_id} className={cn("flex flex-wrap items-center justify-between gap-2 rounded-md border px-2 py-1.5 text-xs", SITUACAO_INFO[p.situacao].classe)}>
-                    <span className="font-semibold">{p.nome} <span className="font-normal opacity-75">· {SETOR_META[p.setor]?.rotulo ?? "—"}</span></span>
+                    <span className="font-semibold"><NomeCor nome={p.nome} /> <span className="font-normal opacity-75">· {SETOR_META[p.setor]?.rotulo ?? "—"}</span></span>
                     <span>
                       {p.atrasos} atraso{p.atrasos === 1 ? "" : "s"} · {p.faltas} falta{p.faltas === 1 ? "" : "s"} · {SITUACAO_INFO[p.situacao].rotulo}
                     </span>

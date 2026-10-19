@@ -1,3 +1,4 @@
+import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
@@ -557,7 +558,7 @@ function PontoRecepcao() {
                         setEtapa("camera");
                       }}
                     >
-                      <span className="font-semibold">{f.nome}</span>
+                      <span className="font-semibold"><NomeCor nome={f.nome} /></span>
                       <span className="flex shrink-0 items-center gap-2">
                         {!f.cadastro_facial && (
                           <Badge variant="outline" className="border-amber-400 text-amber-700">

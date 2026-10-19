@@ -8,6 +8,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMe } from "@/lib/store";
 import { usePermissaoBonificacao } from "@/lib/bonificacao";
 import { usePermissaoPrevisao } from "@/lib/previsao-reforco";
+import { usePermissaoEscalaRecepcao } from "@/lib/escala-recepcao";
 import { usePermissaoReservas } from "@/lib/reservas/use-reservas";
 import { ContadorReservas, usePiscaReservas } from "@/components/reservas/pisca-reservas";
 import { PwaInstallPrompt } from "@/components/pwa-install-prompt";
@@ -105,6 +106,7 @@ const podePainel = (me: Me) => {
 // (Bonificação › Acessos), e não mais pelo nome do funcionário.
 const BONIFICACAO_NAV: NavItem = { to: "/bonificacao", label: "Bonificação", icon: Trophy };
 const PREVISAO_NAV: NavItem = { to: "/previsao-carga", label: "Previsão de Carga", icon: Gauge };
+const ESCALA_NAV: NavItem = { to: "/escala", label: "Escala", icon: CalendarDays };
 const RESERVAS_NAV: NavItem = { to: "/reservas", label: "Reservas", icon: CreditCard };
 
 
@@ -166,6 +168,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const listaCustom = me?.funcionario?.telasPermitidas ?? null;
   const { data: permBonif } = usePermissaoBonificacao();
   const { data: permPrevisao } = usePermissaoPrevisao();
+  const { data: permEscala } = usePermissaoEscalaRecepcao();
   const { data: permReservas } = usePermissaoReservas();
   // Reserva nova na lista de cobrança: o botão Reservas pisca na cor da modalidade até ser aberto.
   const pisca = usePiscaReservas();
@@ -191,7 +194,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Bonificação aparece para quem o gestor liberou, mesmo com lista personalizada.
   // Previsão de Carga: Recepção ou quem o gestor liberar em Equipe (regra no banco).
   const nav: NavItem[] = (() => {
-    let lista = navBase.filter((n) => n.to !== "/bonificacao" && n.to !== "/previsao-carga" && n.to !== "/reservas");
+    let lista = navBase.filter((n) => n.to !== "/bonificacao" && n.to !== "/previsao-carga" && n.to !== "/reservas" && n.to !== "/escala");
     const antesDoChat = (item: NavItem) => {
       const idxChat = lista.findIndex((n) => n.to === "/chat");
       const pos = idxChat >= 0 ? idxChat : lista.length;
@@ -199,6 +202,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     };
     if (me && !isAdmin(me) && permBonif?.podeRegistrar) antesDoChat(BONIFICACAO_NAV);
     if (me && !isAdmin(me) && permPrevisao) antesDoChat(PREVISAO_NAV);
+    // Escala (só ver + incluir freelancer): quem o banco libera (Recepção, ou quem tem a tela em Equipe).
+    if (me && !isAdmin(me) && permEscala) antesDoChat(ESCALA_NAV);
     // Reservas: logo depois de Recepção (quem o banco libera; gestor abre pelos Atalhos).
     if (me && !isAdmin(me) && permReservas?.ve) {
       const idxRecepcao = lista.findIndex((n) => n.to === "/recepcao");
