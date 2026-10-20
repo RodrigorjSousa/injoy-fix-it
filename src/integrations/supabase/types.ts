@@ -3546,6 +3546,8 @@ export type Database = {
           departing_guest_name: string | null
           dnd_photo_url: string | null
           eci_time: string | null
+          guest_checkin_date: string | null
+          guest_checkout_date: string | null
           guest_name: string | null
           has_eci: boolean
           has_lco: boolean
@@ -3555,6 +3557,7 @@ export type Database = {
           is_dnd: boolean
           lco_time: string | null
           next_arrival_time: string | null
+          next_checkout_date: string | null
           next_guest_name: string | null
           next_nights: number | null
           next_pax: number | null
@@ -3589,6 +3592,8 @@ export type Database = {
           departing_guest_name?: string | null
           dnd_photo_url?: string | null
           eci_time?: string | null
+          guest_checkin_date?: string | null
+          guest_checkout_date?: string | null
           guest_name?: string | null
           has_eci?: boolean
           has_lco?: boolean
@@ -3598,6 +3603,7 @@ export type Database = {
           is_dnd?: boolean
           lco_time?: string | null
           next_arrival_time?: string | null
+          next_checkout_date?: string | null
           next_guest_name?: string | null
           next_nights?: number | null
           next_pax?: number | null
@@ -3632,6 +3638,8 @@ export type Database = {
           departing_guest_name?: string | null
           dnd_photo_url?: string | null
           eci_time?: string | null
+          guest_checkin_date?: string | null
+          guest_checkout_date?: string | null
           guest_name?: string | null
           has_eci?: boolean
           has_lco?: boolean
@@ -3641,6 +3649,7 @@ export type Database = {
           is_dnd?: boolean
           lco_time?: string | null
           next_arrival_time?: string | null
+          next_checkout_date?: string | null
           next_guest_name?: string | null
           next_nights?: number | null
           next_pax?: number | null
