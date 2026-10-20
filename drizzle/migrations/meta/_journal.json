@@ -526,6 +526,13 @@
       "when": 1792386734278,
       "tag": "0074_0074_whatsapp_joy",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1792528894427,
+      "tag": "0075_0076_room_housekeeping_estadia",
+      "breakpoints": true
     }
   ]
 }
