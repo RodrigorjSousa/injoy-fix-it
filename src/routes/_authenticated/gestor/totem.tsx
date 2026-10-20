@@ -319,7 +319,7 @@ function TotemGestor() {
       <section className="space-y-3">
         <h3 className="text-lg font-black text-slate-900">Fotos de identificação</h3>
         <p className="text-sm text-slate-500">
-          Selfie com prova de vida e selfie segurando o documento. Os indícios abaixo são calculados no tablet; na dúvida, confira a foto.
+          Foto do hóspede segurando o documento (registros antigos também têm a selfie com prova de vida). O indício abaixo compara o rosto com a foto do documento e é calculado no tablet; na dúvida, confira a foto.
         </p>
         <Card className="divide-y">
           {documentos.length === 0 && <p className="p-4 text-sm text-slate-500">Nenhuma foto ainda.</p>}
