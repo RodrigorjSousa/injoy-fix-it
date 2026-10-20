@@ -537,6 +537,10 @@ serve(async (req) => {
           next_guest_name: nextGuestName,
           next_arrival_time: nextArrivalTime,
           next_pax: proximaReserva ? proximaReserva.numberOfGuests || 0 : null,
+          // Datas da estadia para o card das camareiras (0076).
+          guest_checkin_date: resAtiva?._checkInDate || null,
+          guest_checkout_date: resAtiva?._checkOutDate || null,
+          next_checkout_date: proximaReserva?._checkOutDate || null,
           next_nights: proximaReserva && proximaReserva._checkInDate && proximaReserva._checkOutDate
             ? Math.max(0, Math.round((Date.parse(proximaReserva._checkOutDate) - Date.parse(proximaReserva._checkInDate)) / 86400000))
             : null,
@@ -698,9 +702,11 @@ serve(async (req) => {
       let { error: upErr } = await supabaseClient
         .from('room_housekeeping')
         .upsert(linhas, { onConflict: 'property,room_number' })
-      if (upErr && /block_kind|block_reason|next_nights|cloudbeds_room_id/i.test(upErr.message)) {
+      if (upErr && /block_kind|block_reason|next_nights|cloudbeds_room_id|guest_checkin_date|guest_checkout_date|next_checkout_date/i.test(upErr.message)) {
         console.warn('[consolidar-dados] colunas novas ausentes; gravando sem elas')
-        const semColunas = linhas.map(({ block_kind, block_reason, next_nights, cloudbeds_room_id, ...resto }: any) => resto)
+        const semColunas = linhas.map(
+          ({ block_kind, block_reason, next_nights, cloudbeds_room_id, guest_checkin_date, guest_checkout_date, next_checkout_date, ...resto }: any) => resto,
+        )
         ;({ error: upErr } = await supabaseClient
           .from('room_housekeeping')
           .upsert(semColunas, { onConflict: 'property,room_number' }))

@@ -1,7 +1,7 @@
 import { NomeCor } from "@/components/pessoa-cor";
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles, Trash2 } from "lucide-react";
+import { CalendarDays, RefreshCw, Search, CheckCircle2, AlertTriangle, Hammer, User, DollarSign, FileText, Play, X, Ban, ClipboardCheck, Clock, ListChecks, Shirt, Package, MessageSquarePlus, LogOut, LogIn, ShoppingBag, Camera, Video, Send, Loader2, Film, History, Sparkles, Trash2 } from "lucide-react";
 import { useServerFn } from "@tanstack/react-start";
 import { cloudbedsCheckoutRoom } from "@/lib/cloudbeds-checkout.functions";
 import { cloudbedsMarcarQuartoLimpo } from "@/lib/cloudbeds-housekeeping.functions";
@@ -27,6 +27,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 import { AvisoSyncCloudbeds } from "@/components/aviso-sync-cloudbeds";
 import { cn } from "@/lib/utils";
+import { dataCurta, resumoEstadia, textoEstadia } from "@/lib/estadia";
+import { todaySP } from "@/lib/tz";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
@@ -67,6 +69,9 @@ type RoomRow = {
   next_guest_name: string | null;
   next_arrival_time: string | null;
   next_nights?: number | null;
+  guest_checkin_date?: string | null;
+  guest_checkout_date?: string | null;
+  next_checkout_date?: string | null;
   next_pax: number | null;
   pax: number | null;
   has_pending_payment: boolean | null;
@@ -814,6 +819,28 @@ function PainelCamareiras() {
                   <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
                 </div>
 
+                {(() => {
+                  // Data de saída do hóspede (e em que noite da estadia ele está).
+                  if (!q.guest_name || q.guest_name === "Quarto Vazio") return null;
+                  const r = resumoEstadia(q.guest_checkin_date, q.guest_checkout_date, todaySP());
+                  if (!r || r.quando === "passou") return null;
+                  return (
+                    <div
+                      className={cn(
+                        "flex items-center gap-1.5 text-xs rounded-lg border px-2 py-1.5",
+                        r.quando === "hoje"
+                          ? "bg-orange-50 border-orange-200 text-orange-800"
+                          : r.quando === "amanha"
+                            ? "bg-amber-50 border-amber-200 text-amber-800"
+                            : "bg-slate-50 border-slate-200 text-slate-700",
+                      )}
+                    >
+                      <CalendarDays size={13} className="shrink-0" />
+                      <span className="font-bold">{textoEstadia(r)}</span>
+                    </div>
+                  );
+                })()}
+
                 {q.departing_guest_name ? (
                   <div className="flex items-center gap-1.5 text-xs rounded-lg bg-orange-50 border border-orange-200 px-2 py-1.5 text-orange-800">
                     <LogOut size={13} className="shrink-0" />
@@ -835,6 +862,11 @@ function PainelCamareiras() {
                     {q.next_nights && q.next_nights > 0 ? (
                       <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded">
                         {q.next_nights} {q.next_nights === 1 ? "noite" : "noites"}
+                      </span>
+                    ) : null}
+                    {q.next_checkout_date ? (
+                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
+                        sai {dataCurta(q.next_checkout_date)}
                       </span>
                     ) : null}
                     <span className="ml-auto inline-flex items-center gap-1 font-black">
