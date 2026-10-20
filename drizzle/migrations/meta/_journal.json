@@ -533,6 +533,13 @@
       "when": 1792528894427,
       "tag": "0075_0076_room_housekeeping_estadia",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1792529499438,
+      "tag": "0076_0075_totem_senha_provisoria",
+      "breakpoints": true
     }
   ]
 }
