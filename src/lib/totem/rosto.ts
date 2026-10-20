@@ -124,8 +124,8 @@ export function conferenciaFoto(d: {
     ];
   }
   const itens: Array<{ texto: string; ok: boolean | null }> = [];
-  if (d.dist_mesma_pessoa === null) itens.push({ texto: "Mesma pessoa: não conferido", ok: null });
-  else
+  // Fotos novas (uma só, com o documento) não têm selfie separada para comparar.
+  if (d.dist_mesma_pessoa !== null)
     itens.push({
       texto:
         d.dist_mesma_pessoa <= LIMITE_MESMA_PESSOA

@@ -204,10 +204,12 @@ describe("adultos e documentos", () => {
     expect(adultosDaReserva({ rooms: [{ roomName: "005", adults: 2 }] })).toHaveLength(2);
     expect(adultosDaReserva({ guestList: {} })).toHaveLength(1);
   });
-  it("cada adulto precisa da selfie e da foto com o documento", () => {
+  it("cada adulto precisa da foto com o documento", () => {
     const f = (ordem: number, etapa: string) => ({ hospede_ordem: ordem, etapa });
-    expect(documentosFaltando(2, [f(1, "rosto"), f(1, "rosto_documento"), f(2, "rosto")])).toBe(1);
-    expect(documentosFaltando(2, [f(1, "rosto"), f(1, "rosto_documento"), f(2, "rosto"), f(2, "rosto_documento")])).toBe(0);
-    expect(documentosFaltando(1, [f(1, "rosto_documento")])).toBe(1);
+    // Basta a foto com o documento; a selfie antiga sozinha não conta.
+    expect(documentosFaltando(2, [f(1, "rosto_documento"), f(2, "rosto")])).toBe(1);
+    expect(documentosFaltando(2, [f(1, "rosto_documento"), f(2, "rosto_documento")])).toBe(0);
+    expect(documentosFaltando(1, [f(1, "rosto"), f(1, "rosto_documento")])).toBe(0);
+    expect(documentosFaltando(1, [])).toBe(1);
   });
 });
