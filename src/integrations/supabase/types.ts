@@ -3994,6 +3994,7 @@ export type Database = {
           pareamento_hash: string | null
           pede_documentos: boolean
           pos_serial: string | null
+          senha_provisoria: string | null
           telefone_suporte: string | null
           token_hash: string | null
           ultimo_uso: string | null
@@ -4021,6 +4022,7 @@ export type Database = {
           pareamento_hash?: string | null
           pede_documentos?: boolean
           pos_serial?: string | null
+          senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
           ultimo_uso?: string | null
@@ -4048,6 +4050,7 @@ export type Database = {
           pareamento_hash?: string | null
           pede_documentos?: boolean
           pos_serial?: string | null
+          senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
           ultimo_uso?: string | null
