@@ -50,6 +50,8 @@ export type Totem = {
   wifi_senha: string | null;
   mensagem_comprovante: string | null;
   voz_ativa: boolean;
+  /** Fase de testes: senha fixa para todas as portas, sem Tuya. NULL = normal. */
+  senha_provisoria: string | null;
 };
 
 export type ModoTotem = "ambos" | "checkin" | "checkout";
@@ -77,6 +79,7 @@ function normalizarTotem(row: Record<string, unknown>): Totem {
     wifi_senha: (row.wifi_senha as string | null) ?? null,
     mensagem_comprovante: (row.mensagem_comprovante as string | null) ?? null,
     voz_ativa: row.voz_ativa !== false,
+    senha_provisoria: ((row.senha_provisoria as string | null) ?? "").trim() || null,
   };
 }
 
@@ -427,6 +430,17 @@ export async function senhaExistente(
   if (!senhaQuarto) return null;
   const usadas = fechaduras.filter((f) => linhas.some((l) => l.device_ids.includes(f.device_id)));
   return { senha: senhaQuarto, portas: portasDe(usadas, senhas, senhaQuarto), validaAte: linhas[0].saida };
+}
+
+/**
+ * Fase de testes: devolve a senha provisória do totem (a mesma para todas as
+ * portas), válida até o horário de saída. Não fala com a Tuya nem grava em
+ * tuya_password_logs (não há o que revogar no check-out).
+ */
+export function senhaProvisoria(totem: Totem, quartos: QuartoReserva[]): SenhaGerada {
+  const checkout = quartos.map((q) => q.checkOut).filter(Boolean).sort().pop() ?? relogioSP().hoje;
+  const saida = new Date(`${checkout}T${totem.hora_checkout}:00-03:00`);
+  return { senha: totem.senha_provisoria ?? "", portas: [], validaAte: saida.toISOString() };
 }
 
 /** Gera UMA senha para os quartos da reserva + portas compartilhadas e registra no histórico. */

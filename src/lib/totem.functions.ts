@@ -40,6 +40,8 @@ export type TotemInfo = {
   modo: "ambos" | "checkin" | "checkout";
   impressora: "nenhuma" | "rawbt";
   voz: boolean;
+  /** Senha provisória ligada (fase de testes). */
+  modoTeste?: boolean;
 };
 
 export type PortaTotem = { label: string; tipo: string; senha: string | null; mesma: boolean };
@@ -106,6 +108,7 @@ function info(t: TotemServidor): TotemInfo {
     modo: t.modo,
     impressora: t.impressora,
     voz: t.voz_ativa,
+    modoTeste: !!t.senha_provisoria,
   };
 }
 
@@ -195,7 +198,28 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
   const novoTicket = (quartos: string[]) =>
     T.assinarTicket({ totemId: totem.id, reservationID, fluxo: "checkin", quarto: quartos.join(", "), hospede: nomeCompleto, email: S.emailDe(rec) });
 
+  // Fase de testes: senha provisória fixa para todas as portas.
+  const provisoria = !!totem.senha_provisoria;
+
   // Já hospedado: se a senha foi gerada antes, mostra de novo (esqueceu a senha).
+  if (provisoria && R.estaHospedada(status)) {
+    const nomes = todosQuartos.map((q) => q.nome).filter(Boolean);
+    if (confirmar) {
+      const existente = S.senhaProvisoria(totem, todosQuartos);
+      await S.registrarEvento(totem, "senha_reexibida", { reservation_id: reservationID, quarto: nomes.join(", "), hospede: nomeCompleto, detalhe: "senha provisória (modo teste)" });
+      const comprovante = await montarComprovante(totem, { tipo: "checkin", reservationID, hospede: nomeCompleto, quartos: nomes, senha: existente });
+      return { estado: "senha", nome, quartos: nomes, ...existente, avisoCloudbeds: null, comprovante };
+    }
+    return {
+      estado: "pronto",
+      nome,
+      quartos: nomes,
+      checkOut: todosQuartos.map((q) => q.checkOut).sort().pop() ?? "",
+      ticket: await novoTicket(nomes),
+      pagamento: null,
+      documentos: null,
+    };
+  }
   if (R.estaHospedada(status)) {
     const nomes = todosQuartos.map((q) => q.nome).filter(Boolean);
     const existente = nomes.length ? await S.senhaExistente(totem, reservationID, nomes) : null;
@@ -226,7 +250,8 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
     horaCheckin: totem.hora_checkin,
     exigeQuartoLimpo: totem.exige_quarto_limpo,
     quartoLimpo: limpo,
-    temFechadura: (q) => !!S.fechaduraDoQuarto(fechaduras, q),
+    // Na fase de testes a senha provisória vale para qualquer porta.
+    temFechadura: (q) => provisoria || !!S.fechaduraDoQuarto(fechaduras, q),
     saldo,
     // Com a maquininha ligada o saldo vira uma etapa de pagamento, não um bloqueio.
     bloqueiaSaldoAberto: cobraNoTotem ? false : totem.bloqueia_saldo_aberto,
@@ -268,7 +293,7 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
   if (pendencias.length) return { estado: "impedido", nome, quartos, motivos: pendencias };
 
   // Toque duplo / reenvio: reaproveita a senha gerada nos últimos 3 minutos.
-  const recente = await S.senhaExistente(totem, reservationID, quartos, Date.now() - 3 * 60_000);
+  const recente = provisoria ? S.senhaProvisoria(totem, avaliacao.quartos) : await S.senhaExistente(totem, reservationID, quartos, Date.now() - 3 * 60_000);
   let senha = recente;
   if (!senha) {
     try {
@@ -296,7 +321,7 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
     reservation_id: reservationID,
     quarto: quartos.join(", "),
     hospede: nomeCompleto,
-    detalhe: avisoCloudbeds ? `Cloudbeds: ${avisoCloudbeds}` : null,
+    detalhe: [provisoria ? "senha provisória (modo teste)" : null, avisoCloudbeds ? `Cloudbeds: ${avisoCloudbeds}` : null].filter(Boolean).join(" · ") || null,
   });
   const comprovante = await montarComprovante(totem, { tipo: "checkin", reservationID, hospede: nomeCompleto, quartos, senha });
   return { estado: "senha", nome, quartos, ...senha, avisoCloudbeds, comprovante };
@@ -363,10 +388,13 @@ async function executarCheckout(input: z.infer<typeof checkoutInput>, confirmar:
 
   let revogadas = 0;
   let erroRevogar: string | null = null;
-  try {
-    revogadas = await S.revogarSenhasDoQuarto(totem, reservationID, quarto);
-  } catch (e) {
-    erroRevogar = e instanceof Error ? e.message : String(e);
+  // Na fase de testes a senha provisória é fixa: não há senha da Tuya para revogar.
+  if (!totem.senha_provisoria) {
+    try {
+      revogadas = await S.revogarSenhasDoQuarto(totem, reservationID, quarto);
+    } catch (e) {
+      erroRevogar = e instanceof Error ? e.message : String(e);
+    }
   }
   await S.registrarCheckoutLog(totem, rec, quarto, nomeCompleto);
   await S.avisarRecepcao(
