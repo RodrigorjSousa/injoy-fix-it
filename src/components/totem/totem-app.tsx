@@ -707,7 +707,12 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
           <div className="relative flex min-h-[100dvh] flex-col px-8 py-8 lg:h-full lg:min-h-0 lg:px-14 lg:py-10">
             <div className="flex items-start justify-between gap-6">
               <Marca unidade={info?.unidade} grande />
-              <Relogio idioma={idioma} />
+              <div className="flex flex-col items-end gap-2">
+                <Relogio idioma={idioma} />
+                {info?.modoTeste && (
+                  <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-semibold text-[var(--grafite)]">Modo teste · senha provisória</span>
+                )}
+              </div>
             </div>
 
             <div className="totem-entrada my-auto max-w-[46rem] py-10">
@@ -740,7 +745,12 @@ export function TotemApp({ api = API_SERVIDOR }: { api?: TotemApi } = {}) {
 
           <div className="relative flex items-start justify-between gap-4">
             <Marca unidade={info?.unidade} />
-            <Relogio idioma={idioma} />
+            <div className="flex flex-col items-end gap-2">
+                <Relogio idioma={idioma} />
+                {info?.modoTeste && (
+                  <span className="rounded-full bg-amber-300 px-3 py-1 text-sm font-semibold text-[var(--grafite)]">Modo teste · senha provisória</span>
+                )}
+              </div>
           </div>
 
           <div className="relative lg:mt-3">

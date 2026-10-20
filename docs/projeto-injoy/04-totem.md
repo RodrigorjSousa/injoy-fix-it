@@ -185,6 +185,15 @@ saída → avaliação (comprovante impresso).
   - **Limites:** não é biometria certificada nem consulta base do governo. Os indícios ajudam a
     equipe a conferir à distância; a foto 3x4 impressa pode não ser reconhecida (reflexo, foto antiga), por isso
     ela não bloqueia o check-in.
+- **Senha provisória (fase de testes, migração `0075`):** enquanto as fechaduras não estão todas
+  integradas (os portões Tuya Wi-Fi serão trocados por TTLock), `totem_dispositivos.senha_provisoria`
+  guarda uma senha fixa (`injoy2014`, colocada pela migração). Preenchida, o totem:
+  - entrega essa senha para todas as portas, sem chamar a Tuya;
+  - não bloqueia quarto sem fechadura cadastrada;
+  - no check-out não tenta revogar senha;
+  - mostra o selo "Modo teste" na tela;
+  - registra "senha provisória (modo teste)" nos eventos.
+  O gestor edita ou apaga em Área do Gestor › Totem. Apagar = volta a gerar senha na fechadura.
 - **Voz guiando o hóspede** (`voz.ts`): fala o passo a passo de cada tela e as dicas da câmera
   ("chegue mais perto", "pisque devagar"...) no idioma escolhido (pt-BR, en-US, es-ES).
   - **Como sai o som:** o navegador do Fully Kiosk (Android WebView) não tem voz própria, então a

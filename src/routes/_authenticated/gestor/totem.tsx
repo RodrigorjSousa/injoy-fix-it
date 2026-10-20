@@ -48,6 +48,8 @@ type TotemRow = {
   wifi_rede?: string | null;
   wifi_senha?: string | null;
   mensagem_comprovante?: string | null;
+  // 0075 (pode faltar se a migração ainda não foi aplicada)
+  senha_provisoria?: string | null;
 };
 
 type CobrancaRow = {
@@ -432,8 +434,10 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     wifi_rede: totem.wifi_rede ?? "",
     wifi_senha: totem.wifi_senha ?? "",
     mensagem_comprovante: totem.mensagem_comprovante ?? "",
+    senha_provisoria: totem.senha_provisoria ?? "",
   });
   const tem0059 = totem.pagamento_habilitado !== undefined;
+  const tem0075 = totem.senha_provisoria !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -445,7 +449,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
       .update(
         tem0059
           ? {
-              ...form,
+              ...(({ senha_provisoria, ...resto }) => (tem0075 ? { ...resto, senha_provisoria: senha_provisoria.trim() || null } : resto))(form),
               telefone_suporte: form.telefone_suporte.trim() || null,
               pos_serial: form.pos_serial.trim() || null,
               wifi_rede: form.wifi_rede.trim() || null,
@@ -567,6 +571,21 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
             <Label htmlFor={`pos-${totem.id}`}>Número de série da maquininha (S920 ou Q92)</Label>
             <Input id={`pos-${totem.id}`} value={form.pos_serial} onChange={(e) => setForm({ ...form, pos_serial: e.target.value })} />
           </div>
+          {tem0075 && (
+            <div className="rounded-xl border border-amber-300 bg-amber-50 p-3">
+              <Label htmlFor={`sp-${totem.id}`}>Senha provisória (fase de testes)</Label>
+              <Input
+                id={`sp-${totem.id}`}
+                value={form.senha_provisoria}
+                onChange={(e) => setForm({ ...form, senha_provisoria: e.target.value })}
+                placeholder="Vazio = gerar senha na fechadura"
+              />
+              <p className="mt-1 text-xs text-amber-800">
+                Preenchida, o totem entrega esta mesma senha para todas as portas e não exige fechadura cadastrada no quarto.
+                Apague quando todas as fechaduras estiverem integradas.
+              </p>
+            </div>
+          )}
           <Regra
             rotulo="Pedir foto do documento de todos os adultos"
             ajuda="No check-in, antes de entregar a senha."
