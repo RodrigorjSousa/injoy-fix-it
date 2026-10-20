@@ -164,6 +164,9 @@ caixa d'água/cisternas, dedetização, extintores, Cadastur) ainda não começo
 das selfies antigas do ponto foi oferecida.
 
 ## Cloudbeds → card do quarto (bloqueio, manutenção, ECI, LCO)
+- Card das camareiras mostra a data de saída do hóspede ("Sai amanhã, 23/10 (sex) · 3ª de 5 noites"; laranja se sai
+  hoje, amarelo se sai amanhã) e "sai dd/mm" de quem chega hoje. Datas gravadas pela sincronização em
+  `room_housekeeping.guest_checkin_date/guest_checkout_date/next_checkout_date` (0076); regra em `src/lib/estadia.ts`.
 - Regras únicas em `supabase/functions/_shared/cloudbeds-quarto.ts`, usadas por `consolidar-dados`
   (Camareiras/Gestão, grava `room_housekeeping`) e `dados-recepcao` (Recepção). Testes em
   `src/lib/cloudbeds/cloudbeds-quarto.test.ts`.
