@@ -26,6 +26,8 @@ import { useUnidade } from "@/lib/unidade-context";
 import { cn } from "@/lib/utils";
 import { todaySP } from "@/lib/tz";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { detalheIndicador, type IndicadorLav } from "@/lib/lavanderia-detalhe";
 import { requireGestor } from "@/lib/require-gestor";
 import {
   LaundryModal,
@@ -200,16 +202,22 @@ function Kpi({
   valor,
   sub,
   tom,
+  onClick,
 }: {
   titulo: string;
   valor: string | number;
   sub?: string;
   tom?: "red" | "amber" | "blue";
+  onClick?: () => void;
 }) {
+  const Tag = onClick ? "button" : "div";
   return (
-    <div
+    <Tag
+      type={onClick ? "button" : undefined}
+      onClick={onClick}
       className={cn(
-        "p-4 rounded-2xl border shadow-sm",
+        "p-4 rounded-2xl border shadow-sm text-left w-full",
+        onClick && "transition hover:shadow-md hover:-translate-y-0.5 active:scale-[.99] cursor-pointer",
         tom === "red"
           ? "bg-red-50 border-red-200"
           : tom === "amber"
@@ -227,7 +235,99 @@ function Kpi({
         {valor}
       </p>
       {sub && <p className="text-[11px] text-slate-500 mt-1">{sub}</p>}
-    </div>
+      {onClick && <p className="text-[10px] font-bold text-blue-600 mt-1">Toque para ver o detalhe</p>}
+    </Tag>
+  );
+}
+
+const TITULO_INDICADOR: Record<IndicadorLav, string> = {
+  agora: "Na lavanderia agora",
+  coleta: "A · Hotel × lavanderia",
+  relave: "B · Relave pendente",
+  descontos: "C · Descontos",
+  pagar: "Peças a pagar",
+};
+const EXPLICA_INDICADOR: Record<IndicadorLav, string> = {
+  agora: "Peças que estão na lavanderia: talões ainda não devolvidos + relave pendente.",
+  coleta: "Talões devolvidos em que a contagem da lavanderia não bateu com a do hotel na coleta.",
+  relave: "Peças que ficaram na lavanderia para lavar de novo e ainda não voltaram.",
+  descontos: "Peças que saíram da lavanderia e não chegaram (a camareira contou menos). Descontar do pagamento.",
+  pagar: "Peças que entram no pagamento (o menor entre o que saiu da lavanderia e o contado).",
+};
+
+/** Janela com o detalhe do indicador tocado no Saldo. */
+function DetalheIndicadorDialog({
+  tipo,
+  taloes,
+  pecas,
+  onClose,
+}: {
+  tipo: IndicadorLav | null;
+  taloes: Talao[];
+  pecas: Peca[];
+  onClose: () => void;
+}) {
+  const d = useMemo(() => (tipo ? detalheIndicador(tipo, taloes, pecas) : null), [tipo, taloes, pecas]);
+  return (
+    <Dialog open={!!tipo} onOpenChange={(v) => !v && onClose()}>
+      <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+        {tipo && d && (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {TITULO_INDICADOR[tipo]} · {d.total}
+                {d.valorTotal !== undefined ? ` · ${brl.format(d.valorTotal)}` : ""}
+              </DialogTitle>
+              <DialogDescription>{EXPLICA_INDICADOR[tipo]}</DialogDescription>
+            </DialogHeader>
+            {d.porPeca.length === 0 && d.porTalao.length === 0 ? (
+              <p className="py-6 text-center text-sm text-slate-500">Nada neste indicador agora.</p>
+            ) : (
+              <div className="space-y-4">
+                {d.porPeca.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[11px] font-black uppercase tracking-wider text-slate-500">Por peça</p>
+                    <div className="divide-y rounded-xl border">
+                      {d.porPeca.map((l) => (
+                        <div key={l.peca} className="flex items-center justify-between px-3 py-2 text-sm">
+                          <span className="font-semibold text-slate-800">{l.peca}</span>
+                          <span className="font-black text-slate-900">
+                            {l.qtd}
+                            {l.valor !== undefined && (
+                              <span className="ml-2 text-xs font-semibold text-slate-500">{brl.format(l.valor)}</span>
+                            )}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {d.porTalao.length > 0 && (
+                  <div>
+                    <p className="mb-1 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      {tipo === "agora" ? "Talões abertos" : "Por talão"}
+                    </p>
+                    <div className="divide-y rounded-xl border">
+                      {d.porTalao.map((t) => (
+                        <div key={`${t.numero}-${t.data}`} className="px-3 py-2 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="font-bold text-slate-900">Talão nº {t.numero}</span>
+                            <span className="text-xs text-slate-500">
+                              {dataBR(t.data)} · {t.qtd} peça(s)
+                            </span>
+                          </div>
+                          <p className="mt-0.5 text-xs text-slate-600">{t.texto}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -286,6 +386,9 @@ function SaldoTab({
   unidade: UnidadeLav;
 }) {
   const [todas, setTodas] = useState(false);
+  const [detalhe, setDetalhe] = useState<IndicadorLav | null>(null);
+  // ATENÇÃO começa recolhido; abre ao tocar.
+  const [atencaoAberta, setAtencaoAberta] = useState(false);
   const saldo = useMemo(() => calcularSaldo(taloes, pecas), [taloes, pecas]);
   const alertas = useMemo(
     () => gerarAlertas(taloes, saldo, pecas, hoje),
@@ -309,23 +412,27 @@ function SaldoTab({
     <div className="space-y-4">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         <Kpi
+          onClick={() => setDetalhe("agora")}
           titulo="Na lavanderia agora"
           valor={totSaldo}
           sub={`${totAberto} em ${abertos.length} talão(ões) abertos`}
         />
         <Kpi
+          onClick={() => setDetalhe("coleta")}
           titulo="A · Hotel × lavanderia"
           valor={totColeta}
           sub="peças com contagem diferente na coleta"
           tom={totColeta ? "red" : undefined}
         />
         <Kpi
+          onClick={() => setDetalhe("relave")}
           titulo="B · Relave pendente"
           valor={totRelave}
           sub="ficaram para relave e ainda não voltaram"
           tom={totRelave ? "amber" : undefined}
         />
         <Kpi
+          onClick={() => setDetalhe("descontos")}
           titulo="C · Descontos"
           valor={totDesc}
           sub={
@@ -335,16 +442,33 @@ function SaldoTab({
           }
           tom={totDesc ? "red" : undefined}
         />
-        <Kpi titulo="Peças a pagar" valor={tot((l) => l.aPagar)} sub="desde 01/10 (base C)" />
+        <Kpi
+          onClick={() => setDetalhe("pagar")}
+          titulo="Peças a pagar"
+          valor={tot((l) => l.aPagar)}
+          sub="desde 01/10 (base C)"
+        />
       </div>
+
+      <DetalheIndicadorDialog tipo={detalhe} taloes={taloes} pecas={pecas} onClose={() => setDetalhe(null)} />
 
       <LegendaDiferencas />
 
       {alertasOrd.length > 0 && (
         <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
-          <div className="bg-slate-800 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setAtencaoAberta((v) => !v)}
+            aria-expanded={atencaoAberta}
+            className="w-full bg-slate-800 text-white px-4 py-2 text-xs font-black uppercase tracking-wider flex items-center gap-2"
+          >
             <AlertTriangle size={14} /> Atenção ({alertasOrd.length})
-          </div>
+            <span className="ml-auto flex items-center gap-1 text-[10px] font-bold normal-case tracking-normal text-slate-300">
+              {atencaoAberta ? "Ocultar" : "Ver avisos"}
+              {atencaoAberta ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+            </span>
+          </button>
+          {atencaoAberta && (
           <ul className="divide-y divide-slate-100">
             {alertasOrd.map((a, i) => (
               <li
@@ -368,6 +492,7 @@ function SaldoTab({
               </li>
             ))}
           </ul>
+          )}
         </div>
       )}
 

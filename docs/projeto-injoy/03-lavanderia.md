@@ -75,6 +75,11 @@ Combinado com o Rodrigo:
   corrige uma vez os retornos já gravados com Saída Lav. = 0 e Contado > 0 (rodado por `lav_preparar`,
   `lav_config.catalogo_versao = 3`).
 
+- 21/10/2026 (branch `feat/lavanderia-saldo-detalhe`, sem migração): na aba Saldo, os 5 cards (Na lavanderia
+  agora, A, B, C e Peças a pagar) abrem uma janela com o detalhe por peça e por talão (regra em
+  `src/lib/lavanderia-detalhe.ts`, com testes: o total do detalhe sempre bate com o número do card). O quadro
+  "Atenção" começa recolhido e abre ao tocar.
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",
