@@ -149,18 +149,47 @@ export function getDeviceId(): string {
 }
 
 export type Position = { latitude: number; longitude: number; accuracy: number } | null;
-export function getPosition(timeoutMs = 15000): Promise<Position> {
+
+export type FalhaLocalizacao = "sem_suporte" | "negada" | "indisponivel" | "tempo";
+export type LeituraLocalizacao =
+  | { ok: true; posicao: NonNullable<Position> }
+  | { ok: false; falha: FalhaLocalizacao };
+
+function lerUmaVez(alta: boolean, timeoutMs: number): Promise<LeituraLocalizacao> {
   return new Promise((resolve) => {
-    if (typeof navigator === "undefined" || !navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
       (p) =>
         resolve({
-          latitude: p.coords.latitude,
-          longitude: p.coords.longitude,
-          accuracy: p.coords.accuracy,
+          ok: true,
+          posicao: {
+            latitude: p.coords.latitude,
+            longitude: p.coords.longitude,
+            accuracy: p.coords.accuracy,
+          },
         }),
-      () => resolve(null),
-      { enableHighAccuracy: true, timeout: timeoutMs, maximumAge: 0 },
+      (e) =>
+        resolve({
+          ok: false,
+          falha: e.code === 1 ? "negada" : e.code === 3 ? "tempo" : "indisponivel",
+        }),
+      { enableHighAccuracy: alta, timeout: timeoutMs, maximumAge: alta ? 0 : 30000 },
     );
   });
+}
+
+/**
+ * Lê a localização do aparelho dizendo o motivo da falha. Tenta o GPS (alta precisão);
+ * se demorar ou falhar sem ser recusa, tenta de novo pela rede.
+ */
+export async function lerLocalizacao(timeoutMs = 15000): Promise<LeituraLocalizacao> {
+  if (typeof navigator === "undefined" || !navigator.geolocation)
+    return { ok: false, falha: "sem_suporte" };
+  const primeira = await lerUmaVez(true, timeoutMs);
+  if (primeira.ok || primeira.falha === "negada") return primeira;
+  return lerUmaVez(false, 10000);
+}
+
+export async function getPosition(timeoutMs = 15000): Promise<Position> {
+  const r = await lerLocalizacao(timeoutMs);
+  return r.ok ? r.posicao : null;
 }
