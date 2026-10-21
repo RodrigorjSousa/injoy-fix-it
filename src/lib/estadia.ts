@@ -10,6 +10,12 @@ export function dataCurta(iso: string | null | undefined): string {
   return `${m[3]}/${m[2]} (${SEMANA[dia.getUTCDay()]})`;
 }
 
+/** "2026-10-21" → "21/10/2026" (igual ao card da Recepção). */
+export function dataBR(iso: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ""));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "";
+}
+
 const diasEntre = (a: string, b: string) =>
   Math.round((Date.parse(`${b}T00:00:00Z`) - Date.parse(`${a}T00:00:00Z`)) / 86_400_000);
 

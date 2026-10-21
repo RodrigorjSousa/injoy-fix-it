@@ -167,6 +167,13 @@ das selfies antigas do ponto foi oferecida.
 - Card das camareiras mostra a data de saída do hóspede ("Sai amanhã, 23/10 (sex) · 3ª de 5 noites"; laranja se sai
   hoje, amarelo se sai amanhã) e "sai dd/mm" de quem chega hoje. Datas gravadas pela sincronização em
   `room_housekeeping.guest_checkin_date/guest_checkout_date/next_checkout_date` (0076); regra em `src/lib/estadia.ts`.
+- 21/10: card das camareiras no mesmo formato da Recepção (nome + "pax · noites" + SAI HOJE/SAI AMANHÃ/CHEGA HOJE;
+  caixa Chegada | Saída dd/mm/aaaa; "Próximo hóspede (chega hoje)" tracejado azul com "Após check-out").
+  Hóspede do card = quem está no quarto (o que fica, depois o que sai e ainda não fez check-out); quem chega vai
+  para next_*. Check-out feito no Cloudbeds tira o nome do card na hora (Camareiras na próxima sincronização, até
+  5 min; Recepção no próximo refresh, até 3 min) — antes ficava até o dia virar. A tarefa GERAL continua.
+- `consolidar-dados` responde `versao` (VERSAO_SYNC); a tela das Camareiras avisa se o servidor roda versão antiga
+  (função não publicada).
 - Regras únicas em `supabase/functions/_shared/cloudbeds-quarto.ts`, usadas por `consolidar-dados`
   (Camareiras/Gestão, grava `room_housekeeping`) e `dados-recepcao` (Recepção). Testes em
   `src/lib/cloudbeds/cloudbeds-quarto.test.ts`.
