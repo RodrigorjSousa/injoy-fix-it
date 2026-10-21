@@ -56,6 +56,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 ```
 
 ## Cuidados que já custaram tempo
+- 21/10/2026: o merge do PR #102 entrou na main do GitHub, mas o Lovable não puxou (o histórico parou no commit
+  anterior, mesmo recarregando). O Lovable não tem botão de "puxar da main": ele só atualiza quando recebe um novo
+  aviso de push do GitHub. Saída: fazer um novo commit na main (um PR pequeno, como este registro) e conferir no
+  Histórico do Lovable se o merge apareceu antes de Publicar.
 - O Lovable **renumera ou esvazia migrações** (ex.: 0031 esvaziada depois de falhar). Quando falhar,
   crie um arquivo NOVO e idempotente (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS`).
   Não edite `meta/_journal.json`.
