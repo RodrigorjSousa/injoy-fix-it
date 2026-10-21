@@ -590,6 +590,47 @@ function RecepcaoPage() {
                 <div className="space-y-3 flex-1">
                   {q.temReserva ? (
                     <>
+                      {/* Só chegada de hoje (quarto vazio, sem hóspede em casa): mesmo destaque tracejado azul
+                          das Camareiras — "Quarto Vazio" + "Próximo hóspede (chega hoje)". */}
+                      {q.temReserva && !q.reservationId && q.statusCheckin !== "Realizado" ? (
+                        <>
+                          <div className="flex items-center gap-2 text-slate-700 font-bold text-base">
+                            <User size={16} className="text-slate-400" />
+                            <span>Quarto Vazio</span>
+                          </div>
+                          <div className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/70 p-3 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+                                ➡️ Próximo hóspede (chega hoje)
+                              </p>
+                              <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-md">
+                                Quarto livre
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
+                              <User size={15} className="text-blue-500" />
+                              <span className="truncate">{q.hospede}</span>
+                              {q.pax ? (
+                                <span className="text-[11px] font-normal text-blue-700 bg-white/70 px-2 py-0.5 rounded-md shrink-0 border border-blue-100">
+                                  {q.pax} pax{q.noites ? ` · ${q.noites} ${q.noites === 1 ? "noite" : "noites"}` : ""}
+                                </span>
+                              ) : null}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-blue-800">
+                              <span className="flex items-center gap-1">
+                                <Clock size={13} className="text-blue-500" />
+                                Chegada prevista:{" "}
+                                <span className="font-semibold">{q.chegadaHora || "A definir"}</span>
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Calendar size={13} className="text-blue-500" />
+                                Saída: <span className="font-semibold">{q.dataSaida}</span>
+                              </span>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
                       <div className="flex items-center gap-2 text-slate-800 font-bold text-base">
                         <User size={16} className="text-slate-400" />
                         <span className="truncate">{q.hospede}</span>
@@ -619,6 +660,8 @@ function RecepcaoPage() {
                           </span>
                         </p>
                       </div>
+                        </>
+                      )}
 
                       {q.canalPrePago && (
                         <span className="inline-flex w-max items-center gap-1 rounded-lg border border-rose-200 bg-rose-50 px-2 py-0.5 text-[11px] font-bold text-rose-700">
