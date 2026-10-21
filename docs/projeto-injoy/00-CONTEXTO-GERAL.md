@@ -180,7 +180,10 @@ das selfies antigas do ponto foi oferecida.
   funções normalizam (`normalizarStatusReserva` em `_shared/cloudbeds-quarto.ts`). Quem fez check-in aparece no
   topo como HOSPEDADO (Recepção: Ocupado / Hóspede em Quarto). Se entrou hoje, o card das camareiras mostra o
   serviço de AMANHÃ (ARRUMAÇÃO, ou GERAL se sai amanhã) com o aviso "é para amanhã" embaixo do botão.
-  Atenção: o botão "Realizar Check-in" da Recepção só marca na tela (não faz check-in no Cloudbeds).
+  Botão "Realizar Check-in" da Recepção (21/10): faz o check-in DE VERDADE no Cloudbeds (`postRoomCheckIn`, em
+  `src/lib/cloudbeds-checkin.functions.ts`): pede confirmação, usa só o quarto certo da reserva, confere no
+  Cloudbeds se ficou hospedado, avisa as camareiras do quarto (recado) e atualiza Recepção e Camareiras.
+  Permissão: gestor, admin, recepção (papel ou tela liberada). Antes ele só marcava na tela de quem clicou.
 - `consolidar-dados` responde `versao` (VERSAO_SYNC); a tela das Camareiras avisa se o servidor roda versão antiga
   (função não publicada).
 - Regras únicas em `supabase/functions/_shared/cloudbeds-quarto.ts`, usadas por `consolidar-dados`
