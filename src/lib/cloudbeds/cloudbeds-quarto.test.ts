@@ -4,6 +4,8 @@ import {
   bloqueioDeHoje,
   bloqueioDoHousekeeping,
   housekeepingRoomBlocked,
+  normalizarStatusReserva,
+  statusCloudbeds,
   hojeNoHotel,
   scanEciLco,
   somarDias,
@@ -179,5 +181,22 @@ describe("ECI/LCO em texto", () => {
   });
   it("não confunde palavras comuns", () => {
     expect(scanEciLco("Decidiu ficar, falco, eclipse")).toMatchObject({ eci: false, lco: false });
+  });
+});
+
+describe("status do Cloudbeds (check-in)", () => {
+  it("in_house vale como checked_in", () => {
+    expect(statusCloudbeds("in_house")).toBe("checked_in");
+    expect(statusCloudbeds("In House")).toBe("checked_in");
+    expect(statusCloudbeds("checked_in")).toBe("checked_in");
+    expect(statusCloudbeds("confirmed")).toBe("confirmed");
+  });
+  it("normaliza a reserva e os quartos dela", () => {
+    const r = normalizarStatusReserva({
+      status: "in_house",
+      guestList: { g1: { rooms: [{ roomName: "001", roomStatus: "in_house" }] } },
+    });
+    expect(r.status).toBe("checked_in");
+    expect(r.guestList.g1.rooms[0].roomStatus).toBe("checked_in");
   });
 });

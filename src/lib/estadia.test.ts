@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dataBR, dataCurta, resumoEstadia, textoEstadia } from "./estadia";
+import { dataBR, dataCurta, proximoDia, resumoEstadia, textoEstadia } from "./estadia";
 
 describe("estadia no card das camareiras", () => {
   it("data curta com dia da semana", () => {
@@ -7,6 +7,7 @@ describe("estadia no card das camareiras", () => {
     expect(dataCurta(null)).toBe("");
     expect(dataBR("2026-10-21")).toBe("21/10/2026");
     expect(dataBR(undefined)).toBe("");
+    expect(proximoDia("2026-10-31")).toBe("2026-11-01");
   });
   it("noite atual e total", () => {
     const r = resumoEstadia("2026-10-18", "2026-10-23", "2026-10-20")!;
