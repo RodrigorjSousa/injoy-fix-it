@@ -825,15 +825,17 @@ function PainelCamareiras() {
                   const soChegada = temHospede && !!q.next_guest_name && q.next_guest_name === q.guest_name;
                   const saiHoje = temHospede && !soChegada && (estadia?.quando === "hoje" || q.departing_guest_name === q.guest_name);
                   const saiAmanha = temHospede && !soChegada && estadia?.quando === "amanha";
-                  const proximo = !!q.next_guest_name && q.next_guest_name !== q.guest_name;
+                  // Toda chegada de hoje vai para o destaque tracejado azul (igual à Recepção), mesmo com o
+                  // quarto já vazio (check-out feito): aí o card mostra "Quarto Vazio" + o próximo hóspede.
+                  const proximo = !!q.next_guest_name;
                   const noites = estadia?.noites ?? (soChegada ? q.next_nights ?? null : null);
                   const chegada = (soChegada ? q.next_arrival_time : q.arrival_time) || "A definir";
                   return (
                     <>
                       <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
                         <User size={15} className="text-slate-400" />
-                        <span className="truncate">{temHospede ? q.guest_name : "Quarto Vazio"}</span>
-                        {temHospede && q.pax && q.pax > 0 ? (
+                        <span className="truncate">{temHospede && !soChegada ? q.guest_name : "Quarto Vazio"}</span>
+                        {temHospede && !soChegada && q.pax && q.pax > 0 ? (
                           <span className="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
                             {q.pax} pax{noites ? ` · ${noites} ${noites === 1 ? "noite" : "noites"}` : ""}
                           </span>
@@ -846,15 +848,11 @@ function PainelCamareiras() {
                           <span className="text-[10px] font-black text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
                             Sai amanhã
                           </span>
-                        ) : soChegada ? (
-                          <span className="text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
-                            Chega hoje
-                          </span>
                         ) : null}
                         <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
                       </div>
 
-                      {temHospede && (
+                      {temHospede && !soChegada && (
                         <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
                           <p className="flex items-center gap-1">
                             <Clock size={14} className="text-slate-400" />
@@ -876,11 +874,16 @@ function PainelCamareiras() {
                             <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
                               ➡️ Próximo hóspede (chega hoje)
                             </p>
-                            {temHospede && (
-                              <span className="text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md">
-                                Após check-out
-                              </span>
-                            )}
+                            <span
+                              className={cn(
+                                "text-[10px] font-bold px-2 py-0.5 rounded-md border",
+                                temHospede && !soChegada
+                                  ? "text-blue-700 bg-blue-100 border-blue-200"
+                                  : "text-emerald-700 bg-emerald-50 border-emerald-200",
+                              )}
+                            >
+                              {temHospede && !soChegada ? "Após check-out" : "Quarto livre"}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
                             <User size={15} className="text-blue-500" />
