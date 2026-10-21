@@ -174,7 +174,7 @@ das selfies antigas do ponto foi oferecida.
 - 21/10: card das camareiras no mesmo formato da Recepção (nome + "pax · noites" + SAI HOJE/SAI AMANHÃ/CHEGA HOJE;
   caixa Chegada | Saída dd/mm/aaaa; "Próximo hóspede (chega hoje)" tracejado azul com "Após check-out").
   Hóspede do card = quem está no quarto (o que fica, depois o que sai e ainda não fez check-out); quem chega vai
-  para next_*. Check-out feito no Cloudbeds tira o nome do card na hora (Camareiras na próxima sincronização, até
+  para next_* e toda chegada de hoje aparece no destaque tracejado (com "Quarto livre" se o quarto já vagou). Check-out feito no Cloudbeds tira o nome do card na hora (Camareiras na próxima sincronização, até
   5 min; Recepção no próximo refresh, até 3 min) — antes ficava até o dia virar. A tarefa GERAL continua.
 - `consolidar-dados` responde `versao` (VERSAO_SYNC); a tela das Camareiras avisa se o servidor roda versão antiga
   (função não publicada).
