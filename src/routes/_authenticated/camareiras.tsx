@@ -27,7 +27,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 import { AvisoSyncCloudbeds } from "@/components/aviso-sync-cloudbeds";
 import { cn } from "@/lib/utils";
-import { dataCurta, resumoEstadia, textoEstadia } from "@/lib/estadia";
+import { dataBR, resumoEstadia } from "@/lib/estadia";
+
+// Versão mínima da função consolidar-dados que grava datas da estadia e tira o hóspede após o check-out.
+const VERSAO_SYNC_ESPERADA = "2026-10-21";
 import { todaySP } from "@/lib/tz";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
@@ -482,6 +485,7 @@ function PainelCamareiras() {
     const t = toast.loading("Sincronizando com Cloudbeds...");
     try {
       const r = (await sincronizarCloudbeds()) as {
+        versao?: string;
         avisos?: string[];
         resumo?: { unidade: string; bloqueio: string | null; eci: unknown; lco: unknown }[];
       } | null;
@@ -496,6 +500,11 @@ function PainelCamareiras() {
       ].filter(Boolean);
       toast.success(`Mapa atualizado${partes.length ? ` · Cloudbeds: ${partes.join(", ")}` : ""}`, { id: t });
       if (r?.avisos?.length) toast.warning(`Uma unidade não respondeu agora: ${r.avisos.join(" | ")}`);
+      // Servidor com a função antiga (datas de saída e check-out não atualizam): avisa para publicar de novo.
+      if (r && (!r.versao || r.versao < VERSAO_SYNC_ESPERADA))
+        toast.warning("A sincronização do Cloudbeds no servidor está desatualizada. Avise o gestor para publicar de novo.", {
+          duration: 10000,
+        });
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao sincronizar", { id: t });
     } finally {
@@ -808,81 +817,97 @@ function PainelCamareiras() {
 
 
               <div className="border-t border-b border-dashed border-slate-200 py-3 space-y-2">
-                <div className="flex items-center gap-2 text-sm font-bold text-slate-700">
-                  <User size={15} className="text-slate-400" />
-                  <span>{q.guest_name || "Quarto Vazio"}</span>
-                  {q.pax && q.pax > 0 ? (
-                    <span className="text-[10px] font-normal text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-                      {q.pax} pax
-                    </span>
-                  ) : null}
-                  <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
-                </div>
-
                 {(() => {
-                  // Data de saída do hóspede (e em que noite da estadia ele está).
-                  if (!q.guest_name || q.guest_name === "Quarto Vazio") return null;
-                  const r = resumoEstadia(q.guest_checkin_date, q.guest_checkout_date, todaySP());
-                  if (!r || r.quando === "passou") return null;
+                  // Mesmo formato do card da Recepção: hóspede do quarto + Chegada | Saída, e o
+                  // próximo hóspede (chega hoje) em destaque. Depois do check-out o nome sai na hora.
+                  const temHospede = !!q.guest_name && q.guest_name !== "Quarto Vazio";
+                  const estadia = resumoEstadia(q.guest_checkin_date, q.guest_checkout_date, todaySP());
+                  const soChegada = temHospede && !!q.next_guest_name && q.next_guest_name === q.guest_name;
+                  const saiHoje = temHospede && !soChegada && (estadia?.quando === "hoje" || q.departing_guest_name === q.guest_name);
+                  const saiAmanha = temHospede && !soChegada && estadia?.quando === "amanha";
+                  const proximo = !!q.next_guest_name && q.next_guest_name !== q.guest_name;
+                  const noites = estadia?.noites ?? (soChegada ? q.next_nights ?? null : null);
+                  const chegada = (soChegada ? q.next_arrival_time : q.arrival_time) || "A definir";
                   return (
-                    <div
-                      className={cn(
-                        "flex items-center gap-1.5 text-xs rounded-lg border px-2 py-1.5",
-                        r.quando === "hoje"
-                          ? "bg-orange-50 border-orange-200 text-orange-800"
-                          : r.quando === "amanha"
-                            ? "bg-amber-50 border-amber-200 text-amber-800"
-                            : "bg-slate-50 border-slate-200 text-slate-700",
+                    <>
+                      <div className="flex items-center gap-2 text-sm font-bold text-slate-800">
+                        <User size={15} className="text-slate-400" />
+                        <span className="truncate">{temHospede ? q.guest_name : "Quarto Vazio"}</span>
+                        {temHospede && q.pax && q.pax > 0 ? (
+                          <span className="text-[11px] font-normal text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md shrink-0">
+                            {q.pax} pax{noites ? ` · ${noites} ${noites === 1 ? "noite" : "noites"}` : ""}
+                          </span>
+                        ) : null}
+                        {saiHoje ? (
+                          <span className="text-[10px] font-black text-orange-700 bg-orange-100 border border-orange-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
+                            Sai hoje
+                          </span>
+                        ) : saiAmanha ? (
+                          <span className="text-[10px] font-black text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
+                            Sai amanhã
+                          </span>
+                        ) : soChegada ? (
+                          <span className="text-[10px] font-black text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
+                            Chega hoje
+                          </span>
+                        ) : null}
+                        <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
+                      </div>
+
+                      {temHospede && (
+                        <div className="grid grid-cols-2 gap-2 text-xs text-slate-600 bg-slate-50 p-2.5 rounded-xl border border-slate-100">
+                          <p className="flex items-center gap-1">
+                            <Clock size={14} className="text-slate-400" />
+                            Chegada: <span className="font-semibold text-slate-800">{chegada}</span>
+                          </p>
+                          <p className="flex items-center gap-1">
+                            <CalendarDays size={14} className="text-slate-400" />
+                            Saída:{" "}
+                            <span className="font-semibold text-slate-800">
+                              {dataBR(soChegada ? q.next_checkout_date ?? q.guest_checkout_date : q.guest_checkout_date) || "—"}
+                            </span>
+                          </p>
+                        </div>
                       )}
-                    >
-                      <CalendarDays size={13} className="shrink-0" />
-                      <span className="font-bold">{textoEstadia(r)}</span>
-                    </div>
+
+                      {proximo && (
+                        <div className="rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/70 p-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[10px] font-black text-blue-700 uppercase tracking-widest">
+                              ➡️ Próximo hóspede (chega hoje)
+                            </p>
+                            {temHospede && (
+                              <span className="text-[10px] font-bold text-blue-700 bg-blue-100 border border-blue-200 px-2 py-0.5 rounded-md">
+                                Após check-out
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 text-blue-900 font-bold text-sm">
+                            <User size={15} className="text-blue-500" />
+                            <span className="truncate">{q.next_guest_name}</span>
+                            {q.next_pax ? (
+                              <span className="text-[11px] font-normal text-blue-700 bg-white/70 px-2 py-0.5 rounded-md shrink-0 border border-blue-100">
+                                {q.next_pax} pax{q.next_nights ? ` · ${q.next_nights} ${q.next_nights === 1 ? "noite" : "noites"}` : ""}
+                              </span>
+                            ) : null}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-blue-800">
+                            <span className="flex items-center gap-1">
+                              <Clock size={13} className="text-blue-500" />
+                              Chegada prevista: <span className="font-semibold">{q.next_arrival_time || "A definir"}</span>
+                            </span>
+                            {q.next_checkout_date ? (
+                              <span className="flex items-center gap-1">
+                                <CalendarDays size={13} className="text-blue-500" />
+                                Saída: <span className="font-semibold">{dataBR(q.next_checkout_date)}</span>
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      )}
+                    </>
                   );
                 })()}
-
-                {q.departing_guest_name ? (
-                  <div className="flex items-center gap-1.5 text-xs rounded-lg bg-orange-50 border border-orange-200 px-2 py-1.5 text-orange-800">
-                    <LogOut size={13} className="shrink-0" />
-                    <span className="font-semibold">Saindo hoje:</span>
-                    <span className="font-bold truncate">{q.departing_guest_name}</span>
-                  </div>
-                ) : null}
-
-                {q.next_guest_name ? (
-                  <div className="flex items-center gap-1.5 text-xs rounded-lg bg-blue-50 border border-blue-200 px-2 py-1.5 text-blue-800">
-                    <LogIn size={13} className="shrink-0" />
-                    <span className="font-semibold">Chegando hoje:</span>
-                    <span className="font-bold truncate">{q.next_guest_name}</span>
-                    {q.next_pax && q.next_pax > 0 ? (
-                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded">
-                        {q.next_pax} pax
-                      </span>
-                    ) : null}
-                    {q.next_nights && q.next_nights > 0 ? (
-                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded">
-                        {q.next_nights} {q.next_nights === 1 ? "noite" : "noites"}
-                      </span>
-                    ) : null}
-                    {q.next_checkout_date ? (
-                      <span className="text-[10px] font-normal bg-blue-100 px-1.5 py-0.5 rounded whitespace-nowrap">
-                        sai {dataCurta(q.next_checkout_date)}
-                      </span>
-                    ) : null}
-                    <span className="ml-auto inline-flex items-center gap-1 font-black">
-                      <Clock size={12} /> {q.next_arrival_time || "A definir"}
-                    </span>
-                  </div>
-                ) : null}
-                {q.arrival_time &&
-                q.guest_name &&
-                q.guest_name !== "Quarto Vazio" ? (
-                  <div className="flex items-center gap-1.5 text-xs text-slate-600">
-                    <Clock size={13} className="text-slate-400" />
-                    <span>Chegada:</span>
-                    <span className="font-bold text-slate-800">{q.arrival_time}</span>
-                  </div>
-                ) : null}
 
                 {(q.has_pending_payment || q.has_pending_docs) &&
                 q.guest_name &&

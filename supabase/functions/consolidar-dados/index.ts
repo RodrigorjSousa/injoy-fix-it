@@ -55,6 +55,9 @@ async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: n
   return { ok: true }
 }
 
+// Sobe a cada mudança desta função: a tela das Camareiras avisa se o servidor ainda roda versão antiga.
+const VERSAO_SYNC = '2026-10-21'
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
 
@@ -435,7 +438,16 @@ serve(async (req) => {
         else if (cond === 'dirty') status = 'dirty'
         else status = String(room.housekeepingStatus ?? 'dirty').toLowerCase()
 
-        const resAtiva = hospedeAtualInHouse || reservaEntrandoHoje || reservaAtivaSobreposta || reservaSaindoHoje
+        // Check-out já feito no Cloudbeds: a tarefa (GERAL) continua, mas o nome sai do card na hora —
+        // antes ele ficava até o dia virar.
+        const saidaFeita =
+          !!reservaSaindoHoje &&
+          (String(reservaSaindoHoje._roomStatus ?? '').toLowerCase() === 'checked_out' ||
+            String(reservaSaindoHoje.status ?? '').toLowerCase() === 'checked_out')
+        // Hóspede do card = quem está no quarto agora (igual à Recepção): o que fica, depois o que sai hoje
+        // e ainda não fez check-out; quem chega hoje vira "próximo hóspede" (next_*) até o quarto liberar.
+        const saindoAinda = saidaFeita || reservaSaindoHoje === reservaEntrandoHoje ? null : reservaSaindoHoje
+        const resAtiva = hospedeAtualInHouse || saindoAinda || reservaEntrandoHoje || reservaAtivaSobreposta
         const guestName = resAtiva
           ? `${resAtiva.guestFirstName ?? ''} ${resAtiva.guestLastName ?? ''}`.trim() || 'Hóspede'
           : 'Quarto Vazio'
@@ -502,7 +514,7 @@ serve(async (req) => {
             ? `${r.guestFirstName ?? ''} ${r.guestLastName ?? ''}`.trim() || 'Hóspede'
             : null
         const departingGuestName =
-          reservaSaindoHoje && reservaSaindoHoje !== reservaEntrandoHoje
+          reservaSaindoHoje && reservaSaindoHoje !== reservaEntrandoHoje && !saidaFeita
             ? nomeDe(reservaSaindoHoje)
             : hospedeAtualInHouse && hospedeAtualInHouse._checkOutDate === hojeStr
               ? nomeDe(hospedeAtualInHouse)
@@ -744,7 +756,7 @@ serve(async (req) => {
       }))
 
     return new Response(
-      JSON.stringify({ success: true, count: linhas.length, hoje: hojeStr, avisos: erros, resumo, limpeza }),
+      JSON.stringify({ success: true, versao: VERSAO_SYNC, count: linhas.length, hoje: hojeStr, avisos: erros, resumo, limpeza }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     )
   } catch (error) {

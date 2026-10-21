@@ -382,6 +382,10 @@ serve(async (req) => {
         if (isMultiRoom && roomStartISO && roomStartISO > hoje) continue
         if (isMultiRoom && roomEndISO && roomEndISO < hoje && !isCheckedIn) continue
 
+        // Check-out já feito no Cloudbeds: o hóspede sai do card na hora (antes ficava até o dia virar).
+        const saidaFeita = rawRoomStatus === 'checked_out' || (!rawRoomStatus && !isMultiRoom && status === 'checked_out')
+        if (saidaFeita) continue
+
         const emCasa = isCheckedIn || (!!startISO && startISO < hoje && (!endISO || endISO > hoje))
 
 
@@ -421,8 +425,8 @@ serve(async (req) => {
           // próximo hóspede (chega hoje mas ainda não fez check-in)
           if (!bucket.proximo) bucket.proximo = registro
         } else if (emCasa || registro.saindoHoje) {
-          // hóspede atual: in-house OU saída de hoje (mesmo após check-out feito),
-          // para a recepção nunca perder o nome de quem está deixando o quarto.
+          // hóspede atual: in-house OU saída de hoje que ainda não fez check-out
+          // (depois do check-out o hóspede sai do card — ver saidaFeita acima).
           if (!bucket.atual) bucket.atual = registro
         } else {
           // fallback (raro): reserva ativa que não é in-house nem chegada hoje
