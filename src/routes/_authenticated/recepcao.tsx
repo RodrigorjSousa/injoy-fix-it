@@ -34,7 +34,9 @@ import { HistoricoTrocasTurno } from "@/components/recepcao/historico-trocas-tur
 import { ReceberSaldoModal } from "@/components/recepcao/receber-saldo-modal";
 import { useMe } from "@/lib/store";
 import { supabase } from "@/integrations/supabase/client";
-import { buscarRecepcaoCloudbeds } from "@/lib/cloudbeds-sync";
+import { buscarRecepcaoCloudbeds, sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
+import { useServerFn } from "@tanstack/react-start";
+import { cloudbedsCheckinRoom } from "@/lib/cloudbeds-checkin.functions";
 import type { Unidade } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { padQuarto } from "@/lib/tipos-quarto";
@@ -295,9 +297,39 @@ function RecepcaoPage() {
     };
   }, [unidadeAtiva, carregarVistoriados]);
 
-  const fazerCheckin = (id: string | number) => {
-    setCheckinsLocais((prev) => new Set(prev).add(id));
-    toast.success("Check-in realizado");
+  // Check-in de verdade no Cloudbeds (antes só marcava nesta tela). Depois atualiza a Recepção
+  // e a sincronização das Camareiras, para os dois cards mostrarem o hóspede hospedado.
+  const doCheckin = useServerFn(cloudbedsCheckinRoom);
+  const [checkinLoading, setCheckinLoading] = useState<string | number | null>(null);
+  const fazerCheckin = async (q: QuartoRecepcao) => {
+    const reservationId = String(q.id);
+    if (!reservationId || reservationId.startsWith("room-")) {
+      toast.error("Reserva não identificada neste quarto. Faça o check-in pelo Cloudbeds.");
+      return;
+    }
+    const ok = window.confirm(
+      `Confirmar CHECK-IN no Cloudbeds do quarto ${q.quarto}?\n\nHóspede: ${q.hospede || "—"}\n\nO check-in é feito no PMS.`,
+    );
+    if (!ok) return;
+    setCheckinLoading(q.id);
+    const t = toast.loading("Fazendo check-in no Cloudbeds...");
+    try {
+      const r = await doCheckin({ data: { property: q.unidade, roomNumber: q.quarto, reservationId } });
+      setCheckinsLocais((prev) => new Set(prev).add(q.id));
+      if (r.jaEstava) toast.success("Hóspede já estava com check-in no Cloudbeds.", { id: t });
+      else if (r.confirmado) toast.success("Check-in confirmado no Cloudbeds. As camareiras foram avisadas.", { id: t });
+      else
+        toast.warning("Check-in enviado, mas o Cloudbeds ainda não confirmou. Confira no Cloudbeds.", {
+          id: t,
+          duration: 10000,
+        });
+      void sincronizarCloudbeds().catch(() => undefined);
+      await carregar(unidadeAtiva);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Falha ao fazer check-in", { id: t, duration: 10000 });
+    } finally {
+      setCheckinLoading(null);
+    }
   };
 
   const quartosFiltrados = useMemo(
@@ -713,8 +745,8 @@ function RecepcaoPage() {
                     </div>
                   ) : q.temReserva ? (
                     <button
-                      onClick={() => fazerCheckin(q.id)}
-                      disabled={q.statusLimpeza !== "Limpo"}
+                      onClick={() => void fazerCheckin(q)}
+                      disabled={q.statusLimpeza !== "Limpo" || checkinLoading === q.id}
                       className={`w-full py-3 rounded-xl font-bold text-sm transition-all shadow-sm ${
                         q.statusLimpeza === "Limpo"
                           ? "bg-blue-600 hover:bg-blue-700 text-white"
@@ -723,7 +755,9 @@ function RecepcaoPage() {
                     >
                       {q.statusLimpeza !== "Limpo"
                         ? "Aguardando Camareira Liberar"
-                        : "Realizar Check-in"}
+                        : checkinLoading === q.id
+                          ? "Fazendo check-in no Cloudbeds..."
+                          : "Realizar Check-in"}
                     </button>
                   ) : (
                     <div className="w-full py-2.5 bg-slate-50 border border-slate-200 text-slate-500 rounded-xl font-semibold text-sm flex items-center justify-center gap-2">
