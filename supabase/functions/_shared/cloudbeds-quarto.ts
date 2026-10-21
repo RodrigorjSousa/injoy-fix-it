@@ -227,6 +227,32 @@ export function bloqueioDeHoje(
   return { tipo, motivo: flags?.bloqueio ? flags.motivoBloqueio : null, descartado: null }
 }
 
+// ------------------------------------------------------- status da reserva
+/**
+ * Status da reserva/quarto normalizado. O Cloudbeds devolve o hóspede hospedado como `checked_in` em
+ * algumas respostas e `in_house` em outras; sem isso, quem fez check-in hoje continuava "chega hoje".
+ */
+export function statusCloudbeds(v: unknown): string {
+  const s = String(v ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if (s === 'in_house' || s === 'inhouse' || s === 'checkedin') return 'checked_in'
+  if (s === 'checkedout') return 'checked_out'
+  return s
+}
+
+/** Normaliza o status da reserva e dos quartos dela (guestList[].rooms[].roomStatus). */
+export function normalizarStatusReserva<T extends Record<string, any>>(r: T): T {
+  if (!r || typeof r !== 'object') return r
+  if (r.status !== undefined) (r as any).status = statusCloudbeds(r.status)
+  const guests = r.guestList && typeof r.guestList === 'object' ? Object.values(r.guestList) : []
+  for (const g of guests as any[]) {
+    for (const lista of [g?.rooms, g?.unassignedRooms]) {
+      if (!Array.isArray(lista)) continue
+      for (const q of lista) if (q && q.roomStatus !== undefined) q.roomStatus = statusCloudbeds(q.roomStatus)
+    }
+  }
+  return r
+}
+
 // ------------------------------------------------------------- chamadas HTTP
 export class CloudbedsIndisponivel extends Error {}
 

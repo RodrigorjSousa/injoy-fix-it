@@ -27,10 +27,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { sincronizarCloudbeds } from "@/lib/cloudbeds-sync";
 import { AvisoSyncCloudbeds } from "@/components/aviso-sync-cloudbeds";
 import { cn } from "@/lib/utils";
-import { dataBR, resumoEstadia } from "@/lib/estadia";
+import { dataBR, proximoDia, resumoEstadia } from "@/lib/estadia";
 
 // Versão mínima da função consolidar-dados que grava datas da estadia e tira o hóspede após o check-out.
-const VERSAO_SYNC_ESPERADA = "2026-10-21";
+const VERSAO_SYNC_ESPERADA = "2026-10-21b";
 import { todaySP } from "@/lib/tz";
 import { compressImage } from "@/lib/image-compression";
 import { useMe } from "@/lib/store";
@@ -848,6 +848,10 @@ function PainelCamareiras() {
                           <span className="text-[10px] font-black text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
                             Sai amanhã
                           </span>
+                        ) : temHospede && !soChegada ? (
+                          <span className="text-[10px] font-black text-emerald-700 bg-emerald-100 border border-emerald-200 px-2 py-0.5 rounded-md shrink-0 uppercase tracking-wide">
+                            Hospedado
+                          </span>
                         ) : null}
                         <EciLcoBadges eci={q.has_eci} lco={q.has_lco} eciTime={q.eci_time} lcoTime={q.lco_time} compact />
                       </div>
@@ -1071,6 +1075,23 @@ function PainelCamareiras() {
                       </button>
                     </div>
                   )}
+                  {(() => {
+                    // Hóspede que chegou hoje já fez check-in: o serviço mostrado é o de amanhã.
+                    const hoje = todaySP();
+                    const entrouHoje =
+                      !!q.guest_name &&
+                      q.guest_name !== "Quarto Vazio" &&
+                      q.guest_checkin_date === hoje &&
+                      !q.next_guest_name &&
+                      !q.departing_guest_name;
+                    if (!entrouHoje) return null;
+                    return (
+                      <p className="flex items-center justify-center gap-1.5 rounded-lg bg-emerald-50 border border-emerald-200 px-2 py-1.5 text-center text-[11px] font-semibold text-emerald-800">
+                        <CalendarDays size={13} className="shrink-0" />
+                        Hóspede entrou hoje · {formatTaskLabel(q.assigned_task)} é para amanhã ({dataBR(proximoDia(hoje)).slice(0, 5)})
+                      </p>
+                    );
+                  })()}
                 </>
               )}
 

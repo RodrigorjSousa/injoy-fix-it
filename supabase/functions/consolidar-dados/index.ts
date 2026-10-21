@@ -4,6 +4,7 @@ import { lerHousekeeping, reenviarLimpezasPendentes, type QuartoHousekeeping } f
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
+  normalizarStatusReserva,
   bloqueioDeHoje,
   CloudbedsIndisponivel,
   cloudbedsGet,
@@ -56,7 +57,7 @@ async function authorizeRequest(req: Request): Promise<{ ok: boolean; status?: n
 }
 
 // Sobe a cada mudança desta função: a tela das Camareiras avisa se o servidor ainda roda versão antiga.
-const VERSAO_SYNC = '2026-10-21'
+const VERSAO_SYNC = '2026-10-21b'
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
@@ -167,6 +168,7 @@ serve(async (req) => {
       // Deduplica por reservationID unindo as duas consultas
       const mapReservas = new Map<string, any>()
       for (const r of [...reservasWindow, ...reservasSaindoHoje, ...reservasCheckedIn]) {
+        normalizarStatusReserva(r) // in_house = checked_in
         const id = String(r?.reservationID ?? r?.reservationId ?? r?.id ?? '')
         if (!id) continue
         const anterior = mapReservas.get(id)
@@ -381,7 +383,13 @@ serve(async (req) => {
         // ARRUMAÇÃO       → hóspede hospedado (a partir do dia seguinte à entrada)
         // TROCA           → a cada 3 dias de hospedagem
         // VERIFICAÇÃO     → quarto limpo e vazio, sem movimento hoje
-        if (reservaSaindoHoje && reservaEntrandoHoje) {
+        // Hóspede que chegou hoje JÁ fez check-in: o serviço de hoje acabou (o quarto foi entregue).
+        // Mostra o serviço de AMANHÃ — o card avisa embaixo do botão que é para o dia seguinte.
+        const entrouHoje = !!hospedeAtualInHouse && hospedeAtualInHouse._checkInDate === hojeStr
+        if (entrouHoje) {
+          corLegenda = 'VERDE'
+          tarefaSugerida = hospedeAtualInHouse._checkOutDate === somarDias(hojeStr, 1) ? 'GERAL' : 'ARRUMAÇÃO'
+        } else if (reservaSaindoHoje && reservaEntrandoHoje) {
           tarefaSugerida = 'GERAL - CHECK-IN'
           corLegenda = 'CINZA'
         } else if (reservaSaindoHoje && !reservaEntrandoHoje) {

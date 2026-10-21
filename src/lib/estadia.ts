@@ -48,3 +48,9 @@ export function textoEstadia(r: ResumoEstadia): string {
   const noite = r.noiteAtual && r.noites ? ` · ${r.noiteAtual}ª de ${r.noites} noite${r.noites === 1 ? "" : "s"}` : "";
   return `${prefixo}, ${r.saida}${noite}`;
 }
+
+/** "2026-10-21" → "2026-10-22". */
+export function proximoDia(iso: string): string {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10);
+}

@@ -176,6 +176,11 @@ das selfies antigas do ponto foi oferecida.
   Hóspede do card = quem está no quarto (o que fica, depois o que sai e ainda não fez check-out); quem chega vai
   para next_* e toda chegada de hoje aparece no destaque tracejado (com "Quarto livre" se o quarto já vagou). Check-out feito no Cloudbeds tira o nome do card na hora (Camareiras na próxima sincronização, até
   5 min; Recepção no próximo refresh, até 3 min) — antes ficava até o dia virar. A tarefa GERAL continua.
+- Check-in (21/10): o Cloudbeds devolve o hóspede hospedado como `checked_in` ou `in_house`; agora as duas
+  funções normalizam (`normalizarStatusReserva` em `_shared/cloudbeds-quarto.ts`). Quem fez check-in aparece no
+  topo como HOSPEDADO (Recepção: Ocupado / Hóspede em Quarto). Se entrou hoje, o card das camareiras mostra o
+  serviço de AMANHÃ (ARRUMAÇÃO, ou GERAL se sai amanhã) com o aviso "é para amanhã" embaixo do botão.
+  Atenção: o botão "Realizar Check-in" da Recepção só marca na tela (não faz check-in no Cloudbeds).
 - `consolidar-dados` responde `versao` (VERSAO_SYNC); a tela das Camareiras avisa se o servidor roda versão antiga
   (função não publicada).
 - Regras únicas em `supabase/functions/_shared/cloudbeds-quarto.ts`, usadas por `consolidar-dados`

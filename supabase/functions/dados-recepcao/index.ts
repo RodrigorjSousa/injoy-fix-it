@@ -3,6 +3,7 @@ import { canalPrePago, saldoACobrar } from '../_shared/canal-pagamento.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
+  normalizarStatusReserva,
   bloqueioDeHoje,
   cloudbedsGet,
   emptyEciLco,
@@ -150,6 +151,7 @@ serve(async (req) => {
     // Deduplica reservas
     const mapaReservas = new Map<string, any>()
     for (const r of [...reservasWindow, ...reservasCheckedIn]) {
+      normalizarStatusReserva(r) // in_house = checked_in
       const id = String(r?.reservationID ?? r?.reservationId ?? r?.id ?? '')
       if (!id) continue
       if (!mapaReservas.has(id)) mapaReservas.set(id, r)
