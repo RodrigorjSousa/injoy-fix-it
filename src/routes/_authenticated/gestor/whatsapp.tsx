@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
+  BookOpen,
   Bot,
   ChevronDown,
   ChevronRight,
@@ -11,6 +12,7 @@ import {
   Hand,
   Loader2,
   MessageCircle,
+  Pencil,
   Plus,
   RotateCcw,
   Save,
@@ -28,6 +30,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   AlertDialog,
@@ -42,6 +53,9 @@ import {
 import { cn } from "@/lib/utils";
 import {
   joyApagarConversa,
+  joyApagarLicao,
+  joyRefazerResposta,
+  joySalvarLicao,
   joyCarregarConfig,
   joyEnviarSimulador,
   joyListarModelos,
@@ -90,6 +104,7 @@ type Mensagem = {
     tokens?: { entrada: number; saida: number };
     modelo?: string;
     duracao_ms?: number;
+    licoes?: Array<{ id: string; tema: string | null }>;
   } | null;
   created_at: string;
 };
@@ -168,6 +183,7 @@ function WhatsappGestor() {
         <TabsList>
           <TabsTrigger value="simulador">Simulador</TabsTrigger>
           <TabsTrigger value="config">Configuração</TabsTrigger>
+          <TabsTrigger value="licoes">Lições</TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
         <TabsContent value="simulador">
@@ -175,6 +191,9 @@ function WhatsappGestor() {
         </TabsContent>
         <TabsContent value="config">
           <Configuracao />
+        </TabsContent>
+        <TabsContent value="licoes">
+          <Licoes />
         </TabsContent>
         <TabsContent value="execucoes">
           <Execucoes />
@@ -395,6 +414,7 @@ function Chat({
   const [respondendo, setRespondendo] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
   const [confirmarApagar, setConfirmarApagar] = useState(false);
+  const [corrigindo, setCorrigindo] = useState<Mensagem | null>(null);
   const fim = useRef<HTMLDivElement>(null);
   const pendentesRef = useRef<string[]>([]);
   pendentesRef.current = pendentes;
@@ -525,7 +545,11 @@ function Chat({
       <div className="flex-1 space-y-2 overflow-y-auto bg-[#efeae2] p-4">
         {mensagens.isLoading && <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-500" />}
         {mensagens.data?.map((m) => (
-          <Bolha key={m.id} m={m} />
+          <Bolha
+            key={m.id}
+            m={m}
+            onCorrigir={m.autor === "joy" ? () => setCorrigindo(m) : undefined}
+          />
         ))}
         {pendentes.map((p, i) => (
           <div key={`p${i}`} className="flex justify-start">
@@ -605,6 +629,40 @@ function Chat({
         </div>
       </div>
 
+      {corrigindo && (
+        <DialogLicao
+          aberto
+          onFechar={() => setCorrigindo(null)}
+          inicial={{
+            situacao: situacaoAntes(mensagens.data ?? [], corrigindo.id),
+            resposta_errada: corrigindo.texto,
+          }}
+          correcao={{ conversaId: conversa.id, mensagemId: corrigindo.id }}
+          onSalva={async (refazer) => {
+            const msgId = corrigindo.id;
+            setCorrigindo(null);
+            await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+            if (!refazer) return;
+            setRespondendo(true);
+            setErro(null);
+            try {
+              const r = await joyRefazerResposta({
+                data: { conversaId: conversa.id, mensagemId: msgId },
+              });
+              if (r.bloqueios.length)
+                toast.warning("O filtro de segurança barrou parte da resposta nova.");
+            } catch (e) {
+              setErro(erroTexto(e));
+            } finally {
+              setRespondendo(false);
+              await qc.invalidateQueries({ queryKey: ["joy-mensagens", conversa.id] });
+              await qc.invalidateQueries({ queryKey: ["joy-execucoes"] });
+              onMudou();
+            }
+          }}
+        />
+      )}
+
       <AlertDialog open={confirmarApagar} onOpenChange={setConfirmarApagar}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -634,7 +692,19 @@ function Chat({
   );
 }
 
-function Bolha({ m }: { m: Mensagem }) {
+/** O que o hóspede disse antes de uma resposta da Joy (as mensagens dele desde a última resposta da casa). */
+function situacaoAntes(msgs: Mensagem[], mensagemId: string): string {
+  const i = msgs.findIndex((m) => m.id === mensagemId);
+  const antes: string[] = [];
+  for (let j = i - 1; j >= 0; j--) {
+    const m = msgs[j];
+    if (m.autor === "cliente") antes.unshift(m.texto);
+    else if (m.autor === "joy" || m.autor === "equipe") break;
+  }
+  return antes.join("\n");
+}
+
+function Bolha({ m, onCorrigir }: { m: Mensagem; onCorrigir?: () => void }) {
   const [aberto, setAberto] = useState(false);
   if (m.autor === "sistema") {
     return (
@@ -648,6 +718,7 @@ function Bolha({ m }: { m: Mensagem }) {
   const daCasa = m.autor === "joy" || m.autor === "equipe";
   const ferramentas = m.meta?.ferramentas ?? [];
   const bloqueios = m.meta?.bloqueios ?? [];
+  const licoes = m.meta?.licoes ?? [];
   return (
     <div className={cn("flex", daCasa ? "justify-end" : "justify-start")}>
       <div
@@ -673,7 +744,23 @@ function Bolha({ m }: { m: Mensagem }) {
               {((m.meta.duracao_ms ?? 0) / 1000).toFixed(1)}s
             </span>
           )}
+          {licoes.length > 0 && (
+            <span
+              className="rounded bg-sky-100 px-1 text-sky-800"
+              title={licoes.map((l) => l.tema || "sem tema").join(", ")}
+            >
+              {licoes.length} {licoes.length === 1 ? "lição" : "lições"}
+            </span>
+          )}
           <span>{hora(m.created_at)}</span>
+          {onCorrigir && (
+            <button
+              onClick={onCorrigir}
+              className="ml-1 flex items-center gap-0.5 rounded px-1 font-medium text-amber-700 hover:bg-amber-100"
+            >
+              <Pencil className="h-3 w-3" /> Corrigir
+            </button>
+          )}
         </div>
         {ferramentas.length > 0 && (
           <div className="mt-1 border-t border-black/5 pt-1">
@@ -1099,6 +1186,361 @@ function Execucoes() {
           </tbody>
         </table>
       </Card>
+    </div>
+  );
+}
+
+// ============================================================== lições
+
+type LicaoRow = {
+  id: string;
+  situacao: string;
+  resposta_errada: string | null;
+  resposta_certa: string;
+  motivo: string | null;
+  tema: string | null;
+  ativa: boolean;
+  origem: string;
+  updated_at: string;
+};
+
+const ORIGEM: Record<string, string> = {
+  correcao: "Correção no simulador",
+  manual: "Criada à mão",
+  revisor: "Revisor automático",
+  conversas: "Conversas da recepção",
+};
+
+function DialogLicao({
+  aberto,
+  onFechar,
+  inicial,
+  correcao,
+  onSalva,
+}: {
+  aberto: boolean;
+  onFechar: () => void;
+  inicial: Partial<LicaoRow>;
+  /** Preenchido quando vem do botão Corrigir no simulador. */
+  correcao?: { conversaId: string; mensagemId: string };
+  onSalva: (refazer: boolean) => void | Promise<void>;
+}) {
+  const [situacao, setSituacao] = useState(inicial.situacao ?? "");
+  const [errada, setErrada] = useState(inicial.resposta_errada ?? "");
+  const [certa, setCerta] = useState(inicial.resposta_certa ?? "");
+  const [motivo, setMotivo] = useState(inicial.motivo ?? "");
+  const [tema, setTema] = useState(inicial.tema ?? "");
+  const [salvando, setSalvando] = useState(false);
+  const ok = situacao.trim().length >= 3 && certa.trim().length >= 3;
+
+  async function salvar(refazer: boolean) {
+    setSalvando(true);
+    try {
+      await joySalvarLicao({
+        data: {
+          id: inicial.id,
+          situacao,
+          resposta_errada: errada || undefined,
+          resposta_certa: certa,
+          motivo: motivo || undefined,
+          tema: tema || undefined,
+          origem: correcao ? "correcao" : "manual",
+          conversaId: correcao?.conversaId,
+          mensagemId: correcao?.mensagemId,
+        },
+      });
+      toast.success(
+        inicial.id
+          ? "Lição atualizada."
+          : "Lição salva. A Joy passa a seguir nas próximas respostas.",
+      );
+      await onSalva(refazer);
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  return (
+    <Dialog open={aberto} onOpenChange={(v) => !v && onFechar()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>
+            {inicial.id ? "Editar lição" : correcao ? "Corrigir a Joy" : "Nova lição"}
+          </DialogTitle>
+          <DialogDescription>
+            Escreva como a Joy deveria ter respondido. Ela passa a usar isso como exemplo em
+            situações parecidas. Não coloque nome, telefone, código de porta nem número de quarto de
+            hóspede real.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-3 text-sm">
+          <div>
+            <Label htmlFor="l-sit">Situação (o que o hóspede disse)</Label>
+            <Textarea
+              id="l-sit"
+              value={situacao}
+              onChange={(e) => setSituacao(e.target.value)}
+              rows={3}
+            />
+          </div>
+          <div>
+            <Label htmlFor="l-err">Resposta errada (opcional)</Label>
+            <Textarea
+              id="l-err"
+              value={errada}
+              onChange={(e) => setErrada(e.target.value)}
+              rows={3}
+              className="bg-red-50/50"
+            />
+          </div>
+          <div>
+            <Label htmlFor="l-cer">Como a Joy deveria responder</Label>
+            <Textarea
+              id="l-cer"
+              value={certa}
+              onChange={(e) => setCerta(e.target.value)}
+              rows={4}
+              className="bg-emerald-50/50"
+              autoFocus
+            />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-[1fr_180px]">
+            <div>
+              <Label htmlFor="l-mot">Por quê (opcional)</Label>
+              <Input
+                id="l-mot"
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                placeholder="Ex.: nunca dar preço sem consultar o Cloudbeds"
+              />
+            </div>
+            <div>
+              <Label htmlFor="l-tema">Tema (opcional)</Label>
+              <Input
+                id="l-tema"
+                value={tema}
+                onChange={(e) => setTema(e.target.value)}
+                placeholder="Ex.: pets"
+              />
+            </div>
+          </div>
+        </div>
+        <DialogFooter className="gap-2">
+          <Button variant="ghost" onClick={onFechar}>
+            Cancelar
+          </Button>
+          <Button
+            variant={correcao ? "outline" : "default"}
+            disabled={!ok || salvando}
+            onClick={() => void salvar(false)}
+          >
+            {salvando ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1 h-4 w-4" />
+            )}{" "}
+            Salvar lição
+          </Button>
+          {correcao && (
+            <Button disabled={!ok || salvando} onClick={() => void salvar(true)}>
+              <RotateCcw className="mr-1 h-4 w-4" /> Salvar e refazer a resposta
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function Licoes() {
+  const qc = useQueryClient();
+  const [busca, setBusca] = useState("");
+  const [editando, setEditando] = useState<Partial<LicaoRow> | null>(null);
+  const [apagando, setApagando] = useState<LicaoRow | null>(null);
+
+  const licoes = useQuery({
+    queryKey: ["joy-licoes"],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_licoes")
+        .select("*")
+        .order("updated_at", { ascending: false })
+        .limit(500);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as LicaoRow[];
+    },
+  });
+
+  const filtradas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    const lista = licoes.data ?? [];
+    if (!q) return lista;
+    return lista.filter((l) =>
+      [l.situacao, l.resposta_certa, l.resposta_errada, l.motivo, l.tema].some((t) =>
+        (t ?? "").toLowerCase().includes(q),
+      ),
+    );
+  }, [licoes.data, busca]);
+
+  const ativas = (licoes.data ?? []).filter((l) => l.ativa).length;
+
+  async function alternar(l: LicaoRow) {
+    try {
+      await joySalvarLicao({
+        data: {
+          id: l.id,
+          situacao: l.situacao,
+          resposta_errada: l.resposta_errada ?? undefined,
+          resposta_certa: l.resposta_certa,
+          motivo: l.motivo ?? undefined,
+          tema: l.tema ?? undefined,
+          ativa: !l.ativa,
+        },
+      });
+      await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+    } catch (e) {
+      toast.error(erroTexto(e));
+    }
+  }
+
+  if (licoes.isLoading)
+    return <Loader2 className="mx-auto mt-8 h-6 w-6 animate-spin text-slate-400" />;
+  if (licoes.error)
+    return (
+      <Card className="border-red-300 bg-red-50 p-4 text-sm text-red-800">
+        <b>Erro real:</b> {erroTexto(licoes.error)}
+        <p className="mt-2 text-red-700">
+          Se for "relation wa_licoes does not exist", a migração 0078 ainda não foi aplicada no
+          Lovable.
+        </p>
+      </Card>
+    );
+
+  return (
+    <div className="space-y-4">
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <div className="flex items-center gap-3">
+          <BookOpen className="h-6 w-6 text-sky-700" />
+          <div>
+            <p className="font-semibold text-slate-900">
+              {ativas} {ativas === 1 ? "lição ativa" : "lições ativas"}
+            </p>
+            <p className="text-xs text-slate-500">
+              A cada resposta, entram até 12 lições (as mais parecidas com a conversa). Use
+              "Corrigir" no simulador para criar lições a partir de erros reais.
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Input
+            value={busca}
+            onChange={(e) => setBusca(e.target.value)}
+            placeholder="Buscar…"
+            className="w-48"
+          />
+          <Button onClick={() => setEditando({})}>
+            <Plus className="mr-1 h-4 w-4" /> Nova lição
+          </Button>
+        </div>
+      </Card>
+
+      {filtradas.length === 0 && (
+        <p className="text-center text-sm text-slate-500">
+          {busca ? "Nenhuma lição com esse texto." : "Nenhuma lição ainda."}
+        </p>
+      )}
+
+      <div className="space-y-3">
+        {filtradas.map((l) => (
+          <Card key={l.id} className={cn("space-y-2 p-4 text-sm", !l.ativa && "opacity-60")}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                {l.tema && <Badge variant="secondary">{l.tema}</Badge>}
+                <span className="text-xs text-slate-500">
+                  {ORIGEM[l.origem] ?? l.origem} · {hora(l.updated_at)}
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <label className="flex items-center gap-1 text-xs text-slate-600">
+                  <Switch checked={l.ativa} onCheckedChange={() => void alternar(l)} />{" "}
+                  {l.ativa ? "Ativa" : "Desligada"}
+                </label>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setEditando(l)}
+                  aria-label="Editar lição"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setApagando(l)}
+                  aria-label="Apagar lição"
+                >
+                  <Trash2 className="h-4 w-4 text-slate-500" />
+                </Button>
+              </div>
+            </div>
+            <p className="whitespace-pre-wrap text-slate-700">
+              <b>Hóspede:</b> {l.situacao}
+            </p>
+            {l.resposta_errada && (
+              <p className="whitespace-pre-wrap rounded bg-red-50 p-2 text-red-900">
+                <b>Errado:</b> {l.resposta_errada}
+              </p>
+            )}
+            <p className="whitespace-pre-wrap rounded bg-emerald-50 p-2 text-emerald-900">
+              <b>Certo:</b> {l.resposta_certa}
+            </p>
+            {l.motivo && <p className="text-xs text-slate-600">Por quê: {l.motivo}</p>}
+          </Card>
+        ))}
+      </div>
+
+      {editando && (
+        <DialogLicao
+          aberto
+          inicial={editando}
+          onFechar={() => setEditando(null)}
+          onSalva={async () => {
+            setEditando(null);
+            await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+          }}
+        />
+      )}
+
+      <AlertDialog open={!!apagando} onOpenChange={(v) => !v && setApagando(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Apagar esta lição?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se quiser só testar sem ela, desligue em vez de apagar.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={async () => {
+                if (!apagando) return;
+                try {
+                  await joyApagarLicao({ data: { id: apagando.id } });
+                  await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+                } catch (e) {
+                  toast.error(erroTexto(e));
+                } finally {
+                  setApagando(null);
+                }
+              }}
+            >
+              Apagar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
