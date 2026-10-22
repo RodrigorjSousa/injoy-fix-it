@@ -4505,6 +4505,7 @@ export type Database = {
           erro: string | null
           ferramentas: Json
           id: string
+          licoes_usadas: Json
           modelo: string
           tokens_entrada: number
           tokens_saida: number
@@ -4519,6 +4520,7 @@ export type Database = {
           erro?: string | null
           ferramentas?: Json
           id?: string
+          licoes_usadas?: Json
           modelo?: string
           tokens_entrada?: number
           tokens_saida?: number
@@ -4533,6 +4535,7 @@ export type Database = {
           erro?: string | null
           ferramentas?: Json
           id?: string
+          licoes_usadas?: Json
           modelo?: string
           tokens_entrada?: number
           tokens_saida?: number
@@ -4543,6 +4546,69 @@ export type Database = {
             columns: ["conversa_id"]
             isOneToOne: false
             referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wa_licoes: {
+        Row: {
+          ativa: boolean
+          conversa_id: string | null
+          created_at: string
+          criado_por: string | null
+          id: string
+          mensagem_id: string | null
+          motivo: string | null
+          origem: string
+          resposta_certa: string
+          resposta_errada: string | null
+          situacao: string
+          tema: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativa?: boolean
+          conversa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          origem?: string
+          resposta_certa: string
+          resposta_errada?: string | null
+          situacao: string
+          tema?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativa?: boolean
+          conversa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          id?: string
+          mensagem_id?: string | null
+          motivo?: string | null
+          origem?: string
+          resposta_certa?: string
+          resposta_errada?: string | null
+          situacao?: string
+          tema?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_licoes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wa_licoes_mensagem_id_fkey"
+            columns: ["mensagem_id"]
+            isOneToOne: false
+            referencedRelation: "wa_mensagens"
             referencedColumns: ["id"]
           },
         ]
