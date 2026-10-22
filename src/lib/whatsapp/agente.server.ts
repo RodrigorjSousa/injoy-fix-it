@@ -19,6 +19,7 @@ import {
   type ContextoFerramenta,
   type ConversaRow,
 } from "./ferramentas.server";
+import { escolherLicoes, textoLicoes, type Licao } from "./licoes";
 import { agoraNoHotel, montarPromptSistema } from "./prompt";
 import {
   MOTIVO_BLOQUEIO,
@@ -202,6 +203,24 @@ type MensagemRow = {
   meta: Record<string, unknown> | null;
 };
 
+/**
+ * Lições ativas (migração 0078). Se a tabela ainda não existir, segue sem lições —
+ * a Joy continua funcionando antes de a migração ser aplicada.
+ */
+export async function carregarLicoesAtivas(): Promise<{ licoes: Licao[]; disponivel: boolean }> {
+  const { data, error } = await db
+    .from("wa_licoes")
+    .select("id,situacao,resposta_errada,resposta_certa,motivo,tema,ativa,updated_at")
+    .eq("ativa", true)
+    .order("updated_at", { ascending: false })
+    .limit(300);
+  if (error) {
+    console.warn("[Joy] lições indisponíveis:", error.message);
+    return { licoes: [], disponivel: false };
+  }
+  return { licoes: (data ?? []) as Licao[], disponivel: true };
+}
+
 export type ResultadoResposta = {
   respondeu: boolean;
   texto?: string;
@@ -300,14 +319,28 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
     }
   }
 
-  const sistema = montarPromptSistema(config.prompt, config.conhecimento, {
-    hoje,
-    hora,
-    diaSemana,
-    canal: conv.canal,
-    contatoNome: conv.contato_nome,
-    reserva: resumo,
-  });
+  // Lições da equipe: as mais parecidas com as últimas mensagens do hóspede.
+  const { licoes, disponivel: licoesDisponiveis } = await carregarLicoesAtivas();
+  const textoRecente = mensagens
+    .filter((m) => m.autor === "cliente")
+    .slice(-3)
+    .map((m) => m.texto)
+    .join(" ");
+  const licoesUsadas = escolherLicoes(licoes, textoRecente);
+
+  const sistema = [
+    montarPromptSistema(config.prompt, config.conhecimento, {
+      hoje,
+      hora,
+      diaSemana,
+      canal: conv.canal,
+      contatoNome: conv.contato_nome,
+      reserva: resumo,
+    }),
+    textoLicoes(licoesUsadas),
+  ]
+    .filter(Boolean)
+    .join("\n\n");
 
   const conversaModelo: MsgModelo[] = [
     { role: "system", content: sistema },
@@ -408,6 +441,8 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
     bloqueios: [...new Set(resultado.bloqueios)],
     duracao_ms: resultado.duracaoMs,
     erro,
+    // a coluna vem na mesma migração (0078) da tabela de lições
+    ...(licoesDisponiveis ? { licoes_usadas: licoesUsadas.map((l) => l.id) } : {}),
   });
 
   if (erro) throw new Error(erro);
@@ -427,6 +462,7 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
       tokens: { entrada: resultado.tokensEntrada, saida: resultado.tokensSaida },
       modelo: config.modelo,
       duracao_ms: resultado.duracaoMs,
+      licoes: licoesUsadas.map((l) => ({ id: l.id, tema: l.tema })),
     },
   });
   if (ctx.transferida) {

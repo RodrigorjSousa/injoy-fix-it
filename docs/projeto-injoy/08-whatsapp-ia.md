@@ -400,6 +400,40 @@ Para ativar:
    preencher o Wi-Fi e Salvar;
 5. testar no Simulador.
 
+### Entrega E1.1 — Lições da equipe (branch `feat/whatsapp-licoes`, migração `0078_whatsapp_licoes.sql`)
+Decidido em 21/10/2026:
+- A Joy "aprende" pelas correções da equipe; o modelo de IA em si não muda.
+- Nada muda sozinho sem aprovação do Rodrigo. Um hóspede não pode "ensinar" a Joy.
+- O **MarcFlow** (github.com/marcolamaia/MarcFlow) será usado **só para exportar** as conversas da
+  recepção, conectando o número por pouco tempo e desconectando em seguida. Ele usa a conexão não oficial
+  (Baileys), por isso não serve de canal da Joy.
+
+O que entrou:
+- **Botão "Corrigir"** em cada resposta da Joy no simulador. Abre a lição já preenchida com a fala do
+  hóspede e a resposta errada; o gestor escreve como deveria ser, o porquê e o tema.
+  - "Salvar e refazer a resposta" apaga a resposta antiga e o que veio depois dela e pede uma nova, para
+    conferir na hora se a lição pegou.
+  - Se a resposta antiga tinha passado a conversa para a equipe, a conversa volta para a Joy.
+- **Aba Lições:** lista com busca, liga/desliga, editar, apagar e "Nova lição". A origem fica registrada
+  (`correcao`, `manual`; depois `revisor` e `conversas`).
+- **No agente** (`agente.server.ts` + `licoes.ts`, testes em `licoes.test.ts` e `agente.test.ts`):
+  - entram no prompt até 12 lições ativas, num bloco "LIÇÕES DA EQUIPE" com ERRADO / CERTO / Por quê;
+  - se houver mais de 12, entram as mais parecidas com as 3 últimas mensagens do hóspede (palavras em
+    comum, sem acento e sem palavras vazias; situação e tema pesam mais);
+  - as regras absolutas continuam valendo acima das lições;
+  - as lições usadas ficam em `wa_mensagens.meta.licoes` (selo "N lições" na bolha) e em
+    `wa_ia_execucoes.licoes_usadas`;
+  - se a 0078 ainda não foi aplicada, a Joy responde normalmente, sem lições.
+- Banco (0078):
+  - tabela `wa_licoes` (situação, resposta errada, resposta certa, motivo, tema, ativa, origem, conversa e
+    mensagem de origem com ON DELETE SET NULL);
+  - coluna `wa_ia_execucoes.licoes_usadas`;
+  - mesmo padrão de acesso da 0074: leitura só gestor/admin, escrita só pelo servidor;
+  - cartão digitado por engano numa lição é mascarado;
+  - testada em Postgres local: roda duas vezes, gestor vê, camareira não, ninguém grava pelo app.
+
+Para ativar: merge → aplicar a `0078_whatsapp_licoes.sql` no Lovable → Publicar → Atualizar.
+
 ## Ideias e pendências
 - Confirmar no primeiro teste real:
   - o nome do modelo no gateway (o padrão `google/gemini-2.5-flash` pode não existir);
@@ -408,5 +442,8 @@ Para ativar:
 - Contato de emergência da equipe (vazio).
 - Chave do Google Maps (opcional; sem ela a Joy manda link de busca).
 - Quando o app enviar os códigos sozinho depois do check-in online, atualizar o tópico "Códigos de acesso".
+- Próximo: exportar as conversas da recepção pelo MarcFlow → análise das perguntas e respostas → lições de
+  origem `conversas` e ajustes na base (para o Rodrigo aprovar).
+- Revisor automático diário (propõe lições; o Rodrigo aprova) junto com a E2.
 - E2: hóspedes simulados por outra IA + relatório de erros. E3: webhook do WhatsApp em modo rascunho
   (com áudio e imagem). E4: painel completo com contador da franquia da Meta. E5: liberação por tema.

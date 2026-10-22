@@ -3,6 +3,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // ---------------------------------------------------------------- banco falso (em memória)
 type Linha = Record<string, unknown>;
 const tabelas: Record<string, Linha[]> = {};
+/** Simula a migração 0078 ainda não aplicada. */
+const tabelasAusentes = new Set<string>();
 let seq = 0;
 
 class Q implements PromiseLike<{ data: unknown; error: null }> {
@@ -90,6 +92,11 @@ class Q implements PromiseLike<{ data: unknown; error: null }> {
     ok?: ((v: { data: unknown; error: null }) => T1 | PromiseLike<T1>) | null,
     ko?: ((e: unknown) => T2 | PromiseLike<T2>) | null,
   ) {
+    if (tabelasAusentes.has(this.tabela))
+      return Promise.resolve({
+        data: null,
+        error: { message: `relation "public.${this.tabela}" does not exist` },
+      } as unknown as { data: unknown; error: null }).then(ok, ko);
     return Promise.resolve({ data: this.executar(), error: null }).then(ok, ko);
   }
 }
@@ -221,6 +228,7 @@ async function preparar(conversa: Partial<Linha> = {}, wifi: Linha = {}) {
     },
   ];
   tabelas.wa_mensagens = [];
+  tabelasAusentes.clear();
 }
 
 function cliente(texto: string) {
@@ -382,5 +390,53 @@ describe("Joy — agente", () => {
     await expect(responder("conv1")).rejects.toThrow(/402.*Not enough credits/);
     expect(tabelas.wa_ia_execucoes[0].erro).toMatch(/402/);
     expect(tabelas.wa_mensagens.filter((m) => m.autor === "joy")).toHaveLength(0);
+  });
+
+  it("coloca as lições da equipe no prompt e registra quais foram usadas", async () => {
+    await preparar();
+    tabelas.wa_licoes = [
+      {
+        id: "lic1",
+        situacao: "Hóspede pergunta se pode levar o cachorro",
+        resposta_errada: "Não aceitamos animais.",
+        resposta_certa: "Pode sim! Aceitamos cães de todos os portes (R$ 60 por diária).",
+        motivo: "Somos pet friendly",
+        tema: "pets",
+        ativa: true,
+        updated_at: "2026-10-21T12:00:00Z",
+      },
+      {
+        id: "lic2",
+        situacao: "Pergunta desligada",
+        resposta_errada: null,
+        resposta_certa: "não deve aparecer",
+        motivo: null,
+        tema: null,
+        ativa: false,
+        updated_at: "2026-10-21T12:00:00Z",
+      },
+    ];
+    cliente("posso levar meu cachorro?");
+    roteiro = [respostaTexto("Pode sim! Aceitamos cães de todos os portes 🐶")];
+    const { responder } = await import("./agente.server");
+    await responder("conv1");
+    const sistema = (pedidos[0].messages as Array<{ role: string; content: string }>)[0].content;
+    expect(sistema).toContain("=== LIÇÕES DA EQUIPE ===");
+    expect(sistema).toContain("CERTO: Pode sim! Aceitamos cães");
+    expect(sistema).not.toContain("não deve aparecer");
+    expect(tabelas.wa_ia_execucoes[0].licoes_usadas).toEqual(["lic1"]);
+    const joy = tabelas.wa_mensagens.find((m) => m.autor === "joy")!;
+    expect((joy.meta as { licoes: unknown[] }).licoes).toEqual([{ id: "lic1", tema: "pets" }]);
+  });
+
+  it("continua funcionando antes de a migração das lições ser aplicada", async () => {
+    await preparar();
+    tabelasAusentes.add("wa_licoes");
+    cliente("oi");
+    roteiro = [respostaTexto("Oi! Aqui é a Joy 😊")];
+    const { responder } = await import("./agente.server");
+    const r = await responder("conv1");
+    expect(r.respondeu).toBe(true);
+    expect(tabelas.wa_ia_execucoes[0]).not.toHaveProperty("licoes_usadas");
   });
 });
