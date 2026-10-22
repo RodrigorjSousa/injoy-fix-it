@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Loader2, ScanFace, Smartphone, Trash2 } from "lucide-react";
+import { Loader2, ScanFace, Smartphone, Trash2, Unlink } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,8 @@ export function CadastroFacial() {
       <Card className="space-y-1 p-4 text-sm text-slate-600">
         <p className="font-semibold text-slate-800">Como cadastrar</p>
         <p>
-          1. Abra esta tela <strong>no celular da empresa que a pessoa vai usar</strong> (assim o
-          aparelho já fica vinculado).
+          1. Pode cadastrar em qualquer aparelho (inclusive no seu). O celular da pessoa fica
+          vinculado sozinho na <strong>primeira batida</strong> que ela fizer nele.
         </p>
         <p>
           2. Leia o termo para a pessoa, marque o consentimento e capture o rosto (ela mexe
@@ -73,7 +73,7 @@ export function CadastroFacial() {
                   ? c.biometria.device_id === esteAparelho
                     ? "vinculado a este aparelho"
                     : "vinculado a outro aparelho"
-                  : "sem aparelho vinculado"}
+                  : "sem aparelho vinculado (vincula na primeira batida)"}
               </p>
             )}
             <div className="flex flex-wrap gap-2">
@@ -86,6 +86,35 @@ export function CadastroFacial() {
                 <ScanFace className="h-4 w-4" />
                 {c.biometria ? "Refazer cadastro" : "Cadastrar rosto"}
               </Button>
+              {c.biometria?.device_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  disabled={vincular.isPending}
+                  onClick={() => {
+                    if (
+                      !confirm(
+                        `Liberar o aparelho de ${c.nome}? O próximo celular em que ele(a) bater o ponto passa a ser o aparelho vinculado.`,
+                      )
+                    )
+                      return;
+                    vincular.mutate(
+                      { colaboradorId: c.id, deviceId: null },
+                      {
+                        onSuccess: () =>
+                          toast.success(
+                            `Aparelho liberado. ${c.nome} já pode bater o ponto no celular dele(a).`,
+                          ),
+                        onError: (e) => toast.error((e as Error).message),
+                      },
+                    );
+                  }}
+                >
+                  <Unlink className="h-4 w-4" />
+                  Liberar aparelho
+                </Button>
+              )}
               {c.biometria && c.vinculo === "fixo" && c.biometria.device_id !== esteAparelho && (
                 <Button
                   size="sm"
@@ -145,7 +174,8 @@ function CadastroDialog({ colab, onClose }: { colab: Colab; onClose: () => void 
       {
         colaboradorId: colab.id,
         descritores,
-        deviceId: colab.vinculo === "fixo" ? getDeviceId() : null,
+        // Não prende o aparelho de quem cadastra: o da pessoa vincula na primeira batida.
+        deviceId: null,
         consentimento,
       },
       {

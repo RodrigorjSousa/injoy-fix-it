@@ -23,7 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
 import { MeusAtestados } from "@/components/ponto/meus-atestados";
 import { useMe } from "@/lib/store";
-import { getDeviceId, getPosition } from "@/lib/ponto-face";
+import { AvisoLocalizacao, useLocalPonto } from "@/components/ponto/local-ponto";
+import { getDeviceId, type Position } from "@/lib/ponto-face";
 import {
   MOTIVO_LABEL,
   TIPO_BOTAO,
@@ -95,10 +96,12 @@ const COR_TIPO: Record<TipoBatida, string> = {
 function BotaoBatida({
   tipo,
   destaque,
+  disabled,
   onClick,
 }: {
   tipo: TipoBatida;
   destaque: boolean;
+  disabled?: boolean;
   onClick: () => void;
 }) {
   const Icone =
@@ -116,6 +119,7 @@ function BotaoBatida({
         COR_TIPO[tipo],
       )}
       onClick={onClick}
+      disabled={disabled}
     >
       <Icone className={destaque ? "h-6 w-6" : "h-5 w-5"} />
       {TIPO_BOTAO[tipo]}
@@ -170,7 +174,7 @@ async function registrar(
   resultado: VerificacaoResultado,
   mutate: ReturnType<typeof useRegistrarPonto>["mutateAsync"],
   extra: { modo: "app" | "quiosque"; colaboradorId?: string; tipo: TipoBatida },
-  posicao: Awaited<ReturnType<typeof getPosition>>,
+  posicao: Position,
 ) {
   const selfiePath = await enviarSelfie(resultado.selfie);
   return mutate({
@@ -192,7 +196,8 @@ function MeuPonto() {
   const registrarMut = useRegistrarPonto();
   const [etapa, setEtapa] = useState<"inicio" | "camera" | "enviando" | "resultado">("inicio");
   const [resultado, setResultado] = useState<RegistroResultado | null>(null);
-  const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
+  const [posicao, setPosicao] = useState<Position>(null);
+  const local = useLocalPonto();
   const [tipoEscolhido, setTipoEscolhido] = useState<TipoBatida>("entrada");
 
   if (status.isLoading)
@@ -235,17 +240,18 @@ function MeuPonto() {
     (b) => b.status !== "recusada" && b.tipo === s.ultimo_tipo_aberto,
   );
 
-  const comecar = (tipo: TipoBatida) => {
-    // Pede a localização em paralelo com a câmera (o GPS demora alguns segundos)
+  const comecar = async (tipo: TipoBatida) => {
+    // Confere a localização antes da câmera: só registra a até 100 m de Botafogo ou Ipanema
     setTipoEscolhido(tipo);
-    setPosicaoPromise(getPosition());
+    const p = await local.conferir();
+    if (!p) return;
+    setPosicao(p);
     setEtapa("camera");
   };
 
   const aoCapturar = async (r: VerificacaoResultado) => {
     setEtapa("enviando");
     try {
-      const posicao = posicaoPromise ? await posicaoPromise : await getPosition();
       const res = await registrar(
         r,
         registrarMut.mutateAsync,
@@ -341,14 +347,22 @@ function MeuPonto() {
               : `${TIPO_LABEL[desde.tipo]} às ${horaSP(desde.registrado_em)}`}
           </p>
         )}
+        <AvisoLocalizacao local={local} onTentar={() => void comecar(tipoEscolhido)} />
         <div className="grid gap-2">
           {proximos.map((t, idx) => (
-            <BotaoBatida key={t} tipo={t} destaque={idx === 0} onClick={() => comecar(t)} />
+            <BotaoBatida
+              key={t}
+              tipo={t}
+              destaque={idx === 0}
+              disabled={local.estado === "buscando"}
+              onClick={() => void comecar(t)}
+            />
           ))}
         </div>
         <p className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
           <MapPin className="h-3 w-3" />
-          Usa câmera e localização somente no momento da batida.
+          Usa câmera e localização somente no momento da batida. Só registra a até 100 m de Botafogo
+          ou Ipanema.
         </p>
       </Card>
 
@@ -411,13 +425,19 @@ function PontoRecepcao() {
     "lista",
   );
   const [resultado, setResultado] = useState<RegistroResultado | null>(null);
-  const [posicaoPromise, setPosicaoPromise] = useState<ReturnType<typeof getPosition> | null>(null);
+  const [posicao, setPosicao] = useState<Position>(null);
+  const local = useLocalPonto();
+  const irParaCamera = async () => {
+    const p = await local.conferir();
+    if (!p) return;
+    setPosicao(p);
+    setEtapa("camera");
+  };
 
   const aoCapturar = async (r: VerificacaoResultado) => {
     if (!selecionado) return;
     setEtapa("enviando");
     try {
-      const posicao = posicaoPromise ? await posicaoPromise : await getPosition();
       const res = await registrar(
         r,
         registrarMut.mutateAsync,
@@ -454,15 +474,16 @@ function PontoRecepcao() {
     return (
       <Card className="space-y-3 p-5">
         <p className="text-center font-semibold">{selecionado.nome} — o que vai registrar?</p>
+        <AvisoLocalizacao local={local} onTentar={() => void irParaCamera()} />
         {selecionado.proximos.map((t, idx) => (
           <BotaoBatida
             key={t}
             tipo={t}
             destaque={idx === 0}
+            disabled={local.estado === "buscando"}
             onClick={() => {
               setSelecionado({ ...selecionado, tipo: t });
-              setPosicaoPromise(getPosition());
-              setEtapa("camera");
+              void irParaCamera();
             }}
           />
         ))}
@@ -470,6 +491,7 @@ function PontoRecepcao() {
           variant="ghost"
           className="w-full"
           onClick={() => {
+            local.limpar();
             setSelecionado(null);
             setEtapa("lista");
           }}
@@ -503,6 +525,7 @@ function PontoRecepcao() {
         Aparelho da recepção: qualquer pessoa da equipe (fixa ou freelancer) escolhe o nome e
         confirma pelo rosto. Use quando a pessoa estiver sem o celular dela.
       </p>
+      <AvisoLocalizacao local={local} onTentar={() => void irParaCamera()} />
       <div className="flex gap-2">
         {(["Botafogo", "Ipanema"] as PontoUnidade[]).map((u) => (
           <Button
@@ -554,11 +577,12 @@ function PontoRecepcao() {
                           tipo: proximos[0],
                         });
                         if (proximos.length > 1) return setEtapa("escolha");
-                        setPosicaoPromise(getPosition());
-                        setEtapa("camera");
+                        void irParaCamera();
                       }}
                     >
-                      <span className="font-semibold"><NomeCor nome={f.nome} /></span>
+                      <span className="font-semibold">
+                        <NomeCor nome={f.nome} />
+                      </span>
                       <span className="flex shrink-0 items-center gap-2">
                         {!f.cadastro_facial && (
                           <Badge variant="outline" className="border-amber-400 text-amber-700">
