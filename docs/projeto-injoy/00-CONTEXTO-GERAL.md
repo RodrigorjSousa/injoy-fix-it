@@ -248,3 +248,5 @@ das selfies antigas do ponto foi oferecida.
 - Painel (`/painel`): Kanban/Lista com os filtros ao lado (Unidade → Quartos → Categoria). Quartos só libera com a
   unidade escolhida e mostra os chamados ABERTOS (A Fazer + Fazendo) daquele quarto; lista de quartos única em
   `src/lib/chamados-quarto.ts` (a mesma da tela de abrir chamado). "Minha escala" no Painel começa recolhida.
+
+- Papéis de equipe (camareira, recepção, técnico) no Editar funcionário: gravados pelo servidor (`gestorDefinirPapelEquipe` em `src/lib/user-management.functions.ts`), porque o RLS de `user_roles` só deixa o admin inserir direto. Gestor/admin continuam só para admin.
