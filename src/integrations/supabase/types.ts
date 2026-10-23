@@ -5128,6 +5128,10 @@ export type Database = {
         Args: { _aprovar: boolean; _batida_id: string; _observacao?: string }
         Returns: undefined
       }
+      ponto_verificar_local: {
+        Args: { _latitude: number; _longitude: number; _precisao_m: number }
+        Returns: Json
+      }
       ponto_vincular_aparelho: {
         Args: { _colaborador_id: string; _device_id: string }
         Returns: undefined
