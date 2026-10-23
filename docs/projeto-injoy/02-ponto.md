@@ -12,7 +12,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   (nada é gravado). O app confere antes de abrir a câmera (`ponto_verificar_local`) e o servidor
   confere de novo em `ponto_registrar`. Tolerância de imprecisão do GPS: 30 m. Unidades sem
   coordenadas em Configurações bloqueiam o ponto (mensagem pede para o gestor salvar).
-- Rosto que não confere, prova de vida falha ou aparelho diferente do vinculado **é registrado como
+- **Sem prova de vida (desde 23/10/2026, migração 0079):** captura simples da foto, sozinha quando o
+  rosto aparece ou pelo botão "Registrar agora". O rosto ainda é comparado 1:1 quando aparece.
+- Rosto que não confere (ou não detectado) ou aparelho diferente do vinculado **é registrado como
   pendente** e vai para o gestor aprovar ou recusar.
 - **Aparelho:** o cadastro facial não vincula mais o aparelho de quem cadastra. O celular da pessoa
   é vinculado na **primeira batida** dela no app. O gestor tem o botão **Liberar aparelho** em
@@ -71,6 +73,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - 21/10/2026: Flávio cadastrado no celular do gestor ficou com "aparelho diferente" e "sem
   localização". Correção na branch `fix/ponto-localizacao-aparelho` (0077): localização obrigatória a
   100 m das unidades e aparelho vinculado no primeiro uso.
+
+- 23/10/2026: Flávio não conseguia bater por causa da prova de vida (piscar). Retirada na branch
+  `fix/ponto-sem-prova-de-vida` (0079).
 
 ## Ideias e pendências
 - Ponto oficial (substituir o Pontomais): levantamento feito em 07/10/2026 (REP-P, Portaria 671).
