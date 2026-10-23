@@ -11,7 +11,8 @@
 //
 // Motivos:
 //   NR com antecedência < 8           → entra na hora   ("Check-in em menos de 8 dias – cobrar na reserva")
-//   NR com antecedência ≥ 8           → entra no 8º dia ("8º dia após a reserva")
+//   NR com antecedência ≥ 8           → entra no 8º dia ("8º dia após a reserva"), mas nunca depois de 2 dias
+//                                       antes do check-in (aí entra como check-in próximo)
 //   Standard (não NR), 0 ≤ dias até check-in ≤ 2 → "Standard – 2 dias antes do check-in"
 
 export type MotivoCobranca = "nr_checkin_proximo" | "nr_8o_dia" | "standard";
@@ -303,7 +304,14 @@ export function avaliarReserva(res: Obj, hoje: string): Avaliacao {
   if (r.nr) {
     if (base.antecedencia < PRAZO_NR_DIAS) return { ...base, motivo: "nr_checkin_proximo" };
     if ((base.diasDesdeReserva ?? 0) >= PRAZO_NR_DIAS) return { ...base, motivo: "nr_8o_dia" };
-    return fora("nr_aguardando_8o_dia", somarDiasISO(r.dataReserva, PRAZO_NR_DIAS));
+    // Proteção (decisão do Rodrigo, 23/10/2026): NR nunca chega em cima do check-in. Se o 8º dia cai depois de
+    // "2 dias antes do check-in" (antecedência 8 ou 9), entra já na janela do check-in, como check-in próximo.
+    // Caso real: reserva 7646906562553, feita em 16/10 para 24/10 — pela regra pura só entraria no dia do check-in.
+    const ate = base.diasAteCheckin ?? 0;
+    if (ate >= 0 && ate <= JANELA_STANDARD_DIAS) return { ...base, motivo: "nr_checkin_proximo" };
+    const oitavoDia = somarDiasISO(r.dataReserva, PRAZO_NR_DIAS);
+    const janela = somarDiasISO(r.checkin, -JANELA_STANDARD_DIAS);
+    return fora("nr_aguardando_8o_dia", oitavoDia < janela ? oitavoDia : janela);
   }
   const ate = base.diasAteCheckin ?? 0;
   if (ate >= 0 && ate <= JANELA_STANDARD_DIAS) return { ...base, motivo: "standard" };

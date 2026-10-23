@@ -82,7 +82,8 @@ plano em `rooms[].rateName` e o `paymentCollect` dentro de `source`.
 
 **Regras**: filtros status `confirmed`/`not_confirmed`, saldo > 0, origem não Airbnb, `paymentCollect` ≠ channel.
 NR = algum plano com "nao reembolsavel", "non refundable" ou a palavra "NR" (sem acento/maiúscula).
-NR com antecedência < 8 → entra na hora; NR com antecedência ≥ 8 → no 8º dia após a reserva; Standard → de 2 dias
+NR com antecedência < 8 → entra na hora; NR com antecedência ≥ 8 → no 8º dia após a reserva, mas nunca depois de
+2 dias antes do check-in (aí entra como "NR · check-in próximo"; decisão de 23/10/2026); Standard → de 2 dias
 antes do check-in até o dia. Canais que recebem do hóspede: lista `CANAIS_QUE_RECEBEM_DO_HOSPEDE` em
 `cobranca.ts` (hoje só "airbnb"; para incluir Expedia Collect etc., acrescentar o nome ali).
 
@@ -228,6 +229,10 @@ Cloudbeds expira com 30 dias sem uso (a consulta de hora em hora a mantém viva)
    chave (pendências gerais), não mexer aqui sem o Rodrigo pedir.
 
 ## Estado atual
+- 23/10/2026: reserva 7646906562553 (Booking, NR "Nao reembolsavel - Epoca alta", feita 16/10, check-in 24/10, Hotel
+  Collect) não entrou: antecedência 8 → pela regra só entraria no 8º dia, que era o dia do check-in. Branch
+  `fix/reservas-nr-perto-do-checkin`: NR entra no máximo 2 dias antes do check-in. Falta: merge, Publicar → Atualizar
+  (sem migração).
 - 17/10/2026: branch `feat/reservas-sem-cartao` (migração 0067): busca pela metadata `Reservas Id` do Cloudbeds,
   aviso claro de Cliente sem cartão (Enviar link / Abrir no Cloudbeds) e selo "Sem cartão no Stripe" de hora em
   hora. Caso real: Thiago (9996102405704, Booking) tem Cliente no Stripe sem cartão. Falta: merge, aplicar 0067,
