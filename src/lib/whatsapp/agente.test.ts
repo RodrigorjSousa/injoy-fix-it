@@ -107,6 +107,7 @@ vi.mock("@/integrations/supabase/client.server", () => ({
 
 // ---------------------------------------------------------------- Cloudbeds falso
 const reservaTeste = { status: "confirmed", chegada: "", saida: "", unidade: "Botafogo" as const };
+const cancelTeste: Record<string, unknown> = {};
 vi.mock("./cloudbeds-joy.server", () => ({
   consultarDisponibilidade: vi.fn(async () => [
     {
@@ -141,6 +142,18 @@ vi.mock("./cloudbeds-joy.server", () => ({
     tipos_de_acomodacao: ["Suíte Standard"],
     adultos: 2,
     criancas: 0,
+  })),
+  dadosParaCancelamento: vi.fn(() => ({
+    canal: "direto",
+    canalNome: "Website/Booking Engine",
+    dataReserva: "2000-01-01",
+    chegada: "2099-11-10",
+    saida: "2099-11-12",
+    tarifa: "flexivel",
+    brasileiro: true,
+    planos: ["TARIFA EXCLUSIVA SITE"],
+    status: "confirmed",
+    ...cancelTeste,
   })),
   dadosParaWifi: vi.fn(() => ({
     status: reservaTeste.status,
@@ -275,7 +288,7 @@ describe("Joy — agente", () => {
     const msgsSegundo = pedidos[1].messages as Array<{ role: string; content: string }>;
     const tool = msgsSegundo.find((m) => m.role === "tool")!;
     expect(tool.content).toContain(
-      "hotels.cloudbeds.com/reservation/vKBCEM?checkin=2099-11-10&checkout=2099-11-12&adults=2",
+      "hotels.cloudbeds.com/pt-br/reservation/vKBCEM?checkin=2099-11-10&checkout=2099-11-12&adults=2&currency=brl",
     );
     // gravou a resposta, a execução e a etapa do funil
     const joy = tabelas.wa_mensagens.find((m) => m.autor === "joy")!;
@@ -380,6 +393,41 @@ describe("Joy — agente", () => {
     cliente("alô?");
     const r2 = await responder("conv1");
     expect(r2.respondeu).toBe(false);
+  });
+
+  it("cancelamento sem reembolso: o sistema decide e a Joy não transfere", async () => {
+    await preparar({ reserva_id: "123456", reserva_unidade: "Botafogo" });
+    cancelTeste.tarifa = "nao_reembolsavel";
+    cliente("quero cancelar");
+    roteiro = [
+      respostaFerramenta("avaliar_cancelamento", {}),
+      respostaTexto(
+        "Entendo, e sinto muito. Pela política da sua tarifa, esse cancelamento não tem reembolso.",
+      ),
+    ];
+    const { responder } = await import("./agente.server");
+    const r = await responder("conv1");
+    expect(r.transferida).toBe(false);
+    const tool = (pedidos[1].messages as Array<{ role: string; content: string }>).find(
+      (m) => m.role === "tool",
+    )!;
+    expect(tool.content).toContain('"resultado":"sem_reembolso"');
+    delete cancelTeste.tarifa;
+  });
+
+  it("cancelamento grátis: a própria ferramenta passa para a equipe", async () => {
+    await preparar({ reserva_id: "123456", reserva_unidade: "Botafogo" });
+    tabelas.wa_passagens = [];
+    cliente("quero cancelar");
+    roteiro = [
+      respostaFerramenta("avaliar_cancelamento", {}),
+      respostaTexto("Está dentro do prazo! A equipe vai finalizar e te confirmar por aqui ☺️"),
+    ];
+    const { responder } = await import("./agente.server");
+    const r = await responder("conv1");
+    expect(r.transferida).toBe(true);
+    expect(tabelas.wa_passagens).toHaveLength(1);
+    expect(String(tabelas.wa_passagens[0].motivo)).toContain("Cancelamento grátis");
   });
 
   it("mostra o erro real do gateway e registra a execução", async () => {

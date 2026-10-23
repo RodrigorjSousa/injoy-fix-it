@@ -54,6 +54,7 @@ import { cn } from "@/lib/utils";
 import {
   joyApagarConversa,
   joyApagarLicao,
+  joyImportarLicoesSugeridas,
   joyRefazerResposta,
   joySalvarLicao,
   joyCarregarConfig,
@@ -1386,6 +1387,24 @@ function Licoes() {
 
   const ativas = (licoes.data ?? []).filter((l) => l.ativa).length;
 
+  const [importando, setImportando] = useState(false);
+  async function importar() {
+    setImportando(true);
+    try {
+      const r = await joyImportarLicoesSugeridas();
+      toast.success(
+        r.importadas
+          ? `${r.importadas} lições importadas das conversas da recepção.`
+          : "Todas as lições sugeridas já estavam na lista.",
+      );
+      await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setImportando(false);
+    }
+  }
+
   async function alternar(l: LicaoRow) {
     try {
       await joySalvarLicao({
@@ -1440,6 +1459,14 @@ function Licoes() {
             placeholder="Buscar…"
             className="w-48"
           />
+          <Button variant="outline" disabled={importando} onClick={importar}>
+            {importando ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <BookOpen className="mr-1 h-4 w-4" />
+            )}
+            Importar lições sugeridas
+          </Button>
           <Button onClick={() => setEditando({})}>
             <Plus className="mr-1 h-4 w-4" /> Nova lição
           </Button>

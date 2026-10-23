@@ -287,6 +287,35 @@ export const joySalvarLicao = createServerFn({ method: "POST" })
     return { id: row.id as string };
   });
 
+/** Importa as lições tiradas das conversas da recepção (as que já existem não se repetem). */
+export const joyImportarLicoesSugeridas = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await exigirGestor(context.supabase);
+    const db = await admin();
+    const { LICOES_SUGERIDAS } = await import("@/lib/whatsapp/licoes-sugeridas");
+    const { data: existentes, error: erroLer } = await db.from("wa_licoes").select("situacao");
+    if (erroLer) throw new Error(`Não foi possível ler as lições: ${erroLer.message}`);
+    const ja = new Set(
+      (existentes ?? []).map((l: { situacao: string }) => l.situacao.trim().toLowerCase()),
+    );
+    const novas = LICOES_SUGERIDAS.filter((l) => !ja.has(l.situacao.trim().toLowerCase())).map(
+      (l) => ({
+        situacao: l.situacao,
+        resposta_certa: l.resposta_certa,
+        motivo: l.motivo ?? null,
+        tema: l.tema,
+        origem: "conversas",
+        criado_por: context.userId,
+      }),
+    );
+    if (novas.length) {
+      const { error } = await db.from("wa_licoes").insert(novas);
+      if (error) throw new Error(`Não foi possível importar: ${error.message}`);
+    }
+    return { importadas: novas.length, jaExistiam: LICOES_SUGERIDAS.length - novas.length };
+  });
+
 export const joyApagarLicao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ id: uuid }).parse(input))

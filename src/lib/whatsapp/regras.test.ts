@@ -2,6 +2,11 @@ import { describe, expect, it } from "vitest";
 import { CONHECIMENTO_PADRAO } from "./conhecimento";
 import {
   CARTAO_REMOVIDO,
+  avaliarCancelamento,
+  canalDaOrigem,
+  ehBrasileiro,
+  tipoTarifa,
+  type DadosCancelamento,
   lerDisponibilidade,
   linkReserva,
   mascararCartao,
@@ -103,7 +108,7 @@ describe("linkReserva", () => {
         adultos: 2,
       }),
     ).toBe(
-      "https://hotels.cloudbeds.com/reservation/vKBCEM?checkin=2026-11-10&checkout=2026-11-12&adults=2",
+      "https://hotels.cloudbeds.com/pt-br/reservation/vKBCEM?checkin=2026-11-10&checkout=2026-11-12&adults=2&currency=brl",
     );
     expect(
       linkReserva(CONHECIMENTO_PADRAO, "Ipanema", {
@@ -111,7 +116,27 @@ describe("linkReserva", () => {
         checkout: "2026-11-12",
         adultos: 0,
       }),
-    ).toContain("tGU9aM?checkin=2026-11-10&checkout=2026-11-12&adults=1");
+    ).toContain("tGU9aM?checkin=2026-11-10&checkout=2026-11-12&adults=1&currency=brl");
+  });
+  it("abre no idioma do hóspede e não duplica idioma já cadastrado", () => {
+    expect(
+      linkReserva(CONHECIMENTO_PADRAO, "Ipanema", {
+        checkin: "2026-11-10",
+        checkout: "2026-11-12",
+        adultos: 2,
+        idioma: "en",
+      }),
+    ).toContain("https://hotels.cloudbeds.com/en/reservation/tGU9aM?");
+    const c = structuredClone(CONHECIMENTO_PADRAO);
+    c.unidades.Botafogo.motorReserva = "https://hotels.cloudbeds.com/pt-br/reservation/vKBCEM";
+    expect(
+      linkReserva(c, "Botafogo", {
+        checkin: "2026-11-10",
+        checkout: "2026-11-12",
+        adultos: 2,
+        idioma: "en",
+      }),
+    ).toContain("https://hotels.cloudbeds.com/pt-br/reservation/vKBCEM?");
   });
 });
 
@@ -199,5 +224,93 @@ describe("lerDisponibilidade", () => {
   it("aguenta resposta vazia ou estranha", () => {
     expect(lerDisponibilidade(null, 2)).toEqual([]);
     expect(lerDisponibilidade({ data: "x" }, 2)).toEqual([]);
+  });
+});
+
+describe("avaliarCancelamento", () => {
+  const base: DadosCancelamento = {
+    canal: "direto",
+    canalNome: "Website/Booking Engine",
+    dataReserva: "2026-10-01",
+    chegada: "2026-11-20",
+    saida: "2026-11-23",
+    tarifa: "flexivel",
+    brasileiro: true,
+    hoje: "2026-10-20",
+    hora: "15:00",
+    datasEspeciais: [],
+  };
+  const av = (d: Partial<DadosCancelamento>) => avaliarCancelamento({ ...base, ...d }).resultado;
+
+  it("reserva de canal cancela pelo canal", () => {
+    expect(av({ canal: "canal", canalNome: "Booking.com" })).toBe("canal");
+  });
+  it("sem dados vai para a equipe", () => {
+    expect(av({ canal: null })).toBe("equipe");
+    expect(av({ dataReserva: null })).toBe("equipe");
+    expect(av({ tarifa: null })).toBe("equipe");
+  });
+  it("CDC: até o fim do 7º dia após a reserva (reserva dia 1 → até dia 8), qualquer tarifa", () => {
+    expect(av({ tarifa: "nao_reembolsavel", hoje: "2026-10-08" })).toBe("reembolso_cdc");
+    expect(av({ tarifa: "nao_reembolsavel", hoje: "2026-10-09" })).toBe("sem_reembolso");
+  });
+  it("CDC com check-in dentro dos 7 dias: só até as 11h do dia do check-in", () => {
+    const d = {
+      tarifa: "nao_reembolsavel" as const,
+      dataReserva: "2026-10-20",
+      chegada: "2026-10-23",
+      saida: "2026-10-25",
+    };
+    expect(av({ ...d, hoje: "2026-10-22", hora: "23:00" })).toBe("reembolso_cdc");
+    expect(av({ ...d, hoje: "2026-10-23", hora: "10:59" })).toBe("reembolso_cdc");
+    expect(av({ ...d, hoje: "2026-10-23", hora: "11:00" })).toBe("sem_reembolso");
+  });
+  it("CDC vale para brasileiro; país não informado vai para a equipe; estrangeiro segue a tarifa", () => {
+    expect(av({ tarifa: "nao_reembolsavel", hoje: "2026-10-05", brasileiro: null })).toBe("equipe");
+    expect(av({ tarifa: "nao_reembolsavel", hoje: "2026-10-05", brasileiro: false })).toBe(
+      "sem_reembolso",
+    );
+    expect(av({ tarifa: "flexivel", hoje: "2026-10-05", brasileiro: false })).toBe("gratis");
+  });
+  it("tarifa flexível: grátis até 3 dias antes (chegada dia 20 → até dia 17)", () => {
+    expect(av({ hoje: "2026-11-17" })).toBe("gratis");
+    expect(av({ hoje: "2026-11-18" })).toBe("sem_reembolso");
+  });
+  it("Não reembolsável fora do CDC não tem reembolso", () => {
+    expect(av({ tarifa: "nao_reembolsavel" })).toBe("sem_reembolso");
+  });
+  it("datas especiais: toda tarifa vira Não reembolsável (mas o CDC continua valendo)", () => {
+    const datasEspeciais = [{ nome: "Réveillon", inicio: "2026-12-29", fim: "2027-01-01" }];
+    const d = { chegada: "2026-12-30", saida: "2027-01-03", datasEspeciais };
+    const r = avaliarCancelamento({ ...base, ...d });
+    expect(r.resultado).toBe("sem_reembolso");
+    expect(r.data_especial).toBe("Réveillon");
+    expect(av({ ...d, hoje: "2026-10-03" })).toBe("reembolso_cdc");
+    // saída no primeiro dia do período não toca as noites especiais
+    expect(av({ chegada: "2026-12-26", saida: "2026-12-29", datasEspeciais })).toBe("gratis");
+  });
+});
+
+describe("tipoTarifa, ehBrasileiro e canalDaOrigem", () => {
+  it("classifica o plano", () => {
+    expect(tipoTarifa(["TARIFA EXCLUSIVA SITE"])).toBe("flexivel");
+    expect(tipoTarifa(["Standard Rate"])).toBe("flexivel");
+    expect(tipoTarifa(["Não Reembolsável"])).toBe("nao_reembolsavel");
+    expect(tipoTarifa(["Standard", "Non-refundable"])).toBe("nao_reembolsavel");
+    expect(tipoTarifa([])).toBeNull();
+  });
+  it("país", () => {
+    expect(ehBrasileiro("BR")).toBe(true);
+    expect(ehBrasileiro("Brasil")).toBe(true);
+    expect(ehBrasileiro("AR")).toBe(false);
+    expect(ehBrasileiro("")).toBeNull();
+  });
+  it("origem", () => {
+    expect(canalDaOrigem("Website/Booking Engine")).toBe("direto");
+    expect(canalDaOrigem("Walk-In")).toBe("direto");
+    expect(canalDaOrigem("Booking.com")).toBe("canal");
+    expect(canalDaOrigem("Expedia")).toBe("canal");
+    expect(canalDaOrigem("Agência XYZ")).toBeNull();
+    expect(canalDaOrigem("")).toBeNull();
   });
 });

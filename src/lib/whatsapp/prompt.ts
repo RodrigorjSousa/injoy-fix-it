@@ -30,6 +30,9 @@ export function textoConhecimento(c: Conhecimento): string {
     linhas.push(
       `- Injoy ${u}: ${d.endereco}. ${d.descricao} ${d.recepcao} Acomodações: ${d.acomodacoes}`,
     );
+    if (d.loja)
+      linhas.push(`  Loja (early check-in, late checkout, transfer, passeios): ${d.loja}`);
+    if (d.arredores) linhas.push(`  Arredores: ${d.arredores}`);
   }
   if (c.avisosInternos.length) {
     linhas.push("");
@@ -39,6 +42,11 @@ export function textoConhecimento(c: Conhecimento): string {
   linhas.push("");
   linhas.push("INFORMAÇÕES E POLÍTICAS:");
   for (const t of c.topicos) linhas.push(`- ${t.tema}: ${t.texto}`);
+  if (c.datasEspeciais?.length) {
+    linhas.push("");
+    linhas.push("DATAS ESPECIAIS (toda tarifa é Não reembolsável):");
+    for (const d of c.datasEspeciais) linhas.push(`- ${d.nome}: ${d.inicio} a ${d.fim}`);
+  }
   linhas.push("");
   linhas.push("GUIA DE PROBLEMAS (siga antes de transferir):");
   for (const p of c.problemas) linhas.push(`- ${p.problema}: ${p.orientacao}`);

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { UNIDADES_JOY, type Conhecimento, type UnidadeJoy, type WifiConfig } from "./conhecimento";
 import {
   consultarDisponibilidade,
+  dadosParaCancelamento,
   dadosParaWifi,
   identificarReserva,
   recarregarReserva,
@@ -12,7 +13,11 @@ import {
   resumoReserva,
   type ReservaJoy,
 } from "./cloudbeds-joy.server";
+import { agoraNoHotel } from "./prompt";
 import {
+  avaliarCancelamento,
+  statusReserva,
+  type IdiomaLink,
   linkMapsBusca,
   linkMapsRota,
   linkReserva,
@@ -73,6 +78,11 @@ export const DEFINICOES_FERRAMENTAS = [
             type: "string",
             enum: ["Botafogo", "Ipanema"],
             description: "Omita para consultar as duas",
+          },
+          idioma: {
+            type: "string",
+            enum: ["pt", "en", "es"],
+            description: "Idioma da conversa, para o link de reserva abrir no idioma certo",
           },
         },
         required: ["checkin", "checkout", "adultos"],
@@ -158,6 +168,15 @@ export const DEFINICOES_FERRAMENTAS = [
         type: "object",
         properties: { unidade: { type: "string", enum: ["Botafogo", "Ipanema"] } },
       },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "avaliar_cancelamento",
+      description:
+        "Quando o hóspede quer cancelar: verifica pela reserva identificada (canal, data da reserva, chegada, tarifa, CDC e datas especiais) se há reembolso. O SISTEMA decide; você só explica com cuidado. Se houver direito a reembolso ou cancelamento grátis, a própria ferramenta passa a conversa para a equipe. Não use se o hóspede falar de saúde, carta de crédito ou exceção: nesses casos use transferir_para_humano.",
+      parameters: { type: "object", properties: {} },
     },
   },
   {
@@ -286,7 +305,14 @@ export async function executarFerramenta(
               media_por_noite: reais(o.mediaNoite),
             })),
             sem_disponibilidade: opcoes.length === 0,
-            link_reserva: linkReserva(ctx.conhecimento, unidade, { checkin, checkout, adultos }),
+            link_reserva: linkReserva(ctx.conhecimento, unidade, {
+              checkin,
+              checkout,
+              adultos,
+              idioma: (["pt", "en", "es"].includes(String(args.idioma))
+                ? args.idioma
+                : "pt") as IdiomaLink,
+            }),
           });
         } catch (e) {
           resultado.push({ unidade, erro: e instanceof Error ? e.message : String(e) });
@@ -462,6 +488,73 @@ export async function executarFerramenta(
         };
       }
       return { ok: true, unidade, link: ctx.conhecimento.unidades[unidade].checkinOnline };
+    }
+
+    case "avaliar_cancelamento": {
+      const r = await reservaDaConversa(ctx);
+      if (!r)
+        return {
+          ok: false,
+          erro: "Reserva não identificada. Peça o código da reserva e o sobrenome do titular antes.",
+        };
+      const dados = dadosParaCancelamento(r);
+      const st = statusReserva(dados.status);
+      if (st === "cancelada")
+        return {
+          ok: true,
+          resultado: "ja_cancelada",
+          orientacao:
+            "A reserva já consta como cancelada. Se o hóspede tiver dúvida sobre valores, passe para a equipe.",
+        };
+      if (st === "saiu" || st === "hospedado" || st === "no_show") {
+        return executarFerramenta(
+          "transferir_para_humano",
+          {
+            motivo: `Pedido de cancelamento com a reserva ${r.reservationID} já em andamento ou encerrada (${dados.status}).`,
+          },
+          ctx,
+        );
+      }
+      const { hora } = agoraNoHotel();
+      const av = avaliarCancelamento({
+        ...dados,
+        hoje: ctx.hoje,
+        hora,
+        datasEspeciais: ctx.conhecimento.datasEspeciais ?? [],
+      });
+      const base = {
+        ok: true,
+        resultado: av.resultado,
+        motivo_interno: av.motivo,
+        tarifa: dados.tarifa,
+      };
+      if (av.resultado === "canal")
+        return {
+          ...base,
+          canal: dados.canalNome,
+          orientacao:
+            "Explique com gentileza que, como a reserva foi feita por esse site, o cancelamento é feito por lá, seguindo a política de lá. Não fale em reembolso.",
+        };
+      if (av.resultado === "sem_reembolso")
+        return {
+          ...base,
+          orientacao:
+            "Acolha (ex.: 'Entendo, e sinto muito pelo imprevisto') e explique, sem rodeios e sem culpar o hóspede, que pela política da tarifa esse cancelamento não tem reembolso. Cite o motivo em palavras simples (tarifa Não reembolsável, prazo de 3 dias encerrado ou data especial). Não prometa nada. Se ele insistir, pedir exceção, carta de crédito ou falar de saúde, use transferir_para_humano.",
+        };
+      const motivo = {
+        reembolso_cdc: `Cancelamento com direito a reembolso pelo CDC (7 dias). Reserva ${r.reservationID}. ${av.motivo}`,
+        gratis: `Cancelamento grátis dentro do prazo da tarifa. Reserva ${r.reservationID}. ${av.motivo}`,
+        equipe: `Pedido de cancelamento para analisar. Reserva ${r.reservationID}. ${av.motivo}`,
+      }[av.resultado];
+      const passagem = await executarFerramenta("transferir_para_humano", { motivo }, ctx);
+      return {
+        ...base,
+        ...passagem,
+        orientacao:
+          av.resultado === "equipe"
+            ? "Diga que a equipe vai verificar o cancelamento e continuar o atendimento por aqui. Não diga se haverá reembolso."
+            : "Diga que o cancelamento está dentro do prazo e que a equipe vai finalizar e confirmar por aqui. Não cite valores nem prazos de estorno.",
+      };
     }
 
     case "transferir_para_humano": {

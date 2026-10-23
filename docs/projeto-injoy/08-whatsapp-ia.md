@@ -334,6 +334,7 @@ da IN.JOY fala só do hotel e sempre tem saída para uma pessoa.
 ## Estado atual
 - 13/10/2026: levantamento, análise do vídeo, arquitetura e plano.
 - 16–19/10/2026: documento do Rodrigo incorporado; decisões registradas em "Regras definidas pelo Rodrigo".
+- 23/10/2026: conversas da recepção analisadas e base revisada com o Rodrigo (E1.2).
 
 ### Entrega E1 — Joy no simulador (branch `feat/whatsapp-ia-e1`, migração `0074_whatsapp_joy.sql`)
 Sem WhatsApp e sem nenhuma mensagem real. Tela **Área do Gestor › WhatsApp (Joy)**
@@ -434,6 +435,62 @@ O que entrou:
 
 Para ativar: merge → aplicar a `0078_whatsapp_licoes.sql` no Lovable → Publicar → Atualizar.
 
+### Entrega E1.2 — Base revisada e regra de cancelamento (branch `feat/whatsapp-base-revisada`, sem migração)
+De onde veio: análise das conversas da recepção exportadas pelo MarcFlow (379 conversas com hóspedes),
+revisão do Rodrigo no documento "Joy — o que as conversas da recepção ensinam" (23/10/2026) e o site
+injoyhoteis.com. Nenhum dado pessoal das conversas entrou no repositório.
+
+Decidido em 23/10/2026:
+- Atendimento da equipe: todos os dias, das 9h às 6h. Ipanema não tem recepção física em nenhum horário;
+  a camareira (9h às 17h) pode receber pagamento quando ele precisa ser no local.
+- Pets: somente cães (a caução de gatos do documento de 16/10 caiu).
+- Early check-in, late checkout (mínimo de 2 horas), transfer e passeios: link da loja da unidade
+  (`upsell.whistle.cloudbeds.com/974/products` Botafogo, `/5698/products` Ipanema). Day use: equipe.
+- Guarda-volumes: antes do check-in a partir das 6h; depois do check-out até 21h (Botafogo) e 17h
+  (Ipanema); nada de um dia para o outro. O site ainda diz 17h nas duas: corrigir lá.
+- Tarifas: "Tarifa Exclusiva Site" (grátis até 3 dias antes da chegada, o ano todo menos Réveillon,
+  Carnaval e Rock in Rio) e "Não reembolsável"; na Booking, "Standard" e "Não reembolsável". Em datas
+  especiais toda tarifa é Não reembolsável.
+- Pagamento: o ideal é antes (cartão, link, Pix — link e Pix com a equipe). Pagar na chegada só em
+  último caso, e é a regra nas reservas para hoje ou amanhã (risco de fraude). Pix com QR code e
+  confirmação automática virá com a InfinitePay.
+- Estacionamento: nenhuma das unidades tem; em Botafogo a rua tem guarita mas é pública. Mensal
+  suspenso. Grupos acima de 5 acomodações: equipe.
+- Cancelamento: a Joy filtra o que tem e o que não tem reembolso; só passa para a equipe quando há
+  direito, pedido de carta de crédito ou exceção, ou menção a saúde.
+
+O que entrou:
+- **Base e prompt** (`conhecimento.ts`, `prompt.ts`): todos os tópicos reescritos no jeito da recepção
+  (curto, apresenta-se como "Joy, assistente virtual do Injoy", pergunta a unidade primeiro), com as
+  acomodações, padarias e estacionamentos do site. Novos campos por unidade: `loja` e `arredores`.
+  Novo campo `datasEspeciais` (lista de períodos, editável no JSON da tela Configuração).
+- **Link de reserva** no formato da recepção: `/pt-br/` (ou `/en/`, `/es/` pelo idioma da conversa) e
+  `currency=brl`.
+- **Regra de cancelamento no servidor** (`avaliarCancelamento` em `regras.ts`, ferramenta
+  `avaliar_cancelamento`). A IA não decide; ela só explica. Ordem:
+  1. reserva de canal (Booking etc.) → cancela pelo canal;
+  2. CDC (hóspede brasileiro): grátis até o fim do 7º dia após a confirmação da reserva original (reserva
+     dia 1 → até dia 8), qualquer tarifa; se o check-in cair nesses 7 dias, só até as 11h do dia do
+     check-in. País não informado na reserva → equipe;
+  3. estadia que toca uma data especial → sem reembolso;
+  4. Não reembolsável → sem reembolso;
+  5. Tarifa Exclusiva Site / Standard: grátis com 3 dias ou mais até a chegada (chegada dia 10 → até dia 7);
+  6. faltou dado (canal desconhecido, data, tarifa) → equipe.
+  Com direito a reembolso, cancelamento grátis ou caso duvidoso, a ferramenta já passa a conversa para a
+  equipe com o motivo. Saúde, carta de crédito ou exceção: a Joy transfere sem avaliar.
+  Dados usados do `getReservation`: `sourceName`, `dateCreated`, datas, nome do plano (mesma leitura da
+  rotina de cobrança) e `guestCountry` do titular.
+- **Lições sugeridas** (`licoes-sugeridas.ts`): 15 lições das conversas da recepção, sem dados pessoais.
+  Botão "Importar lições sugeridas" na aba Lições (origem `conversas`; não duplica).
+- Testes: regra de cancelamento (prazos do CDC, 11h, 3 dias, datas especiais, país), link, ferramenta no
+  agente e um teste que garante que nenhum texto padrão é barrado pelo filtro de segurança.
+
+Para ativar: merge → Publicar → na tela Configuração, "Restaurar padrão" (a base gravada no banco é a
+antiga; as senhas do Wi-Fi ficam) → preencher `datasEspeciais` → aba Lições, "Importar lições sugeridas".
+
+Conferir no primeiro teste com reserva real: se o `getReservation` traz o nome do plano e o país do
+titular. Se não trouxer, a Joy passa todo cancelamento direto para a equipe (nunca nega por engano).
+
 ## Ideias e pendências
 - Confirmar no primeiro teste real:
   - o nome do modelo no gateway (o padrão `google/gemini-2.5-flash` pode não existir);
@@ -442,8 +499,8 @@ Para ativar: merge → aplicar a `0078_whatsapp_licoes.sql` no Lovable → Publi
 - Contato de emergência da equipe (vazio).
 - Chave do Google Maps (opcional; sem ela a Joy manda link de busca).
 - Quando o app enviar os códigos sozinho depois do check-in online, atualizar o tópico "Códigos de acesso".
-- Próximo: exportar as conversas da recepção pelo MarcFlow → análise das perguntas e respostas → lições de
-  origem `conversas` e ajustes na base (para o Rodrigo aprovar).
+- Apagar a exportação do MarcFlow e o banco dele no PC do Rodrigo (dados pessoais) depois da aprovação.
+- Corrigir no site: guarda-volumes (21h em Botafogo), pets (somente cães), horário de atendimento.
 - Revisor automático diário (propõe lições; o Rodrigo aprova) junto com a E2.
 - E2: hóspedes simulados por outra IA + relatório de erros. E3: webhook do WhatsApp em modo rascunho
   (com áudio e imagem). E4: painel completo com contador da franquia da Meta. E5: liberação por tema.
