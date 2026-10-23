@@ -77,6 +77,13 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - 23/10/2026: Flávio não conseguia bater por causa da prova de vida (piscar). Retirada na branch
   `fix/ponto-sem-prova-de-vida` (0079).
 
+- 23/10/2026: o app publicado chamava `ponto_verificar_local`, mas a 0077 não estava aplicada no
+  banco ("Could not find the function ... in the schema cache"). A **0080** é completa e independente
+  (recria 0077 + 0079) e grava o endereço das unidades no servidor:
+  Botafogo R. Estácio Coimbra, 80 (-22.951187, -43.186294); Ipanema R. Joana Angélica, 247
+  (-22.980758, -43.204902), em `private.ponto_endereco_unidade()` e copiados para `ponto_config`.
+  Se a conferência prévia falhar por função ausente ou rede, o app segue e o servidor confere.
+
 ## Ideias e pendências
 - Ponto oficial (substituir o Pontomais): levantamento feito em 07/10/2026 (REP-P, Portaria 671).
   Rodrigo ainda decide; faltam as respostas sobre CNPJ das unidades, nº de CLT, e-CNPJ e 12x36.
