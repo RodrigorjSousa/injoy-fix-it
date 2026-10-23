@@ -554,6 +554,13 @@
       "when": 1792762268235,
       "tag": "0078_0079_ponto_sem_prova_de_vida",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1792765599503,
+      "tag": "0079_0080_ponto_endereco_unidades",
+      "breakpoints": true
     }
   ]
 }
