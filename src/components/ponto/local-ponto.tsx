@@ -51,6 +51,18 @@ export function useLocalPonto() {
       _precisao_m: Math.round(p.accuracy),
     });
     if (error) {
+      // Conferência prévia indisponível (ex.: função ainda não aplicada no banco ou falha
+      // de rede): segue com a posição lida; o servidor confere de novo ao registrar.
+      console.warn("[ponto] conferência prévia da localização indisponível", error);
+      const indisponivel =
+        error.code === "PGRST202" ||
+        /schema cache|Could not find the function|Failed to fetch|NetworkError/i.test(
+          error.message ?? "",
+        );
+      if (indisponivel) {
+        setEstado("livre");
+        return p;
+      }
       setErro({
         mensagem: `Não foi possível conferir a localização: ${error.message}`,
         instrucoes: false,
