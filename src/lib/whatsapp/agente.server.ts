@@ -68,6 +68,15 @@ function normalizarConhecimento(v: unknown): Conhecimento {
       : CONHECIMENTO_PADRAO.avisosInternos,
     topicos: Array.isArray(c.topicos) ? c.topicos : CONHECIMENTO_PADRAO.topicos,
     problemas: Array.isArray(c.problemas) ? c.problemas : CONHECIMENTO_PADRAO.problemas,
+    datasEspeciais: Array.isArray(c.datasEspeciais)
+      ? c.datasEspeciais
+          .filter((d) => d && typeof d === "object")
+          .map((d) => ({
+            nome: String(d.nome ?? "Data especial"),
+            inicio: String(d.inicio ?? ""),
+            fim: String(d.fim ?? ""),
+          }))
+      : CONHECIMENTO_PADRAO.datasEspeciais,
     equipe: { ...CONHECIMENTO_PADRAO.equipe, ...(c.equipe ?? {}) },
   };
 }

@@ -89,3 +89,40 @@ describe("textoLicoes", () => {
     expect(t.length).toBeLessThan(1200);
   });
 });
+
+describe("LICOES_SUGERIDAS", () => {
+  it("não têm telefone, código longo nem situação repetida", async () => {
+    const { LICOES_SUGERIDAS } = await import("./licoes-sugeridas");
+    const vistas = new Set<string>();
+    for (const l of LICOES_SUGERIDAS) {
+      const t = `${l.situacao} ${l.resposta_certa} ${l.motivo ?? ""}`;
+      expect(t).not.toMatch(/\d{5,}/);
+      expect(vistas.has(l.situacao)).toBe(false);
+      vistas.add(l.situacao);
+    }
+  });
+});
+
+describe("textos da base e das lições passam no filtro de segurança", () => {
+  it("nenhum texto padrão é bloqueado por engano", async () => {
+    const { LICOES_SUGERIDAS } = await import("./licoes-sugeridas");
+    const { CONHECIMENTO_PADRAO } = await import("./conhecimento");
+    const { verificarResposta } = await import("./regras");
+    const textos = [
+      ...LICOES_SUGERIDAS.map((l) => l.resposta_certa),
+      ...CONHECIMENTO_PADRAO.topicos.map((t) => t.texto),
+      ...CONHECIMENTO_PADRAO.problemas.map((p) => p.orientacao),
+      ...Object.values(CONHECIMENTO_PADRAO.unidades).flatMap((u) => [
+        u.arredores,
+        u.acomodacoes,
+        u.endereco,
+      ]),
+    ];
+    for (const t of textos) {
+      expect([
+        t,
+        verificarResposta(t, { wifi: {}, wifiLiberadoPara: [], numerosPermitidos: [] }),
+      ]).toEqual([t, []]);
+    }
+  });
+});

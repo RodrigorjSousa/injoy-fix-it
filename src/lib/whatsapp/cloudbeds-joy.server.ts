@@ -11,8 +11,13 @@ import {
   sobrenomeConfere,
   type Raw,
 } from "@/lib/totem/regras";
+import { dataISO, origemDaReserva, planosDaReserva } from "@/lib/reservas/cobranca";
 import { UNIDADES_JOY, type UnidadeJoy } from "./conhecimento";
 import {
+  canalDaOrigem,
+  ehBrasileiro,
+  tipoTarifa,
+  type DadosCancelamento,
   lerDisponibilidade,
   mesmoTelefone,
   noites,
@@ -134,6 +139,42 @@ export function resumoReserva(r: ReservaJoy): ResumoReserva {
 
 export function dadosParaWifi(r: ReservaJoy): { status: string; chegada: string; saida: string } {
   return { status: texto(r.rec.status), ...chegadaSaida(r.rec) };
+}
+
+/** País do titular (guestList do getReservation; ou o campo direto da reserva). */
+function paisDoTitular(rec: Raw): string {
+  const lista = rec.guestList;
+  const hospedes = Array.isArray(lista)
+    ? (lista as Raw[])
+    : lista && typeof lista === "object"
+      ? (Object.values(lista as Raw) as Raw[])
+      : [];
+  const titular =
+    hospedes.find((g) => g && (g.isMainGuest === true || g.isMainGuest === "1")) ?? hospedes[0];
+  return texto(titular?.guestCountry ?? rec.guestCountry ?? rec.country);
+}
+
+/** Os dados da reserva que a regra de cancelamento precisa (sem a hora e as datas especiais). */
+export function dadosParaCancelamento(
+  r: ReservaJoy,
+): Pick<
+  DadosCancelamento,
+  "canal" | "canalNome" | "dataReserva" | "chegada" | "saida" | "tarifa" | "brasileiro"
+> & { planos: string[]; status: string } {
+  const origem = origemDaReserva(r.rec);
+  const planos = planosDaReserva(r.rec);
+  const { chegada, saida } = chegadaSaida(r.rec);
+  return {
+    canal: canalDaOrigem(origem),
+    canalNome: origem,
+    dataReserva: dataISO(r.rec.dateCreated ?? r.rec.reservationDateCreated ?? r.rec.createdAt),
+    chegada: chegada || null,
+    saida: saida || null,
+    tarifa: tipoTarifa(planos),
+    brasileiro: ehBrasileiro(paisDoTitular(r.rec)),
+    planos,
+    status: texto(r.rec.status),
+  };
 }
 
 /** Recarrega a reserva já identificada (status e saldo mudam). */
