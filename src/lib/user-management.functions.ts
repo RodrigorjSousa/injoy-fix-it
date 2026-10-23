@@ -231,3 +231,42 @@ export const adminSubstituirFuncionario = createServerFn({ method: "POST" })
 
     return { ok: true as const, anteriores: { nome: func.nome, email: func.email } };
   });
+
+/**
+ * Gestor/admin liga ou desliga um papel de EQUIPE (camareira, recepção, técnico) de um funcionário.
+ * Antes isso era gravado direto do navegador e a regra do banco (RLS) só deixava o ADMIN inserir em
+ * `user_roles` → o gestor via "new row violates row-level security policy for table user_roles".
+ * Aqui a permissão é conferida no servidor; papéis de gestor/admin continuam fora (sem escalada).
+ */
+export const gestorDefinirPapelEquipe = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({
+        userId: z.string().uuid(),
+        role: z.enum(["camareira", "recepcao", "funcionario"]),
+        ativo: z.boolean(),
+      })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await assertCallerIsManager(context.supabase, context.userId);
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    if (data.ativo) {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .upsert(
+          { user_id: data.userId, role: data.role },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
+      if (error) throw new Error(error.message);
+    } else {
+      const { error } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", data.userId)
+        .eq("role", data.role);
+      if (error) throw new Error(error.message);
+    }
+    return { ok: true as const };
+  });

@@ -406,6 +406,12 @@ export function useAtribuirRole() {
   const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
   return useMutation({
     mutationFn: async (input: { userId: string; role: AppRole }) => {
+      // Papéis de equipe passam pelo servidor (o RLS só deixa o admin gravar direto).
+      if (input.role === "camareira" || input.role === "recepcao" || input.role === "funcionario") {
+        const { gestorDefinirPapelEquipe } = await import("@/lib/user-management.functions");
+        await gestorDefinirPapelEquipe({ data: { userId: input.userId, role: input.role, ativo: true } });
+        return;
+      }
       const { error } = await supabase
         .from("user_roles")
         .upsert(
@@ -422,6 +428,11 @@ export function useRemoverRole() {
   const invalidate = useInvalidate([["usuarios_roles"], ["me"]]);
   return useMutation({
     mutationFn: async (input: { userId: string; role: AppRole }) => {
+      if (input.role === "camareira" || input.role === "recepcao" || input.role === "funcionario") {
+        const { gestorDefinirPapelEquipe } = await import("@/lib/user-management.functions");
+        await gestorDefinirPapelEquipe({ data: { userId: input.userId, role: input.role, ativo: false } });
+        return;
+      }
       const { error } = await supabase
         .from("user_roles")
         .delete()
