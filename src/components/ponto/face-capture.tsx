@@ -3,7 +3,6 @@ import { Camera, Loader2, RefreshCw, ScanFace } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
-  BlinkDetector,
   averageDescriptor,
   captureSelfie,
   euclidean,
@@ -26,9 +25,7 @@ type Props =
       onCancelar?: () => void;
     };
 
-type Fase = "carregando" | "posicione" | "pisque" | "capturando" | "pronto" | "erro";
-
-const TEMPO_PISCADA_MS = 10000;
+type Fase = "carregando" | "posicione" | "capturando" | "pronto" | "erro";
 
 export function FaceCapture(props: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -38,9 +35,10 @@ export function FaceCapture(props: Props) {
   const [fase, setFase] = useState<Fase>("carregando");
   const [mensagem, setMensagem] = useState("Preparando câmera e reconhecimento…");
   const [progresso, setProgresso] = useState(0);
-  const [podeForcar, setPodeForcar] = useState(false);
   const ultimaLeitura = useRef<number[] | null>(null);
   const finalizadoRef = useRef(false);
+
+  const verificar = props.modo === "verificar";
 
   const pararCamera = useCallback(() => {
     if (loopRef.current) window.clearTimeout(loopRef.current);
@@ -50,7 +48,6 @@ export function FaceCapture(props: Props) {
 
   const iniciar = useCallback(async () => {
     finalizadoRef.current = false;
-    setPodeForcar(false);
     setProgresso(0);
     setFase("carregando");
     setMensagem("Preparando câmera e reconhecimento…");
@@ -72,7 +69,11 @@ export function FaceCapture(props: Props) {
       video.srcObject = stream;
       await video.play();
       setFase("posicione");
-      setMensagem("Encaixe o rosto no círculo, com boa luz.");
+      setMensagem(
+        verificar
+          ? "Olhe para a câmera. A foto é tirada sozinha, ou toque em Registrar."
+          : "Encaixe o rosto no círculo, com boa luz.",
+      );
     } catch (error) {
       console.error("[ponto] câmera", error);
       setFase("erro");
@@ -82,7 +83,7 @@ export function FaceCapture(props: Props) {
           : "Não foi possível abrir a câmera ou carregar o reconhecimento facial.",
       );
     }
-  }, []);
+  }, [verificar]);
 
   useEffect(() => {
     ativoRef.current = true;
@@ -95,16 +96,14 @@ export function FaceCapture(props: Props) {
 
   // Laço de leitura
   useEffect(() => {
-    if (fase !== "posicione" && fase !== "pisque" && fase !== "capturando") return;
+    if (fase !== "posicione" && fase !== "capturando") return;
     const video = videoRef.current;
     if (!video) return;
-    const blink = new BlinkDetector();
     const amostras: number[][] = [];
-    const total = props.modo === "cadastro" ? (props.amostras ?? 5) : 3;
-    const inicio = Date.now();
-    let piscou = false;
+    const total = props.modo === "cadastro" ? (props.amostras ?? 5) : 2;
 
-    const finalizarVerificacao = async (vivacidade: boolean) => {
+    // Captura simples (sem prova de vida): foto + rosto lido, se houver
+    const finalizarVerificacao = async () => {
       if (finalizadoRef.current || props.modo !== "verificar") return;
       finalizadoRef.current = true;
       const selfie = await captureSelfie(video);
@@ -112,7 +111,7 @@ export function FaceCapture(props: Props) {
       setFase("pronto");
       setMensagem("Pronto!");
       pararCamera();
-      props.onResultado({ descritor, vivacidade, selfie });
+      props.onResultado({ descritor, vivacidade: false, selfie });
     };
 
     const passo = async () => {
@@ -127,18 +126,11 @@ export function FaceCapture(props: Props) {
         } else {
           ultimaLeitura.current = leitura.descriptor;
           if (props.modo === "verificar") {
-            if (!piscou) {
-              piscou = blink.push(leitura.ear);
-              setFase("pisque");
-              setMensagem("Agora pisque os olhos devagar.");
-            }
-            if (piscou) {
-              setFase("capturando");
-              setMensagem("Segure um instante…");
-              amostras.push(leitura.descriptor);
-              setProgresso(Math.round((amostras.length / total) * 100));
-              if (amostras.length >= total) return void finalizarVerificacao(true);
-            }
+            setFase("capturando");
+            setMensagem("Segure um instante…");
+            amostras.push(leitura.descriptor);
+            setProgresso(Math.round((amostras.length / total) * 100));
+            if (amostras.length >= total) return void finalizarVerificacao();
           } else {
             // Cadastro: amostras espaçadas e diferentes entre si (leve movimento)
             const ultima = amostras[amostras.length - 1];
@@ -161,8 +153,6 @@ export function FaceCapture(props: Props) {
             }
           }
         }
-        if (props.modo === "verificar" && !piscou && Date.now() - inicio > TEMPO_PISCADA_MS)
-          setPodeForcar(true);
       } catch (error) {
         console.warn("[ponto] leitura", error);
       }
@@ -170,7 +160,7 @@ export function FaceCapture(props: Props) {
     };
     void passo();
 
-    forcarRef.current = () => void finalizarVerificacao(false);
+    forcarRef.current = () => void finalizarVerificacao();
     return () => {
       if (loopRef.current) window.clearTimeout(loopRef.current);
     };
@@ -191,11 +181,7 @@ export function FaceCapture(props: Props) {
         <div
           className={cn(
             "pointer-events-none absolute left-1/2 top-1/2 h-[62%] w-[70%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-4 transition-colors",
-            fase === "capturando" || fase === "pronto"
-              ? "border-emerald-400"
-              : fase === "pisque"
-                ? "border-amber-400"
-                : "border-white/70",
+            fase === "capturando" || fase === "pronto" ? "border-emerald-400" : "border-white/70",
           )}
         />
         {fase === "carregando" && (
@@ -227,9 +213,9 @@ export function FaceCapture(props: Props) {
             <RefreshCw className="h-4 w-4" /> Tentar de novo
           </Button>
         )}
-        {props.modo === "verificar" && podeForcar && fase !== "pronto" && (
-          <Button variant="outline" onClick={() => forcarRef.current()}>
-            Não consegui — registrar para o gestor conferir
+        {props.modo === "verificar" && (fase === "posicione" || fase === "capturando") && (
+          <Button onClick={() => forcarRef.current()} className="gap-2">
+            <Camera className="h-4 w-4" /> Registrar agora
           </Button>
         )}
         {props.onCancelar && fase !== "pronto" && (
