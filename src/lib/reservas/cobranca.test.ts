@@ -153,6 +153,23 @@ describe("regras NR", () => {
     );
     expect(av.antecedencia).toBe(8);
     expect(av.exclusao).toBe("nr_aguardando_8o_dia");
+    // entra no que vier primeiro: 8º dia (20/10) ou 2 dias antes do check-in (18/10)
+    expect(av.entraEm).toBe("2026-10-18");
+  });
+  it("NR nunca chega em cima do check-in: entra 2 dias antes mesmo sem o 8º dia (caso 7646906562553)", () => {
+    // feita 16/10, check-in 24/10: o 8º dia seria o próprio check-in
+    const caso = (hoje: string) => avaliarReserva(reserva({ dateCreated: "2026-10-16 10:00:00", reservationCheckIn: "2026-10-24" }), hoje);
+    expect(caso("2026-10-21").exclusao).toBe("nr_aguardando_8o_dia");
+    expect(caso("2026-10-21").entraEm).toBe("2026-10-22");
+    expect(caso("2026-10-22").motivo).toBe("nr_checkin_proximo");
+    expect(caso("2026-10-23").motivo).toBe("nr_checkin_proximo");
+    expect(caso("2026-10-24").motivo).toBe("nr_8o_dia");
+    // antecedência 9: idem
+    const nove = avaliarReserva(reserva({ dateCreated: "2026-10-15 10:00:00", reservationCheckIn: "2026-10-24" }), "2026-10-22");
+    expect(nove.motivo).toBe("nr_checkin_proximo");
+    // antecedência longa continua no 8º dia, sem mudança
+    const longa = avaliarReserva(reserva({ dateCreated: "2026-10-01 10:00:00", reservationCheckIn: "2026-12-20" }), "2026-10-05");
+    expect(longa.entraEm).toBe("2026-10-09");
   });
 });
 
