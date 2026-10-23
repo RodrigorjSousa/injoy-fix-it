@@ -547,6 +547,13 @@
       "when": 1792632569249,
       "tag": "0077_0078_0078_whatsapp_licoes",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1792762268235,
+      "tag": "0078_0079_ponto_sem_prova_de_vida",
+      "breakpoints": true
     }
   ]
 }
