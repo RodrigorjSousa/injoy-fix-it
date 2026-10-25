@@ -240,7 +240,7 @@ const licaoInput = z.object({
   motivo: textoLicao(1000).optional(),
   tema: textoLicao(80).optional(),
   ativa: z.boolean().optional(),
-  origem: z.enum(["correcao", "manual"]).optional(),
+  origem: z.enum(["correcao", "manual", "revisor"]).optional(),
   conversaId: uuid.optional(),
   mensagemId: uuid.optional(),
 });
@@ -376,4 +376,68 @@ export const joyRefazerResposta = createServerFn({ method: "POST" })
       bloqueios: r.bloqueios as string[],
       transferida: !!r.transferida,
     };
+  });
+
+// ------------------------------------------------------------ E2: testes
+
+/** Começa um teste com hóspede simulado (cria a conversa do simulador e a linha em wa_testes). */
+export const joyTesteIniciar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ cenarioId: z.string().min(1).max(60), lote: uuid.optional() }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { iniciarTeste } = await import("@/lib/whatsapp/testes.server");
+    return iniciarTeste({
+      cenarioId: data.cenarioId,
+      lote: data.lote ?? null,
+      userId: context.userId,
+    });
+  });
+
+/** Um turno do teste: o hóspede simulado fala e a Joy responde. */
+export const joyTestePasso = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ testeId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { passoTeste } = await import("@/lib/whatsapp/testes.server");
+    return passoTeste(data.testeId);
+  });
+
+/** Avalia o teste terminado (checagens automáticas + IA avaliadora). */
+export const joyTesteAvaliar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ testeId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { avaliarTeste } = await import("@/lib/whatsapp/testes.server");
+    return avaliarTeste(data.testeId);
+  });
+
+/** Apaga o teste junto com a conversa do simulador dele. */
+export const joyTesteApagar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ testeId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const db = await admin();
+    const { data: t, error } = await db
+      .from("wa_testes")
+      .select("conversa_id")
+      .eq("id", data.testeId)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+    if (!t) throw new Error("Teste não encontrado.");
+    if (t.conversa_id) {
+      const { error: e2 } = await db
+        .from("wa_conversas")
+        .delete()
+        .eq("id", t.conversa_id)
+        .eq("canal", "simulador");
+      if (e2) throw new Error(e2.message);
+    }
+    await db.from("wa_testes").delete().eq("id", data.testeId);
+    return { ok: true };
   });
