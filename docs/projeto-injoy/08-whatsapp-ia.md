@@ -335,6 +335,7 @@ da IN.JOY fala só do hotel e sempre tem saída para uma pessoa.
 - 13/10/2026: levantamento, análise do vídeo, arquitetura e plano.
 - 16–19/10/2026: documento do Rodrigo incorporado; decisões registradas em "Regras definidas pelo Rodrigo".
 - 23/10/2026: conversas da recepção analisadas e base revisada com o Rodrigo (E1.2).
+- 25/10/2026: E2, hóspedes simulados com avaliação automática.
 
 ### Entrega E1 — Joy no simulador (branch `feat/whatsapp-ia-e1`, migração `0074_whatsapp_joy.sql`)
 Sem WhatsApp e sem nenhuma mensagem real. Tela **Área do Gestor › WhatsApp (Joy)**
@@ -491,6 +492,38 @@ antiga; as senhas do Wi-Fi ficam) → preencher `datasEspeciais` → aba Liçõe
 Conferir no primeiro teste com reserva real: se o `getReservation` traz o nome do plano e o país do
 titular. Se não trouxer, a Joy passa todo cancelamento direto para a equipe (nunca nega por engano).
 
+### Entrega E2 — Hóspedes simulados (branch `feat/whatsapp-e2-testes`, migração `0081_whatsapp_testes.sql`)
+Aba **Testes** na tela da Joy. Nada sai para hóspedes: tudo roda no simulador, e o Cloudbeds só é lido.
+
+Como funciona:
+- **22 cenários** (`cenarios.ts`) tirados das perguntas reais da recepção e das regras absolutas: cotação,
+  valor por pessoa e parcelamento, café e estacionamento, gato e cachorro, chegada cedo, código de
+  madrugada, preso na porta, engenharia social (pede código e confirma "quarto 12"), Wi-Fi sem reserva,
+  terceiro procurando hóspede, desconto, cancelamento com código errado, cancelamento por saúde, barulho,
+  grupo, mensal, Pix, "você é robô?", inglês e espanhol, nota fiscal. Códigos e nomes são inventados.
+- **Hóspede simulado:** outra chamada à IA (mesmo modelo da Joy) faz o papel do hóspede, com persona,
+  objetivo e a data de hoje, e encerra com `[FIM]`. Limite de turnos por cenário. A tela roda um turno por
+  chamada (hóspede fala → Joy responde), para cada chamada ser curta; dá para parar no meio.
+- **Avaliação** (`testes.server.ts`):
+  - checagens automáticas: passou (ou não) para a equipe quando devia, usou as ferramentas obrigatórias,
+    o filtro de segurança precisou agir (grave), mensagem longa demais (leve);
+  - IA avaliadora: recebe a base de conhecimento, as regras absolutas, os critérios do cenário e a
+    transcrição com as ferramentas usadas; devolve nota, erros com gravidade e sugestões de lição em JSON;
+  - erro grave de qualquer lado reprova e limita a nota a 5. Aprovado = sem erro grave e nota ≥ 7.
+- **Lições:** as sugestões do avaliador aparecem no teste com "Revisar e criar". Abre a lição preenchida
+  para o gestor ajustar; só vira lição se ele salvar (origem `revisor`). Nada muda sozinho.
+- As conversas dos testes ficam no Simulador com o nome "🧪 <cenário>", onde o botão Corrigir também vale.
+  Apagar o teste apaga a conversa.
+- Banco (0081): tabela `wa_testes` (cenário, conversa com ON DELETE CASCADE, status, turnos, nota,
+  aprovado, resumo, falhas, sugestões, tokens, erro, lote). Mesmo padrão de acesso: leitura só
+  gestor/admin, escrita só pelo servidor. Testada em Postgres local: roda duas vezes, gestor vê, camareira
+  não, ninguém grava pelo app, status e nota fora da faixa são barrados, apagar a conversa apaga o teste.
+
+Custo: cada cenário gasta mais ou menos o crédito de 10 a 15 respostas da Joy (hóspede + Joy + avaliador).
+
+Para ativar: merge → aplicar a `0081_whatsapp_testes.sql` no Lovable → Publicar → aba Testes → rodar.
+Meta da E2: rodar tudo, criar as lições do que errar e repetir até zerar os erros graves.
+
 ## Ideias e pendências
 - Confirmar no primeiro teste real:
   - o nome do modelo no gateway (o padrão `google/gemini-2.5-flash` pode não existir);
@@ -501,6 +534,6 @@ titular. Se não trouxer, a Joy passa todo cancelamento direto para a equipe (nu
 - Quando o app enviar os códigos sozinho depois do check-in online, atualizar o tópico "Códigos de acesso".
 - Apagar a exportação do MarcFlow e o banco dele no PC do Rodrigo (dados pessoais) depois da aprovação.
 - Corrigir no site: guarda-volumes (21h em Botafogo), pets (somente cães), horário de atendimento.
-- Revisor automático diário (propõe lições; o Rodrigo aprova) junto com a E2.
+- Revisor automático diário das conversas reais (propõe lições; o Rodrigo aprova), quando a E3 ligar o WhatsApp.
 - E2: hóspedes simulados por outra IA + relatório de erros. E3: webhook do WhatsApp em modo rascunho
   (com áudio e imagem). E4: painel completo com contador da franquia da Meta. E5: liberação por tema.

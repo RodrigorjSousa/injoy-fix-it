@@ -189,6 +189,19 @@ async function chamarModelo(
   return json;
 }
 
+/** Chamada simples, sem ferramentas (hóspede simulado e avaliador da E2). */
+export async function completarTexto(
+  modelo: string,
+  messages: Array<{ role: "system" | "user" | "assistant"; content: string }>,
+): Promise<{ texto: string; tokensEntrada: number; tokensSaida: number }> {
+  const r = await chamarModelo(modelo, messages as MsgModelo[], false);
+  return {
+    texto: (r.choices?.[0]?.message?.content ?? "").trim(),
+    tokensEntrada: r.usage?.prompt_tokens ?? 0,
+    tokensSaida: r.usage?.completion_tokens ?? 0,
+  };
+}
+
 export async function listarModelos(): Promise<string[]> {
   const res = await fetch(`${GATEWAY}/models`, {
     headers: { Authorization: `Bearer ${chaveGateway()}` },

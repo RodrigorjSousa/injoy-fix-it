@@ -9,15 +9,18 @@ import {
   ChevronRight,
   Eye,
   EyeOff,
+  FlaskConical,
   Hand,
   Loader2,
   MessageCircle,
   Pencil,
+  Play,
   Plus,
   RotateCcw,
   Save,
   Send,
   ShieldAlert,
+  Square,
   Trash2,
   UserRound,
   Wrench,
@@ -31,6 +34,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -65,7 +69,12 @@ import {
   joyNovaConversa,
   joyPadrao,
   joySalvarConfig,
+  joyTesteApagar,
+  joyTesteAvaliar,
+  joyTesteIniciar,
+  joyTestePasso,
 } from "@/lib/whatsapp.functions";
+import { CENARIOS, type Falha, type SugestaoLicao } from "@/lib/whatsapp/cenarios";
 
 // Área do Gestor › WhatsApp (Joy). Entrega E1: simulador + configuração + execuções.
 // Nada nesta tela envia mensagem real a hóspede (ver docs/projeto-injoy/08-whatsapp-ia.md).
@@ -132,6 +141,7 @@ const NOME_FERRAMENTA: Record<string, string> = {
   buscar_arredores: "Arredores (Maps)",
   como_chegar: "Como chegar",
   link_checkin_online: "Link check-in online",
+  avaliar_cancelamento: "Regra de cancelamento",
   transferir_para_humano: "Passou para a equipe",
 };
 
@@ -185,6 +195,7 @@ function WhatsappGestor() {
           <TabsTrigger value="simulador">Simulador</TabsTrigger>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="licoes">Lições</TabsTrigger>
+          <TabsTrigger value="testes">Testes</TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
         <TabsContent value="simulador">
@@ -195,6 +206,9 @@ function WhatsappGestor() {
         </TabsContent>
         <TabsContent value="licoes">
           <Licoes />
+        </TabsContent>
+        <TabsContent value="testes">
+          <Testes />
         </TabsContent>
         <TabsContent value="execucoes">
           <Execucoes />
@@ -1217,9 +1231,12 @@ function DialogLicao({
   onFechar,
   inicial,
   correcao,
+  origem,
   onSalva,
 }: {
   aberto: boolean;
+  /** "revisor" quando vem de uma sugestão do avaliador dos testes. */
+  origem?: "revisor";
   onFechar: () => void;
   inicial: Partial<LicaoRow>;
   /** Preenchido quando vem do botão Corrigir no simulador. */
@@ -1245,7 +1262,7 @@ function DialogLicao({
           resposta_certa: certa,
           motivo: motivo || undefined,
           tema: tema || undefined,
-          origem: correcao ? "correcao" : "manual",
+          origem: correcao ? "correcao" : (origem ?? "manual"),
           conversaId: correcao?.conversaId,
           mensagemId: correcao?.mensagemId,
         },
@@ -1568,6 +1585,395 @@ function Licoes() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+// ================================================================ testes (E2)
+
+type TesteRow = {
+  id: string;
+  lote: string | null;
+  cenario_id: string;
+  titulo: string;
+  conversa_id: string | null;
+  status: "rodando" | "avaliar" | "avaliado" | "erro";
+  turnos: number;
+  nota: number | null;
+  aprovado: boolean | null;
+  resumo: string | null;
+  falhas: Falha[];
+  sugestoes: SugestaoLicao[];
+  tokens_entrada: number;
+  tokens_saida: number;
+  erro: string | null;
+  created_at: string;
+};
+
+const CATEGORIA: Record<string, string> = {
+  venda: "Venda",
+  duvida: "Dúvidas",
+  estadia: "Estadia",
+  seguranca: "Segurança",
+  equipe: "Passar para a equipe",
+  idioma: "Outros idiomas",
+};
+
+const GRAVIDADE: Record<string, string> = {
+  grave: "bg-red-100 text-red-800",
+  media: "bg-amber-100 text-amber-800",
+  leve: "bg-slate-100 text-slate-700",
+};
+
+function Testes() {
+  const qc = useQueryClient();
+  const [selecionados, setSelecionados] = useState<Set<string>>(
+    () => new Set(CENARIOS.map((c) => c.id)),
+  );
+  const [rodando, setRodando] = useState(false);
+  const [progresso, setProgresso] = useState<string>("");
+  const parar = useRef(false);
+  const [sugestao, setSugestao] = useState<SugestaoLicao | null>(null);
+  const [aberto, setAberto] = useState<string | null>(null);
+
+  const testes = useQuery({
+    queryKey: ["joy-testes"],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_testes")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as TesteRow[];
+    },
+  });
+
+  const ultimoLote = testes.data?.[0]?.lote ?? null;
+  const doLote = (testes.data ?? []).filter((t) => ultimoLote && t.lote === ultimoLote);
+  const avaliados = doLote.filter((t) => t.status === "avaliado");
+  const aprovados = avaliados.filter((t) => t.aprovado).length;
+  const media = avaliados.length
+    ? avaliados.reduce((s, t) => s + Number(t.nota ?? 0), 0) / avaliados.length
+    : null;
+  const graves = doLote.reduce(
+    (s, t) => s + (t.falhas ?? []).filter((f) => f.gravidade === "grave").length,
+    0,
+  );
+
+  function alternar(id: string) {
+    setSelecionados((atual) => {
+      const novo = new Set(atual);
+      if (novo.has(id)) novo.delete(id);
+      else novo.add(id);
+      return novo;
+    });
+  }
+
+  async function rodar() {
+    const lista = CENARIOS.filter((c) => selecionados.has(c.id));
+    if (!lista.length) return;
+    parar.current = false;
+    setRodando(true);
+    const lote = crypto.randomUUID();
+    try {
+      for (const [i, c] of lista.entries()) {
+        if (parar.current) break;
+        const pref = `${i + 1}/${lista.length} · ${c.titulo}`;
+        setProgresso(`${pref}: começando…`);
+        try {
+          const { testeId } = await joyTesteIniciar({ data: { cenarioId: c.id, lote } });
+          await qc.invalidateQueries({ queryKey: ["joy-testes"] });
+          let status = "rodando";
+          for (let passo = 0; status === "rodando" && passo < 12 && !parar.current; passo++) {
+            setProgresso(`${pref}: turno ${passo + 1}…`);
+            const r = await joyTestePasso({ data: { testeId } });
+            status = r.status;
+            if (r.erro) toast.error(`${c.titulo}: ${r.erro}`);
+          }
+          if (status === "avaliar") {
+            setProgresso(`${pref}: avaliando…`);
+            await joyTesteAvaliar({ data: { testeId } });
+          }
+        } catch (e) {
+          toast.error(`${c.titulo}: ${erroTexto(e)}`);
+        }
+        await qc.invalidateQueries({ queryKey: ["joy-testes"] });
+      }
+    } finally {
+      setRodando(false);
+      setProgresso("");
+      await qc.invalidateQueries({ queryKey: ["joy-testes"] });
+      await qc.invalidateQueries({ queryKey: ["joy-conversas"] });
+      await qc.invalidateQueries({ queryKey: ["joy-execucoes"] });
+    }
+  }
+
+  async function apagar(t: TesteRow) {
+    try {
+      await joyTesteApagar({ data: { testeId: t.id } });
+      await qc.invalidateQueries({ queryKey: ["joy-testes"] });
+      await qc.invalidateQueries({ queryKey: ["joy-conversas"] });
+    } catch (e) {
+      toast.error(erroTexto(e));
+    }
+  }
+
+  const categorias = [...new Set(CENARIOS.map((c) => c.categoria))];
+
+  return (
+    <div className="space-y-4">
+      <Card className="space-y-3 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <FlaskConical className="h-6 w-6 text-violet-700" />
+            <div>
+              <p className="font-semibold text-slate-900">Hóspedes simulados</p>
+              <p className="text-xs text-slate-500">
+                Outra IA faz o papel do hóspede e conversa com a Joy no simulador; no fim, checagens
+                automáticas e uma IA avaliadora dão nota e sugerem lições. Nada sai para hóspedes.
+                Cada cenário gasta mais ou menos o crédito de 10 a 15 respostas da Joy.
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            {rodando ? (
+              <Button variant="outline" onClick={() => (parar.current = true)}>
+                <Square className="mr-1 h-4 w-4" /> Parar depois deste
+              </Button>
+            ) : (
+              <Button onClick={rodar} disabled={selecionados.size === 0}>
+                <Play className="mr-1 h-4 w-4" /> Rodar {selecionados.size}{" "}
+                {selecionados.size === 1 ? "cenário" : "cenários"}
+              </Button>
+            )}
+          </div>
+        </div>
+        {progresso && (
+          <p className="flex items-center gap-2 rounded bg-violet-50 px-3 py-2 text-sm text-violet-900">
+            <Loader2 className="h-4 w-4 animate-spin" /> {progresso}
+          </p>
+        )}
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {categorias.map((cat) => (
+            <div key={cat}>
+              <p className="mb-1 text-xs font-semibold uppercase text-slate-500">
+                {CATEGORIA[cat] ?? cat}
+              </p>
+              {CENARIOS.filter((c) => c.categoria === cat).map((c) => (
+                <label
+                  key={c.id}
+                  className="flex cursor-pointer items-start gap-2 py-0.5 text-sm"
+                  title={c.criterios}
+                >
+                  <Checkbox
+                    checked={selecionados.has(c.id)}
+                    onCheckedChange={() => alternar(c.id)}
+                    disabled={rodando}
+                    className="mt-0.5"
+                  />
+                  <span>{c.titulo}</span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+        <div className="flex gap-2 text-xs">
+          <button
+            className="text-sky-700 hover:underline"
+            disabled={rodando}
+            onClick={() => setSelecionados(new Set(CENARIOS.map((c) => c.id)))}
+          >
+            Marcar todos
+          </button>
+          <button
+            className="text-sky-700 hover:underline"
+            disabled={rodando}
+            onClick={() => setSelecionados(new Set())}
+          >
+            Desmarcar todos
+          </button>
+        </div>
+      </Card>
+
+      {testes.error && (
+        <Card className="border-red-300 bg-red-50 p-4 text-sm text-red-800">
+          <b>Erro real:</b> {erroTexto(testes.error)}
+          <p className="mt-2 text-red-700">
+            Se for "relation wa_testes does not exist", a migração 0081 ainda não foi aplicada no
+            Lovable.
+          </p>
+        </Card>
+      )}
+
+      {doLote.length > 0 && (
+        <Card className="flex flex-wrap gap-6 p-4 text-sm">
+          <div>
+            <p className="text-xs text-slate-500">Última rodada</p>
+            <p className="text-lg font-semibold text-slate-900">
+              {aprovados}/{avaliados.length} aprovados
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Nota média</p>
+            <p className="text-lg font-semibold text-slate-900">
+              {media === null ? "—" : media.toFixed(1)}
+            </p>
+          </div>
+          <div>
+            <p className="text-xs text-slate-500">Erros graves</p>
+            <p
+              className={cn("text-lg font-semibold", graves ? "text-red-700" : "text-emerald-700")}
+            >
+              {graves}
+            </p>
+          </div>
+        </Card>
+      )}
+
+      {testes.isLoading && <Loader2 className="mx-auto h-6 w-6 animate-spin text-slate-400" />}
+      {testes.data?.length === 0 && (
+        <p className="text-center text-sm text-slate-500">Nenhum teste ainda.</p>
+      )}
+
+      <div className="space-y-3">
+        {testes.data?.map((t) => (
+          <Card key={t.id} className="space-y-2 p-4 text-sm">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span
+                  className={cn(
+                    "rounded px-2 py-0.5 text-xs font-bold",
+                    t.status !== "avaliado"
+                      ? "bg-slate-100 text-slate-600"
+                      : t.aprovado
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-red-100 text-red-800",
+                  )}
+                >
+                  {t.status === "avaliado"
+                    ? `${Number(t.nota ?? 0).toFixed(1)} · ${t.aprovado ? "aprovado" : "reprovado"}`
+                    : t.status === "erro"
+                      ? "erro"
+                      : t.status === "rodando"
+                        ? "rodando"
+                        : "aguardando avaliação"}
+                </span>
+                <span className="font-medium text-slate-900">{t.titulo}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-500">
+                <span>
+                  {t.turnos} turnos · {t.tokens_entrada + t.tokens_saida} tokens ·{" "}
+                  {hora(t.created_at)}
+                </span>
+                {t.conversa_id && (
+                  <button
+                    className="text-sky-700 hover:underline"
+                    onClick={() => setAberto(aberto === t.id ? null : t.id)}
+                  >
+                    {aberto === t.id ? "Fechar conversa" : "Ver conversa"}
+                  </button>
+                )}
+                <button
+                  className="text-slate-400 hover:text-red-600"
+                  title="Apagar teste e conversa"
+                  disabled={rodando}
+                  onClick={() => void apagar(t)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+            {t.resumo && <p className="text-slate-700">{t.resumo}</p>}
+            {t.erro && <p className="text-red-700">{t.erro}</p>}
+            {(t.falhas ?? []).length > 0 && (
+              <ul className="space-y-1">
+                {t.falhas.map((f, i) => (
+                  <li key={i} className="flex gap-2">
+                    <span
+                      className={cn(
+                        "h-fit shrink-0 rounded px-1.5 text-[10px] font-semibold uppercase",
+                        GRAVIDADE[f.gravidade],
+                      )}
+                    >
+                      {f.gravidade}
+                    </span>
+                    <span className="text-slate-800">
+                      {f.problema}
+                      {f.trecho && <span className="text-slate-500"> — “{f.trecho}”</span>}
+                      {f.como_deveria && (
+                        <span className="block text-emerald-800">Deveria: {f.como_deveria}</span>
+                      )}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            {(t.sugestoes ?? []).length > 0 && (
+              <div className="space-y-1 rounded border border-sky-200 bg-sky-50 p-2">
+                <p className="text-xs font-semibold text-sky-900">
+                  Lições sugeridas pelo avaliador
+                </p>
+                {t.sugestoes.map((s, i) => (
+                  <div key={i} className="flex items-start justify-between gap-2 text-xs">
+                    <span className="text-slate-800">
+                      <b>{s.tema ? `${s.tema}: ` : ""}</b>
+                      {s.resposta_certa}
+                    </span>
+                    <Button size="sm" variant="outline" onClick={() => setSugestao(s)}>
+                      Revisar e criar
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+            {aberto === t.id && t.conversa_id && <ConversaDoTeste conversaId={t.conversa_id} />}
+          </Card>
+        ))}
+      </div>
+
+      {sugestao && (
+        <DialogLicao
+          aberto
+          origem="revisor"
+          inicial={{
+            situacao: sugestao.situacao,
+            resposta_errada: sugestao.resposta_errada ?? null,
+            resposta_certa: sugestao.resposta_certa,
+            motivo: sugestao.motivo ?? null,
+            tema: sugestao.tema ?? null,
+          }}
+          onFechar={() => setSugestao(null)}
+          onSalva={async () => {
+            setSugestao(null);
+            await qc.invalidateQueries({ queryKey: ["joy-licoes"] });
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+function ConversaDoTeste({ conversaId }: { conversaId: string }) {
+  const msgs = useQuery({
+    queryKey: ["joy-mensagens", conversaId],
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_mensagens")
+        .select("*")
+        .eq("conversa_id", conversaId)
+        .order("created_at", { ascending: true });
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Mensagem[];
+    },
+  });
+  if (msgs.isLoading) return <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" />;
+  if (msgs.error) return <p className="text-red-600">{erroTexto(msgs.error)}</p>;
+  return (
+    <div className="space-y-2 rounded-lg bg-[#efeae2] p-3">
+      {(msgs.data ?? []).map((m) => (
+        <Bolha key={m.id} m={m} />
+      ))}
     </div>
   );
 }
