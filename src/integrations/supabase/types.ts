@@ -2166,6 +2166,7 @@ export type Database = {
           ent_lav: number | null
           guardado: number | null
           peca_id: string
+          relave_hotel: number
           saida_hotel: number
           saida_lav: number | null
           talao_id: string
@@ -2174,6 +2175,7 @@ export type Database = {
           ent_lav?: number | null
           guardado?: number | null
           peca_id: string
+          relave_hotel?: number
           saida_hotel?: number
           saida_lav?: number | null
           talao_id: string
@@ -2182,6 +2184,7 @@ export type Database = {
           ent_lav?: number | null
           guardado?: number | null
           peca_id?: string
+          relave_hotel?: number
           saida_hotel?: number
           saida_lav?: number | null
           talao_id?: string
