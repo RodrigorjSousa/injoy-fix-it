@@ -385,13 +385,23 @@ function ColetaForm({
   const inicialQtd = () => {
     const m: Record<string, string> = {};
     talao?.itens.forEach((i) => {
-      if (i.saida_hotel > 0) m[i.peca_id] = String(i.saida_hotel);
+      const normal = i.saida_hotel - (i.relave_hotel ?? 0);
+      if (normal > 0) m[i.peca_id] = String(normal);
+    });
+    return m;
+  };
+  const inicialRelave = () => {
+    const m: Record<string, string> = {};
+    talao?.itens.forEach((i) => {
+      if ((i.relave_hotel ?? 0) > 0) m[i.peca_id] = String(i.relave_hotel);
     });
     return m;
   };
   const [numero, setNumero] = useState(talao?.numero ?? "");
   const [data, setData] = useState(talao?.data_coleta ?? todaySP());
   const [qtd, setQtd] = useState<Record<string, string>>(inicialQtd);
+  // Peças separadas pela camareira para RELAVE (vão no mesmo talão, não são pagas).
+  const [relave, setRelave] = useState<Record<string, string>>(inicialRelave);
   const [foto, setFoto] = useState<File | null>(null);
   const [obs, setObs] = useState(talao?.coleta_obs ?? "");
   const [salvando, setSalvando] = useState(false);
@@ -402,12 +412,27 @@ function ColetaForm({
     () => pecas.filter((p) => p.ativo || (qtd[p.id] ?? "") !== ""),
     [pecas, qtd],
   );
-  const total = visiveis.reduce((s, p) => s + (parseInt(qtd[p.id] || "0", 10) || 0), 0);
+  const num = (v: string | undefined) => parseInt(v || "0", 10) || 0;
+  const totalNormal = visiveis.reduce((s, p) => s + num(qtd[p.id]), 0);
+  const relaveIds = Object.keys(relave);
+  const totalRelave = relaveIds.reduce((s, id) => s + num(relave[id]), 0);
+  const relaveSemQtd = relaveIds.filter((id) => num(relave[id]) === 0);
+  const total = totalNormal + totalRelave;
+  const nomePeca = (id: string) => pecas.find((p) => p.id === id)?.nome ?? "Peça";
+  const escolherRelave = (p: Peca) => {
+    setRelave((r) => (p.id in r ? r : { ...r, [p.id]: "" }));
+    setTimeout(() => document.getElementById(`relave-${p.id}`)?.focus(), 50);
+  };
   const [busca, setBusca] = useState("");
   const listadas = useMemo(() => filtrarPecas(visiveis, busca), [visiveis, busca]);
   const preenchidas = visiveis.filter((p) => (parseInt(qtd[p.id] || "0", 10) || 0) > 0);
   const precisaFoto = !talao;
-  const pode = numero.length > 0 && total > 0 && (!precisaFoto || !!foto) && !salvando;
+  const pode =
+    numero.length > 0 &&
+    total > 0 &&
+    relaveSemQtd.length === 0 &&
+    (!precisaFoto || !!foto) &&
+    !salvando;
 
   const enviar = async () => {
     if (!pode) return;
@@ -420,9 +445,9 @@ function ColetaForm({
         unidade,
         numero,
         data,
-        itens: visiveis
-          .map((p) => ({ peca_id: p.id, qtd: parseInt(qtd[p.id] || "0", 10) || 0 }))
-          .filter((i) => i.qtd > 0),
+        itens: pecas
+          .map((p) => ({ peca_id: p.id, qtd: num(qtd[p.id]), relave: num(relave[p.id]) }))
+          .filter((i) => i.qtd + i.relave > 0),
         foto: path,
         obs,
         talaoId: talao?.id,
@@ -464,6 +489,7 @@ function ColetaForm({
               setCriado(null);
               setNumero("");
               setQtd({});
+              setRelave({});
               setFoto(null);
               setObs("");
             }}
@@ -549,12 +575,75 @@ function ColetaForm({
           ))}
         </div>
         <div className="p-4 border-t border-slate-800 space-y-3">
-          {preenchidas.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-[10px] font-black uppercase tracking-wider text-violet-300">
+              ♻ Relave — peças que voltaram com mancha ou sujeira
+            </p>
+            <p className="text-[11px] text-slate-400 leading-snug">
+              Vão junto neste talão para a lavanderia lavar de novo. Ficam registradas e{" "}
+              <b>não são pagas</b>.
+            </p>
+            {relaveIds.map((id) => (
+              <div
+                key={id}
+                className={cn(
+                  "flex items-center gap-2 bg-violet-500/10 border rounded-lg px-2 py-1.5",
+                  num(relave[id]) === 0 ? "border-red-500" : "border-violet-500/40",
+                )}
+              >
+                <span className="flex-1 text-sm font-semibold text-violet-100">
+                  ♻ {nomePeca(id)}
+                </span>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  value={relave[id]}
+                  onChange={(e) => setRelave((r) => ({ ...r, [id]: soNumero(e.target.value) }))}
+                  placeholder="qtd"
+                  id={`relave-${id}`}
+                  aria-label={`Relave ${nomePeca(id)}`}
+                  className={cn(inputNum, "w-20 border-violet-500/60 focus:border-violet-300")}
+                />
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRelave((r) => {
+                      const novo = { ...r };
+                      delete novo[id];
+                      return novo;
+                    })
+                  }
+                  aria-label={`Tirar ${nomePeca(id)} do relave`}
+                  className="p-1.5 text-slate-400 hover:text-white"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            ))}
+            <BuscaPeca
+              pecas={pecas.filter((p) => p.ativo)}
+              naLista={new Set(relaveIds)}
+              onEscolher={escolherRelave}
+              titulo="Procure a peça que vai para relave e toque nela."
+              rotuloIncluir="relave"
+              tom="violet"
+            />
+          </div>
+          {(preenchidas.length > 0 || totalRelave > 0) && (
             <div className="bg-sky-500/10 border border-sky-500/30 rounded-lg p-2.5 text-xs text-sky-100">
               <p className="font-black uppercase text-[10px] tracking-wider text-sky-300 mb-1">
-                Conferência · {total} peças
+                Conferência · {total} peças no talão
               </p>
               {preenchidas.map((p) => `${p.nome} ${qtd[p.id]}`).join(" · ")}
+              {totalRelave > 0 && (
+                <p className="mt-1 text-violet-200">
+                  ♻ Relave ({totalRelave}):{" "}
+                  {relaveIds
+                    .filter((id) => num(relave[id]) > 0)
+                    .map((id) => `${nomePeca(id)} ${relave[id]}`)
+                    .join(" · ")}
+                </p>
+              )}
             </div>
           )}
           <FotoTalao arquivo={foto} onChange={setFoto} obrigatoria={precisaFoto} jaTem={!!talao} />
@@ -580,6 +669,8 @@ function ColetaForm({
             {[
               !numero && "número do talão",
               total === 0 && "quantidades",
+              relaveSemQtd.length > 0 &&
+                `quantidade do relave (${relaveSemQtd.map(nomePeca).join(", ")})`,
               precisaFoto && !foto && "foto do talão",
             ]
               .filter(Boolean)
@@ -727,6 +818,10 @@ function RetornoForm({
   }, [pecas]);
   const ordem = useMemo(() => new Map(pecas.map((p) => [p.id, p.ordem])), [pecas]);
   const corrigindo = !!talao.retorno_data;
+  const relaveHotelDe = useMemo(
+    () => new Map(talao.itens.map((i) => [i.peca_id, i.relave_hotel ?? 0])),
+    [talao],
+  );
   const [linhas, setLinhas] = useState<LinhaRet[]>(() =>
     talao.itens
       .map((i) => ({
@@ -853,7 +948,14 @@ function RetornoForm({
                 <div className="grid grid-cols-4 gap-1.5 text-center">
                   <div>
                     <p className="text-[9px] uppercase font-black text-slate-500">Saiu</p>
-                    <p className="py-2 text-base font-black text-slate-300">{l.saida_hotel}</p>
+                    <p className="py-2 text-base font-black text-slate-300 leading-none">
+                      {l.saida_hotel}
+                      {(relaveHotelDe.get(l.peca_id) ?? 0) > 0 && (
+                        <span className="block text-[10px] font-bold text-violet-300 mt-1">
+                          ♻ {relaveHotelDe.get(l.peca_id)} relave
+                        </span>
+                      )}
+                    </p>
                   </div>
                   {(["ent_lav", "saida_lav", "guardado"] as const).map((campo) => (
                     <label key={campo}>
@@ -1030,10 +1132,16 @@ function BuscaPeca({
   pecas,
   naLista,
   onEscolher,
+  titulo = "Voltou outra peça? Procure pelo nome e toque nela.",
+  rotuloIncluir = "incluir",
+  tom = "slate",
 }: {
   pecas: Peca[];
   naLista: Set<string>;
   onEscolher: (p: Peca) => void;
+  titulo?: string;
+  rotuloIncluir?: string;
+  tom?: "slate" | "violet";
 }) {
   const [termo, setTermo] = useState("");
   const resultados = useMemo(() => filtrarPecas(pecas, termo), [pecas, termo]);
@@ -1042,10 +1150,15 @@ function BuscaPeca({
     setTermo("");
   };
   return (
-    <div className="bg-slate-800/40 border border-dashed border-slate-600 rounded-xl p-3 space-y-2">
-      <p className="text-xs font-bold text-slate-200">
-        Voltou outra peça? Procure pelo nome e toque nela.
-      </p>
+    <div
+      className={cn(
+        "border border-dashed rounded-xl p-3 space-y-2",
+        tom === "violet"
+          ? "bg-violet-500/10 border-violet-400/60"
+          : "bg-slate-800/40 border-slate-600",
+      )}
+    >
+      <p className="text-xs font-bold text-slate-200">{titulo}</p>
       <CampoBusca
         value={termo}
         onChange={setTermo}
@@ -1073,7 +1186,7 @@ function BuscaPeca({
                   </span>
                 ) : (
                   <span className="text-[10px] font-black uppercase text-emerald-300 shrink-0 flex items-center gap-1">
-                    <Plus size={12} /> incluir
+                    <Plus size={12} /> {rotuloIncluir}
                   </span>
                 )}
               </button>

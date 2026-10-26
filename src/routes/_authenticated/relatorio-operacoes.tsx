@@ -26,7 +26,13 @@ import { useUnidade } from "@/lib/unidade-context";
 import { cn } from "@/lib/utils";
 import { todaySP } from "@/lib/tz";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { detalheIndicador, type IndicadorLav } from "@/lib/lavanderia-detalhe";
 import { requireGestor } from "@/lib/require-gestor";
 import {
@@ -217,7 +223,8 @@ function Kpi({
       onClick={onClick}
       className={cn(
         "p-4 rounded-2xl border shadow-sm text-left w-full",
-        onClick && "transition hover:shadow-md hover:-translate-y-0.5 active:scale-[.99] cursor-pointer",
+        onClick &&
+          "transition hover:shadow-md hover:-translate-y-0.5 active:scale-[.99] cursor-pointer",
         tom === "red"
           ? "bg-red-50 border-red-200"
           : tom === "amber"
@@ -235,7 +242,9 @@ function Kpi({
         {valor}
       </p>
       {sub && <p className="text-[11px] text-slate-500 mt-1">{sub}</p>}
-      {onClick && <p className="text-[10px] font-bold text-blue-600 mt-1">Toque para ver o detalhe</p>}
+      {onClick && (
+        <p className="text-[10px] font-bold text-blue-600 mt-1">Toque para ver o detalhe</p>
+      )}
     </Tag>
   );
 }
@@ -251,7 +260,8 @@ const EXPLICA_INDICADOR: Record<IndicadorLav, string> = {
   agora: "Peças que estão na lavanderia: talões ainda não devolvidos + relave pendente.",
   coleta: "Talões devolvidos em que a contagem da lavanderia não bateu com a do hotel na coleta.",
   relave: "Peças que ficaram na lavanderia para lavar de novo e ainda não voltaram.",
-  descontos: "Peças que saíram da lavanderia e não chegaram (a camareira contou menos). Descontar do pagamento.",
+  descontos:
+    "Peças que saíram da lavanderia e não chegaram (a camareira contou menos). Descontar do pagamento.",
   pagar: "Peças que entram no pagamento (o menor entre o que saiu da lavanderia e o contado).",
 };
 
@@ -267,7 +277,10 @@ function DetalheIndicadorDialog({
   pecas: Peca[];
   onClose: () => void;
 }) {
-  const d = useMemo(() => (tipo ? detalheIndicador(tipo, taloes, pecas) : null), [tipo, taloes, pecas]);
+  const d = useMemo(
+    () => (tipo ? detalheIndicador(tipo, taloes, pecas) : null),
+    [tipo, taloes, pecas],
+  );
   return (
     <Dialog open={!!tipo} onOpenChange={(v) => !v && onClose()}>
       <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
@@ -286,15 +299,22 @@ function DetalheIndicadorDialog({
               <div className="space-y-4">
                 {d.porPeca.length > 0 && (
                   <div>
-                    <p className="mb-1 text-[11px] font-black uppercase tracking-wider text-slate-500">Por peça</p>
+                    <p className="mb-1 text-[11px] font-black uppercase tracking-wider text-slate-500">
+                      Por peça
+                    </p>
                     <div className="divide-y rounded-xl border">
                       {d.porPeca.map((l) => (
-                        <div key={l.peca} className="flex items-center justify-between px-3 py-2 text-sm">
+                        <div
+                          key={l.peca}
+                          className="flex items-center justify-between px-3 py-2 text-sm"
+                        >
                           <span className="font-semibold text-slate-800">{l.peca}</span>
                           <span className="font-black text-slate-900">
                             {l.qtd}
                             {l.valor !== undefined && (
-                              <span className="ml-2 text-xs font-semibold text-slate-500">{brl.format(l.valor)}</span>
+                              <span className="ml-2 text-xs font-semibold text-slate-500">
+                                {brl.format(l.valor)}
+                              </span>
                             )}
                           </span>
                         </div>
@@ -404,8 +424,18 @@ function SaldoTab({
   const totDesc = faltas.reduce((s, f) => s + f.qtd, 0);
   const linhas = todas
     ? saldo
-    : saldo.filter((l) => l.emAberto || l.relavePendente || l.difColeta || l.desconto || l.aPagar);
-  const ordemAlerta = { coleta: 0, desconto: 1, parado: 2, relave: 3, sequencia: 4 } as const;
+    : saldo.filter(
+        (l) =>
+          l.emAberto || l.relavePendente || l.difColeta || l.desconto || l.aPagar || l.relaveHotel,
+      );
+  const ordemAlerta = {
+    coleta: 0,
+    desconto: 1,
+    parado: 2,
+    relave: 3,
+    relaveHotel: 4,
+    sequencia: 5,
+  } as const;
   const alertasOrd = [...alertas].sort((a, b) => ordemAlerta[a.tipo] - ordemAlerta[b.tipo]);
 
   return (
@@ -450,7 +480,12 @@ function SaldoTab({
         />
       </div>
 
-      <DetalheIndicadorDialog tipo={detalhe} taloes={taloes} pecas={pecas} onClose={() => setDetalhe(null)} />
+      <DetalheIndicadorDialog
+        tipo={detalhe}
+        taloes={taloes}
+        pecas={pecas}
+        onClose={() => setDetalhe(null)}
+      />
 
       <LegendaDiferencas />
 
@@ -469,29 +504,29 @@ function SaldoTab({
             </span>
           </button>
           {atencaoAberta && (
-          <ul className="divide-y divide-slate-100">
-            {alertasOrd.map((a, i) => (
-              <li
-                key={i}
-                className={cn(
-                  "px-4 py-2.5 text-sm flex gap-2 items-start",
-                  a.tipo === "coleta" || a.tipo === "desconto"
-                    ? "bg-red-50 text-red-800 font-semibold"
-                    : a.tipo === "relave"
-                      ? "bg-amber-50 text-amber-900"
-                      : "text-slate-700",
-                )}
-              >
-                <span
+            <ul className="divide-y divide-slate-100">
+              {alertasOrd.map((a, i) => (
+                <li
+                  key={i}
                   className={cn(
-                    "mt-1.5 h-2 w-2 rounded-full shrink-0",
-                    a.tipo === "relave" || a.nivel === "medio" ? "bg-amber-400" : "bg-red-500",
+                    "px-4 py-2.5 text-sm flex gap-2 items-start",
+                    a.tipo === "coleta" || a.tipo === "desconto"
+                      ? "bg-red-50 text-red-800 font-semibold"
+                      : a.tipo === "relave"
+                        ? "bg-amber-50 text-amber-900"
+                        : "text-slate-700",
                   )}
-                />
-                <span>{a.texto}</span>
-              </li>
-            ))}
-          </ul>
+                >
+                  <span
+                    className={cn(
+                      "mt-1.5 h-2 w-2 rounded-full shrink-0",
+                      a.tipo === "relave" || a.nivel === "medio" ? "bg-amber-400" : "bg-red-500",
+                    )}
+                  />
+                  <span>{a.texto}</span>
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
@@ -519,6 +554,12 @@ function SaldoTab({
                   <th className="p-3 text-right bg-blue-50 text-blue-800">Na lavanderia</th>
                   <th className="p-3 text-right">Em talões abertos</th>
                   <th className="p-3 text-right text-amber-700">B · Relave pendente</th>
+                  <th
+                    className="p-3 text-right text-violet-700"
+                    title="Peças que as camareiras separaram para relave (não pagas)"
+                  >
+                    ♻ Relave do hotel
+                  </th>
                   <th className="p-3 text-right text-red-700">A · Hotel × Lav.</th>
                   <th className="p-3 text-right text-red-700">C · Descontos</th>
                   <th className="p-3 text-right">Pagas</th>
@@ -533,6 +574,14 @@ function SaldoTab({
                     </td>
                     <td className="p-3 text-right text-slate-600">{l.emAberto}</td>
                     <CelDif v={l.relavePendente} tipo="B" className="p-3" />
+                    <td
+                      className={cn(
+                        "p-3 text-right font-black",
+                        l.relaveHotel ? "text-violet-700 bg-violet-50" : "text-slate-300",
+                      )}
+                    >
+                      {l.relaveHotel}
+                    </td>
                     <CelDif v={l.difColeta} tipo="A" className="p-3" />
                     <CelDif v={l.desconto} tipo="C" className="p-3" />
                     <td className="p-3 text-right text-slate-600">{l.aPagar}</td>
@@ -711,7 +760,14 @@ function TalaoLinha({
           <br />
           <span className="text-slate-400">{t.coleta_por_nome}</span>
         </td>
-        <td className="p-3 text-right font-bold">{r.saida}</td>
+        <td className="p-3 text-right font-bold">
+          {r.saida}
+          {r.relaveHotel > 0 && (
+            <span className="block text-[10px] font-bold text-violet-700">
+              ♻ {r.relaveHotel} relave
+            </span>
+          )}
+        </td>
         <td className="p-3 text-right">{r.entLav ?? "—"}</td>
         <CelDif v={r.difColeta} tipo="A" className="p-3" />
         <td className="p-3 text-right">{r.saidaLav ?? "—"}</td>
@@ -772,7 +828,14 @@ function TalaoLinha({
                         <td className="p-2 font-semibold">
                           {nome.get(i.peca_id)?.nome ?? "Peça removida"}
                         </td>
-                        <td className="p-2 text-right">{i.saida_hotel}</td>
+                        <td className="p-2 text-right">
+                          {i.saida_hotel}
+                          {(i.relave_hotel ?? 0) > 0 && (
+                            <span className="block text-[10px] font-bold text-violet-700">
+                              ♻ {i.relave_hotel} relave
+                            </span>
+                          )}
+                        </td>
                         <td className="p-2 text-right">{d ? d.entLav : "—"}</td>
                         <CelDif v={d ? d.difColeta : null} tipo="A" />
                         <td className="p-2 text-right">{d ? d.saidaLav : "—"}</td>
@@ -989,7 +1052,11 @@ function FechamentoTab({
         <Kpi
           titulo="C · Descontos"
           valor={brl.format(f.valorDesconto)}
-          sub={`${f.totalDesconto} peça(s) saíram da lavanderia e não chegaram`}
+          sub={`${f.totalDesconto} peça(s) saíram da lavanderia e não chegaram${
+            f.totalRelaveHotel
+              ? ` · ♻ ${f.totalRelaveHotel} de relave do hotel fora do pagamento (${brl.format(f.valorRelaveHotel)})`
+              : ""
+          }`}
           tom={f.totalDesconto ? "red" : undefined}
         />
         <Kpi
@@ -1017,7 +1084,8 @@ function FechamentoTab({
       <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-900 leading-relaxed">
         <b>Regra do pagamento:</b> vale o que <b>saiu da lavanderia</b> (Saída Lav.). Se a camareira
         contou menos ao guardar, paga-se o que ela contou e a diferença é descontada (ex.: saiu 8,
-        contou 7 → paga 7). Relave (B) não é pago agora: entra quando voltar em outro talão.
+        contou 7 → paga 7). Relave (B) não é pago agora: entra quando voltar em outro talão. Peças ♻
+        que as camareiras mandaram para relave não são pagas.
       </div>
 
       {(f.taloesSemRetorno.length > 0 || f.numerosFaltando.length > 0 || faltas.length > 0) && (
@@ -1070,7 +1138,14 @@ function FechamentoTab({
               <tr key={l.grupo} className="border-t border-slate-100">
                 <td className="p-3 font-semibold text-slate-800">{l.grupo}</td>
                 <td className="p-3 text-right text-slate-500">{brl.format(l.preco)}</td>
-                <td className="p-3 text-right">{l.qtdHotel}</td>
+                <td className="p-3 text-right">
+                  {l.qtdHotel}
+                  {l.qtdRelaveHotel > 0 && (
+                    <span className="block text-[10px] font-bold text-violet-700">
+                      ♻ {l.qtdRelaveHotel} relave (não pago)
+                    </span>
+                  )}
+                </td>
                 <td className="p-3 text-right">{l.qtdEntLav}</td>
                 <td className="p-3 text-right font-bold">{l.qtdSaidaLav}</td>
                 <CelDif v={l.qtdRelave} tipo="B" className="p-3" />
@@ -1116,7 +1191,14 @@ function FechamentoTab({
             <tr className="border-t-2 border-slate-300 bg-slate-50 font-black">
               <td className="p-3">Total</td>
               <td />
-              <td className="p-3 text-right">{f.totalPecasHotel}</td>
+              <td className="p-3 text-right">
+                {f.totalPecasHotel}
+                {f.totalRelaveHotel > 0 && (
+                  <span className="block text-[10px] text-violet-700">
+                    ♻ {f.totalRelaveHotel} relave
+                  </span>
+                )}
+              </td>
               <td className="p-3 text-right">{f.linhas.reduce((s, l) => s + l.qtdEntLav, 0)}</td>
               <td className="p-3 text-right">{f.totalSaidaLav}</td>
               <CelDif v={f.totalRelave} tipo="B" className="p-3" />
@@ -1218,7 +1300,14 @@ function FechamentoTab({
                 <tr key={t.id} className="border-t border-slate-100">
                   <td className="p-2">{dataBR(t.data_coleta)}</td>
                   <td className="p-2 font-black text-sky-800">{t.numero}</td>
-                  <td className="p-2 text-right">{r.saida}</td>
+                  <td className="p-2 text-right">
+                    {r.saida}
+                    {r.relaveHotel > 0 && (
+                      <span className="block text-[10px] font-bold text-violet-700">
+                        ♻ {r.relaveHotel}
+                      </span>
+                    )}
+                  </td>
                   <td className="p-2 text-right">{r.entLav ?? "—"}</td>
                   <CelDif v={r.difColeta} tipo="A" />
                   <td className="p-2 text-right">{r.saidaLav ?? "—"}</td>
@@ -1269,7 +1358,7 @@ function imprimirFechamento(
     .filter((l) => l.qtdHotel || l.qtdSaidaLav || l.qtdFatura)
     .map(
       (l) =>
-        `<tr><td>${esc(l.grupo)}</td><td>${brl.format(l.preco)}</td><td>${l.qtdHotel}</td><td>${l.qtdEntLav}</td><td>${l.qtdSaidaLav}</td><td>${sinal(
+        `<tr><td>${esc(l.grupo)}</td><td>${brl.format(l.preco)}</td><td>${l.qtdHotel}${l.qtdRelaveHotel ? ` (♻ ${l.qtdRelaveHotel} relave)` : ""}</td><td>${l.qtdEntLav}</td><td>${l.qtdSaidaLav}</td><td>${sinal(
           l.qtdRelave,
         )}</td><td>${l.qtdContado}</td><td class="v">${l.qtdDesconto ? "−" + l.qtdDesconto : "0"}</td><td><b>${l.qtdPagar}</b></td><td><b>${brl.format(
           l.valorPagar,
@@ -1279,7 +1368,7 @@ function imprimirFechamento(
   const taloes = f.taloes
     .map((t) => {
       const r = resumoTalao(t, todaySP());
-      return `<tr><td>${dataBR(t.data_coleta)}</td><td>${esc(t.numero)}</td><td>${r.saida}</td><td>${r.entLav ?? "—"}</td><td class="v">${
+      return `<tr><td>${dataBR(t.data_coleta)}</td><td>${esc(t.numero)}</td><td>${r.saida}${r.relaveHotel ? ` (♻ ${r.relaveHotel})` : ""}</td><td>${r.entLav ?? "—"}</td><td class="v">${
         r.difColeta ? sinal(r.difColeta) : ""
       }</td><td>${r.saidaLav ?? "—"}</td><td>${r.relave ? sinal(r.relave) : ""}</td><td>${r.guardado ?? "sem retorno"}</td><td class="v">${
         r.desconto ? "−" + r.desconto : ""
@@ -1297,7 +1386,7 @@ th{background:#eee}.r{display:flex;gap:22px;margin-top:8px;font-size:13px}.b{fon
   )}</span></div><div>Fatura: <span class="b">${valorFatura === null ? "—" : brl.format(valorFatura)}</span></div><div>Fatura − a pagar: <span class="b">${
     dif === null ? "—" : brl.format(dif)
   }</span></div></div>
-<div class="n">Regra: paga-se o que saiu da lavanderia; se a camareira contou menos, paga-se o contado. Relave (B) entra quando voltar.</div>
+<div class="n">Regra: paga-se o que saiu da lavanderia; se a camareira contou menos, paga-se o contado. Relave (B) entra quando voltar. Peças ♻ de relave mandadas pelo hotel não são pagas.</div>
 <h2>Por coluna da fatura</h2><table><tr><th>Coluna</th><th>Preço</th><th>Saída hotel</th><th>Ent. Lav.</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desconto</th><th>Qtd a pagar</th><th>Valor a pagar</th><th>Fatura</th></tr>${linhas}</table>
 ${
   faltas.length

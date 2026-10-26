@@ -80,6 +80,15 @@ Combinado com o Rodrigo:
   `src/lib/lavanderia-detalhe.ts`, com testes: o total do detalhe sempre bate com o número do card). O quadro
   "Atenção" começa recolhido e abre ao tocar.
 
+### Relave separado pelas camareiras (0083, 26/10/2026)
+- Na coleta, seção "♻ Relave" com busca: a camareira acha a peça, toca e digita a quantidade. As peças vão
+  **no mesmo talão** (entram na Saída Hotel) e ficam em `lav_talao_itens.relave_hotel`.
+- **Não são pagas**: a quantidade paga da peça é min(Saída Lav., Contado) − relave do hotel (nunca negativa).
+- Aparecem no Saldo (coluna "♻ Relave do hotel"), nos Talões (♻ na Saída Hotel), no Retorno, nos avisos e no
+  Fechamento/PDF ("relave do hotel fora do pagamento").
+- A 0083 também reaplica a 0046 da lavanderia, que não tinha sido aplicada (o número 0046 foi usado pela
+  escala): catálogo completo + correção única da Saída Lav. em branco gravada como 0 (`lav_preparar` v3).
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",
