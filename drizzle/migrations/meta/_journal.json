@@ -568,6 +568,13 @@
       "when": 1793018446882,
       "tag": "0080_0081_whatsapp_testes",
       "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1793045066238,
+      "tag": "0081_0082_escala_padrao_rodizio",
+      "breakpoints": true
     }
   ]
 }
