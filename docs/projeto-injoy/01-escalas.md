@@ -128,6 +128,12 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   botão que soma, por pessoa (funcionário vinculado ou freelancer pelo nome), o que falta pagar no mês/unidade do filtro
   (a pagar + vencido), o já pago e o detalhe por categoria e por lançamento; exporta planilha e PDF. Despesas sem pessoa
   (fornecedores/contas) aparecem só num aviso. Código: `src/lib/financeiro-por-pessoa.ts`.
+- Editar o dia na Escala (branch `feat/escala-gleidiane-editar`, sem migração): no diálogo "Editar dia" (clicar na pessoa no
+  calendário) agora há **Passar este dia para outra pessoa** (quem estava fica de folga e a escolhida assume o horário; só
+  pessoas do mesmo setor/unidade), **Tirar da escala neste dia** (fixo vira folga manual, para não voltar ao gerar o mês de novo)
+  e o **Excluir dia** de plantão extra/freelancer que já existia. Mudar uma fixa para 5x2 revezamento (caso da Gleidiane) é em
+  Equipe › editar: Padrão "5x2 revezamento", domingo em que folgou, folga fixa semanal e segunda folga; depois **Gerar escala
+  do mês**. As regras (domingo sim/não, sem sexta+sábado de folga, etc.) são do padrão, iguais às da Maria.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
