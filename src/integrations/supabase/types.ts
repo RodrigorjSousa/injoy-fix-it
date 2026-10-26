@@ -4686,6 +4686,77 @@ export type Database = {
           },
         ]
       }
+      wa_testes: {
+        Row: {
+          aprovado: boolean | null
+          cenario_id: string
+          conversa_id: string | null
+          created_at: string
+          criado_por: string | null
+          erro: string | null
+          falhas: Json
+          id: string
+          lote: string | null
+          nota: number | null
+          resumo: string | null
+          status: string
+          sugestoes: Json
+          titulo: string
+          tokens_entrada: number
+          tokens_saida: number
+          turnos: number
+          updated_at: string
+        }
+        Insert: {
+          aprovado?: boolean | null
+          cenario_id: string
+          conversa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          erro?: string | null
+          falhas?: Json
+          id?: string
+          lote?: string | null
+          nota?: number | null
+          resumo?: string | null
+          status?: string
+          sugestoes?: Json
+          titulo?: string
+          tokens_entrada?: number
+          tokens_saida?: number
+          turnos?: number
+          updated_at?: string
+        }
+        Update: {
+          aprovado?: boolean | null
+          cenario_id?: string
+          conversa_id?: string | null
+          created_at?: string
+          criado_por?: string | null
+          erro?: string | null
+          falhas?: Json
+          id?: string
+          lote?: string | null
+          nota?: number | null
+          resumo?: string | null
+          status?: string
+          sugestoes?: Json
+          titulo?: string
+          tokens_entrada?: number
+          tokens_saida?: number
+          turnos?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wa_testes_conversa_id_fkey"
+            columns: ["conversa_id"]
+            isOneToOne: false
+            referencedRelation: "wa_conversas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       escala_alertas_financeiros: {
