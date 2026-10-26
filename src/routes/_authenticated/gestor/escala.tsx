@@ -23,7 +23,7 @@ import { requireGestor } from "@/lib/require-gestor";
 import { cn } from "@/lib/utils";
 import { PlantoesDialog, type AlvoPlantoes } from "@/components/escala/plantoes-freelancer";
 import {
-  addCivilDays, calculateEndTime, civilDow, civilRange, generatePatternMonth, generatePatternMonthUnits, isDuasUnidades, monthBounds, planejarFerias, resolveRevezamento,
+  addCivilDays, calcularRodizio, calculateEndTime, civilDow, civilRange, generatePatternMonth, generatePatternMonthUnits, isDuasUnidades, monthBounds, planejarFerias, resolveRevezamento,
   validateSchedule, type ScheduleIssue, type ValidationPerson,
 } from "@/lib/escala-engine";
 import {
@@ -111,12 +111,14 @@ function ScheduleWorkspace({year,month,unit,sector,view,people,allPeople,days,co
   const doGenerate=async()=>{if(unit==="Ambas")return toast.error("Selecione Botafogo ou Ipanema para gerar; Ambas é uma visão consolidada.");
     const fixos=allPeople.filter(p=>p.ativo&&p.vinculo==="fixo"&&p.setor===sector);
     const split=(p:EscalaColaborador)=>{const pt=activePattern(p);return !!pt&&isDuasUnidades(pt);};
+    // Rodízio de folgas: calculado junto para quem está no rodízio nas duas unidades (não folgam no mesmo dia)
+    const rodizio=calcularRodizio(allPeople.filter(p=>p.ativo&&p.vinculo==="fixo"&&p.setor===sector).flatMap(p=>{const pt=activePattern(p);return pt&&pt.tipo==="5x2_revezamento"&&pt.rodizio&&pt.data_base?[{id:p.id,data_base:pt.data_base}]:[];}),bounds.end);
     // Quem divide os dias entre as unidades faz o mês das duas unidades ser gerado junto
     const targets:("Botafogo"|"Ipanema")[]=fixos.some(p=>p.unidade==="Ambas"&&split(p))?["Botafogo","Ipanema"]:[unit];
     const missing:string[]=[];const adjusted:string[]=[];const byUnit=new Map<"Botafogo"|"Ipanema",{colaborador_id:string;data:string;status:"trabalho"|"folga";turno:"manha"|"noite"|"dia";hora_entrada:string|null;hora_saida:string|null}[]>();
     for(const u of targets){const rows:{colaborador_id:string;data:string;status:"trabalho"|"folga";turno:"manha"|"noite"|"dia";hora_entrada:string|null;hora_saida:string|null}[]=[];
       for(const person of fixos.filter(p=>appliesTo(p,u))){const isSplit=person.unidade==="Ambas"&&split(person);if(!isSplit&&u!==unit)continue;const p=activePattern(person);if(!p){if(u===unit)missing.push(`${person.nome}: padrão`);continue;}if(p.tipo!=="5x2_fixo"&&!p.data_base){if(u===unit)missing.push(`${person.nome}: data-base`);continue;}if(u===unit&&p.tipo==="5x2_revezamento"&&resolveRevezamento(p).ajustado)adjusted.push(person.nome);
-        const gen=isSplit?generatePatternMonthUnits(p,year,month).filter(d=>d.unidade===u).map(({data,status})=>({data,status})):generatePatternMonth(p,year,month);
+        const gen=isSplit?generatePatternMonthUnits(p,year,month).filter(d=>d.unidade===u).map(({data,status})=>({data,status})):generatePatternMonth(p,year,month,rodizio.get(person.id));
         for(const d of gen)rows.push({...d,colaborador_id:person.id,turno:person.turno_padrao??"dia",hora_entrada:p.hora_entrada,hora_saida:p.hora_saida});}
       byUnit.set(u,rows);}
     if(missing.length)return toast.error("Complete os padrões antes de gerar",{description:missing.join(" · ")});

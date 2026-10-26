@@ -1152,6 +1152,7 @@ export type Database = {
           data_base: string | null
           dias_ipanema: number[] | null
           distribuicao: string | null
+          rodizio: boolean
           folga_semana_a: number | null
           folga_semana_b: number | null
           folgas_fixas: number[]
@@ -1171,6 +1172,7 @@ export type Database = {
           data_base?: string | null
           dias_ipanema?: number[] | null
           distribuicao?: string | null
+          rodizio?: boolean
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -1190,6 +1192,7 @@ export type Database = {
           data_base?: string | null
           dias_ipanema?: number[] | null
           distribuicao?: string | null
+          rodizio?: boolean
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]

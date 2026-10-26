@@ -46,6 +46,8 @@ export interface EscalaPadrao {
   proporcao_botafogo?: number | null;
   proporcao_ipanema?: number | null;
   distribuicao?: "semana" | "bloco" | null;
+  /** 5x2 revezamento com folgas que mudam de dia a cada semana. */
+  rodizio?: boolean | null;
   vigente_desde: string;
   vigente_ate: string | null;
 }
@@ -284,13 +286,19 @@ export function useSalvarEscalaColaborador() {
           distribuicao: input.padrao.distribuicao === "bloco" ? "bloco" : null,
           vigente_desde: input.padrao.vigente_desde,
         };
-        if (existing) {
-          const { error } = await supabase.from("escala_padroes").update(pattern).eq("id", existing.id);
-          if (error) throw new Error(error.message);
-        } else {
-          const { error } = await supabase.from("escala_padroes").insert({ colaborador_id: colaboradorId, ...pattern });
-          if (error) throw new Error(error.message);
+        // rodizio só existe depois da migração 0082: sem a coluna, salva o resto (e avisa se o rodízio foi pedido).
+        const rodizio = input.padrao.tipo === "5x2_revezamento" && !!input.padrao.rodizio;
+        const semColunaRodizio = (e: { code?: string; message?: string } | null) => !!e && (e.code === "42703" || e.code === "PGRST204") && /rodizio/.test(e.message ?? "");
+        const pClient = supabase as unknown as SupabaseClient<DatabaseComColaboradoresPendentes>;
+        const gravar = (row: Record<string, unknown>) => existing
+          ? (pClient as unknown as SupabaseClient).from("escala_padroes").update(row).eq("id", existing.id)
+          : (pClient as unknown as SupabaseClient).from("escala_padroes").insert({ colaborador_id: colaboradorId, ...row });
+        let { error } = await gravar({ ...pattern, rodizio });
+        if (semColunaRodizio(error)) {
+          if (rodizio) throw new Error("Para usar folgas variadas, aplique a migração 0082_escala_padrao_rodizio.sql no Lovable.");
+          ({ error } = await gravar(pattern));
         }
+        if (error) throw new Error(error.message);
       }
       return colaboradorId;
     },

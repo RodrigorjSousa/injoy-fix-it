@@ -1,5 +1,5 @@
 // Limpar a escala (toda ou de uma pessoa) e incluir uma pessoa fixa (mês completo ou mesclado).
-import { civilRange, generatePatternMonth, monthBounds, worksOnDate, type EnginePattern } from "@/lib/escala-engine";
+import { civilRange, generatePatternMonth, monthBounds, RODIZIO_EPOCA, worksOnDate, type EnginePattern } from "@/lib/escala-engine";
 
 export type LimparDia = { id: string; colaborador_id: string; status: string; origem: string; modalidade_id: string | null };
 export type EscopoLimpar = { tipo: "tudo"; incluirExtras: boolean } | { tipo: "pessoa"; colaboradorId: string };
@@ -29,13 +29,13 @@ export type ExistenteDia = { data: string; status: string; origem: string };
  */
 export function montarInclusao(args: {
   modo: "completa" | "mesclada"; pattern: EnginePattern | null; ano: number; mes: number;
-  inicio: string; fim: string; somentePadrao: boolean; existentes: ExistenteDia[];
+  inicio: string; fim: string; somentePadrao: boolean; existentes: ExistenteDia[]; folgasRodizio?: Set<string>;
 }): InclusaoDia[] {
-  const { modo, pattern, ano, mes, inicio, fim, somentePadrao, existentes } = args;
+  const { modo, pattern, ano, mes, inicio, fim, somentePadrao, existentes, folgasRodizio } = args;
   const por = new Map(existentes.map((e) => [e.data, e]));
   if (modo === "completa") {
     if (!pattern) return [];
-    return generatePatternMonth(pattern, ano, mes)
+    return generatePatternMonth(pattern, ano, mes, folgasRodizio)
       .filter((d) => por.get(d.data)?.origem !== "manual")
       .map((d) => ({ data: d.data, status: d.status, origem: "gerado" as const }));
   }
@@ -43,7 +43,7 @@ export function montarInclusao(args: {
   const de = inicio < b.start ? b.start : inicio, ate = fim > b.end ? b.end : fim;
   if (ate < de) return [];
   return civilRange(de, ate)
-    .filter((data) => !somentePadrao || (pattern ? worksOnDate(pattern, data) : false))
+    .filter((data) => !somentePadrao || (pattern ? (folgasRodizio && data >= RODIZIO_EPOCA ? !folgasRodizio.has(data) : worksOnDate(pattern, data)) : false))
     .filter((data) => { const e = por.get(data); return !e || !["trabalho", "extra"].includes(e.status); })
     .map((data) => ({ data, status: "trabalho" as const, origem: "manual" as const }));
 }
