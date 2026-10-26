@@ -28,6 +28,8 @@ export type TalaoItem = {
   ent_lav: number | null;
   saida_lav: number | null;
   guardado: number | null;
+  /** Parte da saida_hotel que a camareira separou para RELAVE (não é paga). Ausente antes da 0083. */
+  relave_hotel?: number | null;
 };
 
 export type Talao = {
@@ -94,6 +96,10 @@ export type DifItem = {
   aPagar: number;
   /** Camareira contou mais do que a lavanderia anotou (não paga a mais; só informa). */
   contouAMais: number;
+  /** Peças que a camareira mandou para relave neste talão (fazem parte da saidaHotel). */
+  relaveHotel: number;
+  /** Quantas das peças de relave do hotel foram tiradas do pagamento. */
+  relaveHotelNaoPago: number;
 };
 
 export function difItem(it: TalaoItem): DifItem {
@@ -101,6 +107,9 @@ export function difItem(it: TalaoItem): DifItem {
   const entLav = it.ent_lav === null ? saidaHotel : n(it.ent_lav);
   const contado = n(it.guardado);
   const saidaLav = it.saida_lav === null ? contado : n(it.saida_lav);
+  const relaveHotel = n(it.relave_hotel);
+  const recebido = Math.min(saidaLav, contado);
+  const relaveHotelNaoPago = Math.min(relaveHotel, recebido);
   return {
     peca_id: it.peca_id,
     saidaHotel,
@@ -110,8 +119,11 @@ export function difItem(it: TalaoItem): DifItem {
     difColeta: entLav - saidaHotel,
     relave: entLav - saidaLav,
     desconto: Math.max(0, saidaLav - contado),
-    aPagar: Math.min(saidaLav, contado),
+    // Relave mandado pelo hotel é refazer o serviço: sai do pagamento.
+    aPagar: recebido - relaveHotelNaoPago,
     contouAMais: Math.max(0, contado - saidaLav),
+    relaveHotel,
+    relaveHotelNaoPago,
   };
 }
 
@@ -129,6 +141,8 @@ export type ResumoTalao = {
   /** C) peças a descontar (soma por peça). */
   desconto: number | null;
   aPagar: number | null;
+  /** Peças separadas pelas camareiras para relave neste talão (vale também com o talão aberto). */
+  relaveHotel: number;
   aberto: boolean;
   dias: number;
 };
@@ -136,9 +150,11 @@ export type ResumoTalao = {
 export function resumoTalao(t: Talao, hoje: string): ResumoTalao {
   const aberto = talaoAberto(t);
   const saida = t.itens.reduce((s, i) => s + n(i.saida_hotel), 0);
+  const relaveHotel = t.itens.reduce((s, i) => s + n(i.relave_hotel), 0);
   if (aberto) {
     return {
       saida,
+      relaveHotel,
       entLav: null,
       saidaLav: null,
       guardado: null,
@@ -163,6 +179,7 @@ export function resumoTalao(t: Talao, hoje: string): ResumoTalao {
     relave: soma((x) => x.relave),
     desconto: soma((x) => x.desconto),
     aPagar: soma((x) => x.aPagar),
+    relaveHotel,
     aberto,
     dias: diasEntre(t.data_coleta, t.retorno_data!),
   };
@@ -182,6 +199,8 @@ export type LinhaSaldo = {
   desconto: number;
   /** Σ peças pagas (base do pagamento). */
   aPagar: number;
+  /** Σ peças que as camareiras mandaram para relave (todas, abertas ou devolvidas). */
+  relaveHotel: number;
 };
 
 /** Saldo de peças de uma unidade (use só talões dessa unidade). */
@@ -191,7 +210,17 @@ export function calcularSaldo(taloes: Talao[], pecas: Peca[], inicio = INICIO_SA
   const get = (id: string) => {
     let v = mapa.get(id);
     if (!v)
-      mapa.set(id, (v = { emAberto: 0, relavePendente: 0, difColeta: 0, desconto: 0, aPagar: 0 }));
+      mapa.set(
+        id,
+        (v = {
+          emAberto: 0,
+          relavePendente: 0,
+          difColeta: 0,
+          desconto: 0,
+          aPagar: 0,
+          relaveHotel: 0,
+        }),
+      );
     return v;
   };
   for (const t of taloes) {
@@ -199,6 +228,7 @@ export function calcularSaldo(taloes: Talao[], pecas: Peca[], inicio = INICIO_SA
     const aberto = talaoAberto(t);
     for (const it of t.itens) {
       const v = get(it.peca_id);
+      v.relaveHotel += n(it.relave_hotel);
       if (aberto) {
         v.emAberto += n(it.saida_hotel);
         continue;
@@ -220,6 +250,7 @@ export function calcularSaldo(taloes: Talao[], pecas: Peca[], inicio = INICIO_SA
         difColeta: 0,
         desconto: 0,
         aPagar: 0,
+        relaveHotel: 0,
       };
       return { peca, ...v, saldo: v.emAberto + v.relavePendente };
     });
@@ -242,7 +273,7 @@ export function numerosFaltando(numeros: string[], saltoMaximo = 30): number[] {
 
 export type Alerta = {
   nivel: "alto" | "medio";
-  tipo: "coleta" | "relave" | "desconto" | "parado" | "sequencia";
+  tipo: "coleta" | "relave" | "relaveHotel" | "desconto" | "parado" | "sequencia";
   talaoId?: string;
   texto: string;
 };
@@ -261,6 +292,16 @@ export function gerarAlertas(
   const ordenados = [...taloes].sort((a, b) => a.data_coleta.localeCompare(b.data_coleta));
   for (const t of ordenados) {
     const r = resumoTalao(t, hoje);
+    const relHotel = t.itens.filter((i) => n(i.relave_hotel) > 0);
+    if (relHotel.length)
+      alertas.push({
+        nivel: "medio",
+        tipo: "relaveHotel",
+        talaoId: t.id,
+        texto: `Talão nº ${t.numero}: as camareiras mandaram para relave ${relHotel
+          .map((i) => `${n(i.relave_hotel)} ${nome(i.peca_id)}`)
+          .join(", ")} — não entra no pagamento.`,
+      });
     if (r.aberto) {
       if (r.dias >= DIAS_ALERTA_ABERTO)
         alertas.push({
@@ -363,6 +404,9 @@ export type LinhaFechamento = {
   qtdDesconto: number;
   /** Relave do mês (Entrada Lav. − Saída Lav.). */
   qtdRelave: number;
+  /** Peças que as camareiras mandaram para relave (não pagas). */
+  qtdRelaveHotel: number;
+  valorRelaveHotel: number;
   valorPagar: number;
   valorDesconto: number;
   qtdFatura: number | null;
@@ -379,6 +423,8 @@ export type Fechamento = {
   totalPagar: number;
   totalDesconto: number;
   totalRelave: number;
+  totalRelaveHotel: number;
+  valorRelaveHotel: number;
   valorPagar: number;
   valorDesconto: number;
   valorFaturaCalculado: number | null;
@@ -425,6 +471,8 @@ export function calcularFechamento(
         qtdPagar: 0,
         qtdDesconto: 0,
         qtdRelave: 0,
+        qtdRelaveHotel: 0,
+        valorRelaveHotel: 0,
         valorPagar: 0,
         valorDesconto: 0,
         qtdFatura: null,
@@ -439,6 +487,7 @@ export function calcularFechamento(
       if (!p) continue;
       const g = grupos.get(p.grupo_fatura)!;
       g.qtdHotel += n(it.saida_hotel);
+      g.qtdRelaveHotel += n(it.relave_hotel);
       if (aberto) continue;
       const d = difItem(it);
       const preco = Number(p.preco);
@@ -450,6 +499,7 @@ export function calcularFechamento(
       g.qtdRelave += d.relave;
       g.valorPagar += d.aPagar * preco;
       g.valorDesconto += d.desconto * preco;
+      g.valorRelaveHotel += d.relaveHotelNaoPago * preco;
     }
   }
   let algumaFatura = false;
@@ -467,6 +517,7 @@ export function calcularFechamento(
         ...g,
         valorPagar: centavos(g.valorPagar),
         valorDesconto: centavos(g.valorDesconto),
+        valorRelaveHotel: centavos(g.valorRelaveHotel),
         qtdFatura: tem ? qf : null,
         valorFatura: tem ? centavos(qf * g.preco) : null,
         difQtd: tem ? qf - g.qtdSaidaLav : null,
@@ -481,6 +532,8 @@ export function calcularFechamento(
     totalPagar: soma((l) => l.qtdPagar),
     totalDesconto: soma((l) => l.qtdDesconto),
     totalRelave: soma((l) => l.qtdRelave),
+    totalRelaveHotel: soma((l) => l.qtdRelaveHotel),
+    valorRelaveHotel: centavos(soma((l) => l.valorRelaveHotel)),
     valorPagar: centavos(soma((l) => l.valorPagar)),
     valorDesconto: centavos(soma((l) => l.valorDesconto)),
     valorFaturaCalculado: algumaFatura ? centavos(valorFatura) : null,

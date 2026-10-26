@@ -369,3 +369,62 @@ describe("busca de peças", () => {
     expect(nomes("")).toHaveLength(PECAS.length);
   });
 });
+
+describe("relave separado pelas camareiras", () => {
+  const comRelave = (
+    relave: number,
+    saida: number,
+    ent: number | null,
+    sai: number | null,
+    cont: number | null,
+  ) => ({
+    ...item("Fronha", saida, ent, sai, cont),
+    relave_hotel: relave,
+  });
+  it("não paga as peças de relave mandadas pelo hotel", () => {
+    // 20 fronhas no talão, 3 delas eram relave; tudo voltou e foi contado.
+    const d = difItem(comRelave(3, 20, 20, 20, 20));
+    expect(d.relaveHotel).toBe(3);
+    expect(d.aPagar).toBe(17);
+    expect(d.relaveHotelNaoPago).toBe(3);
+  });
+  it("nunca paga negativo quando voltou menos que o relave", () => {
+    const d = difItem(comRelave(3, 5, 5, 2, 2));
+    expect(d.aPagar).toBe(0);
+    expect(d.relaveHotelNaoPago).toBe(2);
+  });
+  it("entra no saldo, nos alertas e no fechamento", () => {
+    const t = talao({
+      numero: "20400",
+      data_coleta: "2026-10-05",
+      retorno_data: "2026-10-07",
+      itens: [comRelave(3, 20, 20, 20, 20)],
+    });
+    const aberto = talao({
+      numero: "20401",
+      data_coleta: "2026-10-07",
+      itens: [comRelave(2, 10, null, null, null)],
+    });
+    const saldo = calcularSaldo([t, aberto], PECAS).find((l) => l.peca.id === "Fronha")!;
+    expect(saldo.relaveHotel).toBe(5);
+    expect(saldo.aPagar).toBe(17);
+    const alertas = gerarAlertas([t, aberto], [saldo], PECAS, "2026-10-08");
+    expect(
+      alertas
+        .filter((a) => a.tipo === "relaveHotel")
+        .map((a) => a.texto)
+        .join(" "),
+    ).toContain("mandaram para relave 3 Fronha");
+    const f = calcularFechamento([t, aberto], PECAS, "2026-10");
+    const fronha = f.linhas.find((l) => l.grupo === "Fronha")!;
+    expect(fronha.qtdRelaveHotel).toBe(5);
+    expect(fronha.qtdPagar).toBe(17);
+    expect(fronha.valorRelaveHotel).toBe(3.78); // 3 × 1,26 (só o que voltou)
+    expect(f.valorPagar).toBe(21.42);
+  });
+  it("talão aberto mostra o relave no resumo", () => {
+    expect(
+      resumoTalao(talao({ itens: [comRelave(2, 10, null, null, null)] }), "2026-10-02").relaveHotel,
+    ).toBe(2);
+  });
+});

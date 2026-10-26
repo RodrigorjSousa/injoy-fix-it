@@ -60,7 +60,7 @@ export async function buscarTaloes(
     let q = db
       .from("lav_taloes")
       .select(
-        "id, unidade, numero, data_coleta, coleta_por_nome, coleta_foto, coleta_obs, coleta_em, retorno_data, retorno_por_nome, retorno_foto, retorno_obs, retorno_em, lav_talao_itens(peca_id, saida_hotel, ent_lav, saida_lav, guardado)",
+        "id, unidade, numero, data_coleta, coleta_por_nome, coleta_foto, coleta_obs, coleta_em, retorno_data, retorno_por_nome, retorno_foto, retorno_obs, retorno_em, lav_talao_itens(*)",
       )
       .eq("unidade", unidade)
       .gte("data_coleta", desde);
@@ -122,7 +122,8 @@ export async function registrarColeta(args: {
   unidade: UnidadeLav;
   numero: string;
   data: string;
-  itens: { peca_id: string; qtd: number }[];
+  /** qtd = peças normais; relave = peças que a camareira separou para relave. */
+  itens: { peca_id: string; qtd: number; relave?: number }[];
   foto: string | null;
   obs?: string;
   talaoId?: string;
