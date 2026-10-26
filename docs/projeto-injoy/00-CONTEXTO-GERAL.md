@@ -250,3 +250,4 @@ das selfies antigas do ponto foi oferecida.
   `src/lib/chamados-quarto.ts` (a mesma da tela de abrir chamado). "Minha escala" no Painel começa recolhida.
 
 - Papéis de equipe (camareira, recepção, técnico) no Editar funcionário: gravados pelo servidor (`gestorDefinirPapelEquipe` em `src/lib/user-management.functions.ts`), porque o RLS de `user_roles` só deixa o admin inserir direto. Gestor/admin continuam só para admin.
+- Push para CAMAREIRAS (recado da recepção): destinatárias = papel `camareira` OU tela "camareiras" liberada no cadastro (`usuariosDasCamareiras` em `src/lib/push-destinatarios.ts`, mesma regra do menu `podeCamareira`). Antes só o papel contava.

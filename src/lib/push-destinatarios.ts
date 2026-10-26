@@ -10,6 +10,27 @@ export function usuariosDaRecepcao(
   papeis: PapelRow[],
   funcionarios: FuncionarioTelasRow[],
 ): string[] {
+  return usuariosComTela("recepcao", "recepcao", papeis, funcionarios);
+}
+
+/**
+ * Camareiras = papel `camareira` OU tela Camareiras liberada no cadastro (regra do menu `podeCamareira`).
+ * Antes o recado da recepção ia só pelo papel: quem foi liberada pela lista de telas não recebia.
+ */
+export function usuariosDasCamareiras(
+  papeis: PapelRow[],
+  funcionarios: FuncionarioTelasRow[],
+): string[] {
+  return usuariosComTela("camareira", "camareiras", papeis, funcionarios);
+}
+
+/** Mesma regra do menu: lista individual de telas manda; sem lista, vale o papel. */
+export function usuariosComTela(
+  papel: string,
+  tela: string,
+  papeis: PapelRow[],
+  funcionarios: FuncionarioTelasRow[],
+): string[] {
   const listaPorUsuario = new Map<string, string[] | null>();
   for (const f of funcionarios) {
     if (!f.user_id) continue;
@@ -25,16 +46,16 @@ export function usuariosDaRecepcao(
     }
   }
   const comPapel = new Set(
-    papeis.filter((p) => p.role === "recepcao" && p.user_id).map((p) => p.user_id as string),
+    papeis.filter((p) => p.role === papel && p.user_id).map((p) => p.user_id as string),
   );
 
   const saida = new Set<string>();
   for (const uid of comPapel) {
     const lista = listaPorUsuario.get(uid);
-    if (!Array.isArray(lista) || lista.includes("recepcao")) saida.add(uid);
+    if (!Array.isArray(lista) || lista.includes(tela)) saida.add(uid);
   }
   for (const [uid, lista] of listaPorUsuario) {
-    if (Array.isArray(lista) && lista.includes("recepcao")) saida.add(uid);
+    if (Array.isArray(lista) && lista.includes(tela)) saida.add(uid);
   }
   return [...saida];
 }

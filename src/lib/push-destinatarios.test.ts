@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { juntar, usuariosDaRecepcao } from "./push-destinatarios";
+import { juntar, usuariosDaRecepcao, usuariosDasCamareiras } from "./push-destinatarios";
 
 describe("usuariosDaRecepcao", () => {
   it("papel recepcao sem lista individual entra", () => {
@@ -40,5 +40,27 @@ describe("usuariosDaRecepcao", () => {
   });
   it("juntar sem repetir", () => {
     expect(juntar(["a", "b"], ["b", "c"], null)).toEqual(["a", "b", "c"]);
+  });
+});
+
+describe("usuariosDasCamareiras", () => {
+  it("camareira liberada só pela lista de telas recebe (sem o papel)", () => {
+    expect(
+      usuariosDasCamareiras(
+        [{ user_id: "m", role: "funcionario" }],
+        [{ user_id: "m", telas_permitidas: ["camareiras", "chat", "minha-escala"] }],
+      ),
+    ).toEqual(["m"]);
+  });
+  it("papel camareira sem lista individual recebe", () => {
+    expect(usuariosDasCamareiras([{ user_id: "a", role: "camareira" }], [])).toEqual(["a"]);
+  });
+  it("recepção não entra", () => {
+    expect(
+      usuariosDasCamareiras(
+        [{ user_id: "r", role: "recepcao" }],
+        [{ user_id: "r", telas_permitidas: ["recepcao"] }],
+      ),
+    ).toEqual([]);
   });
 });
