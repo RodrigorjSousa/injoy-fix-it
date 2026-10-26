@@ -1152,7 +1152,6 @@ export type Database = {
           data_base: string | null
           dias_ipanema: number[] | null
           distribuicao: string | null
-          rodizio: boolean
           folga_semana_a: number | null
           folga_semana_b: number | null
           folgas_fixas: number[]
@@ -1162,6 +1161,7 @@ export type Database = {
           intervalo_minutos: number | null
           proporcao_botafogo: number | null
           proporcao_ipanema: number | null
+          rodizio: boolean
           tipo: string
           vigente_ate: string | null
           vigente_desde: string
@@ -1172,7 +1172,6 @@ export type Database = {
           data_base?: string | null
           dias_ipanema?: number[] | null
           distribuicao?: string | null
-          rodizio?: boolean
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -1182,6 +1181,7 @@ export type Database = {
           intervalo_minutos?: number | null
           proporcao_botafogo?: number | null
           proporcao_ipanema?: number | null
+          rodizio?: boolean
           tipo: string
           vigente_ate?: string | null
           vigente_desde?: string
@@ -1192,7 +1192,6 @@ export type Database = {
           data_base?: string | null
           dias_ipanema?: number[] | null
           distribuicao?: string | null
-          rodizio?: boolean
           folga_semana_a?: number | null
           folga_semana_b?: number | null
           folgas_fixas?: number[]
@@ -1202,6 +1201,7 @@ export type Database = {
           intervalo_minutos?: number | null
           proporcao_botafogo?: number | null
           proporcao_ipanema?: number | null
+          rodizio?: boolean
           tipo?: string
           vigente_ate?: string | null
           vigente_desde?: string
