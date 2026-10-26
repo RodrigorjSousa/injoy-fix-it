@@ -17,6 +17,8 @@ export type EnginePattern = {
   proporcao_ipanema?: number | null;
   /** 'semana' (padrão): segue os dias da semana. 'bloco': os primeiros N dias de trabalho do mês em Botafogo e o resto em Ipanema. */
   distribuicao?: "semana" | "bloco" | null;
+  /** 5x2 revezamento com folgas que mudam a cada semana (rodízio), em vez de os mesmos dias da semana sempre. */
+  rodizio?: boolean | null;
 };
 export type GeneratedDay = { data: string; status: "trabalho" | "folga" };
 export type ValidationPerson = {
@@ -109,9 +111,47 @@ export function resolveRevezamento(pattern:Pick<EnginePattern,"folgas_fixas"|"fo
 export const descreverRevezamento=(c:Pick<RevezamentoCycle,"semanaDomingoFolga"|"semanaDomingoTrabalho">)=>
   `Semana com domingo de folga: ${c.semanaDomingoFolga.map(d=>DIAS_SEMANA[d]).join(" e ")}. Semana com domingo de trabalho: ${c.semanaDomingoTrabalho.map(d=>DIAS_SEMANA[d]).join(" e ")}.`;
 
-export function generatePatternMonth(pattern: EnginePattern, year:number, monthZero:number): GeneratedDay[] {
+export function generatePatternMonth(pattern: EnginePattern, year:number, monthZero:number, folgasRodizio?: Set<string>): GeneratedDay[] {
   const {start,end}=monthBounds(year,monthZero);
-  return civilRange(start,end).map(data=>({data,status:worksOnDate(pattern,data)?"trabalho":"folga"}));
+  return civilRange(start,end).map(data=>({data,status:(folgasRodizio&&data>=RODIZIO_EPOCA?!folgasRodizio.has(data):worksOnDate(pattern,data))?"trabalho":"folga"}));
+}
+
+/**
+ * Rodízio de folgas do 5x2 revezamento: as folgas mudam de dia a cada semana e as pessoas do rodízio
+ * (ex.: camareira de Botafogo e de Ipanema) não folgam no mesmo dia da semana quando há alternativa.
+ * Regras mantidas em todas as semanas: 2 folgas por semana, domingo sim/domingo não, nunca sexta+sábado
+ * nem sábado+domingo, e no máximo 5 dias seguidos de trabalho. O resultado de uma data não depende do mês gerado.
+ */
+export const RODIZIO_EPOCA="2026-01-04"; // domingo; antes disso vale o padrão fixo
+/** Combinações (folga na semana do domingo de folga, 1ª e 2ª folga na semana seguinte). Terça a sexta / segunda a sexta. */
+export const COMBOS_RODIZIO:[number,number,number][]=(()=>{const r:[number,number,number][]=[];for(let a=2;a<=5;a++)for(let d1=1;d1<a;d1++)for(let d2=d1+1;d2<=5;d2++)r.push([a,d1,d2]);return r;})();
+export function calcularRodizio(pessoas:{id:string;data_base:string}[], ate:string):Map<string,Set<string>>{
+  const result=new Map<string,Set<string>>();
+  const ocupados=new Map<string,number>(); // data -> quantas pessoas já folgam
+  const lista=[...pessoas].sort((a,b)=>a.id.localeCompare(b.id));
+  const limite=addCivilDays(ate,28);
+  lista.forEach((pessoa,idx)=>{
+    const off=new Set<string>();
+    const ancora=revezamentoAnchor(pessoa.data_base);
+    // primeiro ciclo (domingo de folga) em ou depois da época, alinhado ao domingo-âncora da pessoa
+    let m=Math.ceil(civilDayDiff(RODIZIO_EPOCA,ancora)/14);
+    for(let inicio=addCivilDays(ancora,14*m);inicio<=limite;m++,inicio=addCivilDays(ancora,14*m)){
+      const n=COMBOS_RODIZIO.length;
+      const base=mod(m*7+idx*11,n);
+      let escolhido=COMBOS_RODIZIO[base],melhor=Infinity;
+      for(let k=0;k<n;k++){
+        const [a,d1,d2]=COMBOS_RODIZIO[(base+k)%n];
+        const datas=[addCivilDays(inicio,a),addCivilDays(inicio,7+d1),addCivilDays(inicio,7+d2)];
+        const colide=datas.filter(d=>ocupados.has(d)).length;
+        if(colide<melhor){melhor=colide;escolhido=COMBOS_RODIZIO[(base+k)%n];if(colide===0)break;}
+      }
+      const [a,d1,d2]=escolhido;
+      for(const d of [inicio,addCivilDays(inicio,a),addCivilDays(inicio,7+d1),addCivilDays(inicio,7+d2)])off.add(d);
+    }
+    for(const d of off)ocupados.set(d,(ocupados.get(d)??0)+1);
+    result.set(pessoa.id,off);
+  });
+  return result;
 }
 
 const isWork=(status:DayStatus)=>status==="trabalho"||status==="extra";

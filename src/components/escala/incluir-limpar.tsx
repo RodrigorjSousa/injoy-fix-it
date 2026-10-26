@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { NomeCor } from "@/components/pessoa-cor";
-import { isDuasUnidades, monthBounds, generatePatternMonthUnits, type EnginePattern } from "@/lib/escala-engine";
+import { calcularRodizio, isDuasUnidades, monthBounds, generatePatternMonthUnits, type EnginePattern } from "@/lib/escala-engine";
 import { montarInclusao, selecionarParaLimpar } from "@/lib/escala-limpar";
 import { useExcluirEscalaDias, useSalvarEscalaDias, type EscalaColaborador, type EscalaDia, type EscalaDiaInput, type EscalaSetor } from "@/lib/escala";
 
@@ -36,7 +36,11 @@ export function IncluirPessoaDialog({ open, preset, unit, sector, year, month, p
   const dividida = !!pt && isDuasUnidades(pt as EnginePattern);
   const unidadeFinal: Unit = pessoa && pessoa.unidade !== "Ambas" ? (pessoa.unidade as Unit) : unidadeEsc;
   const existentes = useMemo(() => days.filter((d) => d.colaborador_id === pessoaId).map((d) => ({ data: d.data, status: d.status, origem: d.origem })), [days, pessoaId]);
-  const plano = useMemo(() => pessoa ? montarInclusao({ modo, pattern: pt as EnginePattern | null, ano: year, mes: month, inicio, fim, somentePadrao, existentes }) : [], [pessoa, modo, pt, year, month, inicio, fim, somentePadrao, existentes]);
+  const folgasRodizio = useMemo(() => {
+    const lista = people.filter((p) => p.ativo && p.vinculo === "fixo" && p.setor === sector).flatMap((p) => { const x = padraoAtivo(p); return x && x.tipo === "5x2_revezamento" && x.rodizio && x.data_base ? [{ id: p.id, data_base: x.data_base }] : []; });
+    return calcularRodizio(lista, b.end).get(pessoaId);
+  }, [people, sector, b.end, pessoaId]);
+  const plano = useMemo(() => pessoa ? montarInclusao({ modo, pattern: pt as EnginePattern | null, ano: year, mes: month, inicio, fim, somentePadrao, existentes, folgasRodizio }) : [], [pessoa, modo, pt, year, month, inicio, fim, somentePadrao, existentes, folgasRodizio]);
   const trabalhos = plano.filter((p) => p.status === "trabalho").length;
   const semPadrao = modo === "completa" && !!pessoa && !pt;
   const faltaBase = modo === "completa" && !!pt && pt.tipo !== "5x2_fixo" && !pt.data_base;

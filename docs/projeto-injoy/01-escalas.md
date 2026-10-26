@@ -144,6 +144,15 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
     40 h após mais 12 meses; sem redução salarial; 2 folgas remuneradas/semana em média no mesmo mês; outras escalas só por
     acordo/convenção coletiva; hotelaria e turnos não tratados no texto, confirmar com o contador). Fonte: Agência Brasil.
     Se a regra mudar (regulamentação, lei complementar), atualizar `RegraEscala5x2` em `src/components/escala/incluir-limpar.tsx`.
+- Folgas variadas / rodízio (branch `feat/escala-folgas-variadas`, migração `0082_escala_padrao_rodizio.sql`):
+  - No cadastro do 5x2 revezamento (Equipe), caixa **Folgas variadas (rodízio)** (`escala_padroes.rodizio`). As folgas mudam de
+    dia a cada semana (terça a sexta/segunda a sexta), mantendo domingo sim/não (domingo de folga = o informado), 2 folgas por
+    semana, nunca sexta+sábado nem sábado+domingo e no máximo 5 dias seguidos. `calcularRodizio` (engine) calcula junto todas as
+    pessoas do rodízio do setor (Botafogo e Ipanema) para **não folgarem no mesmo dia** quando há alternativa; o resultado de uma
+    data não depende do mês gerado (vale a partir de 04/01/2026). Para que as duas também não folguem no mesmo **domingo**,
+    cadastre domingos de folga opostos (ex.: uma em 04/10, outra em 11/10).
+  - Vale ao clicar **Gerar escala do mês** (e no Incluir pessoa › completa). A prévia do cadastro continua mostrando o ciclo fixo.
+    Férias (`planejarFerias`) ainda usam o ciclo fixo para dias não gerados.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
