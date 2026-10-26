@@ -134,6 +134,16 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
   e o **Excluir dia** de plantão extra/freelancer que já existia. Mudar uma fixa para 5x2 revezamento (caso da Gleidiane) é em
   Equipe › editar: Padrão "5x2 revezamento", domingo em que folgou, folga fixa semanal e segunda folga; depois **Gerar escala
   do mês**. As regras (domingo sim/não, sem sexta+sábado de folga, etc.) são do padrão, iguais às da Maria.
+- Incluir/limpar/regra 5x2 (branch `feat/escala-limpar-incluir-fixo`, sem migração):
+  - **Incluir pessoa** (barra da Escala) e **+ Fixo** em cada dia: coloca um fixo na escala como **completa** (mês inteiro pelo
+    padrão dele, preservando ajustes manuais; quem divide unidades gera as duas) ou **mesclada** (só os dias escolhidos, sem
+    mexer no resto). Plantão pago como extra continua sendo o **+ Freelancer**.
+  - **Limpar escala**: toda (setor + unidade + mês em tela; exige digitar LIMPAR; freelancers/extras só se marcar, pois
+    mexem no Financeiro) ou só de uma pessoa. Depois, Gerar escala do mês ou Incluir pessoa refaz.
+  - Rodapé da página com a **regra nacional do 5x2** (EC 141/2026, promulgada 16/10/2026; 5x2 e 42 h em até 60 dias, ~15/12/2026;
+    40 h após mais 12 meses; sem redução salarial; 2 folgas remuneradas/semana em média no mesmo mês; outras escalas só por
+    acordo/convenção coletiva; hotelaria e turnos não tratados no texto, confirmar com o contador). Fonte: Agência Brasil.
+    Se a regra mudar (regulamentação, lei complementar), atualizar `RegraEscala5x2` em `src/components/escala/incluir-limpar.tsx`.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
