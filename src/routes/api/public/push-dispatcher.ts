@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { sendWebPush, type PushSubscriptionRow } from "@/lib/push-sender.server";
 import { duracaoChamado } from "@/lib/chamado-tempo";
-import { juntar, usuariosDaRecepcao } from "@/lib/push-destinatarios";
+import { juntar, usuariosDaRecepcao, usuariosDasCamareiras } from "@/lib/push-destinatarios";
 
 type EventKind =
   | "chamado"
@@ -215,6 +215,18 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     );
   };
 
+  // Camareiras = papel camareira OU tela Camareiras liberada no cadastro.
+  const camareiras = async () => {
+    const [{ data: papeis }, { data: funcs }] = await Promise.all([
+      supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "camareira" as never),
+      supabaseAdmin.from("funcionarios").select("user_id, telas_permitidas"),
+    ]);
+    return usuariosDasCamareiras(
+      (papeis ?? []) as { user_id: string | null; role: string }[],
+      (funcs ?? []) as { user_id: string | null; telas_permitidas: string[] | null }[],
+    );
+  };
+
   switch (evt.event) {
     case "chamado": {
       // Técnico designado + gestores/admin
@@ -267,7 +279,7 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
       if (paraRecepcao) return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
-      return byRoles(["camareira", "admin", "gestor"]);
+      return juntar(await camareiras(), await byRoles(["admin", "gestor"]));
     }
     case "troca_turno":
       return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
