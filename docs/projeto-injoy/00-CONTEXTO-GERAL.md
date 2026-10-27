@@ -251,3 +251,4 @@ das selfies antigas do ponto foi oferecida.
 
 - Papéis de equipe (camareira, recepção, técnico) no Editar funcionário: gravados pelo servidor (`gestorDefinirPapelEquipe` em `src/lib/user-management.functions.ts`), porque o RLS de `user_roles` só deixa o admin inserir direto. Gestor/admin continuam só para admin.
 - Push para CAMAREIRAS (recado da recepção): destinatárias = papel `camareira` OU tela "camareiras" liberada no cadastro (`usuariosDasCamareiras` em `src/lib/push-destinatarios.ts`, mesma regra do menu `podeCamareira`). Antes só o papel contava.
+- Camareiras: voltou o card "Chegadas de Hoje" (amarelo-claro, recolhido; abre ao tocar) abaixo dos recados — `ChegadasCheckinCards recolhivel` (Cloudbeds getReservasHoje, com status de limpeza). getReservasHoje/getReservasFeitasHoje aceitam também quem tem a tela Camareiras/Recepção liberada no cadastro.

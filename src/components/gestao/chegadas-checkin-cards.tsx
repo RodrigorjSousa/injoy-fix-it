@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import { Clock, Loader2, RefreshCw, LogIn, Users, BedDouble, X } from "lucide-react";
+import { Clock, Loader2, RefreshCw, LogIn, Users, BedDouble, X, ChevronDown } from "lucide-react";
 import { getReservasHoje, type ReservaHoje } from "@/lib/cloudbeds-reservas.functions";
 import { supabase } from "@/integrations/supabase/client";
 import type { Unidade } from "@/lib/store";
@@ -32,11 +32,15 @@ export function ChegadasCheckinCards({
   unidade,
   showLimpeza = false,
   title = "Chegadas de Hoje",
+  recolhivel = false,
 }: {
   unidade: Unidade;
   showLimpeza?: boolean;
   title?: string;
+  /** Camareiras: card amarelo-claro que começa recolhido e abre ao tocar no título. */
+  recolhivel?: boolean;
 }) {
+  const [aberto, setAberto] = useState(!recolhivel);
   const [rows, setRows] = useState<ReservaHoje[]>([]);
   const [limpeza, setLimpeza] = useState<Record<string, LimpezaStatus>>({});
   const [loading, setLoading] = useState(true);
@@ -101,18 +105,39 @@ export function ChegadasCheckinCards({
   const total = rows.length;
 
   return (
-    <section className="p-4 bg-white border-b border-slate-200">
-      <header className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2 min-w-0">
+    <section
+      className={
+        recolhivel
+          ? "mx-4 mt-4 p-4 rounded-2xl bg-amber-50 border border-amber-200"
+          : "p-4 bg-white border-b border-slate-200"
+      }
+    >
+      <header className={`flex items-center justify-between gap-2 ${aberto ? "mb-3" : ""}`}>
+        <div
+          className={`flex items-center gap-2 min-w-0 ${recolhivel ? "flex-1 cursor-pointer select-none" : ""}`}
+          onClick={recolhivel ? () => setAberto((v) => !v) : undefined}
+          role={recolhivel ? "button" : undefined}
+          aria-expanded={recolhivel ? aberto : undefined}
+        >
           <div className="grid place-items-center h-9 w-9 rounded-xl bg-amber-100 text-amber-700 shrink-0">
             <LogIn size={16} />
           </div>
           <div className="min-w-0">
             <h2 className="text-sm font-black text-slate-900 truncate">{title}</h2>
             <p className="text-[11px] text-slate-500">
-              Fonte: Cloudbeds · atualiza a cada 15 min
+              {recolhivel
+                ? aberto
+                  ? "Toque para recolher"
+                  : "Toque para ver quem chega hoje"
+                : "Fonte: Cloudbeds · atualiza a cada 15 min"}
             </p>
           </div>
+          {recolhivel && (
+            <ChevronDown
+              size={18}
+              className={`ml-auto shrink-0 text-amber-700 transition-transform ${aberto ? "rotate-180" : ""}`}
+            />
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <button
@@ -134,7 +159,7 @@ export function ChegadasCheckinCards({
         </div>
       </header>
 
-      {loading ? (
+      {!aberto ? null : loading ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className="h-24 rounded-2xl bg-slate-100 animate-pulse" />

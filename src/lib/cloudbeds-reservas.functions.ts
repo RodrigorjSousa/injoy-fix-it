@@ -164,9 +164,21 @@ export const getReservasHoje = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     if (rErr) throw new Error("Falha ao validar permissões");
     const roleSet = new Set((roles ?? []).map((r) => r.role));
-    if (!(roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira"))) {
-      throw new Error("Sem permissão");
+    let permitido =
+      roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira");
+    if (!permitido) {
+      // Quem tem a tela Camareiras ou Recepção liberada no cadastro também vê (mesma regra do menu).
+      const { data: funcs } = await supabase
+        .from("funcionarios")
+        .select("telas_permitidas")
+        .eq("user_id", userId);
+      permitido = (funcs ?? []).some(
+        (f) =>
+          Array.isArray(f.telas_permitidas) &&
+          (f.telas_permitidas.includes("camareiras") || f.telas_permitidas.includes("recepcao")),
+      );
     }
+    if (!permitido) throw new Error("Sem permissão");
 
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
@@ -495,9 +507,21 @@ export const getReservasFeitasHoje = createServerFn({ method: "POST" })
       .eq("user_id", userId);
     if (rErr) throw new Error("Falha ao validar permissões");
     const roleSet = new Set((roles ?? []).map((r) => r.role));
-    if (!(roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira"))) {
-      throw new Error("Sem permissão");
+    let permitido =
+      roleSet.has("gestor") || roleSet.has("admin") || roleSet.has("recepcao") || roleSet.has("camareira");
+    if (!permitido) {
+      // Quem tem a tela Camareiras ou Recepção liberada no cadastro também vê (mesma regra do menu).
+      const { data: funcs } = await supabase
+        .from("funcionarios")
+        .select("telas_permitidas")
+        .eq("user_id", userId);
+      permitido = (funcs ?? []).some(
+        (f) =>
+          Array.isArray(f.telas_permitidas) &&
+          (f.telas_permitidas.includes("camareiras") || f.telas_permitidas.includes("recepcao")),
+      );
     }
+    if (!permitido) throw new Error("Sem permissão");
 
     const { cloudbedsFetch } = await import("@/lib/cloudbeds/client.server");
     const property = data.property.toLowerCase() as "ipanema" | "botafogo";
