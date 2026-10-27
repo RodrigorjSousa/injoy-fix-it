@@ -540,6 +540,21 @@ function ColetaForm({
             placeholder="Buscar peça (ex.: fronha)"
             onEnter={() => listadas[0] && document.getElementById(`qtd-${listadas[0].id}`)?.focus()}
           />
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById("secao-relave")?.scrollIntoView({ behavior: "smooth" });
+              setTimeout(() => document.getElementById("busca-relave")?.focus(), 400);
+            }}
+            className="mt-2 w-full flex items-center justify-center gap-2 rounded-xl border border-violet-400/60 bg-violet-500/15 py-2 text-xs font-black uppercase tracking-wider text-violet-200"
+          >
+            ♻ Separar peça para relave
+            {totalRelave > 0 && (
+              <span className="rounded-full bg-violet-400 text-slate-950 px-2 py-0.5 text-[10px]">
+                {totalRelave}
+              </span>
+            )}
+          </button>
           {busca && (
             <p className="text-[11px] text-slate-400 mt-1.5">
               {listadas.length === 0
@@ -575,7 +590,7 @@ function ColetaForm({
           ))}
         </div>
         <div className="p-4 border-t border-slate-800 space-y-3">
-          <div className="space-y-2">
+          <div id="secao-relave" className="space-y-2 scroll-mt-24">
             <p className="text-[10px] font-black uppercase tracking-wider text-violet-300">
               ♻ Relave — peças que voltaram com mancha ou sujeira
             </p>
@@ -627,6 +642,7 @@ function ColetaForm({
               titulo="Procure a peça que vai para relave e toque nela."
               rotuloIncluir="relave"
               tom="violet"
+              idBusca="busca-relave"
             />
           </div>
           {(preenchidas.length > 0 || totalRelave > 0) && (
@@ -1088,17 +1104,20 @@ function CampoBusca({
   onChange,
   placeholder,
   onEnter,
+  id,
 }: {
   value: string;
   onChange: (v: string) => void;
   placeholder: string;
   onEnter?: () => void;
+  id?: string;
 }) {
   return (
     <div className="relative">
       <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
       <input
         type="text"
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onKeyDown={(e) => {
@@ -1135,6 +1154,7 @@ function BuscaPeca({
   titulo = "Voltou outra peça? Procure pelo nome e toque nela.",
   rotuloIncluir = "incluir",
   tom = "slate",
+  idBusca,
 }: {
   pecas: Peca[];
   naLista: Set<string>;
@@ -1142,6 +1162,7 @@ function BuscaPeca({
   titulo?: string;
   rotuloIncluir?: string;
   tom?: "slate" | "violet";
+  idBusca?: string;
 }) {
   const [termo, setTermo] = useState("");
   const resultados = useMemo(() => filtrarPecas(pecas, termo), [pecas, termo]);
@@ -1162,6 +1183,7 @@ function BuscaPeca({
       <CampoBusca
         value={termo}
         onChange={setTermo}
+        id={idBusca}
         placeholder="Buscar peça (ex.: fronha)"
         onEnter={() => resultados[0] && termo && escolher(resultados[0])}
       />

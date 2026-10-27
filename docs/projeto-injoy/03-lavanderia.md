@@ -89,6 +89,11 @@ Combinado com o Rodrigo:
 - A 0083 também reaplica a 0046 da lavanderia, que não tinha sido aplicada (o número 0046 foi usado pela
   escala): catálogo completo + correção única da Saída Lav. em branco gravada como 0 (`lav_preparar` v3).
 
+- 27/10: camareiras não viam o relave porque os celulares estavam com o app antigo aberto (o site publicado já
+  tinha a mudança). Agora o app mostra a faixa "Tem uma versão nova do app — Atualizar" quando há publicação nova
+  (`src/components/aviso-nova-versao.tsx`, vale para todas as telas). Na coleta, botão "♻ Separar peça para relave"
+  no topo leva direto à busca do relave.
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",
