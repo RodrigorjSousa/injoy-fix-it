@@ -2,6 +2,7 @@
 // (funcionário vinculado ou nome do freelancer) e separa o que falta pagar do que já foi pago.
 import type { Categoria, FiltroUnidade, FinConfig, Lancamento } from "@/lib/financeiro";
 import { statusReal, valorRateado } from "@/lib/financeiro";
+import { abertosDaPessoa, liberadoNoMes, somaAdiantamentos, type Adiantamento } from "@/lib/adiantamentos";
 
 export type ItemPessoa = { id: string; descricao: string; categoria: string; valor: number; status: string; vencimento: string | null };
 export type LinhaPessoa = {
@@ -12,6 +13,10 @@ export type LinhaPessoa = {
   pago: number;
   /** Quanto falta pagar (a pagar + vencido + previsto). */
   pendente: number;
+  /** Adiantamentos em aberto da pessoa (serão descontados no pagamento). */
+  adiantamento: number;
+  /** Pendente menos o adiantamento: o que ainda sai em dinheiro. */
+  liquido: number;
   porCategoria: { categoria: string; pendente: number; pago: number }[];
   itens: ItemPessoa[];
 };
@@ -27,8 +32,9 @@ export function resumirPorPessoa(args: {
   mes: string; // YYYY-MM
   unidade: FiltroUnidade;
   config: FinConfig | null;
+  adiantamentos?: Adiantamento[];
 }): ResumoPessoas {
-  const { lancamentos, categorias, funcionarios, mes, unidade, config } = args;
+  const { lancamentos, categorias, funcionarios, mes, unidade, config, adiantamentos = [] } = args;
   const mapa = new Map<string, LinhaPessoa>();
   const semPessoa = { qtd: 0, pendente: 0 };
   for (const l of lancamentos) {
@@ -40,7 +46,7 @@ export function resumirPorPessoa(args: {
     const nome = (nomeFunc ?? l.freelancer_nome ?? "").trim();
     if (!nome) { if (st !== "pago") { semPessoa.qtd++; semPessoa.pendente = arred(semPessoa.pendente + valor); } continue; }
     const chave = l.funcionario_id ?? `n:${norm(nome)}`;
-    const linha = mapa.get(chave) ?? { chave, nome, aPagar: 0, vencido: 0, pago: 0, pendente: 0, porCategoria: [], itens: [] };
+    const linha = mapa.get(chave) ?? { chave, nome, aPagar: 0, vencido: 0, pago: 0, pendente: 0, adiantamento: 0, liquido: 0, porCategoria: [], itens: [] };
     if (st === "pago") linha.pago = arred(linha.pago + valor);
     else if (st === "vencido") linha.vencido = arred(linha.vencido + valor);
     else linha.aPagar = arred(linha.aPagar + valor);
@@ -52,6 +58,12 @@ export function resumirPorPessoa(args: {
     linha.itens.push({ id: l.id, descricao: l.descricao, categoria: cat, valor, status: st, vencimento: l.data_vencimento });
     mapa.set(chave, linha);
   }
+  for (const linha of mapa.values()) {
+    const pessoa = { funcionarioId: linha.chave.startsWith("n:") ? null : linha.chave, nome: linha.nome };
+    // Só as parcelas já liberadas para o mês escolhido.
+    linha.adiantamento = somaAdiantamentos(abertosDaPessoa(pessoa, adiantamentos).filter((a) => liberadoNoMes(a, mes)));
+    linha.liquido = arred(Math.max(0, linha.pendente - linha.adiantamento));
+  }
   const linhas = [...mapa.values()].sort((a, b) => b.pendente - a.pendente || a.nome.localeCompare(b.nome, "pt-BR"));
   return {
     linhas, semPessoa,
@@ -61,8 +73,8 @@ export function resumirPorPessoa(args: {
 }
 
 export function csvPorPessoa(r: ResumoPessoas, moeda: (n: number) => string): string {
-  const linhas = [["Pessoa", "A pagar", "Vencido", "Total pendente", "Já pago", "Detalhe"],
-    ...r.linhas.map((l) => [l.nome, moeda(l.aPagar), moeda(l.vencido), moeda(l.pendente), moeda(l.pago), l.porCategoria.map((c) => `${c.categoria}: ${moeda(c.pendente)}`).join(" | ")]),
-    ["TOTAL", "", "", moeda(r.totalPendente), moeda(r.totalPago), ""]];
+  const linhas = [["Pessoa", "A pagar", "Vencido", "Total pendente", "Adiantamento a descontar", "Líquido a pagar", "Já pago", "Detalhe"],
+    ...r.linhas.map((l) => [l.nome, moeda(l.aPagar), moeda(l.vencido), moeda(l.pendente), moeda(l.adiantamento), moeda(l.liquido), moeda(l.pago), l.porCategoria.map((c) => `${c.categoria}: ${moeda(c.pendente)}`).join(" | ")]),
+    ["TOTAL", "", "", moeda(r.totalPendente), "", "", moeda(r.totalPago), ""]];
   return "﻿" + linhas.map((row) => row.map((v) => `"${String(v).replaceAll('"', '""')}"`).join(";")).join("\n");
 }
