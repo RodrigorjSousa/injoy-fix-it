@@ -132,6 +132,7 @@ const config = {
   whatsapp_modo: "rascunho_teste",
   numeros_teste: ["5521999990000"],
   envio_liberado: false,
+  envio_automatico_teste: false,
   pausa_eco_minutos: 120,
 };
 const responder = vi.fn(async (conversaId: string) => {
@@ -156,7 +157,11 @@ beforeEach(() => {
   for (const k of Object.keys(tabelas)) delete tabelas[k];
   enviados.length = 0;
   responder.mockClear();
-  Object.assign(config, { whatsapp_modo: "rascunho_teste", envio_liberado: false });
+  Object.assign(config, {
+    whatsapp_modo: "rascunho_teste",
+    envio_liberado: false,
+    envio_automatico_teste: false,
+  });
   process.env.WHATSAPP_TOKEN = "tok";
   process.env.WHATSAPP_PHONE_NUMBER_ID = "PN1";
   vi.stubGlobal(
@@ -353,5 +358,23 @@ describe("E3: webhook → rascunho → aprovação", () => {
       wamid: "wamid.out1",
     });
     expect(conv.pausada_ate).toBeTruthy();
+  });
+
+  it("Joy responde sozinha: envia sem aprovação só para número de teste", async () => {
+    Object.assign(config, { whatsapp_modo: "rascunho", envio_automatico_teste: true });
+    const w = await import("./whatsapp.server");
+    await w.registrarWebhook(msg("w1", "5521999990000", "oi"));
+    await w.registrarWebhook(msg("w2", "5511988887777", "oi"));
+    const r = await w.processarPendentes();
+    expect(r.resultados.map((x) => x.acao).sort()).toEqual([
+      "enviada automaticamente (número de teste)",
+      "rascunho criado",
+    ]);
+    expect(enviados).toEqual([expect.objectContaining({ to: "5521999990000" })]);
+    const auto = tabelas.wa_mensagens.find((m) => m.wamid === "wamid.out1")!;
+    expect(auto).toMatchObject({ envio: "enviada", aprovado_por: null });
+    expect((auto.meta as { envio_automatico?: boolean }).envio_automatico).toBe(true);
+    // o outro número ficou só com rascunho
+    expect(tabelas.wa_mensagens.filter((m) => m.envio === "rascunho")).toHaveLength(1);
   });
 });

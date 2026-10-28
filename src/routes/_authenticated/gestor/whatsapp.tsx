@@ -2159,6 +2159,7 @@ function ConfigWhatsapp() {
   const [modo, setModo] = useState("desligado");
   const [numeros, setNumeros] = useState("");
   const [liberado, setLiberado] = useState(false);
+  const [automatico, setAutomatico] = useState(false);
   const [pausa, setPausa] = useState(120);
   const [salvando, setSalvando] = useState(false);
   const [aberto, setAberto] = useState(false);
@@ -2168,6 +2169,7 @@ function ConfigWhatsapp() {
     setModo(status.data.whatsapp_modo);
     setNumeros(status.data.numeros_teste.map((n) => `+${n}`).join("\n"));
     setLiberado(status.data.envio_liberado);
+    setAutomatico(status.data.envio_automatico_teste);
     setPausa(status.data.pausa_eco_minutos);
   }, [status.data]);
 
@@ -2179,6 +2181,10 @@ function ConfigWhatsapp() {
           whatsapp_modo: modo as "desligado" | "rascunho_teste" | "rascunho",
           numeros_teste: numeros,
           envio_liberado: liberado,
+          // só manda quando mudou (antes da migração 0087 a coluna não existe)
+          ...(automatico !== status.data?.envio_automatico_teste
+            ? { envio_automatico_teste: automatico }
+            : {}),
           pausa_eco_minutos: pausa,
         },
       });
@@ -2223,6 +2229,11 @@ function ConfigWhatsapp() {
           <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
             {MODO_WA[d.whatsapp_modo]}
           </span>
+          {d.envio_automatico_teste && (
+            <span className="rounded bg-violet-100 px-2 py-0.5 font-semibold text-violet-800">
+              Joy responde sozinha (só teste)
+            </span>
+          )}
           <span
             className={cn(
               "rounded px-2 py-0.5 font-semibold",
@@ -2282,6 +2293,14 @@ function ConfigWhatsapp() {
               onChange={(e) => setNumeros(e.target.value)}
               placeholder="+55 21 99999-0000"
             />
+          </div>
+          <div className="flex items-start gap-3 rounded border border-violet-200 bg-violet-50 p-3">
+            <Switch checked={automatico} onCheckedChange={setAutomatico} id="wa-auto" />
+            <label htmlFor="wa-auto" className="text-violet-900">
+              <b>Joy responde sozinha para os números de teste.</b> O rascunho sai sem aprovação,
+              mas só para quem está na lista acima. Para qualquer outro número, continua precisando
+              de aprovação.
+            </label>
           </div>
           <div className="flex items-start gap-3 rounded border border-red-200 bg-red-50 p-3">
             <Switch
