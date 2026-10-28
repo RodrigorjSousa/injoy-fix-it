@@ -51,6 +51,8 @@ export type ConfigJoy = {
   numeros_teste: string[];
   envio_liberado: boolean;
   pausa_eco_minutos: number;
+  /** 0087: a Joy envia sozinha, só para os números de teste. */
+  envio_automatico_teste: boolean;
 };
 
 function normalizarConhecimento(v: unknown): Conhecimento {
@@ -137,6 +139,7 @@ export async function carregarConfig(): Promise<ConfigJoy> {
         : "desligado",
     numeros_teste: Array.isArray(row.numeros_teste) ? row.numeros_teste.map(String) : [],
     envio_liberado: row.envio_liberado === true,
+    envio_automatico_teste: row.envio_automatico_teste === true,
     pausa_eco_minutos: Number.isFinite(Number(row.pausa_eco_minutos))
       ? Number(row.pausa_eco_minutos)
       : 120,

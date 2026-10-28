@@ -575,6 +575,25 @@ Como funciona:
   celular do Brasil com e sem o 9, fluxo completo com banco falso (reenvio da Meta, rascunho, aprovação,
   bloqueio de número que não é de teste, eco pausando a Joy, modo desligado, resposta manual).
 
+#### Joy responde sozinha só para os números de teste (28/10/2026, migração `0087_whatsapp_auto_teste.sql`)
+Pedido do Rodrigo para os testes: opção **"Joy responde sozinha para os números de teste"** na Ligação.
+Ligada, o rascunho sai sem aprovação, mas **só** para quem está na lista de teste; para qualquer outro
+número continua o rascunho com aprovação. A mensagem enviada assim fica com `aprovado_por` vazio e
+`meta.envio_automatico = true`. Começa desligada.
+
+#### Como ficou ligado em 28/10/2026
+- App da Meta **Joy Injoy** (ID 1046257355103789), publicado, no portfólio **Injoy Suites e Aparts**
+  (IN.JOY HOSTEL DESIGN POUSADA LTDA, CNPJ 19.639.185/0001-07, ainda não verificado).
+- O número de teste americano da Meta **não serve**: a Meta bloqueia mensagens de contas novas de fora do
+  Brasil para celulares brasileiros (erro 130497).
+- Número da Joy para testes: **+55 21 99253-0831** (chip próprio), Phone number ID 1437678859421757, conta
+  do WhatsApp e conta de mensagens "Injoy Suites e Aparts" (1328053563732502).
+- O usuário do sistema `joy-whatsapp` precisa de acesso à **conta do WhatsApp e à conta de mensagens**
+  (a Meta separou as duas); sem a de mensagens, o envio dá erro #10 "Paid Message Account".
+- Primeiro ciclo completo em 28/10 às 18:18: mensagem do Rodrigo → rascunho → aprovação → entregue.
+- Pendências antes de ir ao ar: token sem validade (o atual vence em ~2 meses), forma de pagamento na
+  conta de mensagens, verificação da empresa, nome de exibição aprovado.
+
 #### Passo a passo para testar com o número de teste da Meta
 1. **Merge**, aplicar a `0084` e depois a `0085` no Lovable, **Publicar**.
 2. Em developers.facebook.com: **Criar app** → caso de uso **WhatsApp** (ligado ao portfólio empresarial

@@ -477,6 +477,7 @@ export const joyWhatsappStatus = createServerFn({ method: "POST" })
       whatsapp_modo: c.whatsapp_modo,
       numeros_teste: c.numeros_teste,
       envio_liberado: c.envio_liberado,
+      envio_automatico_teste: c.envio_automatico_teste,
       pausa_eco_minutos: c.pausa_eco_minutos,
       souAdmin: await ehAdmin(context.supabase, context.userId),
     };
@@ -486,6 +487,7 @@ const whatsappConfigInput = z.object({
   whatsapp_modo: z.enum(["desligado", "rascunho_teste", "rascunho"]),
   numeros_teste: z.string().max(2000),
   envio_liberado: z.boolean(),
+  envio_automatico_teste: z.boolean().optional(),
   pausa_eco_minutos: z.number().int().min(0).max(1440),
 });
 
@@ -509,13 +511,16 @@ export const joyWhatsappSalvar = createServerFn({ method: "POST" })
         whatsapp_modo: data.whatsapp_modo,
         numeros_teste: lerNumeros(data.numeros_teste),
         envio_liberado: data.envio_liberado,
+        ...(data.envio_automatico_teste !== undefined
+          ? { envio_automatico_teste: data.envio_automatico_teste }
+          : {}),
         pausa_eco_minutos: data.pausa_eco_minutos,
         atualizado_por: context.userId,
       })
       .eq("id", "joy");
     if (error)
       throw new Error(
-        `Não foi possível salvar: ${error.message}${/whatsapp_modo|numeros_teste/.test(error.message) ? " (a migração 0084 já foi aplicada?)" : ""}`,
+        `Não foi possível salvar: ${error.message}${/whatsapp_modo|numeros_teste/.test(error.message) ? " (a migração 0084 já foi aplicada?)" : ""}${/envio_automatico_teste/.test(error.message) ? " (a migração 0087 já foi aplicada?)" : ""}`,
       );
     return { ok: true };
   });

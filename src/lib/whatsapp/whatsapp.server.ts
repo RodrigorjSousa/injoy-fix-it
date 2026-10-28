@@ -385,6 +385,32 @@ export async function processarConversa(
     await substituirRascunhos(conversaId);
     await responder(conversaId);
     await fechar();
+    // Opção de teste: a Joy responde sozinha, mas SÓ para os números da lista de teste.
+    if (
+      config.envio_automatico_teste &&
+      podeEnviarPara({ envio_liberado: false, numeros_teste: config.numeros_teste }, conv.wa_id)
+    ) {
+      const { data: rasc } = await db
+        .from("wa_mensagens")
+        .select("id")
+        .eq("conversa_id", conversaId)
+        .eq("envio", "rascunho")
+        .order("created_at", { ascending: false })
+        .limit(1);
+      const id = (rasc ?? [])[0]?.id as string | undefined;
+      if (id) {
+        try {
+          await aprovarRascunho({ mensagemId: id, userId: null });
+          return { conversaId, acao: "enviada automaticamente (número de teste)" };
+        } catch (e) {
+          return {
+            conversaId,
+            acao: "rascunho criado; envio automático falhou",
+            erro: e instanceof Error ? e.message : String(e),
+          };
+        }
+      }
+    }
     return { conversaId, acao: "rascunho criado" };
   } catch (e) {
     const erro = e instanceof Error ? e.message : String(e);
@@ -474,7 +500,8 @@ async function conversaWa(conversaId: string): Promise<ConversaWa> {
 export async function aprovarRascunho(p: {
   mensagemId: string;
   texto?: string;
-  userId: string;
+  /** null = enviado automaticamente (opção de teste). */
+  userId: string | null;
 }): Promise<{ wamid: string }> {
   const { data: m } = await db
     .from("wa_mensagens")
@@ -507,7 +534,11 @@ export async function aprovarRascunho(p: {
         aprovado_por: p.userId,
         enviado_em: new Date().toISOString(),
         erro_envio: null,
-        meta: { ...(m.meta ?? {}), ...(texto !== m.texto ? { texto_original: m.texto } : {}) },
+        meta: {
+          ...(m.meta ?? {}),
+          ...(texto !== m.texto ? { texto_original: m.texto } : {}),
+          ...(p.userId === null ? { envio_automatico: true } : {}),
+        },
       })
       .eq("id", m.id);
     return { wamid };
