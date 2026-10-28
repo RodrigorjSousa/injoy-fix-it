@@ -1282,6 +1282,94 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_adiantamentos: {
+        Row: {
+          anexo_path: string | null
+          created_at: string
+          created_by: string
+          data_adiantamento: string
+          descontado_em: string | null
+          descontado_lancamento_id: string | null
+          descontar_a_partir: string | null
+          forma_pagamento: string
+          funcionario_id: string | null
+          grupo_id: string | null
+          id: string
+          observacoes: string | null
+          parcela: number
+          parcelas: number
+          pessoa_nome: string
+          status: string
+          unidade: string
+          updated_at: string
+          valor: number
+        }
+        Insert: {
+          anexo_path?: string | null
+          created_at?: string
+          created_by?: string
+          data_adiantamento?: string
+          descontado_em?: string | null
+          descontado_lancamento_id?: string | null
+          descontar_a_partir?: string | null
+          forma_pagamento?: string
+          funcionario_id?: string | null
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          pessoa_nome: string
+          status?: string
+          unidade?: string
+          updated_at?: string
+          valor: number
+        }
+        Update: {
+          anexo_path?: string | null
+          created_at?: string
+          created_by?: string
+          data_adiantamento?: string
+          descontado_em?: string | null
+          descontado_lancamento_id?: string | null
+          descontar_a_partir?: string | null
+          forma_pagamento?: string
+          funcionario_id?: string | null
+          grupo_id?: string | null
+          id?: string
+          observacoes?: string | null
+          parcela?: number
+          parcelas?: number
+          pessoa_nome?: string
+          status?: string
+          unidade?: string
+          updated_at?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_adiantamentos_descontado_lancamento_id_fkey"
+            columns: ["descontado_lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "escala_alertas_financeiros"
+            referencedColumns: ["lancamento_id"]
+          },
+          {
+            foreignKeyName: "fin_adiantamentos_descontado_lancamento_id_fkey"
+            columns: ["descontado_lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "fin_lancamentos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fin_adiantamentos_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_categorias: {
         Row: {
           ativo: boolean
@@ -1424,6 +1512,7 @@ export type Database = {
       }
       fin_lancamentos: {
         Row: {
+          adiantamento_descontado: number
           anexo_path: string | null
           ativo_descricao: string | null
           categoria_id: string
@@ -1454,6 +1543,7 @@ export type Database = {
           valor: number
         }
         Insert: {
+          adiantamento_descontado?: number
           anexo_path?: string | null
           ativo_descricao?: string | null
           categoria_id: string
@@ -1484,6 +1574,7 @@ export type Database = {
           valor: number
         }
         Update: {
+          adiantamento_descontado?: number
           anexo_path?: string | null
           ativo_descricao?: string | null
           categoria_id?: string
@@ -5086,6 +5177,15 @@ export type Database = {
         Returns: number
       }
       fin_gerar_mes: { Args: { _competencia: string }; Returns: number }
+      fin_pagar_com_adiantamentos: {
+        Args: {
+          _adiantamentos?: string[]
+          _data_pagamento: string
+          _forma_pagamento: string
+          _lancamento_id: string
+        }
+        Returns: number
+      }
       get_camareiras_user_ids: {
         Args: never
         Returns: {
