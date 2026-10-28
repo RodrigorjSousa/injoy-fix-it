@@ -9,29 +9,31 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { NomeCor } from "@/components/pessoa-cor";
 import { currency, dateBR, STATUS, type Categoria, type FiltroUnidade, type FinConfig, type Lancamento } from "@/lib/financeiro";
 import { csvPorPessoa, resumirPorPessoa } from "@/lib/financeiro-por-pessoa";
+import type { Adiantamento } from "@/lib/adiantamentos";
 
 type Props = {
   open: boolean; onClose: () => void;
   lancamentos: Lancamento[]; categorias: Categoria[]; funcionarios: { id: string; nome: string }[];
-  mes: string; unidade: FiltroUnidade; config: FinConfig | null;
+  mes: string; unidade: FiltroUnidade; config: FinConfig | null; adiantamentos?: Adiantamento[];
 };
 
 function baixar(nome: string, blob: Blob) {
   const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = nome; a.click(); URL.revokeObjectURL(url);
 }
 
-export function APagarPorPessoa({ open, onClose, lancamentos, categorias, funcionarios, mes, unidade, config }: Props) {
+export function APagarPorPessoa({ open, onClose, lancamentos, categorias, funcionarios, mes, unidade, config, adiantamentos = [] }: Props) {
   const [aberto, setAberto] = useState<string | null>(null);
   const [mostrarPagos, setMostrarPagos] = useState(false);
-  const r = useMemo(() => resumirPorPessoa({ lancamentos, categorias, funcionarios, mes, unidade, config }), [lancamentos, categorias, funcionarios, mes, unidade, config]);
+  const r = useMemo(() => resumirPorPessoa({ lancamentos, categorias, funcionarios, mes, unidade, config, adiantamentos }), [lancamentos, categorias, funcionarios, mes, unidade, config, adiantamentos]);
+  const temAdiant = r.linhas.some((l) => l.adiantamento > 0);
   const linhas = mostrarPagos ? r.linhas : r.linhas.filter((l) => l.pendente > 0);
   const titulo = `A pagar por pessoa · ${mes.split("-").reverse().join("/")} · ${unidade}`;
   const pdf = () => {
     const doc = new jsPDF();
     doc.setFontSize(14); doc.text(titulo, 14, 16);
-    autoTable(doc, { startY: 22, styles: { fontSize: 9 }, head: [["Pessoa", "A pagar", "Vencido", "Pendente", "Já pago"]],
-      body: linhas.map((l) => [l.nome, currency.format(l.aPagar), currency.format(l.vencido), currency.format(l.pendente), currency.format(l.pago)]),
-      foot: [["TOTAL", "", "", currency.format(r.totalPendente), currency.format(r.totalPago)]] });
+    autoTable(doc, { startY: 22, styles: { fontSize: 9 }, head: [["Pessoa", "A pagar", "Vencido", "Pendente", "Adiantamento", "Líquido", "Já pago"]],
+      body: linhas.map((l) => [l.nome, currency.format(l.aPagar), currency.format(l.vencido), currency.format(l.pendente), l.adiantamento > 0 ? `- ${currency.format(l.adiantamento)}` : "—", currency.format(l.liquido), currency.format(l.pago)]),
+      foot: [["TOTAL", "", "", currency.format(r.totalPendente), "", "", currency.format(r.totalPago)]] });
     doc.save(`a-pagar-por-pessoa-${mes}.pdf`);
   };
   return <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
@@ -47,7 +49,7 @@ export function APagarPorPessoa({ open, onClose, lancamentos, categorias, funcio
         <div className="flex gap-2"><Button size="sm" variant="outline" onClick={() => baixar(`a-pagar-por-pessoa-${mes}.csv`, new Blob([csvPorPessoa(r, (n) => currency.format(n))], { type: "text/csv;charset=utf-8" }))}><FileSpreadsheet className="mr-1 h-4 w-4" />Planilha</Button><Button size="sm" variant="outline" onClick={pdf}><Download className="mr-1 h-4 w-4" />PDF</Button></div>
       </div>
       <Table>
-        <TableHeader><TableRow><TableHead>Pessoa</TableHead><TableHead className="text-right">A pagar</TableHead><TableHead className="text-right">Vencido</TableHead><TableHead className="text-right">Pendente</TableHead><TableHead className="text-right">Já pago</TableHead></TableRow></TableHeader>
+        <TableHeader><TableRow><TableHead>Pessoa</TableHead><TableHead className="text-right">A pagar</TableHead><TableHead className="text-right">Vencido</TableHead><TableHead className="text-right">Pendente</TableHead>{temAdiant && <><TableHead className="text-right">Adiantamento</TableHead><TableHead className="text-right">Líquido</TableHead></>}<TableHead className="text-right">Já pago</TableHead></TableRow></TableHeader>
         <TableBody>
           {linhas.map((l) => <Fragment key={l.chave}>
             <TableRow className="cursor-pointer" onClick={() => setAberto(aberto === l.chave ? null : l.chave)}>
@@ -55,14 +57,15 @@ export function APagarPorPessoa({ open, onClose, lancamentos, categorias, funcio
               <TableCell className="text-right">{currency.format(l.aPagar)}</TableCell>
               <TableCell className={`text-right ${l.vencido > 0 ? "font-semibold text-destructive" : ""}`}>{currency.format(l.vencido)}</TableCell>
               <TableCell className="text-right font-bold">{currency.format(l.pendente)}</TableCell>
+              {temAdiant && <><TableCell className="text-right text-amber-700">{l.adiantamento > 0 ? `− ${currency.format(l.adiantamento)}` : "—"}</TableCell><TableCell className="text-right font-black">{currency.format(l.liquido)}</TableCell></>}
               <TableCell className="text-right text-emerald-700">{currency.format(l.pago)}</TableCell>
             </TableRow>
-            {aberto === l.chave && <TableRow><TableCell colSpan={5} className="bg-muted/40">
+            {aberto === l.chave && <TableRow><TableCell colSpan={temAdiant ? 7 : 5} className="bg-muted/40">
               <div className="mb-2 flex flex-wrap gap-1">{l.porCategoria.map((c) => <Badge key={c.categoria} variant="outline">{c.categoria}: {currency.format(c.pendente)}{c.pago > 0 ? ` (+${currency.format(c.pago)} pago)` : ""}</Badge>)}</div>
               <ul className="space-y-0.5 text-xs">{l.itens.map((i) => <li key={i.id} className="flex justify-between gap-2"><span className="truncate">{i.descricao} <span className="text-muted-foreground">· {STATUS[i.status] ?? i.status}{i.vencimento ? ` · vence ${dateBR(i.vencimento)}` : ""}</span></span><span>{currency.format(i.valor)}</span></li>)}</ul>
             </TableCell></TableRow>}
           </Fragment>)}
-          {!linhas.length && <TableRow><TableCell colSpan={5} className="py-8 text-center text-muted-foreground">Nada a pagar a pessoas neste mês e unidade.</TableCell></TableRow>}
+          {!linhas.length && <TableRow><TableCell colSpan={temAdiant ? 7 : 5} className="py-8 text-center text-muted-foreground">Nada a pagar a pessoas neste mês e unidade.</TableCell></TableRow>}
         </TableBody>
       </Table>
       {r.semPessoa.qtd > 0 && <p className="rounded-md border border-amber-300 bg-amber-50 p-2 text-xs">Há {r.semPessoa.qtd} despesa(s) pendente(s) somando {currency.format(r.semPessoa.pendente)} sem pessoa ligada (fornecedores, contas). Elas não entram no total acima.</p>}

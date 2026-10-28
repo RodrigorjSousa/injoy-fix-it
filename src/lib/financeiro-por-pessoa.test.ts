@@ -26,4 +26,10 @@ describe("a pagar por pessoa", () => {
     expect(r.linhas[0].vencido).toBe(10);
     expect(r.linhas[0].pendente).toBe(10);
   });
+  it("adiantamento em aberto aparece e reduz o líquido", () => {
+    const r = resumirPorPessoa({ ...base, lancamentos: [l({ freelancer_nome: "Maria", valor: 500 })],
+      adiantamentos: [{ id: "a1", funcionario_id: null, pessoa_nome: "maria", unidade: "Botafogo", valor: 200, data_adiantamento: "2026-10-05", forma_pagamento: "pix", status: "aberto", descontado_lancamento_id: null, descontado_em: null, observacoes: null, anexo_path: null, created_at: "2026-10-05" }] });
+    expect(r.linhas[0].adiantamento).toBe(200);
+    expect(r.linhas[0].liquido).toBe(300);
+  });
 });

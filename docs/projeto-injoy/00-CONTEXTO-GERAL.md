@@ -252,3 +252,12 @@ das selfies antigas do ponto foi oferecida.
 - Papéis de equipe (camareira, recepção, técnico) no Editar funcionário: gravados pelo servidor (`gestorDefinirPapelEquipe` em `src/lib/user-management.functions.ts`), porque o RLS de `user_roles` só deixa o admin inserir direto. Gestor/admin continuam só para admin.
 - Push para CAMAREIRAS (recado da recepção): destinatárias = papel `camareira` OU tela "camareiras" liberada no cadastro (`usuariosDasCamareiras` em `src/lib/push-destinatarios.ts`, mesma regra do menu `podeCamareira`). Antes só o papel contava.
 - Camareiras: voltou o card "Chegadas de Hoje" (amarelo-claro, recolhido; abre ao tocar) abaixo dos recados — `ChegadasCheckinCards recolhivel` (Cloudbeds getReservasHoje, com status de limpeza). getReservasHoje/getReservasFeitasHoje aceitam também quem tem a tela Camareiras/Recepção liberada no cadastro.
+- Financeiro › Adiantamento (migração 0086, `fin_adiantamentos`): botão "Adiantamento" no topo do Financeiro registra o
+  dinheiro adiantado a funcionário/freelancer (pessoa, valor, data, forma, unidade, observação, comprovante; recibo PDF
+  para assinar). Adiantamento NÃO é despesa: fica "a descontar". Em Lançamentos a linha da pessoa mostra
+  "− R$ X de adiantamento a descontar"; "Marcar como pago" lista os adiantamentos da pessoa (todos marcados), mostra
+  valor − adiantamento = pagar agora e grava pela RPC `fin_pagar_com_adiantamentos` (mais antigos primeiro; se sobrar,
+  o saldo continua aberto). O lançamento fica com o valor cheio (custo do mês) e `adiantamento_descontado`.
+  Lançamento que volta de "pago" ou é excluído reabre os adiantamentos (trigger). "A pagar por pessoa" tem as colunas
+  Adiantamento e Líquido. Pessoa = cadastro (funcionario_id) ou nome normalizado (freelancer/plantões da Escala).
+  Regras em `src/lib/adiantamentos.ts` (+ teste).
