@@ -582,6 +582,20 @@
       "when": 1793046927974,
       "tag": "0082_create_0083_lavanderia_relave_hotel",
       "breakpoints": true
+    },
+    {
+      "idx": 83,
+      "version": "7",
+      "when": 1793191606300,
+      "tag": "0083_whatsapp_e3",
+      "breakpoints": true
+    },
+    {
+      "idx": 84,
+      "version": "7",
+      "when": 1793191646975,
+      "tag": "0084_whatsapp_processar_agendamento",
+      "breakpoints": true
     }
   ]
 }
