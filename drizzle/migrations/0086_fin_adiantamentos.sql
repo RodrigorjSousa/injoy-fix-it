@@ -3,7 +3,9 @@
 -- os plantões da pessoa, os adiantamentos em aberto são abatidos e o lançamento guarda quanto foi
 -- descontado (o custo do mês continua sendo o valor cheio do lançamento).
 -- Se o pagamento for desfeito (lançamento volta de "pago" ou é excluído), os adiantamentos reabrem.
--- Idempotente.
+-- Parcelado: um adiantamento em N parcelas vira N registros (mesmo grupo_id), cada um liberado para
+-- desconto a partir de um mês (descontar_a_partir); o pagamento só desconta as parcelas já liberadas.
+-- Idempotente (pode ser aplicada de novo, por exemplo para acrescentar as colunas de parcelas).
 
 CREATE TABLE IF NOT EXISTS public.fin_adiantamentos (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -26,6 +28,14 @@ CREATE TABLE IF NOT EXISTS public.fin_adiantamentos (
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.fin_adiantamentos TO authenticated;
 GRANT ALL ON public.fin_adiantamentos TO service_role;
 ALTER TABLE public.fin_adiantamentos ENABLE ROW LEVEL SECURITY;
+-- Parcelas (descontar em vários meses).
+ALTER TABLE public.fin_adiantamentos
+  ADD COLUMN IF NOT EXISTS grupo_id uuid,
+  ADD COLUMN IF NOT EXISTS parcela smallint NOT NULL DEFAULT 1 CHECK (parcela BETWEEN 1 AND 24),
+  ADD COLUMN IF NOT EXISTS parcelas smallint NOT NULL DEFAULT 1 CHECK (parcelas BETWEEN 1 AND 24),
+  ADD COLUMN IF NOT EXISTS descontar_a_partir date CHECK (descontar_a_partir IS NULL OR extract(day from descontar_a_partir) = 1);
+CREATE INDEX IF NOT EXISTS fin_adiantamentos_grupo_idx ON public.fin_adiantamentos (grupo_id);
+
 DROP POLICY IF EXISTS "Gestores administram adiantamentos" ON public.fin_adiantamentos;
 CREATE POLICY "Gestores administram adiantamentos" ON public.fin_adiantamentos
 FOR ALL TO authenticated
@@ -84,13 +94,15 @@ BEGIN
       -- Parte do adiantamento sobra para o próximo pagamento.
       INSERT INTO public.fin_adiantamentos (
         funcionario_id, pessoa_nome, unidade, valor, data_adiantamento, forma_pagamento,
-        status, observacoes, anexo_path, created_by
+        status, observacoes, anexo_path, created_by, grupo_id, parcela, parcelas, descontar_a_partir
       ) VALUES (
         v_a.funcionario_id, v_a.pessoa_nome, v_a.unidade, v_a.valor - v_restante, v_a.data_adiantamento,
         v_a.forma_pagamento, 'aberto',
         concat_ws(' · ', 'Saldo do adiantamento de ' || to_char(v_a.data_adiantamento, 'DD/MM/YYYY'), nullif(v_a.observacoes, '')),
-        v_a.anexo_path, coalesce(auth.uid(), v_a.created_by)
+        v_a.anexo_path, coalesce(auth.uid(), v_a.created_by),
+        coalesce(v_a.grupo_id, v_a.id), v_a.parcela, v_a.parcelas, v_a.descontar_a_partir
       );
+      UPDATE public.fin_adiantamentos SET grupo_id = coalesce(grupo_id, id) WHERE id = v_a.id;
       UPDATE public.fin_adiantamentos
       SET valor = v_restante, status = 'descontado', descontado_lancamento_id = v_l.id, descontado_em = _data_pagamento
       WHERE id = v_a.id;

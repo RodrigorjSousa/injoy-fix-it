@@ -260,4 +260,7 @@ das selfies antigas do ponto foi oferecida.
   o saldo continua aberto). O lançamento fica com o valor cheio (custo do mês) e `adiantamento_descontado`.
   Lançamento que volta de "pago" ou é excluído reabre os adiantamentos (trigger). "A pagar por pessoa" tem as colunas
   Adiantamento e Líquido. Pessoa = cadastro (funcionario_id) ou nome normalizado (freelancer/plantões da Escala).
+  Parcelado: "Descontar em" 1–12 parcelas + mês da 1ª → N linhas com o mesmo `grupo_id`, `parcela/parcelas` e
+  `descontar_a_partir` (1º do mês). No pagamento só vêm marcadas as parcelas liberadas para a competência do lançamento
+  (futuras aparecem desmarcadas, dá para adiantar). Recibo do grupo lista as parcelas. Excluir apaga as parcelas abertas.
   Regras em `src/lib/adiantamentos.ts` (+ teste).

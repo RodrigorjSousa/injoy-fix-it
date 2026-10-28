@@ -2,7 +2,7 @@
 // (funcionário vinculado ou nome do freelancer) e separa o que falta pagar do que já foi pago.
 import type { Categoria, FiltroUnidade, FinConfig, Lancamento } from "@/lib/financeiro";
 import { statusReal, valorRateado } from "@/lib/financeiro";
-import { abertosDaPessoa, somaAdiantamentos, type Adiantamento } from "@/lib/adiantamentos";
+import { abertosDaPessoa, liberadoNoMes, somaAdiantamentos, type Adiantamento } from "@/lib/adiantamentos";
 
 export type ItemPessoa = { id: string; descricao: string; categoria: string; valor: number; status: string; vencimento: string | null };
 export type LinhaPessoa = {
@@ -60,7 +60,8 @@ export function resumirPorPessoa(args: {
   }
   for (const linha of mapa.values()) {
     const pessoa = { funcionarioId: linha.chave.startsWith("n:") ? null : linha.chave, nome: linha.nome };
-    linha.adiantamento = somaAdiantamentos(abertosDaPessoa(pessoa, adiantamentos));
+    // Só as parcelas já liberadas para o mês escolhido.
+    linha.adiantamento = somaAdiantamentos(abertosDaPessoa(pessoa, adiantamentos).filter((a) => liberadoNoMes(a, mes)));
     linha.liquido = arred(Math.max(0, linha.pendente - linha.adiantamento));
   }
   const linhas = [...mapa.values()].sort((a, b) => b.pendente - a.pendente || a.nome.localeCompare(b.nome, "pt-BR"));

@@ -2,6 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   abertosDaPessoa,
   calcularDesconto,
+  dividirParcelas,
+  liberadoNoMes,
+  mesesSeguidos,
+  separarPorMes,
   mesmaPessoa,
   pessoaDoLancamento,
   valorPorExtenso,
@@ -85,4 +89,28 @@ describe("valor por extenso", () => {
     [0.01, "um centavo"],
     [21, "vinte e um reais"],
   ])("%s", (v, txt) => expect(valorPorExtenso(v)).toBe(txt));
+});
+
+describe("parcelas", () => {
+  it("divide em centavos e a última leva a diferença", () => {
+    expect(dividirParcelas(600, 3)).toEqual([200, 200, 200]);
+    expect(dividirParcelas(100, 3)).toEqual([33.33, 33.33, 33.34]);
+  });
+  it("meses seguidos virando o ano", () => {
+    expect(mesesSeguidos("2026-11", 3)).toEqual(["2026-11", "2026-12", "2027-01"]);
+  });
+  it("só desconta a parcela liberada para o mês do pagamento", () => {
+    expect(liberadoNoMes({ descontar_a_partir: null }, "2026-10")).toBe(true);
+    expect(liberadoNoMes({ descontar_a_partir: "2026-11-01" }, "2026-10-01")).toBe(false);
+    expect(liberadoNoMes({ descontar_a_partir: "2026-11-01" }, "2026-11")).toBe(true);
+    const r = separarPorMes(
+      [
+        a({ id: "p1", descontar_a_partir: "2026-10-01" }),
+        a({ id: "p2", descontar_a_partir: "2026-11-01" }),
+      ],
+      "2026-10",
+    );
+    expect(r.agora.map((x) => x.id)).toEqual(["p1"]);
+    expect(r.futuros.map((x) => x.id)).toEqual(["p2"]);
+  });
 });

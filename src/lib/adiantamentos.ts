@@ -19,6 +19,12 @@ export type Adiantamento = {
   observacoes: string | null;
   anexo_path: string | null;
   created_at: string;
+  /** Parcelas: registros do mesmo adiantamento dividido (null = sem parcelas). */
+  grupo_id?: string | null;
+  parcela?: number;
+  parcelas?: number;
+  /** 1º dia do mês a partir do qual a parcela pode ser descontada (null = já pode). */
+  descontar_a_partir?: string | null;
 };
 
 export const STATUS_ADIANTAMENTO: Record<StatusAdiantamento, string> = {
@@ -75,6 +81,37 @@ export function abertosDaPessoa(pessoa: Pessoa | null, lista: Adiantamento[]): A
         a.created_at.localeCompare(b.created_at),
     );
 }
+
+/** A parcela já pode ser descontada num pagamento da competência `mes` (YYYY-MM)? */
+export const liberadoNoMes = (a: Pick<Adiantamento, "descontar_a_partir">, mes: string) =>
+  !a.descontar_a_partir || a.descontar_a_partir.slice(0, 7) <= mes.slice(0, 7);
+
+/** Separa os abertos entre os que já podem ser descontados no mês e as parcelas futuras. */
+export function separarPorMes(lista: Adiantamento[], mes: string) {
+  return {
+    agora: lista.filter((a) => liberadoNoMes(a, mes)),
+    futuros: lista.filter((a) => !liberadoNoMes(a, mes)),
+  };
+}
+
+/** Divide o total em N parcelas em centavos; a última leva a diferença do arredondamento. */
+export function dividirParcelas(total: number, n: number): number[] {
+  const cent = Math.round(total * 100);
+  const base = Math.floor(cent / n);
+  return Array.from({ length: n }, (_, i) => (i === n - 1 ? cent - base * (n - 1) : base) / 100);
+}
+
+/** "2026-11" + 3 → ["2026-11", "2026-12", "2027-01"]. */
+export function mesesSeguidos(inicio: string, n: number): string[] {
+  const [y, m] = inicio.split("-").map(Number);
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(Date.UTC(y, m - 1 + i, 1));
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  });
+}
+
+export const mesBR = (mes: string | null | undefined) =>
+  mes ? `${mes.slice(5, 7)}/${mes.slice(0, 4)}` : "";
 
 export const somaAdiantamentos = (lista: Pick<Adiantamento, "valor">[]) =>
   arred(lista.reduce((s, a) => s + Number(a.valor), 0));

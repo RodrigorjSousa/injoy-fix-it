@@ -37,12 +37,16 @@ import {
   currency,
   dateBR,
   FORMAS,
+  monthNow,
   openFinanceFile,
   uploadFinanceFile,
   type Lancamento,
 } from "@/lib/financeiro";
 import { todaySP } from "@/lib/tz";
 import {
+  dividirParcelas,
+  mesBR,
+  mesesSeguidos,
   normNome,
   somaAdiantamentos,
   STATUS_ADIANTAMENTO,
@@ -128,6 +132,17 @@ export function AdiantamentosDialog({
   const [file, setFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [filtro, setFiltro] = useState<"aberto" | "todos">("aberto");
+  const [parcelas, setParcelas] = useState("1");
+  const [inicio, setInicio] = useState(monthNow());
+  const nParc = Math.max(1, Number(parcelas) || 1);
+  const valorNum = Number(valor.replace(",", "."));
+  const plano =
+    valorNum > 0
+      ? dividirParcelas(valorNum, nParc).map((v, i) => ({
+          valor: v,
+          mes: mesesSeguidos(inicio, nParc)[i],
+        }))
+      : [];
   const fileRef = useRef<HTMLInputElement>(null);
 
   const abertos = adiantamentos.filter((a) => a.status === "aberto");
@@ -151,23 +166,36 @@ export function AdiantamentosDialog({
     if (!nome) return toast.error("Escolha a pessoa.");
     if (!(v > 0)) return toast.error("Informe um valor válido.");
     if (!data) return toast.error("Informe a data do adiantamento.");
+    if (!inicio) return toast.error("Informe o mês do primeiro desconto.");
     setSaving(true);
     try {
       const anexo = file ? await uploadFinanceFile(file) : null;
-      const { error } = await supabase.from("fin_adiantamentos" as never).insert({
+      // Uma linha por parcela (mesmo grupo); cada uma só é descontada a partir do seu mês.
+      const grupo = crypto.randomUUID();
+      const meses = mesesSeguidos(inicio, nParc);
+      const linhas = dividirParcelas(v, nParc).map((valorParc, i) => ({
         funcionario_id: pessoa === OUTRO ? null : (op?.funcionarioId ?? null),
         pessoa_nome: nome,
         unidade,
-        valor: v,
+        valor: valorParc,
         data_adiantamento: data,
         forma_pagamento: forma,
         observacoes: obs.trim() || null,
         anexo_path: anexo,
-      } as never);
+        grupo_id: grupo,
+        parcela: i + 1,
+        parcelas: nParc,
+        // Desconto único a partir de agora: já entra em qualquer pagamento em aberto.
+        descontar_a_partir: nParc === 1 && meses[i] <= monthNow() ? null : `${meses[i]}-01`,
+      }));
+      const { error } = await supabase.from("fin_adiantamentos" as never).insert(linhas as never);
       if (error) throw error;
       toast.success(
-        `Adiantamento de ${currency.format(v)} para ${nome} registrado. Será descontado no próximo pagamento.`,
+        nParc > 1
+          ? `Adiantamento de ${currency.format(v)} para ${nome}: ${nParc}x de ${currency.format(linhas[0].valor)}, de ${mesBR(meses[0])} a ${mesBR(meses[nParc - 1])}.`
+          : `Adiantamento de ${currency.format(v)} para ${nome} registrado. Desconto a partir de ${mesBR(meses[0])}.`,
       );
+      setParcelas("1");
       setValor("");
       setObs("");
       setFile(null);
@@ -197,12 +225,21 @@ export function AdiantamentosDialog({
   }
 
   async function excluir(a: Adiantamento) {
-    if (!confirm(`Excluir o adiantamento de ${currency.format(a.valor)} de ${a.pessoa_nome}?`))
-      return;
+    const irmas = a.grupo_id
+      ? adiantamentos.filter((x) => x.grupo_id === a.grupo_id && x.status === "aberto")
+      : [a];
+    const msg =
+      irmas.length > 1
+        ? `Excluir as ${irmas.length} parcelas a descontar deste adiantamento de ${a.pessoa_nome} (${currency.format(somaAdiantamentos(irmas))})?`
+        : `Excluir o adiantamento de ${currency.format(a.valor)} de ${a.pessoa_nome}?`;
+    if (!confirm(msg)) return;
     const { data: apagados, error } = await supabase
       .from("fin_adiantamentos" as never)
       .delete()
-      .eq("id", a.id)
+      .in(
+        "id",
+        irmas.map((x) => x.id),
+      )
       .select("id");
     if (error) return toast.error(error.message);
     if (!apagados?.length) return toast.error("Não foi possível excluir (sem permissão).");
@@ -309,6 +346,37 @@ export function AdiantamentosDialog({
               </SelectContent>
             </Select>
           </div>
+          <div className="space-y-1.5">
+            <Label>Descontar em</Label>
+            <Select value={parcelas} onValueChange={setParcelas}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {Array.from({ length: 12 }, (_, i) => String(i + 1)).map((n) => (
+                  <SelectItem key={n} value={n}>
+                    {n === "1" ? "1 vez (próximo pagamento)" : `${n} parcelas (meses seguidos)`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <Label>{nParc > 1 ? "Mês da 1ª parcela" : "Descontar a partir de"}</Label>
+            <Input type="month" value={inicio} onChange={(e) => setInicio(e.target.value)} />
+          </div>
+          {plano.length > 1 && (
+            <div className="rounded-md border border-amber-200 bg-white p-2 text-xs sm:col-span-2">
+              <p className="mb-1 font-semibold text-amber-800">Plano de desconto</p>
+              <div className="flex flex-wrap gap-1.5">
+                {plano.map((p, i) => (
+                  <span key={p.mes} className="rounded bg-amber-50 px-2 py-0.5">
+                    {i + 1}ª · {mesBR(p.mes)} · {currency.format(p.valor)}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5 sm:col-span-2">
             <Label>Observação (opcional)</Label>
             <Textarea
@@ -394,6 +462,10 @@ export function AdiantamentosDialog({
                 <p className="text-xs text-muted-foreground">
                   {dateBR(a.data_adiantamento)} · {FORMAS[a.forma_pagamento] ?? a.forma_pagamento} ·{" "}
                   {a.unidade}
+                  {(a.parcelas ?? 1) > 1 ? ` · parcela ${a.parcela}/${a.parcelas}` : ""}
+                  {a.descontar_a_partir && a.status === "aberto"
+                    ? ` · desconto a partir de ${mesBR(a.descontar_a_partir)}`
+                    : ""}
                   {a.status === "descontado" && a.descontado_em
                     ? ` · descontado no pagamento de ${dateBR(a.descontado_em)}`
                     : ""}
@@ -410,7 +482,16 @@ export function AdiantamentosDialog({
                   size="icon"
                   variant="ghost"
                   title="Recibo para assinar"
-                  onClick={() => reciboPdf(a)}
+                  onClick={() =>
+                    reciboPdf(
+                      a,
+                      a.grupo_id
+                        ? adiantamentos.filter(
+                            (x) => x.grupo_id === a.grupo_id && x.status !== "cancelado",
+                          )
+                        : [a],
+                    )
+                  }
                 >
                   <FileText />
                 </Button>
@@ -472,26 +553,55 @@ export function AdiantamentosDialog({
   );
 }
 
-/** Recibo simples para a pessoa assinar ao receber o adiantamento. */
-function reciboPdf(a: Adiantamento) {
+/** Recibo para a pessoa assinar ao receber o adiantamento (total do adiantamento, com as parcelas). */
+function reciboPdf(a: Adiantamento, grupo: Adiantamento[]) {
+  const itens = (grupo.length ? grupo : [a])
+    .slice()
+    .sort((x, y) => (x.descontar_a_partir ?? "").localeCompare(y.descontar_a_partir ?? ""));
+  const total = somaAdiantamentos(itens);
+  const nParc = Math.max(a.parcelas ?? 1, 1);
+  const meses = [
+    ...new Set(itens.map((i) => i.descontar_a_partir?.slice(0, 7)).filter(Boolean)),
+  ] as string[];
   const doc = new jsPDF();
-  const valor = currency.format(a.valor);
+  const valor = currency.format(total);
   doc.setFontSize(16);
   doc.text("RECIBO DE ADIANTAMENTO", 105, 25, { align: "center" });
   doc.setFontSize(12);
   doc.text(valor, 190, 40, { align: "right" });
+  const desconto =
+    nParc > 1
+      ? `descontado em ${nParc} parcelas mensais` +
+        (meses.length ? `, de ${mesBR(meses[0])} a ${mesBR(meses[meses.length - 1])}` : "") +
+        `, dos meus pagamentos (salário ou plantões), conforme abaixo.`
+      : `descontado do meu pagamento (salário ou plantões)` +
+        (meses.length ? ` a partir de ${mesBR(meses[0])}.` : ".");
   const texto =
     `Eu, ${a.pessoa_nome}, declaro que recebi de IN.JOY Hostel Design Pousada (unidade ${a.unidade}) ` +
-    `a quantia de ${valor} (${valorPorExtenso(a.valor)}), em ${dateBR(a.data_adiantamento)}, por ` +
+    `a quantia de ${valor} (${valorPorExtenso(total)}), em ${dateBR(a.data_adiantamento)}, por ` +
     `${FORMAS[a.forma_pagamento] ?? a.forma_pagamento}, a título de ADIANTAMENTO, e autorizo que este valor seja ` +
-    `descontado do meu próximo pagamento (salário ou plantões).` +
+    desconto +
     (a.observacoes ? `\n\nObservação: ${a.observacoes}` : "");
   doc.text(doc.splitTextToSize(texto, 170), 20, 55);
-  doc.text(`Rio de Janeiro, ${dateBR(a.data_adiantamento)}.`, 20, 120);
-  doc.line(20, 150, 110, 150);
-  doc.text(a.pessoa_nome, 20, 157);
+  let y = 110;
+  if (nParc > 1) {
+    doc.setFontSize(10);
+    for (const i of itens) {
+      doc.text(
+        `Parcela ${i.parcela}/${i.parcelas} · ${mesBR(i.descontar_a_partir)} · ${currency.format(i.valor)}`,
+        25,
+        y,
+      );
+      y += 6;
+    }
+    doc.setFontSize(12);
+    y += 6;
+  }
+  doc.text(`Rio de Janeiro, ${dateBR(a.data_adiantamento)}.`, 20, y + 10);
+  doc.line(20, y + 40, 110, y + 40);
+  doc.text(a.pessoa_nome, 20, y + 47);
   doc.setFontSize(9);
-  doc.text("Assinatura de quem recebeu", 20, 163);
+  doc.text("Assinatura de quem recebeu", 20, y + 53);
   doc.save(
     `recibo-adiantamento-${normNome(a.pessoa_nome).replace(/\s+/g, "-")}-${a.data_adiantamento}.pdf`,
   );
