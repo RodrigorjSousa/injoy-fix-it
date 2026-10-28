@@ -46,6 +46,11 @@ export type ConfigJoy = {
   conhecimento: Conhecimento;
   wifi: WifiConfig;
   updated_at: string | null;
+  /** E3 (0084). Antes da migração: desligado. */
+  whatsapp_modo: "desligado" | "rascunho_teste" | "rascunho";
+  numeros_teste: string[];
+  envio_liberado: boolean;
+  pausa_eco_minutos: number;
 };
 
 function normalizarConhecimento(v: unknown): Conhecimento {
@@ -126,6 +131,15 @@ export async function carregarConfig(): Promise<ConfigJoy> {
     conhecimento: normalizarConhecimento(row.conhecimento),
     wifi: normalizarWifi(row.wifi),
     updated_at: row.updated_at ?? null,
+    whatsapp_modo:
+      row.whatsapp_modo === "rascunho" || row.whatsapp_modo === "rascunho_teste"
+        ? row.whatsapp_modo
+        : "desligado",
+    numeros_teste: Array.isArray(row.numeros_teste) ? row.numeros_teste.map(String) : [],
+    envio_liberado: row.envio_liberado === true,
+    pausa_eco_minutos: Number.isFinite(Number(row.pausa_eco_minutos))
+      ? Number(row.pausa_eco_minutos)
+      : 120,
   };
 }
 
@@ -223,7 +237,15 @@ type MensagemRow = {
   autor: "cliente" | "joy" | "equipe" | "sistema";
   texto: string;
   meta: Record<string, unknown> | null;
+  /** E3: estado do envio no WhatsApp (null no simulador e nas mensagens recebidas). */
+  envio?: string | null;
 };
+
+/** Rascunho que não foi (ou ainda não foi) mandado ao hóspede não conta como dito. */
+export function mensagemFoiDita(m: { autor: string; envio?: string | null }): boolean {
+  if (m.autor !== "joy" && m.autor !== "equipe") return true;
+  return !m.envio || ["enviando", "enviada", "entregue", "lida"].includes(m.envio);
+}
 
 /**
  * Lições ativas (migração 0078). Se a tabela ainda não existir, segue sem lições —
@@ -307,11 +329,11 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
 
   const { data: msgsDesc } = await db
     .from("wa_mensagens")
-    .select("id,autor,texto,meta")
+    .select("*")
     .eq("conversa_id", conversaId)
     .order("created_at", { ascending: false })
     .limit(HISTORICO);
-  const mensagens = ((msgsDesc ?? []) as MensagemRow[]).reverse();
+  const mensagens = ((msgsDesc ?? []) as MensagemRow[]).reverse().filter(mensagemFoiDita);
 
   const { hoje, hora, diaSemana } = agoraNoHotel();
   const ctx: ContextoFerramenta = {
@@ -473,6 +495,8 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
     conversa_id: conversaId,
     autor: "joy",
     texto,
+    // E3: no WhatsApp a Joy só escreve rascunho; alguém aprova no painel.
+    ...(conv.canal === "whatsapp" ? { envio: "rascunho" } : {}),
     meta: {
       ferramentas: resultado.ferramentas.map((f) => ({
         nome: f.nome,

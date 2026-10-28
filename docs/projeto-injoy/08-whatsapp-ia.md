@@ -336,6 +336,7 @@ da IN.JOY fala só do hotel e sempre tem saída para uma pessoa.
 - 16–19/10/2026: documento do Rodrigo incorporado; decisões registradas em "Regras definidas pelo Rodrigo".
 - 23/10/2026: conversas da recepção analisadas e base revisada com o Rodrigo (E1.2).
 - 25/10/2026: E2, hóspedes simulados com avaliação automática.
+- 28/10/2026: E3, WhatsApp em modo rascunho (teste com o número da Meta).
 
 ### Entrega E1 — Joy no simulador (branch `feat/whatsapp-ia-e1`, migração `0074_whatsapp_joy.sql`)
 Sem WhatsApp e sem nenhuma mensagem real. Tela **Área do Gestor › WhatsApp (Joy)**
@@ -524,12 +525,86 @@ Custo: cada cenário gasta mais ou menos o crédito de 10 a 15 respostas da Joy 
 Para ativar: merge → aplicar a `0081_whatsapp_testes.sql` no Lovable → Publicar → aba Testes → rodar.
 Meta da E2: rodar tudo, criar as lições do que errar e repetir até zerar os erros graves.
 
+### Entrega E3 — WhatsApp em modo rascunho (branch `feat/whatsapp-e3-rascunho`, migrações `0084_whatsapp_e3.sql` e `0085_whatsapp_processar_agendamento.sql`)
+A Joy passa a ler o WhatsApp de verdade, mas **só escreve rascunhos**. Nada sai sem alguém clicar em
+"Aprovar e enviar" no painel, e o envio só vai para os **números de teste** enquanto o Rodrigo não ligar
+"Liberar envio para hóspedes" (só administrador muda). Tudo começa **desligado**.
+
+Achado de 28/10/2026 (documentação da Meta, "Onboarding WhatsApp Business app users"): levar o número que
+já está no app WhatsApp Business para a API **mantendo o app** (coexistência) só é feito por **Solution
+Partner ou Tech Provider**, pelo Embedded Signup. A empresa sozinha, com um app comum, não consegue. Por
+isso a E3 é testada com o **número de teste gratuito da Meta** e o celular do Rodrigo. A decisão sobre o
+número da recepção (parceiro com coexistência, virar Tech Provider ou um número novo só da Joy) fica para
+depois dos testes.
+
+Como funciona:
+- **Webhook** `/api/public/whatsapp-webhook`:
+  - `GET` responde a verificação da Meta (`WHATSAPP_VERIFY_TOKEN`);
+  - `POST` só aceita com a assinatura `X-Hub-Signature-256` válida (`WHATSAPP_APP_SECRET`);
+  - grava as mensagens com o `wamid` único (a Meta reenvia; não duplica), cria a conversa pelo número
+    (`wa_id`) com o nome do perfil, e ignora mensagens de outro número da conta;
+  - grava os **status** (enviada, entregue, lida, falhou), sem voltar atrás quando chegam fora de ordem;
+  - grava os **ecos** (`smb_message_echoes`, quando houver coexistência): o que a recepção mandou pelo
+    celular entra no histórico como "equipe", descarta o rascunho pendente e **pausa a Joy** naquela
+    conversa (padrão 120 min, ajustável);
+  - responde 200 na hora; não chama a IA.
+- **Agendamento de 1 minuto** (0085): só chama `/api/public/whatsapp-processar` se o WhatsApp estiver
+  ligado e houver conversa esperando. Para cada conversa:
+  - trava (`processando_ate`) para nunca haver dois rascunhos ao mesmo tempo;
+  - **áudio** é transcrito e **imagem** é descrita (sem copiar valores, chaves nem dados de documento);
+    documento e vídeo ficam só como "[documento: nome]" / "[vídeo]";
+  - rascunho antigo vira "substituído" e a Joy escreve um novo, olhando só o que foi **de fato enviado**
+    (rascunho descartado não entra no histórico dela);
+  - modo "Rascunho só para os números de teste": os outros contatos ficam só gravados.
+- **Painel** (aba **WhatsApp** na tela da Joy):
+  - ligação com a Meta (quais segredos faltam e o endereço do webhook para colar), modo, números de teste,
+    pausa e o interruptor de envio liberado;
+  - conversas reais com o número de rascunhos pendentes;
+  - rascunho em amarelo, editável: **Aprovar e enviar**, **Enviar editado** ou **Descartar**;
+  - "Pedir rascunho" (na hora, mesmo com a Joy pausada), "Equipe assume" / "Devolver para a Joy";
+  - resposta manual da equipe (também só para número de teste até liberar; pausa a Joy);
+  - fora da janela de 24 h o envio fica bloqueado (sem template, como decidido): responder pelo celular.
+- O "Corrigir" e as Lições continuam valendo: o que a Joy errar no rascunho vira lição no Simulador.
+- Banco (0084): `wa_config` ganha `whatsapp_modo` (`desligado`/`rascunho_teste`/`rascunho`),
+  `numeros_teste`, `envio_liberado`, `pausa_eco_minutos`; `wa_conversas` ganha `wa_id` (único no
+  WhatsApp), `processando_ate`, `pausada_ate`, `atendida_ate`; `wa_mensagens` ganha `wamid` (único),
+  `tipo`, `envio`, `aprovado_por`, `enviado_em`, `erro_envio`. Mesmo acesso: leitura só gestor/admin,
+  escrita só pelo servidor. Testada em Postgres local (roda duas vezes; `wa_id` e `wamid` duplicados
+  barrados; o agendamento não chama nada com o WhatsApp desligado ou sem pendência; camareira não vê).
+- Testes: leitura do webhook (texto, áudio, imagem, botão, localização, status, ecos), assinatura,
+  celular do Brasil com e sem o 9, fluxo completo com banco falso (reenvio da Meta, rascunho, aprovação,
+  bloqueio de número que não é de teste, eco pausando a Joy, modo desligado, resposta manual).
+
+#### Passo a passo para testar com o número de teste da Meta
+1. **Merge**, aplicar a `0084` e depois a `0085` no Lovable, **Publicar**.
+2. Em developers.facebook.com: **Criar app** → caso de uso **WhatsApp** (ligado ao portfólio empresarial
+   da Injoy). Em **WhatsApp › Configuração da API** a Meta dá um **número de teste** grátis e mostra o
+   **Phone number ID**. Em "Para", adicionar o **celular do Rodrigo** e confirmar com o código.
+3. **Token permanente:** Configurações do negócio › Usuários do sistema › criar um usuário do sistema
+   (admin), dar acesso ao app e à conta do WhatsApp, e gerar token sem validade com
+   `whatsapp_business_messaging` e `whatsapp_business_management`. (O token temporário da tela da API
+   vence em 24 h.)
+4. **App secret:** Configurações do app › Básico › Chave secreta do app.
+5. **Verify token:** inventar uma frase aleatória.
+6. No **Lovable Cloud › Secrets**: `WHATSAPP_TOKEN`, `WHATSAPP_PHONE_NUMBER_ID`, `WHATSAPP_APP_SECRET`,
+   `WHATSAPP_VERIFY_TOKEN`.
+7. Na Meta, **WhatsApp › Configuração › Webhook**: URL de retorno = o endereço mostrado no painel
+   (`https://<app>/api/public/whatsapp-webhook`) e o verify token do passo 5. Assinar o campo
+   **messages**.
+8. No app, **WhatsApp (Joy) › WhatsApp › Ligação**: colocar o celular do Rodrigo nos números de teste e o
+   modo **"Rascunho só para os números de teste"**. Salvar.
+9. Do celular do Rodrigo, mandar mensagem para o número de teste. Em até ~1 minuto o rascunho aparece no
+   painel; "Aprovar e enviar" e a resposta chega no celular.
+
 ## Ideias e pendências
 - Confirmar no primeiro teste real:
   - o nome do modelo no gateway (o padrão `google/gemini-2.5-flash` pode não existir);
   - os escopos da credencial do Cloudbeds para `getAvailableRoomTypes` e `getGuestList`;
   - se `roomRate` vem como total da estadia (a Joy usa a soma do detalhado quando vem).
 - Contato de emergência da equipe (vazio).
+- Decidir o número da Joy no ar: parceiro com coexistência (número da recepção), virar Tech Provider, ou
+  número novo só da Joy. Trazer as opções com custos depois dos testes da E3.
+- E3 não avisa a recepção por push quando há rascunho ou passagem para a equipe (vem na E4).
 - Chave do Google Maps (opcional; sem ela a Joy manda link de busca).
 - Quando o app enviar os códigos sozinho depois do check-in online, atualizar o tópico "Códigos de acesso".
 - Apagar a exportação do MarcFlow e o banco dele no PC do Rodrigo (dados pessoais) depois da aprovação.

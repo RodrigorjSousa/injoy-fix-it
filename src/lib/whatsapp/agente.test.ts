@@ -488,3 +488,15 @@ describe("Joy — agente", () => {
     expect(tabelas.wa_ia_execucoes[0]).not.toHaveProperty("licoes_usadas");
   });
 });
+
+describe("E3: rascunho não conta como dito", () => {
+  it("só entra no histórico o que foi mesmo enviado", async () => {
+    const { mensagemFoiDita } = await import("./agente.server");
+    expect(mensagemFoiDita({ autor: "cliente", envio: null })).toBe(true);
+    expect(mensagemFoiDita({ autor: "joy", envio: null })).toBe(true); // simulador
+    expect(mensagemFoiDita({ autor: "joy", envio: "enviada" })).toBe(true);
+    expect(mensagemFoiDita({ autor: "equipe", envio: "lida" })).toBe(true);
+    for (const e of ["rascunho", "descartada", "substituida", "falhou"])
+      expect(mensagemFoiDita({ autor: "joy", envio: e })).toBe(false);
+  });
+});

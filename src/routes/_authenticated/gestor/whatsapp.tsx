@@ -5,6 +5,8 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   BookOpen,
   Bot,
+  Check,
+  CheckCheck,
   ChevronDown,
   ChevronRight,
   Eye,
@@ -17,6 +19,9 @@ import {
   Play,
   Plus,
   RotateCcw,
+  Smartphone,
+  Sparkles,
+  X,
   Save,
   Send,
   ShieldAlert,
@@ -69,6 +74,12 @@ import {
   joyNovaConversa,
   joyPadrao,
   joySalvarConfig,
+  joyAprovarRascunho,
+  joyDescartarRascunho,
+  joyEnviarWhatsapp,
+  joyGerarRascunho,
+  joyWhatsappSalvar,
+  joyWhatsappStatus,
   joyTesteApagar,
   joyTesteAvaliar,
   joyTesteIniciar,
@@ -98,6 +109,9 @@ type Conversa = {
   modo: "ia" | "humano" | "pausada";
   etapa: string;
   updated_at: string;
+  wa_id?: string | null;
+  pausada_ate?: string | null;
+  ultima_msg_cliente_em?: string | null;
 };
 
 type Mensagem = {
@@ -115,8 +129,14 @@ type Mensagem = {
     modelo?: string;
     duracao_ms?: number;
     licoes?: Array<{ id: string; tema: string | null }>;
+    texto_original?: string;
+    origem?: string;
   } | null;
   created_at: string;
+  /** E3: estado do envio no WhatsApp. */
+  envio?: string | null;
+  erro_envio?: string | null;
+  tipo?: string | null;
 };
 
 type Execucao = {
@@ -176,7 +196,7 @@ function WhatsappGestor() {
         <div>
           <h2 className="text-xl font-bold text-slate-900">WhatsApp — Joy</h2>
           <p className="text-sm text-slate-600">
-            Assistente de IA da Injoy. Etapa 1: simulador (sem WhatsApp).
+            Assistente de IA da Injoy. WhatsApp em modo rascunho: nada sai sem aprovação.
           </p>
         </div>
       </div>
@@ -184,20 +204,24 @@ function WhatsappGestor() {
       <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          Simulador: <b>nenhuma mensagem sai para hóspedes</b> e a equipe não recebe push. As
-          consultas ao Cloudbeds são reais, só de leitura. Cada resposta da Joy gasta créditos de IA
-          do Lovable.
+          A Joy só escreve <b>rascunhos</b>: nenhuma mensagem sai sem alguém clicar em "Aprovar e
+          enviar", e o envio só vai para os números de teste até o Rodrigo liberar. As consultas ao
+          Cloudbeds são reais, só de leitura. Cada resposta da Joy gasta créditos de IA do Lovable.
         </p>
       </div>
 
       <Tabs defaultValue="simulador">
         <TabsList>
+          <TabsTrigger value="whatsapp">WhatsApp</TabsTrigger>
           <TabsTrigger value="simulador">Simulador</TabsTrigger>
           <TabsTrigger value="config">Configuração</TabsTrigger>
           <TabsTrigger value="licoes">Lições</TabsTrigger>
           <TabsTrigger value="testes">Testes</TabsTrigger>
           <TabsTrigger value="execucoes">Execuções</TabsTrigger>
         </TabsList>
+        <TabsContent value="whatsapp">
+          <WhatsappReal />
+        </TabsContent>
         <TabsContent value="simulador">
           <Simulador />
         </TabsContent>
@@ -768,6 +792,12 @@ function Bolha({ m, onCorrigir }: { m: Mensagem; onCorrigir?: () => void }) {
             </span>
           )}
           <span>{hora(m.created_at)}</span>
+          {m.envio && <ChipEnvio envio={m.envio} />}
+          {m.meta?.origem === "celular" && (
+            <span className="flex items-center gap-0.5" title="Enviada pelo celular da recepção">
+              <Smartphone className="h-3 w-3" />
+            </span>
+          )}
           {onCorrigir && (
             <button
               onClick={onCorrigir}
@@ -1974,6 +2004,530 @@ function ConversaDoTeste({ conversaId }: { conversaId: string }) {
       {(msgs.data ?? []).map((m) => (
         <Bolha key={m.id} m={m} />
       ))}
+    </div>
+  );
+}
+
+// ============================================================ WhatsApp real (E3)
+
+const ENVIO: Record<string, { label: string; cls: string }> = {
+  rascunho: { label: "rascunho", cls: "bg-yellow-100 text-yellow-800" },
+  enviando: { label: "enviando…", cls: "bg-slate-100 text-slate-600" },
+  enviada: { label: "enviada", cls: "text-slate-500" },
+  entregue: { label: "entregue", cls: "text-slate-500" },
+  lida: { label: "lida", cls: "text-sky-600" },
+  falhou: { label: "falhou", cls: "bg-red-100 text-red-700" },
+  descartada: { label: "descartada", cls: "bg-slate-100 text-slate-500" },
+  substituida: { label: "substituída", cls: "bg-slate-100 text-slate-500" },
+};
+
+function ChipEnvio({ envio }: { envio: string }) {
+  const e = ENVIO[envio] ?? { label: envio, cls: "text-slate-500" };
+  return (
+    <span className={cn("flex items-center gap-0.5 rounded px-1", e.cls)}>
+      {envio === "enviada" && <Check className="h-3 w-3" />}
+      {(envio === "entregue" || envio === "lida") && <CheckCheck className="h-3 w-3" />}
+      {e.label}
+    </span>
+  );
+}
+
+const MODO_WA: Record<string, string> = {
+  desligado: "Desligado (só grava as mensagens)",
+  rascunho_teste: "Rascunho só para os números de teste",
+  rascunho: "Rascunho para todos os contatos",
+};
+
+function WhatsappReal() {
+  const [ativa, setAtiva] = useState<string | null>(null);
+  const conversas = useQuery({
+    queryKey: ["joy-wa-conversas"],
+    refetchInterval: 10_000,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_conversas")
+        .select("*")
+        .eq("canal", "whatsapp")
+        .order("ultima_msg_cliente_em", { ascending: false, nullsFirst: false })
+        .limit(100);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Conversa[];
+    },
+  });
+  const rascunhos = useQuery({
+    queryKey: ["joy-wa-rascunhos"],
+    refetchInterval: 10_000,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_mensagens")
+        .select("conversa_id")
+        .eq("envio", "rascunho")
+        .limit(500);
+      if (error) return new Map<string, number>();
+      const m = new Map<string, number>();
+      for (const r of (data ?? []) as Array<{ conversa_id: string }>)
+        m.set(r.conversa_id, (m.get(r.conversa_id) ?? 0) + 1);
+      return m;
+    },
+  });
+  const conversa = conversas.data?.find((c) => c.id === ativa) ?? null;
+
+  return (
+    <div className="space-y-4">
+      <ConfigWhatsapp />
+      <div className="grid gap-4 md:grid-cols-[280px_1fr]">
+        <Card className="flex max-h-[70vh] flex-col gap-2 p-3">
+          <p className="text-sm font-semibold text-slate-900">Conversas do WhatsApp</p>
+          {conversas.error && (
+            <p className="text-sm text-red-600">
+              {erroTexto(conversas.error)}
+              {/wa_id|column/.test(erroTexto(conversas.error)) &&
+                " (a migração 0084 já foi aplicada?)"}
+            </p>
+          )}
+          <div className="-mx-1 flex-1 space-y-1 overflow-y-auto px-1">
+            {conversas.isLoading && (
+              <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" />
+            )}
+            {conversas.data?.length === 0 && (
+              <p className="text-center text-sm text-slate-500">
+                Nenhuma mensagem recebida ainda. Elas aparecem aqui quando a Meta estiver ligada.
+              </p>
+            )}
+            {conversas.data?.map((c) => {
+              const n = rascunhos.data?.get(c.id) ?? 0;
+              const pausada = c.pausada_ate && Date.parse(c.pausada_ate) > Date.now();
+              return (
+                <button
+                  key={c.id}
+                  onClick={() => setAtiva(c.id)}
+                  className={cn(
+                    "w-full rounded-lg border p-2 text-left text-sm transition-colors",
+                    c.id === ativa
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-transparent hover:bg-slate-100",
+                  )}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="truncate font-medium text-slate-900">
+                      {c.contato_nome || c.telefone || "Contato"}
+                    </span>
+                    <span
+                      className={cn(
+                        "rounded px-1.5 py-0.5 text-[10px] font-semibold",
+                        MODO[c.modo].cls,
+                      )}
+                    >
+                      {MODO[c.modo].label}
+                    </span>
+                  </div>
+                  <div className="mt-0.5 flex items-center justify-between gap-2 text-xs text-slate-500">
+                    <span className="truncate">{c.telefone}</span>
+                    <span className="flex items-center gap-1">
+                      {n > 0 && (
+                        <span className="rounded bg-yellow-100 px-1 font-semibold text-yellow-800">
+                          {n} rascunho
+                        </span>
+                      )}
+                      {pausada && <span title="A equipe respondeu há pouco">⏸</span>}
+                      {c.ultima_msg_cliente_em && hora(c.ultima_msg_cliente_em)}
+                    </span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
+        {conversa ? (
+          <ConversaWhatsapp key={conversa.id} conversa={conversa} />
+        ) : (
+          <Card className="grid min-h-[50vh] place-items-center p-6 text-center text-slate-500">
+            <div>
+              <MessageCircle className="mx-auto mb-2 h-10 w-10 text-slate-300" />
+              Escolha uma conversa para ver os rascunhos da Joy.
+            </div>
+          </Card>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ConfigWhatsapp() {
+  const qc = useQueryClient();
+  const status = useQuery({ queryKey: ["joy-wa-status"], queryFn: () => joyWhatsappStatus() });
+  const [modo, setModo] = useState("desligado");
+  const [numeros, setNumeros] = useState("");
+  const [liberado, setLiberado] = useState(false);
+  const [pausa, setPausa] = useState(120);
+  const [salvando, setSalvando] = useState(false);
+  const [aberto, setAberto] = useState(false);
+
+  useEffect(() => {
+    if (!status.data) return;
+    setModo(status.data.whatsapp_modo);
+    setNumeros(status.data.numeros_teste.map((n) => `+${n}`).join("\n"));
+    setLiberado(status.data.envio_liberado);
+    setPausa(status.data.pausa_eco_minutos);
+  }, [status.data]);
+
+  async function salvar() {
+    setSalvando(true);
+    try {
+      await joyWhatsappSalvar({
+        data: {
+          whatsapp_modo: modo as "desligado" | "rascunho_teste" | "rascunho",
+          numeros_teste: numeros,
+          envio_liberado: liberado,
+          pausa_eco_minutos: pausa,
+        },
+      });
+      toast.success("WhatsApp salvo.");
+      await qc.invalidateQueries({ queryKey: ["joy-wa-status"] });
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setSalvando(false);
+    }
+  }
+
+  if (status.isLoading) return <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" />;
+  if (status.error)
+    return <Card className="p-4 text-sm text-red-700">{erroTexto(status.error)}</Card>;
+  const d = status.data!;
+  const faltando = Object.entries(d.segredos)
+    .filter(([, ok]) => !ok)
+    .map(([n]) => n);
+  const webhook =
+    typeof window !== "undefined" ? `${window.location.origin}/api/public/whatsapp-webhook` : "";
+
+  return (
+    <Card className="space-y-3 p-4 text-sm">
+      <button
+        className="flex w-full flex-wrap items-center justify-between gap-2 text-left"
+        onClick={() => setAberto((v) => !v)}
+      >
+        <span className="flex items-center gap-2 font-semibold text-slate-900">
+          {aberto ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+          Ligação com o WhatsApp
+        </span>
+        <span className="flex flex-wrap gap-2 text-xs">
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-semibold",
+              faltando.length ? "bg-amber-100 text-amber-800" : "bg-emerald-100 text-emerald-800",
+            )}
+          >
+            {faltando.length ? `Faltam ${faltando.length} segredos` : "Meta configurada"}
+          </span>
+          <span className="rounded bg-slate-100 px-2 py-0.5 text-slate-700">
+            {MODO_WA[d.whatsapp_modo]}
+          </span>
+          <span
+            className={cn(
+              "rounded px-2 py-0.5 font-semibold",
+              d.envio_liberado ? "bg-red-100 text-red-800" : "bg-slate-100 text-slate-700",
+            )}
+          >
+            {d.envio_liberado ? "Envio LIBERADO para hóspedes" : "Envio só para teste"}
+          </span>
+        </span>
+      </button>
+      {aberto && (
+        <div className="space-y-3 border-t pt-3">
+          {faltando.length > 0 && (
+            <p className="rounded bg-amber-50 p-2 text-amber-900">
+              Segredos que faltam no Lovable Cloud: <b>{faltando.join(", ")}</b>. O passo a passo
+              está em docs/projeto-injoy/08-whatsapp-ia.md (E3).
+            </p>
+          )}
+          <div>
+            <Label>Endereço do webhook (colar na Meta)</Label>
+            <Input readOnly value={webhook} onFocus={(e) => e.currentTarget.select()} />
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="wa-modo">O que a Joy faz</Label>
+              <select
+                id="wa-modo"
+                value={modo}
+                onChange={(e) => setModo(e.target.value)}
+                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-2 py-2"
+              >
+                {Object.entries(MODO_WA).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <Label htmlFor="wa-pausa">Pausa da Joy depois que a equipe responde (minutos)</Label>
+              <Input
+                id="wa-pausa"
+                type="number"
+                min={0}
+                max={1440}
+                value={pausa}
+                onChange={(e) => setPausa(Number(e.target.value) || 0)}
+              />
+            </div>
+          </div>
+          <div>
+            <Label htmlFor="wa-nums">Números de teste (um por linha, com DDI e DDD)</Label>
+            <Textarea
+              id="wa-nums"
+              rows={3}
+              value={numeros}
+              onChange={(e) => setNumeros(e.target.value)}
+              placeholder="+55 21 99999-0000"
+            />
+          </div>
+          <div className="flex items-start gap-3 rounded border border-red-200 bg-red-50 p-3">
+            <Switch
+              checked={liberado}
+              onCheckedChange={setLiberado}
+              disabled={!d.souAdmin}
+              id="wa-lib"
+            />
+            <label htmlFor="wa-lib" className="text-red-900">
+              <b>Liberar envio para hóspedes.</b> Desligado, "Aprovar e enviar" só funciona para os
+              números de teste. Só o administrador muda, e só com autorização do Rodrigo.
+            </label>
+          </div>
+          <Button onClick={salvar} disabled={salvando}>
+            {salvando ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-1 h-4 w-4" />
+            )}
+            Salvar
+          </Button>
+        </div>
+      )}
+    </Card>
+  );
+}
+
+function ConversaWhatsapp({ conversa }: { conversa: Conversa }) {
+  const qc = useQueryClient();
+  const [texto, setTexto] = useState("");
+  const [enviando, setEnviando] = useState(false);
+  const [gerando, setGerando] = useState(false);
+  const fim = useRef<HTMLDivElement>(null);
+  const msgs = useQuery({
+    queryKey: ["joy-mensagens", conversa.id],
+    refetchInterval: 5_000,
+    queryFn: async () => {
+      const { data, error } = await sb
+        .from("wa_mensagens")
+        .select("*")
+        .eq("conversa_id", conversa.id)
+        .order("created_at", { ascending: true })
+        .limit(300);
+      if (error) throw new Error(error.message);
+      return (data ?? []) as Mensagem[];
+    },
+  });
+  const qtd = msgs.data?.length ?? 0;
+  useEffect(() => {
+    fim.current?.scrollIntoView({ block: "end" });
+  }, [qtd]);
+
+  const atualizar = async () => {
+    await qc.invalidateQueries({ queryKey: ["joy-mensagens", conversa.id] });
+    await qc.invalidateQueries({ queryKey: ["joy-wa-conversas"] });
+    await qc.invalidateQueries({ queryKey: ["joy-wa-rascunhos"] });
+  };
+
+  async function enviar() {
+    if (!texto.trim()) return;
+    setEnviando(true);
+    try {
+      await joyEnviarWhatsapp({ data: { conversaId: conversa.id, texto } });
+      setTexto("");
+      toast.success("Enviada. A Joy fica pausada nesta conversa por um tempo.");
+      await atualizar();
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  async function gerar() {
+    setGerando(true);
+    try {
+      const r = await joyGerarRascunho({ data: { conversaId: conversa.id } });
+      if (r.erro) toast.error(r.erro);
+      else toast.message(r.acao);
+      await atualizar();
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setGerando(false);
+    }
+  }
+
+  async function mudarModo(modo: Conversa["modo"]) {
+    try {
+      await joyMudarModo({ data: { conversaId: conversa.id, modo } });
+      await atualizar();
+    } catch (e) {
+      toast.error(erroTexto(e));
+    }
+  }
+
+  const janelaAberta =
+    !!conversa.ultima_msg_cliente_em &&
+    Date.now() - Date.parse(conversa.ultima_msg_cliente_em) < 24 * 3600 * 1000;
+
+  return (
+    <Card className="flex max-h-[80vh] min-h-[60vh] flex-col">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b p-3">
+        <div>
+          <p className="font-semibold text-slate-900">
+            {conversa.contato_nome || "Contato"}{" "}
+            <span className="font-normal text-slate-500">{conversa.telefone}</span>
+          </p>
+          <p className="text-xs text-slate-500">
+            {janelaAberta
+              ? "Janela de 24 h aberta: dá para responder por aqui."
+              : "Janela de 24 h fechada: responda pelo celular."}
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-1">
+          <Button size="sm" variant="outline" onClick={gerar} disabled={gerando}>
+            {gerando ? (
+              <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="mr-1 h-4 w-4" />
+            )}
+            Pedir rascunho
+          </Button>
+          {conversa.modo === "ia" ? (
+            <Button size="sm" variant="outline" onClick={() => void mudarModo("humano")}>
+              <Hand className="mr-1 h-4 w-4" /> Equipe assume
+            </Button>
+          ) : (
+            <Button size="sm" variant="outline" onClick={() => void mudarModo("ia")}>
+              <Bot className="mr-1 h-4 w-4" /> Devolver para a Joy
+            </Button>
+          )}
+        </div>
+      </div>
+      <div className="flex-1 space-y-2 overflow-y-auto bg-[#efeae2] p-3">
+        {msgs.isLoading && <Loader2 className="mx-auto h-5 w-5 animate-spin text-slate-400" />}
+        {msgs.error && <p className="text-red-600">{erroTexto(msgs.error)}</p>}
+        {msgs.data?.map((m) =>
+          m.autor === "joy" && m.envio === "rascunho" ? (
+            <Rascunho key={m.id} m={m} podeEnviar={janelaAberta} onMudou={atualizar} />
+          ) : m.envio === "descartada" || m.envio === "substituida" ? (
+            <details key={m.id} className="ml-auto max-w-[85%] text-right text-xs text-slate-500">
+              <summary className="cursor-pointer">
+                Rascunho {ENVIO[m.envio].label} · {hora(m.created_at)}
+              </summary>
+              <p className="whitespace-pre-wrap rounded bg-white/60 p-2 text-left">{m.texto}</p>
+            </details>
+          ) : (
+            <Bolha key={m.id} m={m} />
+          ),
+        )}
+        <div ref={fim} />
+      </div>
+      <div className="flex gap-2 border-t p-3">
+        <Textarea
+          rows={2}
+          value={texto}
+          onChange={(e) => setTexto(e.target.value)}
+          placeholder={janelaAberta ? "Responder como equipe…" : "Janela fechada"}
+          disabled={!janelaAberta}
+        />
+        <Button onClick={enviar} disabled={enviando || !texto.trim() || !janelaAberta}>
+          {enviando ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+function Rascunho({
+  m,
+  podeEnviar,
+  onMudou,
+}: {
+  m: Mensagem;
+  podeEnviar: boolean;
+  onMudou: () => Promise<void>;
+}) {
+  const [texto, setTexto] = useState(m.texto);
+  const [ocupado, setOcupado] = useState(false);
+  const ferramentas = m.meta?.ferramentas ?? [];
+
+  async function aprovar() {
+    setOcupado(true);
+    try {
+      await joyAprovarRascunho({
+        data: { mensagemId: m.id, texto: texto !== m.texto ? texto : undefined },
+      });
+      toast.success("Enviada ao hóspede.");
+      await onMudou();
+    } catch (e) {
+      toast.error(erroTexto(e));
+      await onMudou();
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  async function descartar() {
+    setOcupado(true);
+    try {
+      await joyDescartarRascunho({ data: { mensagemId: m.id } });
+      await onMudou();
+    } catch (e) {
+      toast.error(erroTexto(e));
+    } finally {
+      setOcupado(false);
+    }
+  }
+
+  return (
+    <div className="ml-auto max-w-[85%] space-y-2 rounded-lg border-2 border-dashed border-yellow-400 bg-yellow-50 p-3 text-sm">
+      <p className="flex items-center gap-1 text-[11px] font-semibold text-yellow-800">
+        <Bot className="h-3 w-3" /> Rascunho da Joy · ainda não enviado
+        {ferramentas.length > 0 && (
+          <span className="font-normal text-yellow-700">
+            · {ferramentas.map((f) => NOME_FERRAMENTA[f.nome] ?? f.nome).join(", ")}
+          </span>
+        )}
+      </p>
+      <Textarea rows={4} value={texto} onChange={(e) => setTexto(e.target.value)} />
+      {m.erro_envio && <p className="text-xs text-red-700">Última tentativa: {m.erro_envio}</p>}
+      {(m.meta?.bloqueios ?? []).length > 0 && (
+        <p className="text-xs text-red-700">
+          O filtro de segurança agiu nesta resposta ({m.meta?.bloqueios?.join(", ")}). Confira
+          antes.
+        </p>
+      )}
+      <div className="flex flex-wrap justify-end gap-2">
+        <Button size="sm" variant="ghost" onClick={descartar} disabled={ocupado}>
+          <X className="mr-1 h-4 w-4" /> Descartar
+        </Button>
+        <Button
+          size="sm"
+          onClick={aprovar}
+          disabled={ocupado || !texto.trim() || !podeEnviar}
+          title={podeEnviar ? undefined : "Janela de 24 h fechada"}
+        >
+          {ocupado ? (
+            <Loader2 className="mr-1 h-4 w-4 animate-spin" />
+          ) : (
+            <Send className="mr-1 h-4 w-4" />
+          )}
+          {texto !== m.texto ? "Enviar editado" : "Aprovar e enviar"}
+        </Button>
+      </div>
     </div>
   );
 }
