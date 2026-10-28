@@ -168,6 +168,13 @@ export const joyMensagemEquipe = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     await exigirGestor(context.supabase);
     const db = await admin();
+    const { data: conv } = await db
+      .from("wa_conversas")
+      .select("canal")
+      .eq("id", data.conversaId)
+      .maybeSingle();
+    if (conv?.canal !== "simulador")
+      throw new Error("No WhatsApp de verdade, use o envio do painel do WhatsApp.");
     const { error } = await db
       .from("wa_mensagens")
       .insert({ conversa_id: data.conversaId, autor: "equipe", texto: data.texto });
@@ -189,6 +196,13 @@ export const joyMudarModo = createServerFn({ method: "POST" })
       .eq("id", data.conversaId);
     if (error) throw new Error(error.message);
     if (data.modo === "ia") {
+      const { data: conv } = await db
+        .from("wa_conversas")
+        .select("canal")
+        .eq("id", data.conversaId)
+        .maybeSingle();
+      if (conv?.canal === "whatsapp")
+        await db.from("wa_conversas").update({ pausada_ate: null }).eq("id", data.conversaId);
       await db
         .from("wa_passagens")
         .update({ resolvido_em: new Date().toISOString(), resolvido_por: context.userId })
@@ -440,4 +454,116 @@ export const joyTesteApagar = createServerFn({ method: "POST" })
     }
     await db.from("wa_testes").delete().eq("id", data.testeId);
     return { ok: true };
+  });
+
+// ------------------------------------------------------- E3: WhatsApp real
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function ehAdmin(supabase: any, userId: string): Promise<boolean> {
+  const { data } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  return (data ?? []).some((r: { role: string }) => r.role === "admin");
+}
+
+/** Estado da ligação com a Meta (quais segredos existem) e as opções do WhatsApp. */
+export const joyWhatsappStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    await exigirGestor(context.supabase);
+    const { segredosConfigurados } = await import("@/lib/whatsapp/whatsapp.server");
+    const { carregarConfig } = await import("@/lib/whatsapp/agente.server");
+    const c = await carregarConfig();
+    return {
+      segredos: segredosConfigurados(),
+      whatsapp_modo: c.whatsapp_modo,
+      numeros_teste: c.numeros_teste,
+      envio_liberado: c.envio_liberado,
+      pausa_eco_minutos: c.pausa_eco_minutos,
+      souAdmin: await ehAdmin(context.supabase, context.userId),
+    };
+  });
+
+const whatsappConfigInput = z.object({
+  whatsapp_modo: z.enum(["desligado", "rascunho_teste", "rascunho"]),
+  numeros_teste: z.string().max(2000),
+  envio_liberado: z.boolean(),
+  pausa_eco_minutos: z.number().int().min(0).max(1440),
+});
+
+export const joyWhatsappSalvar = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => whatsappConfigInput.parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { carregarConfig } = await import("@/lib/whatsapp/agente.server");
+    const { lerNumeros } = await import("@/lib/whatsapp/meta");
+    const atual = await carregarConfig();
+    if (
+      data.envio_liberado !== atual.envio_liberado &&
+      !(await ehAdmin(context.supabase, context.userId))
+    )
+      throw new Error("Só o administrador libera ou bloqueia o envio para hóspedes.");
+    const db = await admin();
+    const { error } = await db
+      .from("wa_config")
+      .update({
+        whatsapp_modo: data.whatsapp_modo,
+        numeros_teste: lerNumeros(data.numeros_teste),
+        envio_liberado: data.envio_liberado,
+        pausa_eco_minutos: data.pausa_eco_minutos,
+        atualizado_por: context.userId,
+      })
+      .eq("id", "joy");
+    if (error)
+      throw new Error(
+        `Não foi possível salvar: ${error.message}${/whatsapp_modo|numeros_teste/.test(error.message) ? " (a migração 0084 já foi aplicada?)" : ""}`,
+      );
+    return { ok: true };
+  });
+
+export const joyAprovarRascunho = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z
+      .object({ mensagemId: uuid, texto: z.string().trim().min(1).max(4000).optional() })
+      .parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { aprovarRascunho } = await import("@/lib/whatsapp/whatsapp.server");
+    return aprovarRascunho({
+      mensagemId: data.mensagemId,
+      texto: data.texto,
+      userId: context.userId,
+    });
+  });
+
+export const joyDescartarRascunho = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ mensagemId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { descartarRascunho } = await import("@/lib/whatsapp/whatsapp.server");
+    await descartarRascunho(data.mensagemId);
+    return { ok: true };
+  });
+
+export const joyEnviarWhatsapp = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) =>
+    z.object({ conversaId: uuid, texto: z.string().trim().min(1).max(4000) }).parse(input),
+  )
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { enviarManual } = await import("@/lib/whatsapp/whatsapp.server");
+    return enviarManual({ conversaId: data.conversaId, texto: data.texto, userId: context.userId });
+  });
+
+/** Botão "Pedir rascunho à Joy": ignora o modo e a pausa, mas não o modo humano. */
+export const joyGerarRascunho = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ conversaId: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const { processarConversa } = await import("@/lib/whatsapp/whatsapp.server");
+    return processarConversa(data.conversaId, { forcar: true });
   });

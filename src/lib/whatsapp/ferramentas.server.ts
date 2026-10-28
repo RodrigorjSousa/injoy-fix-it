@@ -579,7 +579,7 @@ export async function executarFerramenta(
         aviso_equipe:
           ctx.conversa.canal === "simulador"
             ? "Simulador: a equipe NÃO foi avisada de verdade (nenhum push enviado)."
-            : "Equipe avisada.",
+            : "Registrado no painel da equipe (WhatsApp).",
         horario_equipe: ctx.conhecimento.equipe.horario,
         contato_emergencia: ctx.conhecimento.equipe.contatoEmergencia || null,
         orientacao:

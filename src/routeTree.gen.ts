@@ -63,6 +63,8 @@ import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public
 import { Route as ApiPublicReservasCobrancaRouteImport } from './routes/api/public/reservas-cobranca'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
+import { Route as ApiPublicWhatsappProcessarRouteImport } from './routes/api/public/whatsapp-processar'
+import { Route as ApiPublicWhatsappWebhookRouteImport } from './routes/api/public/whatsapp-webhook'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
   id: '/_authenticated',
@@ -360,6 +362,18 @@ const ApiPublicTuyaCleanupRoute = ApiPublicTuyaCleanupRouteImport.update({
   path: '/api/public/tuya-cleanup',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicWhatsappProcessarRoute =
+  ApiPublicWhatsappProcessarRouteImport.update({
+    id: '/api/public/whatsapp-processar',
+    path: '/api/public/whatsapp-processar',
+    getParentRoute: () => rootRouteImport,
+  } as any)
+const ApiPublicWhatsappWebhookRoute =
+  ApiPublicWhatsappWebhookRouteImport.update({
+    id: '/api/public/whatsapp-webhook',
+    path: '/api/public/whatsapp-webhook',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof AuthenticatedIndexRoute
@@ -414,6 +428,8 @@ export interface FileRoutesByFullPath {
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
+  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/gestor/': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRoutesByTo {
@@ -467,6 +483,8 @@ export interface FileRoutesByTo {
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
+  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/gestor': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRoutesById {
@@ -524,6 +542,8 @@ export interface FileRoutesById {
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
+  '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
+  '/api/public/whatsapp-webhook': typeof ApiPublicWhatsappWebhookRoute
   '/_authenticated/gestor/': typeof AuthenticatedGestorIndexRoute
 }
 export interface FileRouteTypes {
@@ -581,6 +601,8 @@ export interface FileRouteTypes {
     | '/api/public/reservas-cobranca'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
+    | '/api/public/whatsapp-processar'
+    | '/api/public/whatsapp-webhook'
     | '/gestor/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -634,6 +656,8 @@ export interface FileRouteTypes {
     | '/api/public/reservas-cobranca'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
+    | '/api/public/whatsapp-processar'
+    | '/api/public/whatsapp-webhook'
     | '/gestor'
   id:
     | '__root__'
@@ -690,6 +714,8 @@ export interface FileRouteTypes {
     | '/api/public/reservas-cobranca'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
+    | '/api/public/whatsapp-processar'
+    | '/api/public/whatsapp-webhook'
     | '/_authenticated/gestor/'
   fileRoutesById: FileRoutesById
 }
@@ -706,6 +732,8 @@ export interface RootRouteChildren {
   ApiPublicReservasCobrancaRoute: typeof ApiPublicReservasCobrancaRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
+  ApiPublicWhatsappProcessarRoute: typeof ApiPublicWhatsappProcessarRoute
+  ApiPublicWhatsappWebhookRoute: typeof ApiPublicWhatsappWebhookRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -1088,6 +1116,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicTuyaCleanupRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/whatsapp-processar': {
+      id: '/api/public/whatsapp-processar'
+      path: '/api/public/whatsapp-processar'
+      fullPath: '/api/public/whatsapp-processar'
+      preLoaderRoute: typeof ApiPublicWhatsappProcessarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/whatsapp-webhook': {
+      id: '/api/public/whatsapp-webhook'
+      path: '/api/public/whatsapp-webhook'
+      fullPath: '/api/public/whatsapp-webhook'
+      preLoaderRoute: typeof ApiPublicWhatsappWebhookRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -1219,6 +1261,8 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicReservasCobrancaRoute: ApiPublicReservasCobrancaRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
+  ApiPublicWhatsappProcessarRoute: ApiPublicWhatsappProcessarRoute,
+  ApiPublicWhatsappWebhookRoute: ApiPublicWhatsappWebhookRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
