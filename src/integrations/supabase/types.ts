@@ -4423,37 +4423,50 @@ export type Database = {
         Row: {
           atualizado_por: string | null
           conhecimento: Json
+          envio_liberado: boolean
           espera_segundos: number
           id: string
           modelo: string
+          numeros_teste: string[]
+          pausa_eco_minutos: number
           prompt: string
           updated_at: string
+          whatsapp_modo: string
           wifi: Json
         }
         Insert: {
           atualizado_por?: string | null
           conhecimento?: Json
+          envio_liberado?: boolean
           espera_segundos?: number
           id?: string
           modelo?: string
+          numeros_teste?: string[]
+          pausa_eco_minutos?: number
           prompt?: string
           updated_at?: string
+          whatsapp_modo?: string
           wifi?: Json
         }
         Update: {
           atualizado_por?: string | null
           conhecimento?: Json
+          envio_liberado?: boolean
           espera_segundos?: number
           id?: string
           modelo?: string
+          numeros_teste?: string[]
+          pausa_eco_minutos?: number
           prompt?: string
           updated_at?: string
+          whatsapp_modo?: string
           wifi?: Json
         }
         Relationships: []
       }
       wa_conversas: {
         Row: {
+          atendida_ate: string | null
           canal: string
           contato_nome: string | null
           created_at: string
@@ -4461,14 +4474,18 @@ export type Database = {
           etapa: string
           id: string
           modo: string
+          pausada_ate: string | null
+          processando_ate: string | null
           reserva_id: string | null
           reserva_unidade: string | null
           telefone: string | null
           ultima_msg_cliente_em: string | null
           unidade: string | null
           updated_at: string
+          wa_id: string | null
         }
         Insert: {
+          atendida_ate?: string | null
           canal?: string
           contato_nome?: string | null
           created_at?: string
@@ -4476,14 +4493,18 @@ export type Database = {
           etapa?: string
           id?: string
           modo?: string
+          pausada_ate?: string | null
+          processando_ate?: string | null
           reserva_id?: string | null
           reserva_unidade?: string | null
           telefone?: string | null
           ultima_msg_cliente_em?: string | null
           unidade?: string | null
           updated_at?: string
+          wa_id?: string | null
         }
         Update: {
+          atendida_ate?: string | null
           canal?: string
           contato_nome?: string | null
           created_at?: string
@@ -4491,12 +4512,15 @@ export type Database = {
           etapa?: string
           id?: string
           modo?: string
+          pausada_ate?: string | null
+          processando_ate?: string | null
           reserva_id?: string | null
           reserva_unidade?: string | null
           telefone?: string | null
           ultima_msg_cliente_em?: string | null
           unidade?: string | null
           updated_at?: string
+          wa_id?: string | null
         }
         Relationships: []
       }
@@ -4621,28 +4645,46 @@ export type Database = {
       }
       wa_mensagens: {
         Row: {
+          aprovado_por: string | null
           autor: string
           conversa_id: string
           created_at: string
+          enviado_em: string | null
+          envio: string | null
+          erro_envio: string | null
           id: string
           meta: Json
           texto: string
+          tipo: string
+          wamid: string | null
         }
         Insert: {
+          aprovado_por?: string | null
           autor: string
           conversa_id: string
           created_at?: string
+          enviado_em?: string | null
+          envio?: string | null
+          erro_envio?: string | null
           id?: string
           meta?: Json
           texto?: string
+          tipo?: string
+          wamid?: string | null
         }
         Update: {
+          aprovado_por?: string | null
           autor?: string
           conversa_id?: string
           created_at?: string
+          enviado_em?: string | null
+          envio?: string | null
+          erro_envio?: string | null
           id?: string
           meta?: Json
           texto?: string
+          tipo?: string
+          wamid?: string | null
         }
         Relationships: [
           {
