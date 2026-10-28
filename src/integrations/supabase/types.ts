@@ -4514,6 +4514,7 @@ export type Database = {
         Row: {
           atualizado_por: string | null
           conhecimento: Json
+          envio_automatico_teste: boolean
           envio_liberado: boolean
           espera_segundos: number
           id: string
@@ -4528,6 +4529,7 @@ export type Database = {
         Insert: {
           atualizado_por?: string | null
           conhecimento?: Json
+          envio_automatico_teste?: boolean
           envio_liberado?: boolean
           espera_segundos?: number
           id?: string
@@ -4542,6 +4544,7 @@ export type Database = {
         Update: {
           atualizado_por?: string | null
           conhecimento?: Json
+          envio_automatico_teste?: boolean
           envio_liberado?: boolean
           espera_segundos?: number
           id?: string
