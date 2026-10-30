@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { situacaoReforco } from "@/lib/previsao-reforco-status";
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, BellRing, CheckCircle2, Gauge, RefreshCw, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -192,8 +193,9 @@ function DiaCard({
   const cancelar = useCancelarReforco();
   const c = contarServicosPrevistos(row, totalQuartos);
   const nivel = NIVEL[row.nivel];
-  const reforcoOk =
-    pedido?.status === "autorizado" || lancados.length > 0 || row.freelancers_escalados > 0;
+  const sit = situacaoReforco(row, undefined, pedido?.status === "autorizado" || lancados.length > 0);
+  const reforcoOk = sit.chamado;
+  const sozinha = sit.sozinha;
   const podeCancelar =
     pedido?.status === "pendente" &&
     (pedido.solicitado_por === me?.userId || me?.isGestor || me?.isAdmin);
@@ -201,13 +203,13 @@ function DiaCard({
     <Card
       className={cn(
         "space-y-3 p-4",
-        reforcoOk && row.nivel !== "verde" ? "border-teal-400 bg-teal-50" : nivel.cls,
+        sozinha ? "border-red-500 bg-red-50" : reforcoOk && row.nivel !== "verde" ? "border-teal-400 bg-teal-50" : nivel.cls,
       )}
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <strong className="capitalize">{dataCurta(row.data)}</strong>
         <span className="rounded-full bg-white/70 px-2 py-0.5 text-[11px] font-black uppercase">
-          {reforcoOk && row.nivel !== "verde" ? "Reforço chamado" : nivel.txt} · carga{" "}
+          {sozinha ? "Camareira sozinha" : reforcoOk && row.nivel !== "verde" ? "Reforço chamado" : nivel.txt} · carga{" "}
           {Math.round(Number(row.ocupacao_carga_pct))}%
         </span>
       </div>
@@ -296,7 +298,11 @@ function DiaCard({
         </div>
       ) : (
         <div className="flex flex-wrap items-center justify-between gap-2">
-          {row.freelancers_escalados > 0 ? (
+          {sozinha ? (
+            <p className="flex items-center gap-1 text-xs font-black text-red-700">
+              <AlertTriangle className="h-4 w-4" /> Sobrecarga com 1 pessoa só — escale mais uma camareira.
+            </p>
+          ) : row.freelancers_escalados > 0 ? (
             <p className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
               <CheckCircle2 className="h-3.5 w-3.5" /> Reforço já escalado
             </p>

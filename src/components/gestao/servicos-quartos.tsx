@@ -1,6 +1,7 @@
 // Quantidade de serviços das camareiras por tipo (hoje, ao vivo) e previsão de 2 dias pelo Cloudbeds.
 // Cores iguais às da tela das Camareiras.
 import { useEffect, useMemo, useState } from "react";
+import { situacaoReforco } from "@/lib/previsao-reforco-status";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { AlertTriangle, CalendarClock, CheckCircle2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -275,7 +276,7 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
             );
           const c = contarServicosPrevistos(row, totalQuartos);
           return (
-            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", reforcos?.has(`${unidade}|${d}`) && row.nivel !== "verde" ? "border-teal-400 bg-teal-50 text-teal-900" : TOM[row.nivel])}>
+            <div key={d} className={cn("space-y-3 rounded-2xl border p-3", situacaoReforco(row, reforcos).sozinha ? "border-red-500 bg-red-50 text-red-900" : reforcos?.has(`${unidade}|${d}`) && row.nivel !== "verde" ? "border-teal-400 bg-teal-50 text-teal-900" : TOM[row.nivel])}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <strong className="capitalize">{i === 0 ? "Amanhã" : "Depois de amanhã"} · {dataCurta(d)}</strong>
                 <span className="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-black uppercase">
@@ -291,7 +292,11 @@ export function PrevisaoServicos2Dias({ unidade }: { unidade: Unidade }) {
                 {row.qtd_checkins} chegadas · {row.qtd_checkouts} saídas · {row.camareiras_escaladas} camareira(s) na escala
                 {row.freelancers_escalados > 0 ? ` + ${row.freelancers_escalados} reforço(s)` : ""}
               </p>
-              {row.freelancers_escalados > 0 ? (
+              {situacaoReforco(row, reforcos).sozinha ? (
+                <p className="flex items-center gap-1 text-xs font-black text-red-700">
+                  <AlertTriangle className="h-4 w-4" /> Camareira sozinha com sobrecarga — escale mais uma pessoa.
+                </p>
+              ) : row.freelancers_escalados > 0 ? (
                 <p className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-bold text-emerald-800">
                   <CheckCircle2 className="h-3.5 w-3.5" /> Reforço já escalado
                 </p>

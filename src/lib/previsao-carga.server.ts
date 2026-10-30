@@ -59,7 +59,12 @@ export async function calculateLoadForecast(units: Unit[]) {
       const scheduled=(daysResult.data??[]).filter(row=>row.data===date&&(row.status==="trabalho"||row.status==="extra"));
       // Extra que COBRE alguém (férias, folga, falta) é SUBSTITUIÇÃO: repõe a equipe normal.
       // REFORÇO é só o extra a mais, chamado pela carga (sem substitui_colaborador_id).
-      const ehReforco=(row:{status:string;substitui_colaborador_id?:string|null})=>row.status==="extra"&&!row.substitui_colaborador_id;
+      // Sem vínculo explícito (dados antigos), os primeiros extras do dia cobrem as ausências de fixas (férias, falta, atestado);
+      // só o que passa disso é reforço de verdade.
+      const ausenciasDeFixas=(daysResult.data??[]).filter(row=>{if(row.data!==date||!["ferias","falta","atestado"].includes(row.status))return false;const c=(Array.isArray(row.escala_colaboradores)?row.escala_colaboradores[0]:row.escala_colaboradores) as {vinculo?:string}|null;return c?.vinculo==="fixo";}).length;
+      const semVinculo=scheduled.filter(row=>row.status==="extra"&&!row.substitui_colaborador_id);
+      const reforcoIds=new Set(semVinculo.slice(Math.min(ausenciasDeFixas,semVinculo.length)).map(row=>row.id));
+      const ehReforco=(row:{id?:string;status:string;substitui_colaborador_id?:string|null})=>row.status==="extra"&&!row.substitui_colaborador_id&&!!row.id&&reforcoIds.has(row.id);
       const capacityDetails=scheduled.map(row=>{const extra=row.status==="extra";const collaborator=(Array.isArray(row.escala_colaboradores)?row.escala_colaboradores[0]:row.escala_colaboradores) as {nome?:string;escala_padroes?:{intervalo_minutos?:number|null}[]}|null;const pattern=collaborator?.escala_padroes?.find(item=>item.intervalo_minutos!=null);const gross=extra?Number(row.horas_contratadas??0)*60:duration(row.hora_entrada,row.hora_saida);const interval=extra?0:Number(pattern?.intervalo_minutos??0);return {nome:collaborator?.nome??"Camareira",tipo:!extra?"fixa":ehReforco(row)?"reforco":"substituicao",minutos_brutos:gross,intervalo_minutos:interval,minutos_liquidos:Math.max(0,Math.round((gross-interval)*(1-Number(config.margem_pct)/100)))};});
       const capacity=capacityDetails.reduce((sum,item)=>sum+item.minutos_liquidos,0), pct=capacity>0?Math.round(load/capacity*100):load>0?999:0, generals=counts("GERAL")+counts("GERAL - CHECK-IN");
       const level=capacity===0&&load>0||pct>Number(config.limite_vermelho_pct)||generals>=config.limite_vermelho_gerais?"vermelho":pct>=Number(config.limite_amarelo_pct)||generals>=config.limite_amarelo_gerais?"amarelo":"verde";
@@ -69,9 +74,11 @@ export async function calculateLoadForecast(units: Unit[]) {
       if(snapshotError)throw snapshotError; inserted.push(snapshot.id);
       const freelancers=scheduled.filter(r=>ehReforco(r)).length;
       // Reforço já escalado: mantém o semáforo calculado, mas não insiste na contratação.
-      const reforcoEscalado=freelancers>0;
+      // Com sobrecarga NUNCA uma camareira sozinha: com menos de 2 pessoas o reforço não conta como escalado.
+      const sozinhaComSobrecarga=(pct>100||level==="vermelho")&&scheduled.length<2;
+      const reforcoEscalado=freelancers>0&&!sozinhaComSobrecarga;
       const alertType=level==="verde"||reforcoEscalado?null:offset===2?"d2":offset===1&&hourSP()>=16?"lembrete_d1":previous?.nivel&&previous.nivel!==level?"mudanca_nivel":null;
-      if(alertType){const{error:alertError}=await supabaseAdmin.from("previsao_carga_alertas").insert({unidade:unit,data:date,nivel:level,previsao_id:snapshot.id,tipo:alertType});if(!alertError){const{data:settings}=await supabaseAdmin.from("app_settings").select("key,value").in("key",["push_dispatcher_url","push_dispatcher_secret"]);const setting=Object.fromEntries((settings??[]).map(item=>[item.key,item.value]));if(setting.push_dispatcher_url&&setting.push_dispatcher_secret)await fetch(String(setting.push_dispatcher_url),{method:"POST",headers:{"Content-Type":"application/json","x-dispatcher-secret":String(setting.push_dispatcher_secret)},body:JSON.stringify({event:"previsao_carga",data:{unidade:unit,data:date,nivel:level,tipo:alertType,gerais:generals,ocupacao_pct:pct}})}).catch(()=>undefined);}}
+      if(alertType){const{error:alertError}=await supabaseAdmin.from("previsao_carga_alertas").insert({unidade:unit,data:date,nivel:level,previsao_id:snapshot.id,tipo:alertType});if(!alertError){const{data:settings}=await supabaseAdmin.from("app_settings").select("key,value").in("key",["push_dispatcher_url","push_dispatcher_secret"]);const setting=Object.fromEntries((settings??[]).map(item=>[item.key,item.value]));if(setting.push_dispatcher_url&&setting.push_dispatcher_secret)await fetch(String(setting.push_dispatcher_url),{method:"POST",headers:{"Content-Type":"application/json","x-dispatcher-secret":String(setting.push_dispatcher_secret)},body:JSON.stringify({event:"previsao_carga",data:{unidade:unit,data:date,nivel:level,tipo:alertType,gerais:generals,ocupacao_pct:pct,sozinha:sozinhaComSobrecarga}})}).catch(()=>undefined);}}
     }
   }
   return { inserted: inserted.length, calculatedAt:new Date().toISOString() };
