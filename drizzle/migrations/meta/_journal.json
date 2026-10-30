@@ -610,6 +610,13 @@
       "when": 1793223374572,
       "tag": "0086_0087_whatsapp_auto_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1793382291514,
+      "tag": "0087_0087_recados_gestor_destinos",
+      "breakpoints": true
     }
   ]
 }

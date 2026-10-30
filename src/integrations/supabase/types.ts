@@ -3092,39 +3092,80 @@ export type Database = {
       }
       recados_gestor: {
         Row: {
+          alvo: string
           created_at: string
+          destinatarios: string[] | null
+          destinatarios_nomes: string[] | null
           gestor_id: string | null
           gestor_nome: string
           id: string
           mensagem: string
           midia_tipo: string | null
           midia_url: string | null
-          setor: string
+          setor: string | null
+          setores: string[] | null
           unidade: string
         }
         Insert: {
+          alvo?: string
           created_at?: string
+          destinatarios?: string[] | null
+          destinatarios_nomes?: string[] | null
           gestor_id?: string | null
           gestor_nome: string
           id?: string
           mensagem: string
           midia_tipo?: string | null
           midia_url?: string | null
-          setor: string
+          setor?: string | null
+          setores?: string[] | null
           unidade: string
         }
         Update: {
+          alvo?: string
           created_at?: string
+          destinatarios?: string[] | null
+          destinatarios_nomes?: string[] | null
           gestor_id?: string | null
           gestor_nome?: string
           id?: string
           mensagem?: string
           midia_tipo?: string | null
           midia_url?: string | null
-          setor?: string
+          setor?: string | null
+          setores?: string[] | null
           unidade?: string
         }
         Relationships: []
+      }
+      recados_gestor_leituras: {
+        Row: {
+          lido_em: string
+          nome: string | null
+          recado_id: string
+          user_id: string
+        }
+        Insert: {
+          lido_em?: string
+          nome?: string | null
+          recado_id: string
+          user_id?: string
+        }
+        Update: {
+          lido_em?: string
+          nome?: string | null
+          recado_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recados_gestor_leituras_recado_id_fkey"
+            columns: ["recado_id"]
+            isOneToOne: false
+            referencedRelation: "recados_gestor"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       recepcao_caixa_movimentos: {
         Row: {
