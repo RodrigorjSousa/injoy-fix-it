@@ -264,3 +264,11 @@ das selfies antigas do ponto foi oferecida.
   `descontar_a_partir` (1º do mês). No pagamento só vêm marcadas as parcelas liberadas para a competência do lançamento
   (futuras aparecem desmarcadas, dá para adiantar). Recibo do grupo lista as parcelas. Excluir apaga as parcelas abertas.
   Regras em `src/lib/adiantamentos.ts` (+ teste).
+- Recado do Gestor (migração 0087): o botão em Boas-vindas envia para Todos, Setores (Camareiras, Recepção, Manutenção,
+  Ar condicionado; vários de uma vez) ou Pessoas escolhidas (busca + marcar uma ou várias). Unidade Botafogo/Ipanema/Ambas.
+  A lista de quem recebe é resolvida no envio (`recados_gestor.destinatarios` + `destinatarios_nomes`; regra em
+  `src/lib/recados-gestor.ts`: Camareiras/Recepção = mesma regra do menu; Manutenção = categoria técnica; Ar condicionado
+  = categoria "Ar condicionado"; Todos = todos com login menos gestor/admin). Recado para pessoas fica privado (RLS).
+  Push `recado_gestor` (urgente) só para a lista. Quem recebe vê o recado no topo de QUALQUER tela
+  (`RecadosGestorParaMim` em `_authenticated/route.tsx`) até tocar em "Ciente" (`recados_gestor_leituras`); o gestor vê
+  "Ciente X de N" e quem falta na aba Enviados. Recados antigos (só setor) aparecem por 30 dias.

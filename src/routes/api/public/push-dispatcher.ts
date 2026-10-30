@@ -21,7 +21,8 @@ type EventKind =
   | "ponto_pendente"
   | "ponto_atestado"
   | "ponto_atestado_resposta"
-  | "reservas_cobranca";
+  | "reservas_cobranca"
+  | "recado_gestor";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string; urgente?: boolean } {
@@ -67,6 +68,16 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         url: "/",
         tag: `teste-${Date.now()}`,
       };
+    case "recado_gestor": {
+      const msg = String(d.mensagem ?? "");
+      return {
+        title: `📢 Recado do gestor${d.gestor_nome ? ` (${d.gestor_nome})` : ""}`,
+        body: msg.length > 160 ? `${msg.slice(0, 157)}…` : msg,
+        url: "/",
+        tag: `recado-gestor-${d.id}`,
+        urgente: true,
+      };
+    }
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
       const from = paraRecepcao ? "camareira" : "recepção";
@@ -276,6 +287,11 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     }
     case "teste":
       return typeof d.user_id === "string" ? [d.user_id] : [];
+    case "recado_gestor":
+      // Lista resolvida no envio (setores, todos ou pessoas escolhidas).
+      return Array.isArray(d.destinatarios)
+        ? (d.destinatarios as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
       if (paraRecepcao) return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
