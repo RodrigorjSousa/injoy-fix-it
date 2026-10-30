@@ -156,3 +156,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 
 ## Ideias e pendências
 - (Rodrigo vai trazer os próximos ajustes nesta conversa.)
+
+## Previsão de Carga — reforço e camareira sozinha (regra)
+- JAMAIS uma camareira fica sozinha quando há sobrecarga (carga > 100% ou nível vermelho): mínimo de 2 pessoas escaladas (`MINIMO_COM_SOBRECARGA` em `src/lib/previsao-reforco-status.ts`).
+- Freelancer que cobre férias/folga de fixa NÃO é reforço: extras sem `substitui_colaborador_id` só contam como reforço além das ausências de fixas (`contarReforcosReais`).
+- Sozinha + sobrecarga mostra alerta vermelho "Camareira sozinha com sobrecarga — escale mais uma pessoa", nunca "Reforço chamado/já escalado". Pedido autorizado também não resolve enquanto ela estiver sozinha.
+- Telas: card do gestor, Previsão de Carga (gestor e recepção) e Serviços de quartos. Após publicar, clicar em "Recalcular agora" para atualizar os snapshots.
