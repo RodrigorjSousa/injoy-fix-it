@@ -36,6 +36,35 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Ajustes manuais no banco: saldo inicial, folga compensada, pagamento do saldo, correção — sempre
   com motivo.
 
+### Gestão mensal (30/10/2026, migrações 0088 e 0089)
+- **Pedidos do funcionário** (Bater Ponto › Pedidos ao gestor): "Esqueci de bater" (dia, batida,
+  horário, motivo) e "Justificar atraso ou falta" (pode pedir abono). Até 31 dias atrás. O gestor
+  responde na aba **Pedidos**: aprovar "esqueci" lança a batida (origem manual, motivo
+  `solicitacao_funcionario`; dá para corrigir hora e unidade); aprovar justificativa com abono faz
+  o dia não descontar do banco. Recusar exige resposta. Push `ponto_solicitacao` (gestores) e
+  `ponto_solicitacao_resposta` (funcionário).
+- **Espelho com ciência** (Bater Ponto › Meu espelho): dias, extras, noturno, débitos e saldo do
+  banco (freelancer vê os dias, sem banco). Mês encerrado: botão "Estou ciente" com comentário
+  opcional (`ponto_espelho_ciencia`, guarda os totais vistos). O gestor vê a ciência na aba Banco
+  de horas e no Fechamento.
+- **Adicional noturno**: minutos entre 22h e 5h (Brasília, UTC-3), sem o almoço; mostrado também em
+  hora reduzida (52min30s = 1 h). Não altera extras nem banco; o acréscimo de 20% é do contador.
+  Não trata prorrogação após as 5h (Súmula 60 do TST).
+- **Alertas**: jornada > 10 h no dia e interjornada < 11 h (no Relatório, no banco e no espelho).
+- **Fechamento** (aba Fechamento): só mês já terminado; checklist de pendências e ciências; fechar
+  baixa a planilha do contador e guarda o resumo em `ponto_fechamentos`. Mês fechado trava (por
+  gatilho) lançamento manual, revisão de batida, ajuste do banco, aprovação de pedido e de
+  atestado; as batidas em tempo real (app/recepção) continuam entrando. Reabrir exige motivo
+  (`ponto_fechamentos_log`).
+- **Planilha do contador** (CSV `;`, vírgula decimal): previsto, trabalhado, extras 50/100, noturno
+  real e reduzido, débito, faltas, abonos, dias incompletos, alertas, ajustes, saldos e ciência.
+  Código em `src/lib/ponto-export.ts`.
+- **Lembrete de saída**: `private.ponto_lembrar_saidas()` (cron a cada 15 min, 0089) avisa por push
+  (`ponto_lembrete_saida`) quem está com a jornada aberta 30 min após o fim da escala, ou 10 h após a
+  entrada sem escala. Um aviso por jornada (`ponto_lembretes`).
+- Código: `src/lib/ponto-mensal.ts` (hooks), componentes `meus-pedidos`, `meu-espelho`,
+  `solicitacoes-gestor`, `fechamento-ponto`, `tabela-dias-ponto`.
+
 ### Atestado médico
 - O funcionário envia foto ou PDF pela tela Bater Ponto; o gestor aprova ou recusa (motivo
   obrigatório para recusar). Ao aprovar, os dias `trabalho`/`falta` da escala no período viram
@@ -87,8 +116,9 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 ## Ideias e pendências
 - Ponto oficial (substituir o Pontomais): levantamento feito em 07/10/2026 (REP-P, Portaria 671).
   Rodrigo ainda decide; faltam as respostas sobre CNPJ das unidades, nº de CLT, e-CNPJ e 12x36.
-- Funcionário ver o próprio saldo do banco no app (ainda só o gestor vê).
-- Adicional noturno (22h–5h) e fechamento do mês: não feitos.
+- Gestão mensal (pedidos, espelho com ciência, noturno, alertas, fechamento, lembrete): branch
+  `feat/ponto-gestao-mensal` (0088 + 0089), aguardando merge, migrações e publicação.
+- Ainda não feito: modo offline; base legal do REP-P (só se o app virar o ponto oficial).
 - Limpeza automática das selfies antigas (oferecida, não feita).
 - Ponto oficial (REP-P): se virar oficial, a Portaria 671 proíbe restringir a marcação; o bloqueio
   por localização teria de voltar a ser pendência.

@@ -3,6 +3,7 @@ import {
   calcularDia,
   diaDaSemana,
   lerHoras,
+  minutosNoturnos,
   movimentoBanco,
   resumirBanco,
   type DiaPonto,
@@ -24,6 +25,8 @@ function dia(p: Partial<DiaPonto> & { data: string }): DiaPonto {
     falta_sem_registro: false,
     sem_saida: false,
     almoco_sem_volta: false,
+    almoco_saida: null,
+    almoco_volta: null,
     ...p,
   };
 }
@@ -314,4 +317,114 @@ describe("lerHoras", () => {
     ["abc", null],
     ["1:75", null],
   ])("%s → %s", (t, m) => expect(lerHoras(t)).toBe(m));
+});
+
+describe("adicional noturno", () => {
+  it("turno 19h–7h com almoço 0h–1h: 6 h reais noturnas = 6h51 reduzidas", () => {
+    const n = minutosNoturnos({
+      entrada_real: iso("2026-10-07", "19:00"),
+      saida_real: iso("2026-10-08", "07:00"),
+      almoco_saida: iso("2026-10-08", "00:00"),
+      almoco_volta: iso("2026-10-08", "01:00"),
+    });
+    expect(n).toEqual({ real: 360, reduzido: 411 });
+  });
+
+  it("dia comum 8h–17h não tem noturno", () => {
+    expect(
+      minutosNoturnos({
+        entrada_real: iso("2026-10-07", "08:00"),
+        saida_real: iso("2026-10-07", "17:00"),
+        almoco_saida: null,
+        almoco_volta: null,
+      }).real,
+    ).toBe(0);
+  });
+
+  it("entrou às 4h: 1 h noturna", () => {
+    const r = calcularDia(
+      dia({
+        data: "2026-10-07",
+        entrada_real: iso("2026-10-07", "04:00"),
+        saida_real: iso("2026-10-07", "12:00"),
+        entrada_prevista: iso("2026-10-07", "04:00"),
+        saida_prevista: iso("2026-10-07", "12:00"),
+      }),
+    );
+    expect(r).toMatchObject({ noturno: 60, noturnoReduzido: 69 });
+  });
+});
+
+describe("alertas e abono", () => {
+  it("jornada acima de 10 h", () => {
+    expect(calcularDia(dia({ data: "2026-10-07", minutos_trabalhados: 620 })).jornadaLonga).toBe(
+      true,
+    );
+  });
+
+  it("abono zera o débito do atraso e transforma falta em abonado", () => {
+    const atraso = dia({
+      data: "2026-10-07",
+      entrada_real: iso("2026-10-07", "09:00"),
+      minutos_trabalhados: 420,
+    });
+    expect(calcularDia(atraso).debito).toBe(60);
+    expect(calcularDia(atraso, { abonado: true })).toMatchObject({
+      debito: 0,
+      abonoAplicado: true,
+    });
+    const falta = dia({
+      data: "2026-10-07",
+      entrada_real: null,
+      saida_real: null,
+      minutos_trabalhados: null,
+      falta_sem_registro: true,
+    });
+    expect(calcularDia(falta, { abonado: true })).toMatchObject({ classe: "abonado", debito: 0 });
+  });
+
+  it("interjornada menor que 11 h e abono no resumo", () => {
+    const base = { colaborador_id: "a", nome: "Ana", vinculo: "fixo", setor: "recepcao" };
+    const [p] = resumirBanco(
+      [
+        {
+          ...base,
+          ...dia({
+            data: "2026-10-06",
+            saida_real: iso("2026-10-06", "23:00"),
+            minutos_trabalhados: 840,
+          }),
+        },
+        {
+          ...base,
+          ...dia({
+            data: "2026-10-07",
+            entrada_real: iso("2026-10-07", "08:00"),
+            minutos_trabalhados: 480,
+          }),
+        },
+        {
+          ...base,
+          ...dia({
+            data: "2026-10-08",
+            entrada_real: null,
+            saida_real: null,
+            minutos_trabalhados: null,
+            falta_sem_registro: true,
+          }),
+        },
+      ],
+      [],
+      [{ colaborador_id: "a", modo: "banco", inicio: "2026-10-01" }],
+      { inicio: "2026-10-01", fim: "2026-10-31" },
+      [{ colaborador_id: "a", data: "2026-10-08" }],
+    );
+    expect(p.dias[1].resultado.interjornadaMin).toBe(540);
+    expect(p).toMatchObject({
+      alertasInterjornada: 1,
+      alertasJornadaLonga: 1,
+      abonos: 1,
+      faltas: 0,
+    });
+  });
 });

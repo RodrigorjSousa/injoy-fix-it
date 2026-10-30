@@ -13,6 +13,11 @@
 // * Por pessoa, o gestor escolhe: "banco" (extras entram no banco, 1 hora por
 //   1 hora) ou "pagamento" (extras são pagas; só os débitos vão para o banco).
 // * Só funcionários fixos entram no banco; freelancers são pagos por plantão.
+// * Justificativa aprovada com abono (pedido do funcionário): o dia não gera débito.
+// * Adicional noturno (CLT art. 73): trabalho entre 22h e 5h (horário de Brasília), sem
+//   o almoço; cada 52min30s conta como 1 hora (hora reduzida). Mostrado à parte para a
+//   folha (o acréscimo de 20% é calculado pelo contador); não muda extras nem banco.
+// * Alertas: jornada acima de 10 h no dia e interjornada abaixo de 11 h (CLT art. 66).
 import type { PontoDiaRow } from "@/lib/ponto";
 
 export type ModoBanco = "banco" | "pagamento";
@@ -23,6 +28,8 @@ export const MODO_LABEL: Record<ModoBanco, string> = {
 
 export const TOLERANCIA_MARCACAO_MIN = 5;
 export const TOLERANCIA_DIA_MIN = 10;
+export const JORNADA_MAXIMA_MIN = 600;
+export const INTERJORNADA_MINIMA_MIN = 660;
 /** Início padrão do banco para quem ainda não foi configurado. */
 export const BANCO_INICIO_PADRAO = "2026-10-01";
 
@@ -54,6 +61,14 @@ export type ResultadoDia = {
   debito: number;
   toleranciaAplicada: boolean;
   aviso: string | null;
+  /** Minutos reais trabalhados entre 22h e 5h. */
+  noturno: number;
+  /** Os mesmos minutos convertidos em hora reduzida (52min30s = 60 min). */
+  noturnoReduzido: number;
+  jornadaLonga: boolean;
+  abonoAplicado: boolean;
+  /** Descanso desde a saída do dia anterior, quando menor que 11 h. */
+  interjornadaMin: number | null;
 };
 
 export type DiaPonto = Pick<
@@ -65,6 +80,8 @@ export type DiaPonto = Pick<
   | "saida_prevista"
   | "entrada_real"
   | "saida_real"
+  | "almoco_saida"
+  | "almoco_volta"
   | "minutos_trabalhados"
   | "minutos_previstos"
   | "falta_sem_registro"
@@ -90,10 +107,55 @@ const vazio = (classe: ClasseDia, extra: Partial<ResultadoDia> = {}): ResultadoD
   debito: 0,
   toleranciaAplicada: false,
   aviso: null,
+  noturno: 0,
+  noturnoReduzido: 0,
+  jornadaLonga: false,
+  abonoAplicado: false,
+  interjornadaMin: null,
   ...extra,
 });
 
-export function calcularDia(r: DiaPonto): ResultadoDia {
+const HORA_MS = 3600000;
+const DIA_MS = 24 * HORA_MS;
+/** Brasília sem horário de verão (desde 2019): UTC-3. */
+const OFFSET_SP_MS = -3 * HORA_MS;
+
+/** Minutos de [inicio, fim] que caem entre 22h e 5h no horário de Brasília. */
+function minutosNoturnosIntervalo(inicio: string, fim: string): number {
+  const a = new Date(inicio).getTime() + OFFSET_SP_MS;
+  const b = new Date(fim).getTime() + OFFSET_SP_MS;
+  if (!(b > a)) return 0;
+  let total = 0;
+  for (let d = Math.floor(a / DIA_MS) * DIA_MS - DIA_MS; d <= b; d += DIA_MS) {
+    const ini = d + 22 * HORA_MS;
+    const fimJanela = d + 29 * HORA_MS;
+    total += Math.max(0, Math.min(b, fimJanela) - Math.max(a, ini));
+  }
+  return Math.round(total / 60000);
+}
+
+/** Noturno do dia: da entrada à saída, sem o intervalo de almoço. */
+export function minutosNoturnos(
+  r: Pick<DiaPonto, "entrada_real" | "saida_real" | "almoco_saida" | "almoco_volta">,
+): { real: number; reduzido: number } {
+  if (!r.entrada_real || !r.saida_real) return { real: 0, reduzido: 0 };
+  let real = minutosNoturnosIntervalo(r.entrada_real, r.saida_real);
+  if (r.almoco_saida && r.almoco_volta)
+    real -= minutosNoturnosIntervalo(r.almoco_saida, r.almoco_volta);
+  real = Math.max(0, real);
+  return { real, reduzido: Math.round((real * 60) / 52.5) };
+}
+
+export function calcularDia(r: DiaPonto, opcoes: { abonado?: boolean } = {}): ResultadoDia {
+  const base = calcularDiaBase(r);
+  if (!opcoes.abonado) return base;
+  if (base.classe === "falta")
+    return { ...base, classe: "abonado", debito: 0, abonoAplicado: true, aviso: null };
+  if (base.debito > 0) return { ...base, debito: 0, abonoAplicado: true };
+  return base;
+}
+
+function calcularDiaBase(r: DiaPonto): ResultadoDia {
   const trabalhou = !!r.entrada_real;
   const previsto = Math.max(0, Math.round(r.minutos_previstos ?? 0));
   const domingoOuFeriado = r.feriado || diaDaSemana(r.data) === 0;
@@ -117,12 +179,18 @@ export function calcularDia(r: DiaPonto): ResultadoDia {
     });
 
   const trabalhado = Math.max(0, Math.round(r.minutos_trabalhados));
+  const not = minutosNoturnos(r);
+  const comuns = {
+    noturno: not.real,
+    noturnoReduzido: not.reduzido,
+    jornadaLonga: trabalhado > JORNADA_MAXIMA_MIN,
+  };
   const diaDeTrabalho = r.status_escala === "trabalho" || r.status_escala === "falta";
 
   if (!diaDeTrabalho) {
     return domingoOuFeriado
-      ? vazio("domingo_feriado", { trabalhado, extra100: trabalhado })
-      : vazio("folga_trabalhada", { trabalhado, extra50: trabalhado });
+      ? vazio("domingo_feriado", { trabalhado, extra100: trabalhado, ...comuns })
+      : vazio("folga_trabalhada", { trabalhado, extra50: trabalhado, ...comuns });
   }
 
   let diff = trabalhado - previsto;
@@ -145,16 +213,14 @@ export function calcularDia(r: DiaPonto): ResultadoDia {
       toleranciaAplicada = true;
     }
   }
-  return {
-    classe: "normal",
+  return vazio("normal", {
     trabalhado,
     previsto,
     extra50: diff > 0 ? diff : 0,
-    extra100: 0,
     debito: diff < 0 ? -diff : 0,
     toleranciaAplicada,
-    aviso: null,
-  };
+    ...comuns,
+  });
 }
 
 /** Quanto o dia mexe no banco, conforme o modo da pessoa. */
@@ -181,6 +247,7 @@ export const AJUSTE_LABEL: Record<AjusteBanco["tipo"], string> = {
 };
 
 export type ConfigBanco = { colaborador_id: string; modo: ModoBanco; inicio: string };
+export type Abono = { colaborador_id: string; data: string };
 
 export type DiaCalculado = DiaPonto & { resultado: ResultadoDia };
 
@@ -202,6 +269,11 @@ export type ResumoPessoa = {
   saldoFinal: number;
   diasIncompletos: number;
   faltas: number;
+  noturno: number;
+  noturnoReduzido: number;
+  abonos: number;
+  alertasJornadaLonga: number;
+  alertasInterjornada: number;
   dias: DiaCalculado[];
   ajustes: AjusteBanco[];
 };
@@ -217,8 +289,11 @@ export function resumirBanco(
   ajustes: AjusteBanco[],
   configs: ConfigBanco[],
   periodo: { inicio: string; fim: string },
+  abonos: Abono[] = [],
 ): ResumoPessoa[] {
   const cfgMap = new Map(configs.map((c) => [c.colaborador_id, c]));
+  const abonados = new Set(abonos.map((a) => `${a.colaborador_id}|${a.data.slice(0, 10)}`));
+  const ultimaSaida = new Map<string, string>();
   const pessoas = new Map<string, ResumoPessoa>();
 
   const obter = (l: { colaborador_id: string; nome: string; setor: string }) => {
@@ -243,6 +318,11 @@ export function resumirBanco(
         saldoFinal: 0,
         diasIncompletos: 0,
         faltas: 0,
+        noturno: 0,
+        noturnoReduzido: 0,
+        abonos: 0,
+        alertasJornadaLonga: 0,
+        alertasInterjornada: 0,
         dias: [],
         ajustes: [],
       };
@@ -251,11 +331,20 @@ export function resumirBanco(
     return p;
   };
 
-  for (const l of linhas) {
+  const ordenadas = [...linhas].sort((a, b) => a.data.localeCompare(b.data));
+  for (const l of ordenadas) {
     if (l.vinculo !== "fixo") continue;
     const p = obter(l);
     if (l.data < p.inicio || l.data > periodo.fim) continue;
-    const res = calcularDia(l);
+    const res = calcularDia(l, { abonado: abonados.has(`${l.colaborador_id}|${l.data}`) });
+    const anterior = ultimaSaida.get(l.colaborador_id);
+    if (anterior && l.entrada_real) {
+      const descanso = Math.round(
+        (new Date(l.entrada_real).getTime() - new Date(anterior).getTime()) / 60000,
+      );
+      if (descanso > 0 && descanso < INTERJORNADA_MINIMA_MIN) res.interjornadaMin = descanso;
+    }
+    if (l.saida_real) ultimaSaida.set(l.colaborador_id, l.saida_real);
     const mov = movimentoBanco(res, p.modo);
     if (l.data < periodo.inicio) {
       p.saldoAnterior += mov.saldo;
@@ -269,6 +358,11 @@ export function resumirBanco(
     p.saldoPeriodo += mov.saldo;
     if (res.classe === "incompleto") p.diasIncompletos++;
     if (res.classe === "falta") p.faltas++;
+    p.noturno += res.noturno;
+    p.noturnoReduzido += res.noturnoReduzido;
+    if (res.abonoAplicado) p.abonos++;
+    if (res.jornadaLonga) p.alertasJornadaLonga++;
+    if (res.interjornadaMin != null) p.alertasInterjornada++;
     p.dias.push({ ...l, resultado: res });
   }
 

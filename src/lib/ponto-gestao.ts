@@ -6,9 +6,11 @@ import type { PontoDiaRow } from "@/lib/ponto";
 import {
   BANCO_INICIO_PADRAO,
   resumirBanco,
+  type Abono,
   type AjusteBanco,
   type ConfigBanco,
   type ModoBanco,
+  type ResumoPessoa,
 } from "@/lib/ponto-banco";
 
 // Tabelas novas ainda não estão nos tipos gerados do Supabase.
@@ -37,24 +39,66 @@ async function lerPontoDia(inicio: string, fim: string): Promise<PontoDiaRow[]> 
 }
 
 // ---------------------------------------------------------------- banco de horas
+export type CienciaEspelho = { ciente_em: string; comentario: string | null };
+export type ResumoGestor = ResumoPessoa & { ciencia: CienciaEspelho | null };
+export type FechamentoMes = {
+  competencia: string;
+  fechado_em: string;
+  fechado_por: string | null;
+};
+
 export function useBancoHoras(inicio: string, fim: string) {
   return useQuery({
     queryKey: ["ponto", "banco", inicio, fim],
-    queryFn: async () => {
-      const [{ data: cfgs, error: e1 }, { data: ajustes, error: e2 }] = await Promise.all([
+    queryFn: async (): Promise<{ pessoas: ResumoGestor[]; fechamento: FechamentoMes | null }> => {
+      const competencia = `${inicio.slice(0, 7)}-01`;
+      const [
+        { data: cfgs, error: e1 },
+        { data: ajustes, error: e2 },
+        { data: abonos, error: e3 },
+        { data: ciencias, error: e4 },
+        { data: fech, error: e5 },
+      ] = await Promise.all([
         db.from("ponto_banco_config").select("colaborador_id, modo, inicio"),
         db
           .from("ponto_banco_ajustes")
           .select("id, colaborador_id, data, minutos, tipo, motivo, created_at")
           .lte("data", fim)
           .order("data"),
+        db
+          .from("ponto_solicitacoes")
+          .select("colaborador_id, data")
+          .eq("status", "aprovada")
+          .eq("abonado", true)
+          .lte("data", fim),
+        db
+          .from("ponto_espelho_ciencia")
+          .select("colaborador_id, ciente_em, comentario")
+          .eq("competencia", competencia),
+        db
+          .from("ponto_fechamentos")
+          .select("competencia, fechado_em, fechado_por")
+          .eq("competencia", competencia)
+          .limit(1),
       ]);
-      if (e1) throw e1;
-      if (e2) throw e2;
+      for (const e of [e1, e2, e3, e4, e5]) if (e) throw e;
       const configs = (cfgs ?? []) as ConfigBanco[];
       const desde = [BANCO_INICIO_PADRAO, inicio, ...configs.map((c) => c.inicio)].sort()[0];
       const linhas = await lerPontoDia(desde, fim);
-      return resumirBanco(linhas, (ajustes ?? []) as AjusteBanco[], configs, { inicio, fim });
+      const cMap = new Map(
+        ((ciencias ?? []) as (CienciaEspelho & { colaborador_id: string })[]).map((c) => [
+          c.colaborador_id,
+          { ciente_em: c.ciente_em, comentario: c.comentario },
+        ]),
+      );
+      const pessoas = resumirBanco(
+        linhas,
+        (ajustes ?? []) as AjusteBanco[],
+        configs,
+        { inicio, fim },
+        (abonos ?? []) as Abono[],
+      ).map((p) => ({ ...p, ciencia: cMap.get(p.colaborador_id) ?? null }));
+      return { pessoas, fechamento: ((fech ?? [])[0] as FechamentoMes | undefined) ?? null };
     },
   });
 }
