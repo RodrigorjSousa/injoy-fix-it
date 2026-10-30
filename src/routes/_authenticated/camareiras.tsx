@@ -37,7 +37,6 @@ import { useMe } from "@/lib/store";
 import { useUnidade } from "@/lib/unidade-context";
 import { ChegadasCheckinCards } from "@/components/gestao/chegadas-checkin-cards";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
-import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import {
   EmptyState,
   ErrorState,
@@ -627,7 +626,6 @@ function PainelCamareiras() {
 
       <div className="px-4 pt-4 space-y-3">
         <AvisoSyncCloudbeds unidade={unidadeAtiva} sincronizando={syncing} onSincronizar={sincronizar} />
-        <RecadosGestorAlert setor="camareiras" unidade={unidadeAtiva} />
       </div>
 
 

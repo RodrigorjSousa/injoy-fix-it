@@ -42,7 +42,6 @@ import { useUnidade } from "@/lib/unidade-context";
 import { padQuarto } from "@/lib/tipos-quarto";
 import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
-import { RecadosGestorAlert } from "@/components/recados-gestor/recados-gestor-alert";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-quarto";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
@@ -365,9 +364,6 @@ function RecepcaoPage() {
         </button>
       </div>
 
-      <div className="px-4 pt-4">
-        <RecadosGestorAlert setor="recepcao" unidade={unidadeAtiva} />
-      </div>
 
 
 
