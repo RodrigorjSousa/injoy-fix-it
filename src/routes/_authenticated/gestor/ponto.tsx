@@ -11,6 +11,9 @@ import { ConfigPonto } from "@/components/ponto/config-ponto";
 import { PessoasPonto } from "@/components/ponto/pessoas-ponto";
 import { BancoHoras } from "@/components/ponto/banco-horas";
 import { AtestadosGestor } from "@/components/ponto/atestados-gestor";
+import { FechamentoPonto } from "@/components/ponto/fechamento-ponto";
+import { SolicitacoesGestor } from "@/components/ponto/solicitacoes-gestor";
+import { useSolicitacoesGestor } from "@/lib/ponto-mensal";
 import { useAtestadosGestor } from "@/lib/ponto-gestao";
 
 export const Route = createFileRoute("/_authenticated/gestor/ponto")({
@@ -32,6 +35,8 @@ function GestorPonto() {
   const qtd = pend.data?.length ?? 0;
   const atestados = useAtestadosGestor();
   const qtdAtestados = atestados.data?.filter((a) => a.status === "pendente").length ?? 0;
+  const pedidos = useSolicitacoesGestor();
+  const qtdPedidos = pedidos.data?.filter((s) => s.status === "pendente").length ?? 0;
   return (
     <div className="space-y-5">
       <header className="flex flex-wrap items-end justify-between gap-2">
@@ -53,11 +58,13 @@ function GestorPonto() {
       <Tabs defaultValue="pendencias">
         <TabsList className="flex w-full flex-wrap justify-start">
           <TabsTrigger value="pendencias">Pendências{qtd ? ` (${qtd})` : ""}</TabsTrigger>
+          <TabsTrigger value="pedidos">Pedidos{qtdPedidos ? ` (${qtdPedidos})` : ""}</TabsTrigger>
           <TabsTrigger value="relatorio">Relatório</TabsTrigger>
           <TabsTrigger value="banco">Banco de horas</TabsTrigger>
           <TabsTrigger value="atestados">
             Atestados{qtdAtestados ? ` (${qtdAtestados})` : ""}
           </TabsTrigger>
+          <TabsTrigger value="fechamento">Fechamento</TabsTrigger>
           <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
           <TabsTrigger value="cadastro">Cadastro facial</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -67,6 +74,12 @@ function GestorPonto() {
         </TabsContent>
         <TabsContent value="relatorio" className="mt-4">
           <RelatorioPonto />
+        </TabsContent>
+        <TabsContent value="pedidos" className="mt-4">
+          <SolicitacoesGestor />
+        </TabsContent>
+        <TabsContent value="fechamento" className="mt-4">
+          <FechamentoPonto />
         </TabsContent>
         <TabsContent value="banco" className="mt-4">
           <BancoHoras />

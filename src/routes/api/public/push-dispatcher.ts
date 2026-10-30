@@ -21,11 +21,20 @@ type EventKind =
   | "ponto_pendente"
   | "ponto_atestado"
   | "ponto_atestado_resposta"
+  | "ponto_solicitacao"
+  | "ponto_solicitacao_resposta"
+  | "ponto_lembrete_saida"
   | "reservas_cobranca"
   | "recado_gestor";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
-function buildNotification(evt: Body): { title: string; body: string; url: string; tag: string; urgente?: boolean } {
+function buildNotification(evt: Body): {
+  title: string;
+  body: string;
+  url: string;
+  tag: string;
+  urgente?: boolean;
+} {
   const d = evt.data as Record<string, unknown>;
   switch (evt.event) {
     case "chamado":
@@ -120,20 +129,37 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
       if (d.lancado)
         return {
           title: "Reforço lançado na limpeza",
-          body: `${d.nome ?? "Recepção"} lançou ${d.freelancer ?? "freelancer"} · ${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.valor != null ? ` · ${Number(d.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para conferir ou corrigir.`,
+          body: `${d.nome ?? "Recepção"} lançou ${d.freelancer ?? "freelancer"} · ${d.unidade} ${String(
+            d.data ?? "",
+          )
+            .split("-")
+            .reverse()
+            .join(
+              "/",
+            )}${d.valor != null ? ` · ${Number(d.valor).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para conferir ou corrigir.`,
           url: "/gestor/previsao-carga",
           tag: `reforco-${d.id}`,
         };
       return {
         title: "Pedido de reforço na limpeza",
-        body: `${d.nome ?? "Recepção"} pede freelancer · ${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.ocupacao_pct != null ? ` (carga ${d.ocupacao_pct}%)` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para autorizar.`,
+        body: `${d.nome ?? "Recepção"} pede freelancer · ${d.unidade} ${String(d.data ?? "")
+          .split("-")
+          .reverse()
+          .join(
+            "/",
+          )}${d.ocupacao_pct != null ? ` (carga ${d.ocupacao_pct}%)` : ""}${d.mensagem ? `: ${String(d.mensagem).slice(0, 100)}` : ""}. Toque para autorizar.`,
         url: "/gestor/previsao-carga",
         tag: `reforco-${d.id}`,
       };
     case "previsao_reforco_resposta":
       return {
         title: d.autorizado ? "Reforço autorizado" : "Reforço não autorizado",
-        body: `${d.unidade} ${String(d.data ?? "").split("-").reverse().join("/")}${d.autorizado ? ": pode chamar o freelancer." : "."}${d.resposta ? ` ${String(d.resposta).slice(0, 100)}` : ""}`,
+        body: `${d.unidade} ${String(d.data ?? "")
+          .split("-")
+          .reverse()
+          .join(
+            "/",
+          )}${d.autorizado ? ": pode chamar o freelancer." : "."}${d.resposta ? ` ${String(d.resposta).slice(0, 100)}` : ""}`,
         url: "/previsao-carga",
         tag: `reforco-resposta-${d.id}`,
       };
@@ -156,6 +182,40 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
         url: "/gestor/ponto",
         tag: `atestado-${d.id}`,
       };
+    case "ponto_solicitacao": {
+      const data = String(d.data ?? "")
+        .split("-")
+        .reverse()
+        .join("/");
+      return {
+        title: "Pedido de ponto",
+        body: `${d.nome ?? "Colaborador"}: ${d.tipo === "esqueci_batida" ? "esqueceu de bater" : "justificativa"} do dia ${data}. Confira e responda.`,
+        url: "/gestor/ponto",
+        tag: `ponto-pedido-${d.id}`,
+      };
+    }
+    case "ponto_solicitacao_resposta": {
+      const data = String(d.data ?? "")
+        .split("-")
+        .reverse()
+        .join("/");
+      return {
+        title: d.aprovado ? "Pedido de ponto aprovado" : "Pedido de ponto recusado",
+        body: d.aprovado
+          ? `Seu pedido do dia ${data} foi aprovado.`
+          : `Seu pedido do dia ${data} foi recusado${d.resposta ? `: ${String(d.resposta).slice(0, 120)}` : "."}`,
+        url: "/ponto",
+        tag: `ponto-pedido-resposta-${d.id}`,
+      };
+    }
+    case "ponto_lembrete_saida":
+      return {
+        title: "Você ainda não registrou a saída",
+        body: "Sua jornada continua aberta no ponto. Se já saiu, registre agora ou peça o ajuste em Bater Ponto › Pedidos.",
+        url: "/ponto",
+        tag: `ponto-lembrete-${d.id}`,
+        urgente: true,
+      };
     case "ponto_atestado_resposta":
       return {
         title: d.aprovado ? "Atestado aprovado" : "Atestado recusado",
@@ -167,7 +227,10 @@ function buildNotification(evt: Body): { title: string; body: string; url: strin
       };
     case "reservas_cobranca": {
       const qtd = Number(d.quantidade ?? 0);
-      const total = Number(d.total ?? 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+      const total = Number(d.total ?? 0).toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      });
       return {
         title: qtd === 1 ? "💳 Reserva para cobrar" : `💳 ${qtd} reservas para cobrar`,
         body: `${qtd === 1 && d.hospede ? `${d.hospede} · ` : ""}${d.unidades ?? ""} · ${total} em aberto. Toque para ver a lista.`,
@@ -217,7 +280,10 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
   // Recepção = papel recepcao OU tela Recepção liberada no cadastro (mesma regra do menu).
   const recepcao = async () => {
     const [{ data: papeis }, { data: funcs }] = await Promise.all([
-      supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "recepcao" as never),
+      supabaseAdmin
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("role", "recepcao" as never),
       supabaseAdmin.from("funcionarios").select("user_id, telas_permitidas"),
     ]);
     return usuariosDaRecepcao(
@@ -229,7 +295,10 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
   // Camareiras = papel camareira OU tela Camareiras liberada no cadastro.
   const camareiras = async () => {
     const [{ data: papeis }, { data: funcs }] = await Promise.all([
-      supabaseAdmin.from("user_roles").select("user_id, role").eq("role", "camareira" as never),
+      supabaseAdmin
+        .from("user_roles")
+        .select("user_id, role")
+        .eq("role", "camareira" as never),
       supabaseAdmin.from("funcionarios").select("user_id, telas_permitidas"),
     ]);
     return usuariosDasCamareiras(
@@ -305,6 +374,7 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     case "previsao_carga":
     case "ponto_pendente":
     case "ponto_atestado":
+    case "ponto_solicitacao":
       return byRoles(["admin", "gestor"]);
     case "previsao_reforco":
       return byRoles(["admin", "gestor"]);
@@ -313,12 +383,16 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
       const { data } = await supabaseAdmin.rpc("reservas_destinatarios" as never);
       const lista = Array.isArray(data) ? (data as unknown[]) : [];
       const liberados = lista
-        .map((x) => (typeof x === "string" ? x : (x as Record<string, unknown>)?.reservas_destinatarios))
+        .map((x) =>
+          typeof x === "string" ? x : (x as Record<string, unknown>)?.reservas_destinatarios,
+        )
         .filter((id): id is string => typeof id === "string");
       // A recepção é quem cobra: recebe sempre o aviso de reservas.
       return juntar(liberados, await recepcao());
     }
     case "previsao_reforco_resposta":
+    case "ponto_solicitacao_resposta":
+    case "ponto_lembrete_saida":
     case "ponto_atestado_resposta":
     case "escala_alterada":
       return typeof d.user_id === "string" ? [d.user_id] : [];
@@ -403,7 +477,9 @@ export const Route = createFileRoute("/api/public/push-dispatcher")({
         ).length;
         // Log para conferir no painel do Lovable quando alguém disser que não chegou.
         const falhas = results
-          .map((r) => (r.status === "fulfilled" ? (r.value.ok ? null : `${r.value.status}`) : "erro"))
+          .map((r) =>
+            r.status === "fulfilled" ? (r.value.ok ? null : `${r.value.status}`) : "erro",
+          )
           .filter(Boolean);
         console.log(
           `[push] ${payload.event}: ${sent}/${subs.length} aparelho(s) de ${userIds.length} pessoa(s)${falhas.length ? ` · falhas: ${falhas.join(",")}` : ""}`,

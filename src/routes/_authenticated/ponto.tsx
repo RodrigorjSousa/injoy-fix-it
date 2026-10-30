@@ -22,6 +22,8 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
 import { MeusAtestados } from "@/components/ponto/meus-atestados";
+import { MeuEspelho } from "@/components/ponto/meu-espelho";
+import { MeusPedidos } from "@/components/ponto/meus-pedidos";
 import { useMe } from "@/lib/store";
 import { AvisoLocalizacao, useLocalPonto } from "@/components/ponto/local-ponto";
 import { getDeviceId, type Position } from "@/lib/ponto-face";
@@ -366,7 +368,11 @@ function MeuPonto() {
         </p>
       </Card>
 
+      <MeusPedidos />
+
       <MeusAtestados />
+
+      <MeuEspelho />
 
       {!!s.batidas_recentes?.length && (
         <Card className="p-4">

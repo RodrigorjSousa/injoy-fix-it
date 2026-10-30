@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { addCivilDays } from "@/lib/escala-engine";
+import { INTERJORNADA_MINIMA_MIN, JORNADA_MAXIMA_MIN } from "@/lib/ponto-banco";
 import { todaySP } from "@/lib/tz";
 import { cn } from "@/lib/utils";
 import {
@@ -38,8 +39,22 @@ import {
 
 type Alerta = { label: string; tone: string };
 
-function alertasDaLinha(r: PontoDiaRow, tolerancia: number): Alerta[] {
+function alertasDaLinha(
+  r: PontoDiaRow,
+  tolerancia: number,
+  descansoMin: number | null = null,
+): Alerta[] {
   const a: Alerta[] = [];
+  if ((r.minutos_trabalhados ?? 0) > JORNADA_MAXIMA_MIN)
+    a.push({
+      label: `Jornada de ${minutosParaHoras(r.minutos_trabalhados)} (> 10 h)`,
+      tone: "bg-rose-100 text-rose-800",
+    });
+  if (descansoMin != null)
+    a.push({
+      label: `Descanso de ${minutosParaHoras(descansoMin)} desde a saída anterior (< 11 h)`,
+      tone: "bg-rose-100 text-rose-800",
+    });
   if (r.falta_sem_registro)
     a.push({ label: "Falta sem registro", tone: "bg-rose-100 text-rose-800" });
   if (r.sem_saida) a.push({ label: "Sem saída", tone: "bg-rose-100 text-rose-800" });
@@ -160,6 +175,21 @@ export function RelatorioPonto() {
       ),
     [q.data, unidade, pessoa],
   );
+  // Interjornada: descanso entre a saída do dia anterior e a entrada (mesma pessoa)
+  const descansos = useMemo(() => {
+    const m = new Map<string, number>();
+    const ultima = new Map<string, string>();
+    const ordenadas = [...(q.data ?? [])].sort((a, b) => a.data.localeCompare(b.data));
+    for (const r of ordenadas) {
+      const ant = ultima.get(r.colaborador_id);
+      if (ant && r.entrada_real) {
+        const min = Math.round((Date.parse(r.entrada_real) - Date.parse(ant)) / 60000);
+        if (min > 0 && min < INTERJORNADA_MINIMA_MIN) m.set(`${r.colaborador_id}|${r.data}`, min);
+      }
+      if (r.saida_real) ultima.set(r.colaborador_id, r.saida_real);
+    }
+    return m;
+  }, [q.data]);
   const pessoas = useMemo(() => {
     const m = new Map<string, string>();
     (q.data ?? []).forEach((r) => m.set(r.colaborador_id, r.nome));
@@ -311,7 +341,11 @@ export function RelatorioPonto() {
               </thead>
               <tbody>
                 {rows.map((r) => {
-                  const alertas = alertasDaLinha(r, tolerancia(r.unidade));
+                  const alertas = alertasDaLinha(
+                    r,
+                    tolerancia(r.unidade),
+                    descansos.get(`${r.colaborador_id}|${r.data}`) ?? null,
+                  );
                   return (
                     <tr key={`${r.colaborador_id}-${r.data}`} className="border-t align-top">
                       <td className="p-2 whitespace-nowrap">{dataBR(r.data)}</td>
