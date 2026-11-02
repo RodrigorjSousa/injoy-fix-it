@@ -1,41 +1,21 @@
 import { useState } from "react";
-import { Printer, Receipt } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { toast } from "sonner";
+import { baixarBase64 } from "@/lib/baixar-arquivo";
+import { comprovantePdfPonto } from "@/lib/ponto-assinatura.functions";
+import { FileDown, Loader2, Printer, Receipt } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatarCnpj, formatarCpf } from "@/lib/cpf";
-import { useMeusComprovantes, type Comprovante } from "@/lib/ponto-rep";
+import { dataHoraComprovante, linhasComprovante, type Comprovante } from "@/lib/comprovante-ponto";
+import { useMeusComprovantes } from "@/lib/ponto-rep";
 
-const dataHora = (iso: string) =>
-  new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(iso));
+const dataHora = dataHoraComprovante;
 
 const esc = (t: string) =>
   t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
-function linhas(c: Comprovante): [string, string][] {
-  return [
-    ["Empregador", c.empregador ?? "—"],
-    [
-      c.tipo_doc === 2 ? "CPF do empregador" : "CNPJ",
-      c.documento ? (c.tipo_doc === 2 ? formatarCpf(c.documento) : formatarCnpj(c.documento)) : "—",
-    ],
-    ...(c.cno_caepf ? ([["CNO/CAEPF", c.cno_caepf]] as [string, string][]) : []),
-    ["Local de prestação", c.local ?? c.unidade],
-    ["Trabalhador", c.nome],
-    ["CPF", formatarCpf(c.cpf)],
-    ["Data e hora da marcação", dataHora(c.marcacao_em)],
-    ["NSR", String(c.nsr).padStart(9, "0")],
-    ["Registro do programa (INPI)", c.inpi ?? "em registro"],
-    ["Código hash (SHA-256)", c.hash],
-  ];
-}
+const linhas = linhasComprovante;
 
 function imprimir(c: Comprovante) {
   const w = window.open("", "_blank", "width=420,height=640");
@@ -56,6 +36,28 @@ ${linhas(c)
   w.document.close();
 }
 
+function BotaoPdfAssinado({ nsr }: { nsr: number }) {
+  const gerar = useServerFn(comprovantePdfPonto);
+  const [baixando, setBaixando] = useState(false);
+  const baixar = async () => {
+    setBaixando(true);
+    try {
+      const r = await gerar({ data: { nsr: Number(nsr) } });
+      baixarBase64(r.pdfBase64, r.nome, "application/pdf");
+    } catch (e) {
+      toast.error((e as Error).message);
+    } finally {
+      setBaixando(false);
+    }
+  };
+  return (
+    <Button className="w-full gap-2" onClick={baixar} disabled={baixando}>
+      {baixando ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileDown className="h-4 w-4" />}
+      Baixar PDF assinado
+    </Button>
+  );
+}
+
 export function ComprovanteDetalhe({ c }: { c: Comprovante }) {
   return (
     <div className="space-y-2 text-sm">
@@ -70,9 +72,10 @@ export function ComprovanteDetalhe({ c }: { c: Comprovante }) {
           </div>
         ))}
       </dl>
-      <Button variant="outline" className="w-full gap-2" onClick={() => imprimir(c)}>
+      <BotaoPdfAssinado nsr={c.nsr} />
+      <Button variant="ghost" className="w-full gap-2" onClick={() => imprimir(c)}>
         <Printer className="h-4 w-4" />
-        Imprimir ou salvar em PDF
+        Imprimir
       </Button>
     </div>
   );

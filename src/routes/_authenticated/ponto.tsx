@@ -25,6 +25,7 @@ import { MeusAtestados } from "@/components/ponto/meus-atestados";
 import { MeuEspelho } from "@/components/ponto/meu-espelho";
 import { MeusComprovantes } from "@/components/ponto/meus-comprovantes";
 import { RelogioPonto } from "@/components/ponto/relogio-ponto";
+import { TermoPontoOficial } from "@/components/ponto/termo-ponto";
 import { MeusPedidos } from "@/components/ponto/meus-pedidos";
 import { useMe } from "@/lib/store";
 import { AvisoLocalizacao, useLocalPonto } from "@/components/ponto/local-ponto";
@@ -376,6 +377,8 @@ function MeuPonto() {
           ou Ipanema.
         </p>
       </Card>
+
+      <TermoPontoOficial />
 
       <MeusComprovantes />
 

@@ -2,6 +2,8 @@
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { Comprovante } from "@/lib/comprovante-ponto";
+import { TERMO_PONTO_VERSAO } from "@/lib/termo-ponto";
 import type { EmpregadorRep, RegistroRep } from "@/lib/ponto-afd";
 
 // Tabelas e funções novas ainda não estão nos tipos gerados do Supabase.
@@ -104,22 +106,43 @@ export function useResumoRep() {
   });
 }
 
-// ---------------------------------------------------------------- funcionário
-export type Comprovante = {
-  nsr: number;
-  marcacao_em: string;
-  gravado_em: string;
-  cpf: string;
-  hash: string;
-  unidade: string;
-  nome: string;
-  local: string | null;
-  empregador: string | null;
-  tipo_doc: number | null;
+export type CertificadoInfo = {
+  titular: string;
   documento: string | null;
-  cno_caepf: string | null;
-  inpi: string | null;
+  emissor: string | null;
+  valido_de: string;
+  valido_ate: string;
+  enviado_em: string;
 };
+
+export function useCertificadoInfo() {
+  return useQuery({
+    queryKey: ["ponto", "rep", "certificado"],
+    queryFn: async (): Promise<CertificadoInfo | null> => {
+      const { data, error } = await db.rpc("ponto_certificado_info");
+      if (error) throw error;
+      return (data ?? null) as CertificadoInfo | null;
+    },
+  });
+}
+
+/** Quantos já aceitaram o termo atual (total = pessoas com usuário no app). */
+export function useAceitesTermo(total: number) {
+  return useQuery({
+    queryKey: ["ponto", "rep", "aceites", TERMO_PONTO_VERSAO, total],
+    queryFn: async () => {
+      const { count, error } = await db
+        .from("ponto_termo_aceites")
+        .select("colaborador_id", { count: "exact", head: true })
+        .eq("versao", TERMO_PONTO_VERSAO);
+      if (error) throw error;
+      return { aceitos: count ?? 0, total };
+    },
+  });
+}
+
+// ---------------------------------------------------------------- funcionário
+export type { Comprovante } from "@/lib/comprovante-ponto";
 
 export function useMeusComprovantes() {
   return useQuery({

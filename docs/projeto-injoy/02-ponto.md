@@ -36,6 +36,29 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Ajustes manuais no banco: saldo inicial, folga compensada, pagamento do saldo, correção — sempre
   com motivo.
 
+### Registro oficial REP-P — 2ª etapa (02/11/2026, migração 0093)
+- **Certificado e-CNPJ A1**: o gestor envia o .pfx na aba Fiscalização; a função do servidor
+  `enviarCertificadoPonto` abre com a senha do segredo **`CERT_A1_SENHA`** (Lovable → Secrets) e
+  grava em `ponto_certificado` (RLS sem política + REVOKE: só o service_role lê). O gestor vê só
+  titular/CNPJ/emissor/validade (`ponto_certificado_info`). Sem o segredo, a mensagem explica.
+- **AFD assinado**: `afdAssinadoPonto` gera o AFD no servidor a partir da ARP e devolve o .txt e o
+  `.p7s` CAdES-BES destacado (SHA-256/RSA, signedAttrs contentType, messageDigest, signingTime,
+  signingCertificateV2). Sem política de assinatura ICP-Brasil (AD-RB) — confirmar se o validador
+  exigir. O botão "Sem assinatura" continua gerando no navegador.
+- **Comprovante em PDF assinado**: `comprovantePdfPonto` (só marcações do próprio usuário, 7 dias)
+  monta um PDF A4 simples e assina em PAdES (`/SubFilter /ETSI.CAdES.detached`, sem signingTime no
+  CMS, `/M` no dicionário). Botão "Baixar PDF assinado" no comprovante.
+- Código: `src/lib/assinatura-cms.ts` (node-forge, JS puro; roda no Workers), `pdf-comprovante.ts`,
+  `ponto-assinatura.functions.ts` / `.server.ts`, `comprovante-ponto.ts`. Testes com certificado
+  FALSO em `src/lib/__fixtures__/certificado-teste.ts` (AES e legado 3DES/RC2). Conferido em
+  02/11/2026: `openssl cms -verify` aceita o .p7s e recusa o AFD alterado; `pdfsig` diz
+  "Signature is Valid".
+- **Novo termo** (`src/lib/termo-ponto.ts`, versão `2026-11-oficial-v1`): aparece no Bater Ponto
+  quando o registro oficial está ativo e a pessoa não aceitou; grava versão + SHA-256 do texto em
+  `ponto_termo_aceites` (`ponto_aceitar_termo`). Não bloqueia a marcação. Contagem na Fiscalização.
+- Dependência nova: `node-forge` (+ `@types/node-forge`), adicionada à mão no `bun.lock` com o
+  espelho do Lovable; o `package-lock.json` não foi atualizado.
+
 ### Registro oficial REP-P — 1ª etapa (02/11/2026, migração 0092)
 Decisões do Rodrigo: seguir para a base legal; Botafogo e Ipanema têm o **mesmo CNPJ** (uma
 sequência de NSR); a pousada tem **e-CNPJ A1**.
@@ -144,7 +167,10 @@ sequência de NSR); a pousada tem **e-CNPJ A1**.
 - Ponto oficial (substituir o Pontomais): levantamento feito em 07/10/2026 (REP-P, Portaria 671).
   Rodrigo ainda decide; faltam as respostas sobre CNPJ das unidades, nº de CLT, e-CNPJ e 12x36.
 - Gestão mensal entregue (0088 + 0089 aplicadas).
-- REP-P 1ª etapa: branch `feat/ponto-rep-base` (0092), aguardando merge, migração e publicação.
+- REP-P 1ª etapa entregue (0092 aplicada).
+- REP-P 2ª etapa (assinatura A1, termo): branch `feat/ponto-rep-assinatura` (0093), aguardando
+  merge, migração, segredo `CERT_A1_SENHA` e envio do .pfx.
+- REP-P 3ª etapa: AEJ e espelho no formato legal (PTRP); eventos sensíveis tipo 6; modo offline.
 - Limpeza automática das selfies antigas (oferecida, não feita).
 - Ponto oficial (REP-P): se virar oficial, a Portaria 671 proíbe restringir a marcação; o bloqueio
   por localização teria de voltar a ser pendência.
