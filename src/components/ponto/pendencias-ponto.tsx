@@ -47,7 +47,11 @@ function Selfie({ path }: { path: string | null }) {
 function PendenciaItem({ b }: { b: BatidaGestor }) {
   const revisar = useRevisarBatida();
   const [obs, setObs] = useState("");
-  const decidir = (aprovar: boolean) =>
+  const decidir = (aprovar: boolean) => {
+    if (!aprovar && !obs.trim()) {
+      toast.error("Escreva o motivo da recusa.");
+      return;
+    }
     revisar.mutate(
       { id: b.id, aprovar, observacao: obs },
       {
@@ -55,6 +59,7 @@ function PendenciaItem({ b }: { b: BatidaGestor }) {
         onError: (e) => toast.error((e as Error).message),
       },
     );
+  };
   return (
     <Card className="flex gap-3 p-3">
       <Selfie path={b.selfie_path} />
@@ -93,7 +98,7 @@ function PendenciaItem({ b }: { b: BatidaGestor }) {
           <Input
             value={obs}
             onChange={(e) => setObs(e.target.value)}
-            placeholder="Observação (opcional)"
+            placeholder="Observação (obrigatória para recusar)"
             className="h-8 max-w-xs text-xs"
           />
           <Button

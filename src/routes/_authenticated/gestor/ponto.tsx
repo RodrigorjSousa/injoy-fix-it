@@ -12,6 +12,7 @@ import { PessoasPonto } from "@/components/ponto/pessoas-ponto";
 import { BancoHoras } from "@/components/ponto/banco-horas";
 import { AtestadosGestor } from "@/components/ponto/atestados-gestor";
 import { FechamentoPonto } from "@/components/ponto/fechamento-ponto";
+import { FiscalizacaoPonto } from "@/components/ponto/fiscalizacao-ponto";
 import { SolicitacoesGestor } from "@/components/ponto/solicitacoes-gestor";
 import { useSolicitacoesGestor } from "@/lib/ponto-mensal";
 import { useAtestadosGestor } from "@/lib/ponto-gestao";
@@ -65,6 +66,7 @@ function GestorPonto() {
             Atestados{qtdAtestados ? ` (${qtdAtestados})` : ""}
           </TabsTrigger>
           <TabsTrigger value="fechamento">Fechamento</TabsTrigger>
+          <TabsTrigger value="fiscalizacao">Fiscalização</TabsTrigger>
           <TabsTrigger value="pessoas">Pessoas</TabsTrigger>
           <TabsTrigger value="cadastro">Cadastro facial</TabsTrigger>
           <TabsTrigger value="config">Configurações</TabsTrigger>
@@ -80,6 +82,9 @@ function GestorPonto() {
         </TabsContent>
         <TabsContent value="fechamento" className="mt-4">
           <FechamentoPonto />
+        </TabsContent>
+        <TabsContent value="fiscalizacao" className="mt-4">
+          <FiscalizacaoPonto />
         </TabsContent>
         <TabsContent value="banco" className="mt-4">
           <BancoHoras />

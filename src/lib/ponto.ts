@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { cpfValido, soDigitos } from "@/lib/cpf";
 import { todaySP } from "@/lib/tz";
 
 export type PontoUnidade = "Botafogo" | "Ipanema";
@@ -35,6 +36,12 @@ export const MOTIVO_LABEL: Record<string, string> = {
   fora_da_unidade: "Fora da unidade",
   aparelho_diferente: "Aparelho diferente",
   lancamento_manual: "Lançamento manual",
+  solicitacao_funcionario: "Pedido do funcionário",
+  localizacao_imprecisa: "Localização imprecisa",
+  unidades_sem_coordenadas: "Unidades sem localização cadastrada",
+  nao_habilitado: "Pessoa fora do ponto do app",
+  batida_repetida: "Batida repetida em menos de 2 min",
+  ordem_inconsistente: "Ordem das batidas fora do normal",
 };
 
 export type RegistroResultado = {
@@ -45,6 +52,9 @@ export type RegistroResultado = {
   registrado_em: string;
   unidade: PontoUnidade;
   nome: string;
+  /** Registro oficial (REP-P), quando ativo. */
+  nsr?: number | null;
+  hash?: string | null;
 };
 
 export type MeuStatus = {
@@ -484,6 +494,7 @@ export type PessoaPonto = {
   funcionario_id: string | null;
   ativo: boolean;
   ponto_habilitado: boolean;
+  cpf: string | null;
 };
 
 export function usePessoasPonto() {
@@ -495,7 +506,7 @@ export function usePessoasPonto() {
           db
             .from("escala_colaboradores")
             .select(
-              "id, nome, setor, unidade, vinculo, telefone, funcionario_id, ativo, ponto_habilitado",
+              "id, nome, setor, unidade, vinculo, telefone, funcionario_id, ativo, ponto_habilitado, cpf",
             )
             .order("nome"),
           db.from("funcionarios").select("id, nome, user_id").order("nome"),
@@ -531,8 +542,10 @@ export function useSalvarPessoaPonto() {
         funcionario_id: p.funcionario_id || null,
         ativo: p.ativo,
         ponto_habilitado: p.ponto_habilitado,
+        cpf: soDigitos(p.cpf) || null,
       };
       if (!row.nome) throw new Error("Informe o nome");
+      if (row.cpf && !cpfValido(row.cpf)) throw new Error("CPF inválido. Confira os números.");
       const { error } = p.id
         ? await db.from("escala_colaboradores").update(row).eq("id", p.id)
         : await db.from("escala_colaboradores").insert(row);

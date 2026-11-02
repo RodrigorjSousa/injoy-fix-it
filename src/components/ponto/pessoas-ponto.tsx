@@ -22,6 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { cpfValido, formatarCpf } from "@/lib/cpf";
 import { cn } from "@/lib/utils";
 import { usePessoasPonto, useSalvarPessoaPonto, type PessoaPonto } from "@/lib/ponto";
 
@@ -42,6 +43,7 @@ const VAZIO: Omit<PessoaPonto, "id"> = {
   funcionario_id: null,
   ativo: true,
   ponto_habilitado: true,
+  cpf: null,
 };
 
 export function PessoasPonto() {
@@ -123,7 +125,13 @@ export function PessoasPonto() {
                   <p className="text-xs text-slate-500">
                     {SETOR[p.setor]} · {p.unidade}
                     {p.telefone ? ` · ${p.telefone}` : ""}
+                    {p.cpf ? ` · CPF ${formatarCpf(p.cpf)}` : ""}
                   </p>
+                  {!p.cpf && p.ativo && p.ponto_habilitado && (
+                    <p className="text-xs font-semibold text-amber-700">
+                      Sem CPF — obrigatório no ponto oficial
+                    </p>
+                  )}
                   <p className="text-xs text-slate-500">
                     {funcionarioNome(p.funcionario_id)
                       ? `Usuário do app: ${funcionarioNome(p.funcionario_id)}`
@@ -309,6 +317,18 @@ function PessoaDialog({
                 onChange={(e) => setF({ ...f, telefone: e.target.value })}
               />
             </div>
+          </div>
+          <div>
+            <Label>CPF (obrigatório no ponto oficial)</Label>
+            <Input
+              inputMode="numeric"
+              value={f.cpf ?? ""}
+              placeholder="000.000.000-00"
+              onChange={(e) => setF({ ...f, cpf: e.target.value })}
+            />
+            {!!f.cpf && !cpfValido(f.cpf) && (
+              <p className="mt-1 text-xs text-rose-600">CPF inválido. Confira os números.</p>
+            )}
           </div>
           <div>
             <Label>Usuário do app (para bater ponto no próprio celular)</Label>

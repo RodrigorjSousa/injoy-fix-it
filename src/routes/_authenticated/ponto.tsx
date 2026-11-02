@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { FaceCapture, type VerificacaoResultado } from "@/components/ponto/face-capture";
 import { MeusAtestados } from "@/components/ponto/meus-atestados";
 import { MeuEspelho } from "@/components/ponto/meu-espelho";
+import { MeusComprovantes } from "@/components/ponto/meus-comprovantes";
+import { RelogioPonto } from "@/components/ponto/relogio-ponto";
 import { MeusPedidos } from "@/components/ponto/meus-pedidos";
 import { useMe } from "@/lib/store";
 import { AvisoLocalizacao, useLocalPonto } from "@/components/ponto/local-ponto";
@@ -150,6 +152,12 @@ function ResultadoCard({ r, onOk }: { r: RegistroResultado; onOk: () => void }) 
         <p className="text-sm text-slate-600">
           {r.nome} · {r.unidade}
         </p>
+        {r.nsr ? (
+          <p className="mt-1 text-xs text-slate-500">
+            Registro oficial NSR {String(r.nsr).padStart(9, "0")} · o comprovante fica em
+            “Comprovantes de ponto”
+          </p>
+        ) : null}
       </div>
       {!ok && (
         <div className="space-y-1 text-sm">
@@ -313,6 +321,7 @@ function MeuPonto() {
             {s.cadastro_facial ? "Rosto cadastrado" : "Sem cadastro facial"}
           </Badge>
         </div>
+        <RelogioPonto />
         <div className="rounded-xl bg-slate-50 p-3 text-sm">
           <p className="flex items-center gap-2 font-semibold">
             <Clock className="h-4 w-4" />
@@ -367,6 +376,8 @@ function MeuPonto() {
           ou Ipanema.
         </p>
       </Card>
+
+      <MeusComprovantes />
 
       <MeusPedidos />
 
@@ -531,6 +542,7 @@ function PontoRecepcao() {
         Aparelho da recepção: qualquer pessoa da equipe (fixa ou freelancer) escolhe o nome e
         confirma pelo rosto. Use quando a pessoa estiver sem o celular dela.
       </p>
+      <RelogioPonto />
       <AvisoLocalizacao local={local} onTentar={() => void irParaCamera()} />
       <div className="flex gap-2">
         {(["Botafogo", "Ipanema"] as PontoUnidade[]).map((u) => (
