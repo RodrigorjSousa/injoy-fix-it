@@ -631,6 +631,13 @@
       "when": 1793626614018,
       "tag": "0089_ponto_gestao_mensal_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1793626639990,
+      "tag": "0090_ponto_lembrete_agendamento_aplicar",
+      "breakpoints": true
     }
   ]
 }
