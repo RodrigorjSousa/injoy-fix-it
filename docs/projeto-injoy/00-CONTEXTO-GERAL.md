@@ -85,7 +85,7 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Bonificação: lançamento conjunto Recepção + Camareiras, aba **Acessos** (tabela
   `bonificacao_acessos`, RPC `minha_permissao_bonificacao`), botões Editar e Excluir, e notas
   Geral/Funcionário/Limpeza na tela inicial com janela só de visualização (0003–0005, 0026–0032).
-- Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa pela nota do próprio setor (0039): Recepção → nota Funcionário; Camareiras/Manutenção → nota Limpeza; Geral não conta. A pessoa perde
+- Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa quando a nota Geral E a nota do setor do mês ficam na nota mínima (regra do Rodrigo, 02/11/2026; antes, 0039, a Geral não contava): Recepção → Geral + Funcionário; Camareiras/Manutenção → Geral + Limpeza (`avaliarMetaSetores`). A pessoa perde
   as duas bonificações com mais de 3 atrasos (tolerância de 10 min contra a Escala) ou com falta
   sem justificativa.
   - Atrasos e faltas vêm do Pontomais (`registro_ponto_pontomais`) ou do ponto do app
@@ -272,3 +272,8 @@ das selfies antigas do ponto foi oferecida.
   Push `recado_gestor` (urgente) só para a lista. Quem recebe vê o recado no topo de QUALQUER tela
   (`RecadosGestorParaMim` em `_authenticated/route.tsx`) até tocar em "Ciente" (`recados_gestor_leituras`); o gestor vê
   "Ciente X de N" e quem falta na aba Enviados. Recados antigos (só setor) aparecem por 30 dias.
+- Bonificação › Pagamento (gestor; migração 0091 `bonus_elogios`): escolhe o mês (padrão: mês passado) e mostra por pessoa
+  Meta do setor (R$ por pessoa, notas da unidade da pessoa; "Ambas" usa as duas) + Elogios diretos (valor_elogio das Regras
+  × elogios marcados) = Total, com PDF/planilha. Quem passa do máximo de atrasos ou tem falta sem justificativa perde meta e
+  elogios do mês. O gestor marca quem foi elogiado em cada avaliação com elogio (ou lança elogio avulso). Botão "Conferir
+  atrasos do mês" roda `bonus_meta_apurar(_mes)`. Regras em `src/lib/bonificacao-pagamento.ts` (+ teste).

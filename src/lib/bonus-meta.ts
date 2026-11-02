@@ -11,10 +11,13 @@ const db = supabase as any;
 export type SituacaoMeta = "ok" | "risco" | "perdeu";
 export type SetorMeta = "recepcao" | "camareiras";
 
-/** Cada setor ganha pela sua nota individual: Recepção → Funcionário; Camareiras/Manutenção → Limpeza. */
+/**
+ * Cada setor ganha quando a nota GERAL e a nota do setor ficam na nota mínima ou acima:
+ * Recepção → Geral + Funcionário; Camareiras/Manutenção → Geral + Limpeza (regra do Rodrigo, 11/2026).
+ */
 export const SETOR_META: Record<SetorMeta, { rotulo: string; nota: string; chave: "funcionarios" | "limpeza" }> = {
-  recepcao: { rotulo: "Recepção", nota: "Funcionário", chave: "funcionarios" },
-  camareiras: { rotulo: "Camareiras / Manutenção", nota: "Limpeza", chave: "limpeza" },
+  recepcao: { rotulo: "Recepção", nota: "Geral + Funcionário", chave: "funcionarios" },
+  camareiras: { rotulo: "Camareiras / Manutenção", nota: "Geral + Limpeza", chave: "limpeza" },
 };
 
 export interface MetaConfig {
@@ -95,12 +98,13 @@ export function useMetaSituacao() {
   });
 }
 
-/** Meta por setor (a nota Geral não conta). */
+/** Meta por setor: a nota Geral E a nota do setor precisam ficar na nota mínima ou acima. */
 export function avaliarMetaSetores(
-  medias: { funcionarios: number | null; limpeza: number | null },
+  medias: { geral: number | null; funcionarios: number | null; limpeza: number | null },
   notaMinima: number,
-): Record<SetorMeta, { nota: number | null; atingida: boolean }> {
-  const avalia = (nota: number | null) => ({ nota, atingida: nota != null && nota >= notaMinima });
+): Record<SetorMeta, { nota: number | null; geral: number | null; atingida: boolean }> {
+  const ok = (n: number | null) => n != null && n >= notaMinima;
+  const avalia = (nota: number | null) => ({ nota, geral: medias.geral, atingida: ok(nota) && ok(medias.geral) });
   return { recepcao: avalia(medias.funcionarios), camareiras: avalia(medias.limpeza) };
 }
 

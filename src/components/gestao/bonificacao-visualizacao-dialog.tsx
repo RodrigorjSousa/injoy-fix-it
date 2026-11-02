@@ -14,6 +14,7 @@ import {
   calcularMediasBonificacao,
   formatBRL,
   nivelNota,
+  useConfigBonificacao,
   useRegistrosBonificacaoMes,
   type NivelNota,
   type RegistroBonificacao,
@@ -80,6 +81,7 @@ export function BonificacaoVisualizacaoDialog({
   const medias = calcularMediasBonificacao(registros);
   const totalRecepcao = registros.filter((r) => r.setor !== "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0);
   const { data: meta } = useMetaSituacao();
+  const { data: cfgBonif } = useConfigBonificacao();
   const cfgMeta = meta?.config;
   const setoresMeta = cfgMeta ? avaliarMetaSetores(medias, cfgMeta.nota_minima) : null;
   const totalCamareiras = registros.filter((r) => r.setor === "camareiras").reduce((s, r) => s + Number(r.valor_calculado), 0);
@@ -125,7 +127,7 @@ export function BonificacaoVisualizacaoDialog({
                 return (
                   <li key={s} className={cn("flex flex-wrap justify-between gap-2 rounded-md px-2 py-1", r.atingida ? "bg-emerald-100 text-emerald-900" : "bg-white")}>
                     <span>
-                      <strong>{SETOR_META[s].rotulo}</strong> · nota {SETOR_META[s].nota}: {r.nota == null ? "—" : r.nota.toFixed(1)}
+                      <strong>{SETOR_META[s].rotulo}</strong> · {SETOR_META[s].nota}: {r.geral == null ? "—" : r.geral.toFixed(1)} / {r.nota == null ? "—" : r.nota.toFixed(1)}
                     </span>
                     <strong>{r.atingida ? "Meta batida!" : `Falta chegar a ${cfgMeta.nota_minima.toFixed(1)}`}</strong>
                   </li>
@@ -141,10 +143,13 @@ export function BonificacaoVisualizacaoDialog({
           </h3>
           <ol className="list-decimal space-y-1 pl-5 text-sm">
             <li>
-              <strong>Meta individual:</strong> cada setor depende só da sua nota do mês, em{" "}
-              {(cfgMeta?.nota_minima ?? 9).toFixed(1)} ou mais. <strong>Recepção</strong> → nota Funcionário;{" "}
-              <strong>Camareiras e Manutenção</strong> → nota Limpeza. Quem bater ganha +{formatBRL(cfgMeta?.valor_por_pessoa ?? 100)}. A
-              nota Geral não conta.
+              <strong>Meta do setor:</strong> a nota Geral e a nota do setor no mês precisam ficar em{" "}
+              {(cfgMeta?.nota_minima ?? 9).toFixed(1)} ou mais. <strong>Recepção</strong> → Geral + Funcionário;{" "}
+              <strong>Camareiras e Manutenção</strong> → Geral + Limpeza. Quem bater ganha +{formatBRL(cfgMeta?.valor_por_pessoa ?? 100)} cada um.
+            </li>
+            <li>
+              <strong>Elogio direto:</strong> cada elogio com o nome da pessoa (ex.: "a Julia foi ótima no atendimento")
+              vale +{formatBRL(cfgBonif?.valor_elogio ?? 20)} para ela.
             </li>
             <li>
               <strong>Atrasos:</strong> no máximo {cfgMeta?.max_atrasos ?? 3} no mês. Conta como atraso chegar mais de{" "}
@@ -155,7 +160,7 @@ export function BonificacaoVisualizacaoDialog({
             </li>
           </ol>
           <p className="text-xs text-muted-foreground">
-            As regras 2 e 3 valem para as duas bonificações: a meta da equipe e a bonificação por avaliações. Quem
+            As regras 3 e 4 valem para tudo: a meta do setor, os elogios e a bonificação por avaliações. Quem
             passar de {cfgMeta?.max_atrasos ?? 3} atrasos ou tiver falta sem justificativa perde as duas naquele mês.
           </p>
           {meta && meta.pessoas.length > 0 && (
