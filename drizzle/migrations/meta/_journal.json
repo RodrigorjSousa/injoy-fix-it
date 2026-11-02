@@ -638,6 +638,13 @@
       "when": 1793626639990,
       "tag": "0090_ponto_lembrete_agendamento_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1793642969023,
+      "tag": "0091_bonus_elogios_aplicar",
+      "breakpoints": true
     }
   ]
 }
