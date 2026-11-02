@@ -617,6 +617,13 @@
       "when": 1793382291514,
       "tag": "0087_0087_recados_gestor_destinos",
       "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1793626492646,
+      "tag": "0088_ponto_banco_horas_atestados_aplicar",
+      "breakpoints": true
     }
   ]
 }

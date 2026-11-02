@@ -2435,6 +2435,138 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_atestados: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_path: string
+          colaborador_id: string
+          data_fim: string
+          data_inicio: string
+          dias_alterados: Json
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          observacao: string | null
+          resposta: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_path: string
+          colaborador_id: string
+          data_fim: string
+          data_inicio: string
+          dias_alterados?: Json
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          observacao?: string | null
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_path?: string
+          colaborador_id?: string
+          data_fim?: string
+          data_inicio?: string
+          dias_alterados?: Json
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          observacao?: string | null
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_atestados_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_banco_ajustes: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          minutos: number
+          motivo: string
+          tipo: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          minutos: number
+          motivo: string
+          tipo: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          minutos?: number
+          motivo?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_banco_ajustes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_banco_config: {
+        Row: {
+          colaborador_id: string
+          inicio: string
+          modo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          inicio: string
+          modo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          inicio?: string
+          modo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_banco_config_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ponto_batidas: {
         Row: {
           colaborador_id: string
@@ -5329,6 +5461,21 @@ export type Database = {
         }
         Returns: string
       }
+      ponto_banco_excluir_ajuste: { Args: { _id: string }; Returns: undefined }
+      ponto_banco_lancar_ajuste: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _minutos: number
+          _motivo: string
+          _tipo: string
+        }
+        Returns: string
+      }
+      ponto_banco_salvar_config: {
+        Args: { _colaborador_id: string; _inicio: string; _modo: string }
+        Returns: undefined
+      }
       ponto_cadastrar_biometria: {
         Args: {
           _colaborador_id: string
@@ -5338,6 +5485,20 @@ export type Database = {
           _device_id: string
         }
         Returns: undefined
+      }
+      ponto_cancelar_atestado: {
+        Args: { _id: string; _motivo: string }
+        Returns: Json
+      }
+      ponto_enviar_atestado: {
+        Args: {
+          _arquivo_nome: string
+          _arquivo_path: string
+          _data_fim: string
+          _data_inicio: string
+          _observacao: string
+        }
+        Returns: string
       }
       ponto_freelancers_quiosque: {
         Args: { _unidade: string }
@@ -5390,6 +5551,10 @@ export type Database = {
       ponto_revisar: {
         Args: { _aprovar: boolean; _batida_id: string; _observacao?: string }
         Returns: undefined
+      }
+      ponto_revisar_atestado: {
+        Args: { _aprovar: boolean; _id: string; _resposta?: string }
+        Returns: Json
       }
       ponto_verificar_local: {
         Args: { _latitude: number; _longitude: number; _precisao_m: number }
