@@ -275,6 +275,50 @@ export type Database = {
         }
         Relationships: []
       }
+      bonus_elogios: {
+        Row: {
+          avaliacao_ref: string | null
+          comentario: string | null
+          created_at: string
+          created_by: string
+          data: string
+          funcionario_id: string
+          id: string
+          nome_hospede: string | null
+          unidade: string
+        }
+        Insert: {
+          avaliacao_ref?: string | null
+          comentario?: string | null
+          created_at?: string
+          created_by?: string
+          data: string
+          funcionario_id: string
+          id?: string
+          nome_hospede?: string | null
+          unidade: string
+        }
+        Update: {
+          avaliacao_ref?: string | null
+          comentario?: string | null
+          created_at?: string
+          created_by?: string
+          data?: string
+          funcionario_id?: string
+          id?: string
+          nome_hospede?: string | null
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bonus_elogios_funcionario_id_fkey"
+            columns: ["funcionario_id"]
+            isOneToOne: false
+            referencedRelation: "funcionarios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bonus_meta_config: {
         Row: {
           ativo: boolean
