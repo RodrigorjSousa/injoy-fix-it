@@ -645,6 +645,13 @@
       "when": 1793642969023,
       "tag": "0091_bonus_elogios_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1793648000784,
+      "tag": "0092_ponto_rep_base_aplicar",
+      "breakpoints": true
     }
   ]
 }
