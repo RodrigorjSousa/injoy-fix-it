@@ -2435,6 +2435,138 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_atestados: {
+        Row: {
+          arquivo_nome: string | null
+          arquivo_path: string
+          colaborador_id: string
+          data_fim: string
+          data_inicio: string
+          dias_alterados: Json
+          enviado_em: string
+          enviado_por: string | null
+          id: string
+          observacao: string | null
+          resposta: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+        }
+        Insert: {
+          arquivo_nome?: string | null
+          arquivo_path: string
+          colaborador_id: string
+          data_fim: string
+          data_inicio: string
+          dias_alterados?: Json
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          observacao?: string | null
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+        }
+        Update: {
+          arquivo_nome?: string | null
+          arquivo_path?: string
+          colaborador_id?: string
+          data_fim?: string
+          data_inicio?: string
+          dias_alterados?: Json
+          enviado_em?: string
+          enviado_por?: string | null
+          id?: string
+          observacao?: string | null
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_atestados_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_banco_ajustes: {
+        Row: {
+          colaborador_id: string
+          created_at: string
+          criado_por: string | null
+          data: string
+          id: string
+          minutos: number
+          motivo: string
+          tipo: string
+        }
+        Insert: {
+          colaborador_id: string
+          created_at?: string
+          criado_por?: string | null
+          data: string
+          id?: string
+          minutos: number
+          motivo: string
+          tipo: string
+        }
+        Update: {
+          colaborador_id?: string
+          created_at?: string
+          criado_por?: string | null
+          data?: string
+          id?: string
+          minutos?: number
+          motivo?: string
+          tipo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_banco_ajustes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_banco_config: {
+        Row: {
+          colaborador_id: string
+          inicio: string
+          modo: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          inicio: string
+          modo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          inicio?: string
+          modo?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_banco_config_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ponto_batidas: {
         Row: {
           colaborador_id: string
@@ -2600,6 +2732,187 @@ export type Database = {
           updated_by?: string | null
         }
         Relationships: []
+      }
+      ponto_espelho_ciencia: {
+        Row: {
+          ciente_em: string
+          colaborador_id: string
+          comentario: string | null
+          competencia: string
+          totais: Json
+          user_id: string | null
+        }
+        Insert: {
+          ciente_em?: string
+          colaborador_id: string
+          comentario?: string | null
+          competencia: string
+          totais?: Json
+          user_id?: string | null
+        }
+        Update: {
+          ciente_em?: string
+          colaborador_id?: string
+          comentario?: string | null
+          competencia?: string
+          totais?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_espelho_ciencia_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_fechamentos: {
+        Row: {
+          competencia: string
+          fechado_em: string
+          fechado_por: string | null
+          resumo: Json
+        }
+        Insert: {
+          competencia: string
+          fechado_em?: string
+          fechado_por?: string | null
+          resumo?: Json
+        }
+        Update: {
+          competencia?: string
+          fechado_em?: string
+          fechado_por?: string | null
+          resumo?: Json
+        }
+        Relationships: []
+      }
+      ponto_fechamentos_log: {
+        Row: {
+          acao: string
+          competencia: string
+          feito_em: string
+          feito_por: string | null
+          id: string
+          motivo: string | null
+        }
+        Insert: {
+          acao: string
+          competencia: string
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          motivo?: string | null
+        }
+        Update: {
+          acao?: string
+          competencia?: string
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          motivo?: string | null
+        }
+        Relationships: []
+      }
+      ponto_lembretes: {
+        Row: {
+          entrada_id: string
+          enviado_em: string
+        }
+        Insert: {
+          entrada_id: string
+          enviado_em?: string
+        }
+        Update: {
+          entrada_id?: string
+          enviado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_lembretes_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "ponto_batidas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_solicitacoes: {
+        Row: {
+          abonado: boolean
+          batida_id: string | null
+          colaborador_id: string
+          data: string
+          enviado_em: string
+          enviado_por: string | null
+          horario: string | null
+          id: string
+          motivo: string
+          pede_abono: boolean
+          resposta: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          tipo: string
+          tipo_batida: string | null
+          unidade: string | null
+        }
+        Insert: {
+          abonado?: boolean
+          batida_id?: string | null
+          colaborador_id: string
+          data: string
+          enviado_em?: string
+          enviado_por?: string | null
+          horario?: string | null
+          id?: string
+          motivo: string
+          pede_abono?: boolean
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          tipo: string
+          tipo_batida?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          abonado?: boolean
+          batida_id?: string | null
+          colaborador_id?: string
+          data?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          horario?: string | null
+          id?: string
+          motivo?: string
+          pede_abono?: boolean
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          tipo?: string
+          tipo_batida?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_solicitacoes_batida_id_fkey"
+            columns: ["batida_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_batidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ponto_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       preventive_logs: {
         Row: {
@@ -5329,6 +5642,21 @@ export type Database = {
         }
         Returns: string
       }
+      ponto_banco_excluir_ajuste: { Args: { _id: string }; Returns: undefined }
+      ponto_banco_lancar_ajuste: {
+        Args: {
+          _colaborador_id: string
+          _data: string
+          _minutos: number
+          _motivo: string
+          _tipo: string
+        }
+        Returns: string
+      }
+      ponto_banco_salvar_config: {
+        Args: { _colaborador_id: string; _inicio: string; _modo: string }
+        Returns: undefined
+      }
       ponto_cadastrar_biometria: {
         Args: {
           _colaborador_id: string
@@ -5337,6 +5665,28 @@ export type Database = {
           _descritores: Json
           _device_id: string
         }
+        Returns: undefined
+      }
+      ponto_cancelar_atestado: {
+        Args: { _id: string; _motivo: string }
+        Returns: Json
+      }
+      ponto_dar_ciencia: {
+        Args: { _comentario?: string; _competencia: string; _totais: Json }
+        Returns: undefined
+      }
+      ponto_enviar_atestado: {
+        Args: {
+          _arquivo_nome: string
+          _arquivo_path: string
+          _data_fim: string
+          _data_inicio: string
+          _observacao: string
+        }
+        Returns: string
+      }
+      ponto_fechar_mes: {
+        Args: { _competencia: string; _resumo: Json }
         Returns: undefined
       }
       ponto_freelancers_quiosque: {
@@ -5358,6 +5708,10 @@ export type Database = {
         }
         Returns: string
       }
+      ponto_meu_espelho: {
+        Args: { _fim: string; _inicio: string }
+        Returns: Json
+      }
       ponto_meu_status: { Args: never; Returns: Json }
       ponto_quiosque_lista: {
         Args: { _unidade: string }
@@ -5371,6 +5725,10 @@ export type Database = {
           ultimo_tipo: string
           vinculo: string
         }[]
+      }
+      ponto_reabrir_mes: {
+        Args: { _competencia: string; _motivo: string }
+        Returns: undefined
       }
       ponto_registrar: {
         Args: {
@@ -5390,6 +5748,32 @@ export type Database = {
       ponto_revisar: {
         Args: { _aprovar: boolean; _batida_id: string; _observacao?: string }
         Returns: undefined
+      }
+      ponto_revisar_atestado: {
+        Args: { _aprovar: boolean; _id: string; _resposta?: string }
+        Returns: Json
+      }
+      ponto_revisar_solicitacao: {
+        Args: {
+          _abonar?: boolean
+          _aprovar: boolean
+          _horario?: string
+          _id: string
+          _resposta?: string
+          _unidade?: string
+        }
+        Returns: Json
+      }
+      ponto_solicitar: {
+        Args: {
+          _data: string
+          _hora: string
+          _motivo: string
+          _pede_abono?: boolean
+          _tipo: string
+          _tipo_batida: string
+        }
+        Returns: string
       }
       ponto_verificar_local: {
         Args: { _latitude: number; _longitude: number; _precisao_m: number }
