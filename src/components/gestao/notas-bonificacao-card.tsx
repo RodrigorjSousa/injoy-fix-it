@@ -73,8 +73,10 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
   const { data: meta } = useMetaSituacao();
   const eu = meta?.pessoas.find((p) => p.sou_eu);
   // Só a nota individual conta: a do próprio setor para quem participa; para os demais, a pior das duas.
+  const notaSetor = (n: number | null) =>
+    n == null || medias.geral == null ? (n ?? medias.geral) : Math.min(n, medias.geral);
   const notaIndividual = eu
-    ? medias[SETOR_META[eu.setor].chave]
+    ? notaSetor(medias[SETOR_META[eu.setor].chave])
     : medias.funcionarios == null || medias.limpeza == null
       ? (medias.funcionarios ?? medias.limpeza)
       : Math.min(medias.funcionarios, medias.limpeza);
@@ -100,7 +102,7 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
       </div>
       <div className="relative z-10 space-y-4">
         <div className="grid grid-cols-3 gap-2">
-          <CaixaNota titulo="Geral (ref.)" nota={medias.geral} />
+          <CaixaNota titulo="Geral" nota={medias.geral} />
           <CaixaNota titulo="Funcionário" nota={medias.funcionarios} />
           <CaixaNota titulo="Limpeza" nota={medias.limpeza} />
         </div>
@@ -120,7 +122,7 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
             <div className="mt-2 space-y-1.5 rounded-lg border border-white/15 bg-white/5 px-2.5 py-2 text-xs text-white/85">
               <div className="flex items-center gap-1.5 font-bold">
                 <Target className="h-4 w-4 shrink-0" />
-                Meta individual: nota do seu setor em {cfgMeta.nota_minima.toFixed(1)} ou mais = +{formatBRL(cfgMeta.valor_por_pessoa)} para cada um
+                Meta: Geral e a nota do seu setor em {cfgMeta.nota_minima.toFixed(1)} ou mais = +{formatBRL(cfgMeta.valor_por_pessoa)} para cada um
               </div>
               {(Object.keys(SETOR_META) as SetorMeta[]).map((s) => {
                 const r = setores[s];
@@ -136,8 +138,8 @@ export function NotasBonificacaoCard({ unidade }: { unidade: Unidade }) {
                   >
                     <span>
                       {meu ? "Você · " : ""}
-                      <strong>{SETOR_META[s].rotulo}</strong> · nota {SETOR_META[s].nota}{" "}
-                      {r.nota == null ? "—" : r.nota.toFixed(1)}
+                      <strong>{SETOR_META[s].rotulo}</strong> · {SETOR_META[s].nota}{" "}
+                      {r.geral == null ? "—" : r.geral.toFixed(1)} / {r.nota == null ? "—" : r.nota.toFixed(1)}
                     </span>
                     <span className="font-semibold">{r.atingida ? "Meta batida 🎉" : `Falta chegar a ${cfgMeta.nota_minima.toFixed(1)}`}</span>
                   </div>
