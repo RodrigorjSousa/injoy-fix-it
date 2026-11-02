@@ -93,6 +93,10 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   - O gestor justifica em Bonificação › Meta equipe.
   - Atualização automática 3x/dia: cron chama `private.run_bonus_meta_sync`, que chama
     `/api/public/bonus-meta`.
+    Até o dia 10 do mês ela busca de novo o Pontomais do MÊS ANTERIOR e recalcula (ajustes de fechamento feitos na
+    virada do mês). Em Bonificação › Pagamento, "Buscar Pontomais e recalcular" faz isso para o mês escolhido, e os
+    números de atrasos/faltas abrem a lista para justificar (`atualizarMetaEquipe(mes)` em `pontomais-sync.server.ts`).
+    Abono lançado no Pontomais (sem batida) não chega pela API de batidas: justificar no app.
   - Participantes: Raquel, Julia, Mayara, Gleidiane, Lucivaldo e Flavio.
 - Totem (0041, 0042, 0059, 0060): check-in com senha Tuya, check-out, avaliação, pagamento na
   maquininha Stone (Connect 2.0), identificação estilo gov.br (selfie com prova de vida + selfie com

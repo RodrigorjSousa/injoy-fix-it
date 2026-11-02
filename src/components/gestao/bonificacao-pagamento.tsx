@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
+import { atualizarMetaEquipeAgora } from "@/lib/pontomais.functions";
 import {
   CheckCircle2,
   Download,
@@ -33,6 +35,7 @@ import {
   SETOR_META,
   useFuncionariosLista,
   type MetaConfig,
+  type MetaOcorrencia,
   type MetaPessoa,
 } from "@/lib/bonus-meta";
 import { limitesDoMes, mesAnterior, resumirPagamento } from "@/lib/bonificacao-pagamento";
@@ -68,11 +71,19 @@ export function BonificacaoPagamento() {
   const q = useQuery({
     queryKey: ["bonificacao_pagamento", mes],
     queryFn: async () => {
-      const [sit, regs, elog] = await Promise.all([
+      const [sit, regs, elog, oc] = await Promise.all([
         db.rpc("bonus_meta_situacao", { _mes: inicio }),
+        // (ocorrências do mês, para justificar daqui mesmo depois da virada do mês)
         supabase.from("registros_bonificacao").select("*").gte("data", inicio).lte("data", fim),
         db.from("bonus_elogios").select("*").gte("data", inicio).lte("data", fim).order("data"),
+        db
+          .from("bonus_meta_ocorrencias")
+          .select("*")
+          .gte("data", inicio)
+          .lte("data", fim)
+          .order("data"),
       ]);
+      if (oc.error) throw new Error(oc.error.message);
       if (sit.error) throw new Error(sit.error.message);
       if (regs.error) throw new Error(regs.error.message);
       const semTabela = !!elog.error && /bonus_elogios/.test(String(elog.error.message));
@@ -96,6 +107,7 @@ export function BonificacaoPagamento() {
         })),
         registros: (regs.data ?? []) as RegistroBonificacao[],
         elogios: (elog.data ?? []) as Elogio[],
+        ocorrencias: (oc.data ?? []) as MetaOcorrencia[],
         semTabela,
       };
     },
@@ -133,15 +145,25 @@ export function BonificacaoPagamento() {
   }, [q.data, funcionarios]);
 
   const [recalculando, setRecalculando] = useState(false);
+  const [aberto, setAberto] = useState<string | null>(null);
+  const atualizarMes = useServerFn(atualizarMetaEquipeAgora);
+  // Busca de novo o Pontomais do mês escolhido (pega os ajustes feitos lá) e recalcula.
   const recalcular = async () => {
     setRecalculando(true);
     try {
-      const { data, error } = await db.rpc("bonus_meta_apurar", { _mes: inicio });
-      if (error) throw new Error(error.message);
-      toast.success(
-        `Atrasos e faltas de ${mesBR(mes)} conferidos de novo (${data ?? 0} ocorrência(s)).`,
-      );
+      const r = await atualizarMes({ data: { mes } });
+      const falhas = r.pontomais.filter((p) => p.error);
+      if (r.pontomaisErro)
+        toast.warning(
+          `Pontomais não respondeu: ${r.pontomaisErro}. Recalculado só com o ponto do app.`,
+        );
+      else if (falhas.length)
+        toast.warning(`Pontomais sem dados para: ${falhas.map((f) => f.nome).join(", ")}.`, {
+          duration: 10000,
+        });
+      toast.success(`Pontomais de ${mesBR(mes)} buscado de novo e atrasos/faltas recalculados.`);
       void recarregar();
+      void qc.invalidateQueries({ queryKey: ["bonus_meta_situacao"] });
     } catch (e) {
       erro(e);
     } finally {
@@ -280,7 +302,7 @@ export function BonificacaoPagamento() {
           ) : (
             <RefreshCw className="mr-1 h-4 w-4" />
           )}
-          Conferir atrasos do mês
+          Buscar Pontomais e recalcular
         </Button>
         <div className="ml-auto flex gap-2">
           <Button variant="outline" size="sm" onClick={csv} disabled={!resumo}>
@@ -391,7 +413,31 @@ export function BonificacaoPagamento() {
                       )}
                     </td>
                     <td className={cn("p-2 text-center", l.perdeu && "font-bold text-rose-700")}>
-                      {l.participante ? `${l.atrasos} / ${l.faltas}` : "—"}
+                      {l.participante ? (
+                        <button
+                          type="button"
+                          className="underline-offset-2 hover:underline"
+                          title="Ver e justificar atrasos e faltas"
+                          onClick={() =>
+                            setAberto(aberto === l.funcionarioId ? null : l.funcionarioId)
+                          }
+                        >
+                          {l.atrasos} / {l.faltas}
+                        </button>
+                      ) : (
+                        "—"
+                      )}
+                      {aberto === l.funcionarioId && (
+                        <OcorrenciasPessoa
+                          lista={q.data.ocorrencias.filter(
+                            (o) => o.funcionario_id === l.funcionarioId,
+                          )}
+                          onMudou={() => {
+                            void recarregar();
+                            void qc.invalidateQueries({ queryKey: ["bonus_meta_situacao"] });
+                          }}
+                        />
+                      )}
                     </td>
                     <td className="p-2 text-right">{formatBRL(l.valorMeta)}</td>
                     <td className="p-2 text-right">
@@ -416,9 +462,9 @@ export function BonificacaoPagamento() {
             </table>
           </div>
           <p className="text-xs text-muted-foreground">
-            Atrasos e faltas contam só os sem justificativa (justifique em Meta equipe). Quem passa
-            de {q.data.cfg.max_atrasos} atrasos ou tem falta sem justificativa perde a meta e os
-            elogios do mês.
+            Atrasos e faltas contam só os sem justificativa (toque nos números para ver e
+            justificar). Quem passa de {q.data.cfg.max_atrasos} atrasos ou tem falta sem
+            justificativa perde a meta e os elogios do mês.
           </p>
 
           {!q.data.semTabela && (
@@ -614,5 +660,59 @@ function ElogioAvulso({
         </Button>
       </div>
     </div>
+  );
+}
+
+/** Atrasos e faltas da pessoa no mês, com Justificar / Tirar justificativa. */
+function OcorrenciasPessoa({ lista, onMudou }: { lista: MetaOcorrencia[]; onMudou: () => void }) {
+  const [salvando, setSalvando] = useState<string | null>(null);
+  const justificar = async (o: MetaOcorrencia, justificada: boolean) => {
+    const motivo = justificada
+      ? window.prompt(
+          "Motivo da justificativa (ex.: ajustado no Pontomais, atestado):",
+          o.motivo ?? "",
+        )
+      : "";
+    if (justificada && motivo === null) return;
+    setSalvando(o.id);
+    const { error } = await db.rpc("bonus_meta_justificar", {
+      _ocorrencia_id: o.id,
+      _justificada: justificada,
+      _motivo: motivo ?? "",
+    });
+    setSalvando(null);
+    if (error) return erro(new Error(error.message));
+    onMudou();
+  };
+  if (!lista.length)
+    return <p className="mt-1 text-[11px] text-muted-foreground">Nenhum atraso ou falta.</p>;
+  return (
+    <ul className="mt-1.5 space-y-1 text-left text-[11px]">
+      {lista.map((o) => (
+        <li
+          key={o.id}
+          className={cn(
+            "flex items-center gap-2 rounded px-1.5 py-1",
+            o.justificada ? "bg-emerald-50 text-emerald-800" : "bg-white",
+          )}
+        >
+          <span className="flex-1">
+            {dataBR(o.data)} · {o.tipo === "falta" ? "Falta" : `Atraso ${o.minutos ?? "?"} min`}
+            {o.hora_prevista
+              ? ` (escala ${o.hora_prevista.slice(0, 5)}, entrada ${o.hora_entrada?.slice(0, 5) ?? "—"})`
+              : ""}
+            {o.justificada && o.motivo ? ` · ${o.motivo}` : ""}
+          </span>
+          <button
+            type="button"
+            disabled={salvando === o.id}
+            onClick={() => justificar(o, !o.justificada)}
+            className="shrink-0 font-semibold text-primary disabled:opacity-50"
+          >
+            {o.justificada ? "Tirar justificativa" : "Justificar"}
+          </button>
+        </li>
+      ))}
+    </ul>
   );
 }

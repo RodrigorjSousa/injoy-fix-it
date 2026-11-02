@@ -11,7 +11,10 @@ const syncSchema = z.object({
 
 async function exigirGestor(supabase: any, userId: string) {
   // RLS em user_roles limita ao próprio auth.uid()
-  const { data: roles, error } = await supabase.from("user_roles").select("role").eq("user_id", userId);
+  const { data: roles, error } = await supabase
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userId);
   if (error) throw new Error(error.message);
   const ok = (roles ?? []).some((r: { role: string }) => r.role === "gestor" || r.role === "admin");
   if (!ok) throw new Error("Apenas gestores podem sincronizar o ponto");
@@ -29,7 +32,17 @@ export const syncPontomais = createServerFn({ method: "POST" })
 /** Gestor: busca o Pontomais do mês e recalcula atrasos/faltas da Meta da equipe. */
 export const atualizarMetaEquipeAgora = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .handler(async ({ context }) => {
+  .inputValidator((input: { mes?: string } | undefined) =>
+    z
+      .object({
+        mes: z
+          .string()
+          .regex(/^\d{4}-\d{2}$/)
+          .optional(),
+      })
+      .parse(input ?? {}),
+  )
+  .handler(async ({ data, context }) => {
     await exigirGestor(context.supabase, context.userId);
-    return atualizarMetaEquipe();
+    return atualizarMetaEquipe(data.mes);
   });

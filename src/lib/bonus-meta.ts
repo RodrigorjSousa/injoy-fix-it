@@ -215,7 +215,7 @@ export function usePrepararMeta() {
 export function useAtualizarMetaAgora() {
   const call = useServerFn(atualizarMetaEquipeAgora);
   const invalidar = useInvalidarMeta();
-  return useMutation({ mutationFn: () => call(), onSuccess: invalidar });
+  return useMutation({ mutationFn: () => call({ data: {} }), onSuccess: invalidar });
 }
 
 export const SITUACAO_INFO: Record<SituacaoMeta, { rotulo: string; classe: string }> = {

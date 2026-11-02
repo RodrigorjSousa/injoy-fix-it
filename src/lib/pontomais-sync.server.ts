@@ -110,16 +110,41 @@ export async function syncPontomaisCore(params: {
   return results;
 }
 
-/** Busca o Pontomais do mês atual para os participantes da meta e recalcula atrasos/faltas. */
-export async function atualizarMetaEquipe(): Promise<{
+/** Dias do mês novo em que o mês anterior continua sendo conferido (ajustes de fechamento no Pontomais). */
+export const DIAS_FECHAMENTO_MES_ANTERIOR = 10;
+
+/** Meses a conferir: o pedido ou, sem pedido, o atual + o anterior nos primeiros dias do mês. */
+export function mesesParaConferir(hoje: string, mes?: string): string[] {
+  if (mes) return [mes.slice(0, 7)];
+  const atual = hoje.slice(0, 7);
+  if (Number(hoje.slice(8, 10)) > DIAS_FECHAMENTO_MES_ANTERIOR) return [atual];
+  const [y, m] = atual.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 2, 1));
+  return [`${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`, atual];
+}
+
+/** Último dia a buscar no mês: o fim do mês ou hoje, o que vier antes. */
+export function fimDoMesAte(mes: string, hoje: string): string {
+  const [y, m] = mes.split("-").map(Number);
+  const fim = `${mes}-${String(new Date(Date.UTC(y, m, 0)).getUTCDate()).padStart(2, "0")}`;
+  return fim < hoje ? fim : hoje;
+}
+
+/**
+ * Busca o Pontomais dos participantes da meta e recalcula atrasos/faltas.
+ * Sem `mes`: mês atual e, até o dia 10, também o mês anterior — os ajustes feitos no Pontomais
+ * na virada do mês (batida esquecida, horário corrigido) passam a valer para o fechamento.
+ */
+export async function atualizarMetaEquipe(mes?: string): Promise<{
   pontomais: PontomaisSyncResult[];
   ocorrencias: number;
   pontomaisErro?: string;
+  meses: string[];
 }> {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { todaySP } = await import("./tz");
   const hoje = todaySP();
-  const inicio = `${hoje.slice(0, 7)}-01`;
+  const meses = mesesParaConferir(hoje, mes).filter((m) => `${m}-01` <= hoje);
 
   const { data: participantes, error } = await (supabaseAdmin as any)
     .from("bonus_meta_participantes")
@@ -130,16 +155,27 @@ export async function atualizarMetaEquipe(): Promise<{
 
   let pontomais: PontomaisSyncResult[] = [];
   let pontomaisErro: string | undefined;
-  if (ids.length) {
-    try {
-      pontomais = await syncPontomaisCore({ funcionarioIds: ids, startDate: inicio, endDate: hoje, somenteVinculados: true });
-    } catch (e) {
-      // Sem Pontomais (token ausente/fora do ar) ainda recalculamos com o ponto do app.
-      pontomaisErro = e instanceof Error ? e.message : String(e);
+  let ocorrencias = 0;
+  for (const m of meses) {
+    const inicio = `${m}-01`;
+    if (ids.length) {
+      try {
+        pontomais = await syncPontomaisCore({
+          funcionarioIds: ids,
+          startDate: inicio,
+          endDate: fimDoMesAte(m, hoje),
+          somenteVinculados: true,
+        });
+      } catch (e) {
+        // Sem Pontomais (token ausente/fora do ar) ainda recalculamos com o ponto do app.
+        pontomaisErro = e instanceof Error ? e.message : String(e);
+      }
     }
+    const { data: qtd, error: apErr } = await (supabaseAdmin as any).rpc("bonus_meta_apurar", {
+      _mes: inicio,
+    });
+    if (apErr) throw new Error(apErr.message);
+    ocorrencias = Number(qtd ?? 0);
   }
-
-  const { data: qtd, error: apErr } = await (supabaseAdmin as any).rpc("bonus_meta_apurar", { _mes: inicio });
-  if (apErr) throw new Error(apErr.message);
-  return { pontomais, ocorrencias: Number(qtd ?? 0), pontomaisErro };
+  return { pontomais, ocorrencias, pontomaisErro, meses };
 }
