@@ -36,6 +36,33 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Ajustes manuais no banco: saldo inicial, folga compensada, pagamento do saldo, correção — sempre
   com motivo.
 
+### Registro oficial REP-P — 1ª etapa (02/11/2026, migração 0092)
+Decisões do Rodrigo: seguir para a base legal; Botafogo e Ipanema têm o **mesmo CNPJ** (uma
+sequência de NSR); a pousada tem **e-CNPJ A1**.
+- **Aba Fiscalização** (gestor): dados do empregador (`ponto_empregador`: CNPJ, razão social,
+  CNO/CAEPF, nº INPI, CNPJ do desenvolvedor), checklist legal, botão **Ativar registro oficial**
+  (`ponto_rep_ativar`, sem volta) e **Baixar AFD** por período com conferência de integridade.
+- **ARP** `ponto_rep_registros`: tipos 2 (empregador, um por local), 5 (empregado I/A/E, por
+  gatilho em `escala_colaboradores`) e 7 (marcação, por gatilho nas batidas `app`/`quiosque`
+  depois da ativação). NSR único via `ponto_rep_nsr` (linha travada até o fim da transação).
+  Hash do tipo 7 = SHA-256 hex minúsculo de NSR(9)+"7"+DH marcação+CPF(12)+DH gravação+coletor
+  ("02" navegador)+"0"+hash do tipo 7 anterior; DH = `AAAA-MM-ddThh:mm:00-0300`. Gatilhos recusam
+  UPDATE/DELETE/TRUNCATE. Lançamento manual, pedido aprovado e revisão são tratamento, não marcação.
+- **Modo oficial** (após ativar): `ponto_registrar` não bloqueia; fora do raio/sem GPS
+  (`fora_da_unidade`, `sem_localizacao`, `localizacao_imprecisa`), `batida_repetida`,
+  `ordem_inconsistente` e `nao_habilitado` viram pendência. Antes de ativar, igual à 0080.
+- **CPF**: `escala_colaboradores.cpf` (validado no banco), campo na aba Pessoas; a ativação copia
+  de `funcionarios.cpf`. Sem CPF, a marcação sai com CPF zerado (aviso no checklist).
+- **Funcionário**: relógio com segundos pela hora do servidor (`ponto_hora_servidor`) e
+  **Comprovantes de ponto** dos últimos 7 dias (`ponto_meus_comprovantes`), com impressão/PDF.
+- **AFD** (`src/lib/ponto-afd.ts`): leiaute 004, ISO-8859-1, CR LF, CRC-16/KERMIT nos tipos 1–5,
+  trailer e linha `ASSINATURA_DIGITAL_EM_ARQUIVO_P7S`; `conferirRegistros` recalcula a cadeia.
+  Nome: `AFD` + INPI(17) + CNPJ + `REP_P.txt`.
+- Recusar batida pendente agora exige motivo.
+- **Falta (próximas etapas)**: assinatura com o e-CNPJ A1 (AFD .p7s CAdES e comprovante PDF
+  PAdES), AEJ e espelho legal (PTRP), novo termo de consentimento, registro no INPI e Atestado
+  Técnico (estes dois com contador/advogado), eventos sensíveis tipo 6, modo offline.
+
 ### Gestão mensal (30/10/2026, migrações 0088 e 0089)
 - **Pedidos do funcionário** (Bater Ponto › Pedidos ao gestor): "Esqueci de bater" (dia, batida,
   horário, motivo) e "Justificar atraso ou falta" (pode pedir abono). Até 31 dias atrás. O gestor
@@ -116,9 +143,8 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 ## Ideias e pendências
 - Ponto oficial (substituir o Pontomais): levantamento feito em 07/10/2026 (REP-P, Portaria 671).
   Rodrigo ainda decide; faltam as respostas sobre CNPJ das unidades, nº de CLT, e-CNPJ e 12x36.
-- Gestão mensal (pedidos, espelho com ciência, noturno, alertas, fechamento, lembrete): branch
-  `feat/ponto-gestao-mensal` (0088 + 0089), aguardando merge, migrações e publicação.
-- Ainda não feito: modo offline; base legal do REP-P (só se o app virar o ponto oficial).
+- Gestão mensal entregue (0088 + 0089 aplicadas).
+- REP-P 1ª etapa: branch `feat/ponto-rep-base` (0092), aguardando merge, migração e publicação.
 - Limpeza automática das selfies antigas (oferecida, não feita).
 - Ponto oficial (REP-P): se virar oficial, a Portaria 671 proíbe restringir a marcação; o bloqueio
   por localização teria de voltar a ser pendência.
