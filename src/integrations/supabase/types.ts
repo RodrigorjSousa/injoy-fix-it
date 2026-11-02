@@ -849,6 +849,7 @@ export type Database = {
         Row: {
           ativo: boolean
           cor: string | null
+          cpf: string | null
           created_at: string
           funcionario_id: string | null
           hora_entrada: string | null
@@ -868,6 +869,7 @@ export type Database = {
         Insert: {
           ativo?: boolean
           cor?: string | null
+          cpf?: string | null
           created_at?: string
           funcionario_id?: string | null
           hora_entrada?: string | null
@@ -887,6 +889,7 @@ export type Database = {
         Update: {
           ativo?: boolean
           cor?: string | null
+          cpf?: string | null
           created_at?: string
           funcionario_id?: string | null
           hora_entrada?: string | null
@@ -2777,6 +2780,45 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_empregador: {
+        Row: {
+          cno_caepf: string | null
+          desenvolvedor_documento: string | null
+          documento: string
+          id: number
+          inpi_registro: string | null
+          oficial_desde: string | null
+          razao_social: string
+          tipo_doc: number
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          cno_caepf?: string | null
+          desenvolvedor_documento?: string | null
+          documento: string
+          id?: number
+          inpi_registro?: string | null
+          oficial_desde?: string | null
+          razao_social: string
+          tipo_doc?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          cno_caepf?: string | null
+          desenvolvedor_documento?: string | null
+          documento?: string
+          id?: number
+          inpi_registro?: string | null
+          oficial_desde?: string | null
+          razao_social?: string
+          tipo_doc?: number
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       ponto_espelho_ciencia: {
         Row: {
           ciente_em: string
@@ -2882,6 +2924,93 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      ponto_rep_nsr: {
+        Row: {
+          estabelecimento: number
+          ultimo: number
+        }
+        Insert: {
+          estabelecimento: number
+          ultimo?: number
+        }
+        Update: {
+          estabelecimento?: number
+          ultimo?: number
+        }
+        Relationships: []
+      }
+      ponto_rep_registros: {
+        Row: {
+          batida_id: string | null
+          cno_caepf: string | null
+          colaborador_id: string | null
+          coletor: string | null
+          cpf: string | null
+          documento: string | null
+          evento_codigo: string | null
+          gravado_em: string
+          hash: string | null
+          local_prestacao: string | null
+          marcacao_em: string | null
+          nome: string | null
+          nsr: number
+          offline: boolean | null
+          operacao: string | null
+          outros_dados: string | null
+          razao_social: string | null
+          responsavel_cpf: string | null
+          tipo: number
+          tipo_doc: number | null
+          unidade: string | null
+        }
+        Insert: {
+          batida_id?: string | null
+          cno_caepf?: string | null
+          colaborador_id?: string | null
+          coletor?: string | null
+          cpf?: string | null
+          documento?: string | null
+          evento_codigo?: string | null
+          gravado_em?: string
+          hash?: string | null
+          local_prestacao?: string | null
+          marcacao_em?: string | null
+          nome?: string | null
+          nsr: number
+          offline?: boolean | null
+          operacao?: string | null
+          outros_dados?: string | null
+          razao_social?: string | null
+          responsavel_cpf?: string | null
+          tipo: number
+          tipo_doc?: number | null
+          unidade?: string | null
+        }
+        Update: {
+          batida_id?: string | null
+          cno_caepf?: string | null
+          colaborador_id?: string | null
+          coletor?: string | null
+          cpf?: string | null
+          documento?: string | null
+          evento_codigo?: string | null
+          gravado_em?: string
+          hash?: string | null
+          local_prestacao?: string | null
+          marcacao_em?: string | null
+          nome?: string | null
+          nsr?: number
+          offline?: boolean | null
+          operacao?: string | null
+          outros_dados?: string | null
+          razao_social?: string | null
+          responsavel_cpf?: string | null
+          tipo?: number
+          tipo_doc?: number | null
+          unidade?: string | null
+        }
+        Relationships: []
       }
       ponto_solicitacoes: {
         Row: {
@@ -5742,6 +5871,7 @@ export type Database = {
           nome: string
         }[]
       }
+      ponto_hora_servidor: { Args: never; Returns: string }
       ponto_lancar_manual: {
         Args: {
           _colaborador_id: string
@@ -5757,6 +5887,7 @@ export type Database = {
         Returns: Json
       }
       ponto_meu_status: { Args: never; Returns: Json }
+      ponto_meus_comprovantes: { Args: never; Returns: Json }
       ponto_quiosque_lista: {
         Args: { _unidade: string }
         Returns: {
@@ -5789,6 +5920,7 @@ export type Database = {
         }
         Returns: Json
       }
+      ponto_rep_ativar: { Args: never; Returns: Json }
       ponto_revisar: {
         Args: { _aprovar: boolean; _batida_id: string; _observacao?: string }
         Returns: undefined
@@ -5807,6 +5939,17 @@ export type Database = {
           _unidade?: string
         }
         Returns: Json
+      }
+      ponto_salvar_empregador: {
+        Args: {
+          _cno_caepf?: string
+          _desenvolvedor_documento?: string
+          _documento: string
+          _inpi_registro?: string
+          _razao_social: string
+          _tipo_doc: number
+        }
+        Returns: undefined
       }
       ponto_solicitar: {
         Args: {
