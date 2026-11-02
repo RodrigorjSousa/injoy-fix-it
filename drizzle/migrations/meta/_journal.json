@@ -624,6 +624,13 @@
       "when": 1793626492646,
       "tag": "0088_ponto_banco_horas_atestados_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1793626614018,
+      "tag": "0089_ponto_gestao_mensal_aplicar",
+      "breakpoints": true
     }
   ]
 }

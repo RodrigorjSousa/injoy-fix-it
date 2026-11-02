@@ -2733,6 +2733,187 @@ export type Database = {
         }
         Relationships: []
       }
+      ponto_espelho_ciencia: {
+        Row: {
+          ciente_em: string
+          colaborador_id: string
+          comentario: string | null
+          competencia: string
+          totais: Json
+          user_id: string | null
+        }
+        Insert: {
+          ciente_em?: string
+          colaborador_id: string
+          comentario?: string | null
+          competencia: string
+          totais?: Json
+          user_id?: string | null
+        }
+        Update: {
+          ciente_em?: string
+          colaborador_id?: string
+          comentario?: string | null
+          competencia?: string
+          totais?: Json
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_espelho_ciencia_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_fechamentos: {
+        Row: {
+          competencia: string
+          fechado_em: string
+          fechado_por: string | null
+          resumo: Json
+        }
+        Insert: {
+          competencia: string
+          fechado_em?: string
+          fechado_por?: string | null
+          resumo?: Json
+        }
+        Update: {
+          competencia?: string
+          fechado_em?: string
+          fechado_por?: string | null
+          resumo?: Json
+        }
+        Relationships: []
+      }
+      ponto_fechamentos_log: {
+        Row: {
+          acao: string
+          competencia: string
+          feito_em: string
+          feito_por: string | null
+          id: string
+          motivo: string | null
+        }
+        Insert: {
+          acao: string
+          competencia: string
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          motivo?: string | null
+        }
+        Update: {
+          acao?: string
+          competencia?: string
+          feito_em?: string
+          feito_por?: string | null
+          id?: string
+          motivo?: string | null
+        }
+        Relationships: []
+      }
+      ponto_lembretes: {
+        Row: {
+          entrada_id: string
+          enviado_em: string
+        }
+        Insert: {
+          entrada_id: string
+          enviado_em?: string
+        }
+        Update: {
+          entrada_id?: string
+          enviado_em?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_lembretes_entrada_id_fkey"
+            columns: ["entrada_id"]
+            isOneToOne: true
+            referencedRelation: "ponto_batidas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ponto_solicitacoes: {
+        Row: {
+          abonado: boolean
+          batida_id: string | null
+          colaborador_id: string
+          data: string
+          enviado_em: string
+          enviado_por: string | null
+          horario: string | null
+          id: string
+          motivo: string
+          pede_abono: boolean
+          resposta: string | null
+          revisado_em: string | null
+          revisado_por: string | null
+          status: string
+          tipo: string
+          tipo_batida: string | null
+          unidade: string | null
+        }
+        Insert: {
+          abonado?: boolean
+          batida_id?: string | null
+          colaborador_id: string
+          data: string
+          enviado_em?: string
+          enviado_por?: string | null
+          horario?: string | null
+          id?: string
+          motivo: string
+          pede_abono?: boolean
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          tipo: string
+          tipo_batida?: string | null
+          unidade?: string | null
+        }
+        Update: {
+          abonado?: boolean
+          batida_id?: string | null
+          colaborador_id?: string
+          data?: string
+          enviado_em?: string
+          enviado_por?: string | null
+          horario?: string | null
+          id?: string
+          motivo?: string
+          pede_abono?: boolean
+          resposta?: string | null
+          revisado_em?: string | null
+          revisado_por?: string | null
+          status?: string
+          tipo?: string
+          tipo_batida?: string | null
+          unidade?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ponto_solicitacoes_batida_id_fkey"
+            columns: ["batida_id"]
+            isOneToOne: false
+            referencedRelation: "ponto_batidas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ponto_solicitacoes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       preventive_logs: {
         Row: {
           category: string
@@ -5490,6 +5671,10 @@ export type Database = {
         Args: { _id: string; _motivo: string }
         Returns: Json
       }
+      ponto_dar_ciencia: {
+        Args: { _comentario?: string; _competencia: string; _totais: Json }
+        Returns: undefined
+      }
       ponto_enviar_atestado: {
         Args: {
           _arquivo_nome: string
@@ -5499,6 +5684,10 @@ export type Database = {
           _observacao: string
         }
         Returns: string
+      }
+      ponto_fechar_mes: {
+        Args: { _competencia: string; _resumo: Json }
+        Returns: undefined
       }
       ponto_freelancers_quiosque: {
         Args: { _unidade: string }
@@ -5519,6 +5708,10 @@ export type Database = {
         }
         Returns: string
       }
+      ponto_meu_espelho: {
+        Args: { _fim: string; _inicio: string }
+        Returns: Json
+      }
       ponto_meu_status: { Args: never; Returns: Json }
       ponto_quiosque_lista: {
         Args: { _unidade: string }
@@ -5532,6 +5725,10 @@ export type Database = {
           ultimo_tipo: string
           vinculo: string
         }[]
+      }
+      ponto_reabrir_mes: {
+        Args: { _competencia: string; _motivo: string }
+        Returns: undefined
       }
       ponto_registrar: {
         Args: {
@@ -5555,6 +5752,28 @@ export type Database = {
       ponto_revisar_atestado: {
         Args: { _aprovar: boolean; _id: string; _resposta?: string }
         Returns: Json
+      }
+      ponto_revisar_solicitacao: {
+        Args: {
+          _abonar?: boolean
+          _aprovar: boolean
+          _horario?: string
+          _id: string
+          _resposta?: string
+          _unidade?: string
+        }
+        Returns: Json
+      }
+      ponto_solicitar: {
+        Args: {
+          _data: string
+          _hora: string
+          _motivo: string
+          _pede_abono?: boolean
+          _tipo: string
+          _tipo_batida: string
+        }
+        Returns: string
       }
       ponto_verificar_local: {
         Args: { _latitude: number; _longitude: number; _precisao_m: number }
