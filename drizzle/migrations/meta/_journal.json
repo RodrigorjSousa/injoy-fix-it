@@ -659,6 +659,13 @@
       "when": 1793731309849,
       "tag": "0093_fechaduras_ttlock_quartos_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 94,
+      "version": "7",
+      "when": 1793736299023,
+      "tag": "0094_0095_tuya_segundo_projeto_aplicar",
+      "breakpoints": true
     }
   ]
 }

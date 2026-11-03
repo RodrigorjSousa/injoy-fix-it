@@ -4907,6 +4907,7 @@ export type Database = {
           room_number: string | null
           senha_fixa: string | null
           tipo: string
+          tuya_projeto: number
           unidade: string
           updated_at: string
         }
@@ -4920,6 +4921,7 @@ export type Database = {
           room_number?: string | null
           senha_fixa?: string | null
           tipo: string
+          tuya_projeto?: number
           unidade: string
           updated_at?: string
         }
@@ -4933,6 +4935,7 @@ export type Database = {
           room_number?: string | null
           senha_fixa?: string | null
           tipo?: string
+          tuya_projeto?: number
           unidade?: string
           updated_at?: string
         }
