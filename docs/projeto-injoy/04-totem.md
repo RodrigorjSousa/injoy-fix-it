@@ -298,6 +298,24 @@ saída → avaliação (comprovante impresso).
   teclado for instalado e desligar o portão Tuya antigo. O segundo teclado TTLock (porta de vidro)
   entra pelo mesmo cadastro quando chegar.
 
+### Entrega 5: segundo projeto Tuya (migração `0095`, nov/2026)
+- **Por quê:** a cota grátis do IoT Core é de **10 fechaduras "Controllable" por conta**. Para mais 10,
+  foi criada uma segunda conta de desenvolvedor com o projeto **"INJOY FECHADURAS 2"** (Western America,
+  Smart Home, Smart Lock Open Service), ligada à mesma conta do app (`reservas@injoyhoteis.com`) em
+  **link personalizado**.
+- **Divisão:** projeto 1 = quartos 001, 002, 003, 005, 006, 107, 109, 110, 111 e 112 (os portões
+  saíram do projeto). Projeto 2 = quartos 113, 114, 115, 117 e 118, com 5 vagas livres.
+- **Sistema:** `tuya_devices.tuya_projeto` (1 ou 2). A edge function agrupa os aparelhos por TTLock,
+  projeto 1 e projeto 2, chama cada grupo com as suas credenciais e junta as respostas. A mesma senha
+  vale em todas as portas.
+- **Segredos:** `TUYA_CLIENT_ID`/`TUYA_CLIENT_SECRET` (projeto 1; enquanto não existirem, vale o valor
+  antigo fixo no código) e `TUYA2_CLIENT_ID`/`TUYA2_CLIENT_SECRET` (projeto 2, obrigatório).
+- **Cuidados:**
+  - Os dois testes grátis vencem a cada 6 meses e precisam ser renovados separadamente.
+  - Ter duas contas para dobrar a cota pode contrariar as regras da Tuya. Se uma conta for
+    bloqueada, só os quartos dela param.
+  - Nos dois projetos o link é **personalizado**: fechadura nova no app precisa ser vinculada à mão.
+
 ### Pendências / próximos passos
 - Só o quarto 005 de Botafogo tem fechadura cadastrada. Nos outros quartos o totem para em
   "sem fechadura digital" e manda o hóspede falar com a equipe.

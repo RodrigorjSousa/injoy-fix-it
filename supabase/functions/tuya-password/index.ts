@@ -52,14 +52,13 @@ async function logTuyaCall(entry: {
 }
 
 // deno-lint-ignore no-explicit-any
-async function tratarTuya(payload: any): Promise<Response> {
+async function tratarTuya(payload: any, cred: CredTuya = credTuya(1)): Promise<Response> {
   try {
     const { deviceIds, guestName, startTime, endTime, roomNumber, unidade, action } = payload;
 
 
 
-    const clientId = "vv57ktpj3ka4prqhfm9r";
-    const secret = "e62b5e3d534548aa99ab458af9bd72b2";
+    const { clientId, secret } = cred;
     const baseUrl = "https://openapi.tuyaus.com";
 
     const calcSha256 = async (str: string) => {
@@ -606,22 +605,52 @@ async function tratarTuya(payload: any): Promise<Response> {
 }
 
 // ======================================================================
-// Roteador: aparelhos TTLock (tuya_devices.fornecedor = 'ttlock', device_id =
-// lockId do app TTLock) são tratados aqui; o resto segue para a Tuya. Na
-// criação, a mesma senha de 6 dígitos vai para os portões TTLock e para as
-// fechaduras Tuya dos quartos.
+// Credenciais Tuya por projeto. A cota grátis do IoT Core é de 10 fechaduras
+// "Controllable" por conta, então as fechaduras ficam divididas em projetos:
+//   1 = "INJOY FECHADURAS"   (TUYA_CLIENT_ID / TUYA_CLIENT_SECRET)
+//   2 = "INJOY FECHADURAS 2" (TUYA2_CLIENT_ID / TUYA2_CLIENT_SECRET)
+// tuya_devices.tuya_projeto (migração 0095) diz o projeto de cada fechadura.
+// ======================================================================
+type CredTuya = { clientId: string; secret: string };
+
+function credTuya(projeto: number): CredTuya {
+  if (projeto === 2) {
+    const clientId = Deno.env.get("TUYA2_CLIENT_ID") ?? "";
+    const secret = Deno.env.get("TUYA2_CLIENT_SECRET") ?? "";
+    if (!clientId || !secret) throw new Error("Projeto Tuya 2 sem credenciais: faltam TUYA2_CLIENT_ID/TUYA2_CLIENT_SECRET.");
+    return { clientId, secret };
+  }
+  // Projeto 1: segredos; o valor fixo antigo fica só até os segredos serem criados.
+  return {
+    clientId: Deno.env.get("TUYA_CLIENT_ID") ?? "vv57ktpj3ka4prqhfm9r",
+    secret: Deno.env.get("TUYA_CLIENT_SECRET") ?? "e62b5e3d534548aa99ab458af9bd72b2",
+  };
+}
+
+// ======================================================================
+// Roteador: separa os aparelhos por quem atende (TTLock, Tuya projeto 1,
+// Tuya projeto 2), chama cada um e junta as respostas. Na criação, a MESMA
+// senha de 6 dígitos vai para todas as portas.
 // ======================================================================
 
 const resposta = (corpo: unknown, status = 200) =>
   new Response(JSON.stringify(corpo), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-async function idsTTLock(ids: string[]): Promise<Set<string>> {
-  if (!ids.length) return new Set();
-  // Sem a migração 0093 a coluna não existe: a consulta falha e tudo segue como Tuya.
-  const { data, error } = await supabaseAdmin.from("tuya_devices").select("device_id,fornecedor").in("device_id", ids);
-  if (error) return new Set();
-  // deno-lint-ignore no-explicit-any
-  return new Set((data ?? []).filter((r: any) => r.fornecedor === "ttlock").map((r: any) => String(r.device_id)));
+type Grupo = "ttlock" | number;
+
+async function gruposDe(ids: string[]): Promise<Map<string, Grupo>> {
+  const mapa = new Map<string, Grupo>();
+  if (!ids.length) return mapa;
+  // Sem as migrações 0093/0095 as colunas não existem: tenta com menos colunas e, no fim, tudo vai para o projeto 1.
+  for (const colunas of ["device_id,fornecedor,tuya_projeto", "device_id,fornecedor"]) {
+    const { data, error } = await supabaseAdmin.from("tuya_devices").select(colunas).in("device_id", ids);
+    if (error) continue;
+    // deno-lint-ignore no-explicit-any
+    for (const r of (data ?? []) as any[])
+      mapa.set(String(r.device_id), r.fornecedor === "ttlock" ? "ttlock" : Number(r.tuya_projeto ?? 1) || 1);
+    break;
+  }
+  return mapa;
 }
 
 const msgDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -630,6 +659,21 @@ const ehRepetida = (e: unknown) => /exist|duplicat|same|repeat/i.test(msgDe(e));
 /** Ao apagar, senha que já não existe (expirou, foi apagada no app) conta como apagada. */
 const jaSumiu = (e: unknown) => /not exist|does not exist|no such|deleted|expired/i.test(msgDe(e));
 
+// deno-lint-ignore no-explicit-any
+type Json = Record<string, any>;
+
+/** Junta respostas: listas são concatenadas, objetos (senhas, senhaIds) mesclados. */
+function juntar(partes: Json[]): Json {
+  const out: Json = { success: true };
+  for (const p of partes)
+    for (const [k, v] of Object.entries(p)) {
+      if (Array.isArray(v)) out[k] = [...(out[k] ?? []), ...v];
+      else if (v && typeof v === "object") out[k] = { ...(out[k] ?? {}), ...v };
+      else if (k !== "success") out[k] = v;
+    }
+  return out;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
@@ -637,11 +681,15 @@ serve(async (req) => {
     const action: string | undefined = payload.action;
     const ids: string[] = (payload.deviceIds ?? []).map(String);
     const itens: Array<{ deviceId: string; passwordId: string | number }> = payload.items ?? [];
-    const tt = await idsTTLock([...ids, ...itens.map((i) => String(i.deviceId))]);
-    if (!tt.size) return tratarTuya(payload);
+    const grupos = await gruposDe([...ids, ...itens.map((i) => String(i.deviceId))]);
+    const grupo = (id: string): Grupo => grupos.get(String(id)) ?? 1;
+    const projetos = [...new Set([...ids.map(grupo), ...itens.map((i) => grupo(String(i.deviceId)))])].filter(
+      (g): g is number => g !== "ttlock",
+    );
+    // Caso simples (tudo no projeto 1, sem TTLock): exatamente o fluxo antigo.
+    if (!ids.some((id) => grupo(id) !== 1) && !itens.some((i) => grupo(String(i.deviceId)) !== 1)) return tratarTuya(payload);
 
-    const ttIds = ids.filter((id) => tt.has(id));
-    const tuyaIds = ids.filter((id) => !tt.has(id));
+    const ttIds = ids.filter((id) => grupo(id) === "ttlock");
     const log = (deviceId: string, endpoint: string, ok: boolean, detalhe: unknown) =>
       logTuyaCall({
         device_id: deviceId,
@@ -653,12 +701,22 @@ serve(async (req) => {
         room_number: payload.roomNumber ?? null,
         unidade: payload.unidade ?? null,
       });
-    // deno-lint-ignore no-explicit-any
-    const tuya = async (extra: Record<string, unknown>): Promise<any> => {
-      const r = await tratarTuya({ ...payload, ...extra });
-      const j = await r.json();
-      if (!r.ok) throw new Error(String(j.error ?? r.status));
-      return j;
+    /** Chama a Tuya de cada projeto com os aparelhos (ou itens) dele. */
+    const tuya = async (extra: (p: number) => Json | null): Promise<Json[]> => {
+      const saidas: Json[] = [];
+      for (const p of projetos) {
+        const corpo = extra(p);
+        if (!corpo) continue;
+        const r = await tratarTuya({ ...payload, ...corpo }, credTuya(p));
+        const j = await r.json();
+        if (!r.ok) throw new Error(`Tuya projeto ${p}: ${String(j.error ?? r.status)}`);
+        saidas.push(j);
+      }
+      return saidas;
+    };
+    const porProjeto = (p: number) => {
+      const doProjeto = ids.filter((id) => grupo(id) === p);
+      return doProjeto.length ? { deviceIds: doProjeto } : null;
     };
 
     if (action === "check_status") {
@@ -671,8 +729,7 @@ serve(async (req) => {
           statuses.push({ deviceId: id, online: false, success: false, msg: msgDe(e) });
         }
       }
-      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, statuses: [] };
-      return resposta({ ...base, statuses: [...(base.statuses ?? []), ...statuses] });
+      return resposta(juntar([...(await tuya(porProjeto)), { statuses }]));
     }
 
     if (action === "diagnose") {
@@ -684,8 +741,7 @@ serve(async (req) => {
           diagnostics.push({ deviceId: id, device: { success: false, error: msgDe(e) } });
         }
       }
-      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, diagnostics: [] };
-      return resposta({ ...base, diagnostics: [...(base.diagnostics ?? []), ...diagnostics] });
+      return resposta(juntar([...(await tuya(porProjeto)), { diagnostics }]));
     }
 
     if (action === "unlock") {
@@ -700,13 +756,12 @@ serve(async (req) => {
           unlocks.push({ deviceId: id, success: false, msg: msgDe(e) });
         }
       }
-      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, unlocks: [] };
-      return resposta({ ...base, unlocks: [...(base.unlocks ?? []), ...unlocks] });
+      return resposta(juntar([...(await tuya(porProjeto)), { unlocks }]));
     }
 
     if (action === "revoke") {
       const revokes = [];
-      for (const { deviceId, passwordId } of itens.filter((i) => tt.has(String(i.deviceId)))) {
+      for (const { deviceId, passwordId } of itens.filter((i) => grupo(String(i.deviceId)) === "ttlock")) {
         if (!passwordId || String(passwordId) === "senha_fixa") {
           revokes.push({ deviceId, passwordId, success: false, msg: "skip:id_ausente" });
           continue;
@@ -721,22 +776,27 @@ serve(async (req) => {
           revokes.push({ deviceId, passwordId, success: ok, msg: msgDe(e) });
         }
       }
-      const resto = itens.filter((i) => !tt.has(String(i.deviceId)));
-      const base = resto.length ? await tuya({ items: resto }) : { success: true, revokes: [] };
-      return resposta({ ...base, revokes: [...(base.revokes ?? []), ...revokes] });
+      const partes = await tuya((p) => {
+        const doProjeto = itens.filter((i) => grupo(String(i.deviceId)) === p);
+        return doProjeto.length ? { items: doProjeto } : null;
+      });
+      return resposta(juntar([...partes, { revokes }]));
     }
 
-    if (action) return tratarTuya(payload);
+    if (action) {
+      // Outras ações: cada projeto com os seus aparelhos.
+      return resposta(juntar(await tuya(porProjeto)));
+    }
 
-    // ---- criação: escolhe a senha, grava nos portões TTLock e passa a mesma para a Tuya
+    // ---- criação: escolhe a senha, grava nos portões TTLock e passa a mesma para cada projeto Tuya
     const inicio = Math.min(Number(payload.startTime) || Date.now(), Date.now()) - 60_000;
     const fim = Number(payload.endTime) || Date.now() + 24 * 3600_000;
     const nome = `${payload.roomNumber ? `Quarto ${payload.roomNumber} ` : ""}${payload.guestName ?? "Hospede"}`.trim();
     const senhas: Record<string, string> = {};
     const senhaIds: Record<string, string | number> = {};
     const tuyaResults: Array<{ deviceId: string; status: unknown }> = [];
-    let senha = "";
-    for (let tentativa = 0; tentativa < 4; tentativa++) {
+    let senha = Math.floor(100000 + Math.random() * 900000).toString();
+    for (let tentativa = 0; ttIds.length && tentativa < 4; tentativa++) {
       senha = Math.floor(100000 + Math.random() * 900000).toString();
       const criadas: Array<[string, number]> = [];
       let repetida = false;
@@ -765,15 +825,11 @@ serve(async (req) => {
       }
       break;
     }
-    const base = tuyaIds.length
-      ? await tuya({ deviceIds: tuyaIds, senha })
-      : { success: true, senhas: {}, senhaIds: {}, tuyaResults: [] };
-    return resposta({
-      ...base,
-      senhas: { ...(base.senhas ?? {}), ...senhas },
-      senhaIds: { ...(base.senhaIds ?? {}), ...senhaIds },
-      tuyaResults: [...(base.tuyaResults ?? []), ...tuyaResults],
+    const partes = await tuya((p) => {
+      const c = porProjeto(p);
+      return c ? { ...c, senha } : null;
     });
+    return resposta(juntar([...partes, { senhas, senhaIds, tuyaResults }]));
   } catch (error) {
     return resposta({ error: msgDe(error) }, 400);
   }
