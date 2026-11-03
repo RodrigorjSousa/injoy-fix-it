@@ -11,6 +11,8 @@ export type TuyaDevice = {
   label: string;
   ativo: boolean;
   senha_fixa: string | null;
+  /** Migração 0093. TTLock: device_id = lockId do app TTLock. */
+  fornecedor?: "tuya" | "ttlock";
 };
 
 let cache: Promise<TuyaDevice[]> | null = null;

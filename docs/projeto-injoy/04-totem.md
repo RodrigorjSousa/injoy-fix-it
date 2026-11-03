@@ -270,6 +270,34 @@ saída → avaliação (comprovante impresso).
 - Falta definir por quanto tempo guardar as fotos e colocar isso na política de privacidade. Depois
   disso dá para criar a limpeza automática (ainda não implementada).
 
+### Entrega 4: portões TTLock + quartos Tuya (migração `0093`, nov/2026)
+- **Botafogo:** os 2 portões viram teclados **TTLock MF03** com **gateway G2**. Os funcionários entram
+  por rosto ou digital, cadastrados direto no teclado pelo app TTLock. Os quartos continuam **Tuya
+  Zigbee**. Ipanema fica fora do totem por enquanto.
+- **Cadastro:** a tabela `tuya_devices` ganhou a coluna `fornecedor` (`tuya` | `ttlock`). Para TTLock,
+  `device_id` = **lockId** do app TTLock. Em Gestão › Fechaduras dá para escolher a marca.
+- **Mesma senha em todas as portas:** a edge function `tuya-password` separa os aparelhos por
+  fornecedor (`_shared/ttlock.ts`).
+  - Escolhe uma senha de 6 dígitos e grava nos teclados TTLock (`/v3/keyboardPwd/add`, `addType=2`,
+    pelo gateway). Se o teclado disser que a senha já existe (errcode -3007), troca o número.
+  - Passa a mesma senha para as fechaduras Tuya.
+  - Revogar apaga no TTLock (`/v3/keyboardPwd/delete`). Abrir remoto usa `/v3/lock/unlock`.
+  - O status mostra online quando o teclado tem gateway.
+  - Se um portão recusar a senha, o hóspede vê "a equipe abre para você" e a recepção recebe recado.
+- **TTLock (euopen.ttlock.com):** aplicação **INJOY Totem**, aprovada em 03/11/2026, conta de
+  desenvolvedor `servidorinjoy@gmail.com`.
+  - Segredos da edge function: `TTLOCK_CLIENT_ID`, `TTLOCK_CLIENT_SECRET`, `TTLOCK_USERNAME`
+    (conta do app TTLock dona dos teclados), `TTLOCK_PASSWORD`.
+  - Testado em bancada: criar, senha repetida (-3007), apagar e detalhe. A senha abriu o teclado
+    "PORTÃO GRADEADO - BOTAFOGO" (lockId 36396334).
+- **Cota Tuya (IoT Core grátis):** 10 aparelhos "Controllable".
+  - Em uso: o portão Tuya "PORTÃO GRADEADO" e os quartos 001, 002, 003, 005, 006, 107, 109, 110 e 111.
+  - Sem cota: 112, 113, 114, 115, 117 e 118.
+  - A vaga do portão Tuya volta quando ele for removido do app Tuya Smart. Aí dá para converter o 112.
+- **Estado:** quartos cadastrados e ativos. O portão TTLock está cadastrado **inativo**: ligar quando o
+  teclado for instalado e desligar o portão Tuya antigo. O segundo teclado TTLock (porta de vidro)
+  entra pelo mesmo cadastro quando chegar.
+
 ### Pendências / próximos passos
 - Só o quarto 005 de Botafogo tem fechadura cadastrada. Nos outros quartos o totem para em
   "sem fechadura digital" e manda o hóspede falar com a equipe.

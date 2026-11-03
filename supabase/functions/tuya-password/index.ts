@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import CryptoJS from "https://esm.sh/crypto-js@4.2.0";
+import * as TT from "../_shared/ttlock.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,11 +47,9 @@ async function logTuyaCall(entry: {
   }
 }
 
-serve(async (req) => {
-  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
-
+// deno-lint-ignore no-explicit-any
+async function tratarTuya(payload: any): Promise<Response> {
   try {
-    const payload = await req.json();
     const { deviceIds, guestName, startTime, endTime, roomNumber, unidade, action } = payload;
 
 
@@ -404,7 +403,11 @@ serve(async (req) => {
 
     // 2. Gerar UMA ÚNICA senha de 6 dígitos usada em TODAS as portas
     //    (quarto Zigbee + portão/vidro WiFi Access Controller).
-    const senhaUnificada = Math.floor(100000 + Math.random() * 900000).toString();
+    //    Se a parte TTLock já escolheu a senha (portões), usa a mesma aqui.
+    const senhaUnificada =
+      typeof payload.senha === "string" && /^\d{6}$/.test(payload.senha)
+        ? payload.senha
+        : Math.floor(100000 + Math.random() * 900000).toString();
     const { data: deviceRows } = await supabaseAdmin
       .from("tuya_devices")
       .select("device_id,tipo,senha_fixa")
@@ -595,5 +598,179 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       },
     );
+  }
+}
+
+// ======================================================================
+// Roteador: aparelhos TTLock (tuya_devices.fornecedor = 'ttlock', device_id =
+// lockId do app TTLock) são tratados aqui; o resto segue para a Tuya. Na
+// criação, a mesma senha de 6 dígitos vai para os portões TTLock e para as
+// fechaduras Tuya dos quartos.
+// ======================================================================
+
+const resposta = (corpo: unknown, status = 200) =>
+  new Response(JSON.stringify(corpo), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
+
+async function idsTTLock(ids: string[]): Promise<Set<string>> {
+  if (!ids.length) return new Set();
+  // Sem a migração 0093 a coluna não existe: a consulta falha e tudo segue como Tuya.
+  const { data, error } = await supabaseAdmin.from("tuya_devices").select("device_id,fornecedor").in("device_id", ids);
+  if (error) return new Set();
+  // deno-lint-ignore no-explicit-any
+  return new Set((data ?? []).filter((r: any) => r.fornecedor === "ttlock").map((r: any) => String(r.device_id)));
+}
+
+const msgDe = (e: unknown) => (e instanceof Error ? e.message : String(e));
+/** Senha repetida no teclado (outro hóspede com o mesmo número): troca o número e tenta de novo. */
+const ehRepetida = (e: unknown) => /exist|duplicat|same|repeat/i.test(msgDe(e));
+/** Ao apagar, senha que já não existe (expirou, foi apagada no app) conta como apagada. */
+const jaSumiu = (e: unknown) => /not exist|does not exist|no such|deleted|expired/i.test(msgDe(e));
+
+serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
+  try {
+    const payload = await req.json();
+    const action: string | undefined = payload.action;
+    const ids: string[] = (payload.deviceIds ?? []).map(String);
+    const itens: Array<{ deviceId: string; passwordId: string | number }> = payload.items ?? [];
+    const tt = await idsTTLock([...ids, ...itens.map((i) => String(i.deviceId))]);
+    if (!tt.size) return tratarTuya(payload);
+
+    const ttIds = ids.filter((id) => tt.has(id));
+    const tuyaIds = ids.filter((id) => !tt.has(id));
+    const log = (deviceId: string, endpoint: string, ok: boolean, detalhe: unknown) =>
+      logTuyaCall({
+        device_id: deviceId,
+        endpoint: `ttlock:${endpoint}`,
+        method: "POST",
+        response_payload: detalhe,
+        success: ok,
+        guest_name: payload.guestName ?? null,
+        room_number: payload.roomNumber ?? null,
+        unidade: payload.unidade ?? null,
+      });
+    // deno-lint-ignore no-explicit-any
+    const tuya = async (extra: Record<string, unknown>): Promise<any> => {
+      const r = await tratarTuya({ ...payload, ...extra });
+      const j = await r.json();
+      if (!r.ok) throw new Error(String(j.error ?? r.status));
+      return j;
+    };
+
+    if (action === "check_status") {
+      const statuses = [];
+      for (const id of ttIds) {
+        try {
+          const s = await TT.situacao(id);
+          statuses.push({ deviceId: id, online: s.online, name: s.nome, success: true, msg: s.online ? "gateway" : "sem gateway" });
+        } catch (e) {
+          statuses.push({ deviceId: id, online: false, success: false, msg: msgDe(e) });
+        }
+      }
+      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, statuses: [] };
+      return resposta({ ...base, statuses: [...(base.statuses ?? []), ...statuses] });
+    }
+
+    if (action === "diagnose") {
+      const diagnostics = [];
+      for (const id of ttIds) {
+        try {
+          diagnostics.push({ deviceId: id, device: await TT.situacao(id) });
+        } catch (e) {
+          diagnostics.push({ deviceId: id, device: { success: false, error: msgDe(e) } });
+        }
+      }
+      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, diagnostics: [] };
+      return resposta({ ...base, diagnostics: [...(base.diagnostics ?? []), ...diagnostics] });
+    }
+
+    if (action === "unlock") {
+      const unlocks = [];
+      for (const id of ttIds) {
+        try {
+          await TT.abrir(id);
+          await log(id, "lock/unlock", true, null);
+          unlocks.push({ deviceId: id, success: true });
+        } catch (e) {
+          await log(id, "lock/unlock", false, msgDe(e));
+          unlocks.push({ deviceId: id, success: false, msg: msgDe(e) });
+        }
+      }
+      const base = tuyaIds.length ? await tuya({ deviceIds: tuyaIds }) : { success: true, unlocks: [] };
+      return resposta({ ...base, unlocks: [...(base.unlocks ?? []), ...unlocks] });
+    }
+
+    if (action === "revoke") {
+      const revokes = [];
+      for (const { deviceId, passwordId } of itens.filter((i) => tt.has(String(i.deviceId)))) {
+        if (!passwordId || String(passwordId) === "senha_fixa") {
+          revokes.push({ deviceId, passwordId, success: false, msg: "skip:id_ausente" });
+          continue;
+        }
+        try {
+          await TT.apagarSenha(String(deviceId), passwordId);
+          await log(String(deviceId), "keyboardPwd/delete", true, { passwordId });
+          revokes.push({ deviceId, passwordId, success: true });
+        } catch (e) {
+          const ok = jaSumiu(e);
+          await log(String(deviceId), "keyboardPwd/delete", ok, msgDe(e));
+          revokes.push({ deviceId, passwordId, success: ok, msg: msgDe(e) });
+        }
+      }
+      const resto = itens.filter((i) => !tt.has(String(i.deviceId)));
+      const base = resto.length ? await tuya({ items: resto }) : { success: true, revokes: [] };
+      return resposta({ ...base, revokes: [...(base.revokes ?? []), ...revokes] });
+    }
+
+    if (action) return tratarTuya(payload);
+
+    // ---- criação: escolhe a senha, grava nos portões TTLock e passa a mesma para a Tuya
+    const inicio = Math.min(Number(payload.startTime) || Date.now(), Date.now()) - 60_000;
+    const fim = Number(payload.endTime) || Date.now() + 24 * 3600_000;
+    const nome = `${payload.roomNumber ? `Quarto ${payload.roomNumber} ` : ""}${payload.guestName ?? "Hospede"}`.trim();
+    const senhas: Record<string, string> = {};
+    const senhaIds: Record<string, string | number> = {};
+    const tuyaResults: Array<{ deviceId: string; status: unknown }> = [];
+    let senha = "";
+    for (let tentativa = 0; tentativa < 4; tentativa++) {
+      senha = Math.floor(100000 + Math.random() * 900000).toString();
+      const criadas: Array<[string, number]> = [];
+      let repetida = false;
+      for (const id of ttIds) {
+        try {
+          const pwdId = await TT.criarSenha({ lockId: id, senha, nome, inicio, fim });
+          criadas.push([id, pwdId]);
+          await log(id, "keyboardPwd/add", true, { keyboardPwdId: pwdId });
+        } catch (e) {
+          await log(id, "keyboardPwd/add", false, msgDe(e));
+          if (ehRepetida(e) && tentativa < 3) {
+            repetida = true;
+            break;
+          }
+          tuyaResults.push({ deviceId: id, status: { success: false, msg: msgDe(e) } });
+        }
+      }
+      if (repetida) {
+        for (const [id, pwdId] of criadas) await TT.apagarSenha(id, pwdId).catch(() => undefined);
+        continue;
+      }
+      for (const [id, pwdId] of criadas) {
+        senhas[id] = senha;
+        senhaIds[id] = pwdId;
+        tuyaResults.push({ deviceId: id, status: { success: true, result: { keyboardPwdId: pwdId }, msg: "ttlock" } });
+      }
+      break;
+    }
+    const base = tuyaIds.length
+      ? await tuya({ deviceIds: tuyaIds, senha })
+      : { success: true, senhas: {}, senhaIds: {}, tuyaResults: [] };
+    return resposta({
+      ...base,
+      senhas: { ...(base.senhas ?? {}), ...senhas },
+      senhaIds: { ...(base.senhaIds ?? {}), ...senhaIds },
+      tuyaResults: [...(base.tuyaResults ?? []), ...tuyaResults],
+    });
+  } catch (error) {
+    return resposta({ error: msgDe(error) }, 400);
   }
 });

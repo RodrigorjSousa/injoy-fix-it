@@ -19,8 +19,8 @@ const TIPO_LABEL: Record<TuyaDeviceTipo, string> = {
 
 const UNIDADES = ["Botafogo", "Ipanema"];
 
-const usaSenhaFixa = (tipo: TuyaDeviceTipo) =>
-  tipo === "portao" || tipo === "vidro" || tipo === "outro";
+const usaSenhaFixa = (tipo: TuyaDeviceTipo, fornecedor?: string) =>
+  fornecedor !== "ttlock" && (tipo === "portao" || tipo === "vidro" || tipo === "outro");
 
 export function TuyaDevicesManager() {
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
@@ -32,6 +32,7 @@ export function TuyaDevicesManager() {
     device_id: "",
     label: "",
     senha_fixa: "",
+    fornecedor: "tuya" as "tuya" | "ttlock",
   });
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -44,7 +45,8 @@ export function TuyaDevicesManager() {
     setLoading(true);
     const { data, error } = await supabase
       .from("tuya_devices")
-      .select("id,unidade,tipo,room_number,device_id,label,ativo,senha_fixa")
+      // "*": a coluna fornecedor (migração 0093) pode ainda não existir.
+      .select("*")
       .order("unidade")
       .order("tipo")
       .order("room_number");
@@ -74,9 +76,11 @@ export function TuyaDevicesManager() {
       device_id: form.device_id.trim(),
       label: form.label.trim(),
       ativo: true,
-      senha_fixa: usaSenhaFixa(form.tipo) ? (form.senha_fixa.trim() || null) : null,
+      senha_fixa: usaSenhaFixa(form.tipo, form.fornecedor) ? (form.senha_fixa.trim() || null) : null,
+      ...(form.fornecedor === "ttlock" ? { fornecedor: "ttlock" } : {}),
     };
-    const { error } = await supabase.from("tuya_devices").insert(payload);
+    // "as never": a coluna fornecedor entra nos tipos quando o Lovable aplicar a 0093.
+    const { error } = await supabase.from("tuya_devices").insert(payload as never);
     setSaving(false);
     if (error) {
       toast.error("Erro ao salvar: " + error.message);
@@ -258,6 +262,19 @@ export function TuyaDevicesManager() {
           </div>
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
+              Marca
+            </label>
+            <select
+              value={form.fornecedor}
+              onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value as "tuya" | "ttlock" }))}
+              className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+            >
+              <option value="tuya">Tuya (app Tuya Smart)</option>
+              <option value="ttlock">TTLock (teclado com gateway G2)</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               Tipo
             </label>
             <select
@@ -290,13 +307,13 @@ export function TuyaDevicesManager() {
           )}
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-              Device ID (Tuya)
+              {form.fornecedor === "ttlock" ? "Lock ID (TTLock)" : "Device ID (Tuya)"}
             </label>
             <input
               type="text"
               value={form.device_id}
               onChange={(e) => setForm((f) => ({ ...f, device_id: e.target.value }))}
-              placeholder="Ex: eba3429756a5aaa8b2ssrw"
+              placeholder={form.fornecedor === "ttlock" ? "Ex: 36396334" : "Ex: eba3429756a5aaa8b2ssrw"}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
             />
           </div>
@@ -312,7 +329,7 @@ export function TuyaDevicesManager() {
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             />
           </div>
-          {usaSenhaFixa(form.tipo) && (
+          {usaSenhaFixa(form.tipo, form.fornecedor) && (
             <div className="md:col-span-2">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 Senha fixa compartilhada (cadastrada no app Tuya Smart)
@@ -390,7 +407,7 @@ export function TuyaDevicesManager() {
                       )}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {d.unidade} · {TIPO_LABEL[d.tipo]}
+                      {d.unidade} · {d.fornecedor === "ttlock" ? "TTLock" : "Tuya"} · {TIPO_LABEL[d.tipo]}
                       {d.room_number ? ` · Quarto ${d.room_number}` : ""}
                     </p>
                     <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
@@ -426,7 +443,7 @@ export function TuyaDevicesManager() {
                     </button>
                   </div>
                 </div>
-                {usaSenhaFixa(d.tipo) && (
+                {usaSenhaFixa(d.tipo, d.fornecedor) && (
                   <div className="flex items-center gap-2 pl-1 flex-wrap">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Senha fixa:

@@ -502,7 +502,17 @@ export async function gerarSenhaTuya(
     });
     if (error) console.error("[totem] falha ao registrar senha", error.message);
   }
-  return { senha: senhaQuarto, portas: portasDe(usadas, senhas, senhaQuarto), validaAte: new Date(saidaMs).toISOString() };
+  const portas = portasDe(usadas, senhas, senhaQuarto);
+  // Portão sem a senha (ex.: teclado TTLock sem gateway): o hóspede vê "a equipe
+  // abre para você" e a recepção é avisada para resolver antes da chegada.
+  const semPortao = portas.filter((p) => p.tipo !== "quarto" && !p.senha && !p.mesma).map((p) => p.label);
+  if (semPortao.length)
+    await avisarRecepcao(
+      totem,
+      args.quartos[0]?.nome ?? null,
+      `Totem: ${args.hospede} recebeu a senha do quarto, mas ${semPortao.join(", ")} não aceitou a senha. Verificar a fechadura/gateway.`,
+    );
+  return { senha: senhaQuarto, portas, validaAte: new Date(saidaMs).toISOString() };
 }
 
 /** Revoga as senhas temporárias do quarto no check-out. Devolve quantas foram revogadas. */
