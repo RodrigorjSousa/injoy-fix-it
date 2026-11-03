@@ -32,7 +32,7 @@ export function TuyaDevicesManager() {
     device_id: "",
     label: "",
     senha_fixa: "",
-    fornecedor: "tuya" as "tuya" | "ttlock",
+    fornecedor: "tuya" as "tuya" | "tuya2" | "ttlock",
   });
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -78,6 +78,8 @@ export function TuyaDevicesManager() {
       ativo: true,
       senha_fixa: usaSenhaFixa(form.tipo, form.fornecedor) ? (form.senha_fixa.trim() || null) : null,
       ...(form.fornecedor === "ttlock" ? { fornecedor: "ttlock" } : {}),
+      // Projeto Tuya 2 (migração 0095): outra conta de desenvolvedor, mais 10 vagas "Controllable".
+      ...(form.fornecedor === "tuya2" ? { tuya_projeto: 2 } : {}),
     };
     // "as never": a coluna fornecedor entra nos tipos quando o Lovable aplicar a 0093.
     const { error } = await supabase.from("tuya_devices").insert(payload as never);
@@ -266,10 +268,11 @@ export function TuyaDevicesManager() {
             </label>
             <select
               value={form.fornecedor}
-              onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value as "tuya" | "ttlock" }))}
+              onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value as "tuya" | "tuya2" | "ttlock" }))}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
-              <option value="tuya">Tuya (app Tuya Smart)</option>
+              <option value="tuya">Tuya, projeto 1 (INJOY FECHADURAS)</option>
+              <option value="tuya2">Tuya, projeto 2 (INJOY FECHADURAS 2)</option>
               <option value="ttlock">TTLock (teclado com gateway G2)</option>
             </select>
           </div>
@@ -407,7 +410,7 @@ export function TuyaDevicesManager() {
                       )}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {d.unidade} · {d.fornecedor === "ttlock" ? "TTLock" : "Tuya"} · {TIPO_LABEL[d.tipo]}
+                      {d.unidade} · {d.fornecedor === "ttlock" ? "TTLock" : d.tuya_projeto === 2 ? "Tuya (projeto 2)" : "Tuya"} · {TIPO_LABEL[d.tipo]}
                       {d.room_number ? ` · Quarto ${d.room_number}` : ""}
                     </p>
                     <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
