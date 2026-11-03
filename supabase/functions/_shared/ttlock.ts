@@ -6,7 +6,11 @@
 //   TTLOCK_CLIENT_ID, TTLOCK_CLIENT_SECRET  — aplicação "INJOY Totem"
 //   TTLOCK_USERNAME                          — conta do app TTLock dona dos teclados
 //   TTLOCK_PASSWORD (ou TTLOCK_PASSWORD_MD5) — senha dessa conta
-import CryptoJS from "https://esm.sh/crypto-js@4.2.0";
+// O esm.sh entrega o crypto-js sem exportações nomeadas e os tipos dele são no
+// estilo `export =`, então o import default falha na verificação de tipos do Deno.
+import * as CryptoJSMod from "https://esm.sh/crypto-js@4.2.0";
+const CryptoJS = ((CryptoJSMod as any).default ??
+  CryptoJSMod) as typeof CryptoJSMod;
 
 const BASE = Deno.env.get("TTLOCK_BASE_URL") ?? "https://euapi.ttlock.com";
 
