@@ -4901,6 +4901,7 @@ export type Database = {
           ativo: boolean
           created_at: string
           device_id: string
+          fornecedor: string
           id: string
           label: string
           room_number: string | null
@@ -4913,6 +4914,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           device_id: string
+          fornecedor?: string
           id?: string
           label: string
           room_number?: string | null
@@ -4925,6 +4927,7 @@ export type Database = {
           ativo?: boolean
           created_at?: string
           device_id?: string
+          fornecedor?: string
           id?: string
           label?: string
           room_number?: string | null
