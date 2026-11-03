@@ -1,6 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
-import CryptoJS from "https://esm.sh/crypto-js@4.2.0";
+// O esm.sh entrega o crypto-js sem exportações nomeadas e os tipos dele são no
+// estilo `export =`, então o import default falha na verificação de tipos do Deno.
+import * as CryptoJSMod from "https://esm.sh/crypto-js@4.2.0";
+const CryptoJS = ((CryptoJSMod as any).default ??
+  CryptoJSMod) as typeof CryptoJSMod;
 import * as TT from "../_shared/ttlock.ts";
 
 const corsHeaders = {
