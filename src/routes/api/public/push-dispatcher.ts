@@ -25,7 +25,8 @@ type EventKind =
   | "ponto_solicitacao_resposta"
   | "ponto_lembrete_saida"
   | "reservas_cobranca"
-  | "recado_gestor";
+  | "recado_gestor"
+  | "arrumacao_refazer";
 type Body = { event: EventKind; data: Record<string, unknown> };
 
 function buildNotification(evt: Body): {
@@ -76,6 +77,14 @@ function buildNotification(evt: Body): {
         body: "Este aparelho vai receber os avisos do INJOY.",
         url: "/",
         tag: `teste-${Date.now()}`,
+      };
+    case "arrumacao_refazer":
+      return {
+        title: `🧹 Refazer arrumação · quarto ${d.room_number ?? ""}`,
+        body: `${d.avaliadora_nome ?? "A líder"} avaliou o quarto ${d.room_number ?? ""} (${d.property ?? ""}) e pediu para refazer. Veja o que ajustar.`,
+        url: "/camareiras",
+        tag: `arrumacao-refazer-${d.id}`,
+        urgente: true,
       };
     case "recado_gestor": {
       const msg = String(d.mensagem ?? "");
@@ -356,6 +365,10 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
     }
     case "teste":
       return typeof d.user_id === "string" ? [d.user_id] : [];
+    case "arrumacao_refazer":
+      return Array.isArray(d.destinatarios)
+        ? (d.destinatarios as unknown[]).filter((x): x is string => typeof x === "string")
+        : [];
     case "recado_gestor":
       // Lista resolvida no envio (setores, todos ou pessoas escolhidas).
       return Array.isArray(d.destinatarios)

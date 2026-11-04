@@ -51,6 +51,7 @@ import { Route as AuthenticatedGestorEscalaRouteImport } from './routes/_authent
 import { Route as AuthenticatedGestorFinanceiroRouteImport } from './routes/_authenticated/gestor/financeiro'
 import { Route as AuthenticatedGestorPontoRouteImport } from './routes/_authenticated/gestor/ponto'
 import { Route as AuthenticatedGestorPrevisaoCargaRouteImport } from './routes/_authenticated/gestor/previsao-carga'
+import { Route as AuthenticatedGestorQualidadeArrumacaoRouteImport } from './routes/_authenticated/gestor/qualidade-arrumacao'
 import { Route as AuthenticatedGestorRendimentoRouteImport } from './routes/_authenticated/gestor/rendimento'
 import { Route as AuthenticatedGestorTarefasExtrasRouteImport } from './routes/_authenticated/gestor/tarefas-extras'
 import { Route as AuthenticatedGestorTotemRouteImport } from './routes/_authenticated/gestor/totem'
@@ -296,6 +297,12 @@ const AuthenticatedGestorPrevisaoCargaRoute =
     path: '/previsao-carga',
     getParentRoute: () => AuthenticatedGestorRouteRoute,
   } as any)
+const AuthenticatedGestorQualidadeArrumacaoRoute =
+  AuthenticatedGestorQualidadeArrumacaoRouteImport.update({
+    id: '/qualidade-arrumacao',
+    path: '/qualidade-arrumacao',
+    getParentRoute: () => AuthenticatedGestorRouteRoute,
+  } as any)
 const AuthenticatedGestorRendimentoRoute =
   AuthenticatedGestorRendimentoRouteImport.update({
     id: '/rendimento',
@@ -416,6 +423,7 @@ export interface FileRoutesByFullPath {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/qualidade-arrumacao': typeof AuthenticatedGestorQualidadeArrumacaoRoute
   '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
@@ -471,6 +479,7 @@ export interface FileRoutesByTo {
   '/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/gestor/qualidade-arrumacao': typeof AuthenticatedGestorQualidadeArrumacaoRoute
   '/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/gestor/totem': typeof AuthenticatedGestorTotemRoute
@@ -530,6 +539,7 @@ export interface FileRoutesById {
   '/_authenticated/gestor/financeiro': typeof AuthenticatedGestorFinanceiroRoute
   '/_authenticated/gestor/ponto': typeof AuthenticatedGestorPontoRoute
   '/_authenticated/gestor/previsao-carga': typeof AuthenticatedGestorPrevisaoCargaRoute
+  '/_authenticated/gestor/qualidade-arrumacao': typeof AuthenticatedGestorQualidadeArrumacaoRoute
   '/_authenticated/gestor/rendimento': typeof AuthenticatedGestorRendimentoRoute
   '/_authenticated/gestor/tarefas-extras': typeof AuthenticatedGestorTarefasExtrasRoute
   '/_authenticated/gestor/totem': typeof AuthenticatedGestorTotemRoute
@@ -589,6 +599,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/qualidade-arrumacao'
     | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
@@ -644,6 +655,7 @@ export interface FileRouteTypes {
     | '/gestor/financeiro'
     | '/gestor/ponto'
     | '/gestor/previsao-carga'
+    | '/gestor/qualidade-arrumacao'
     | '/gestor/rendimento'
     | '/gestor/tarefas-extras'
     | '/gestor/totem'
@@ -702,6 +714,7 @@ export interface FileRouteTypes {
     | '/_authenticated/gestor/financeiro'
     | '/_authenticated/gestor/ponto'
     | '/_authenticated/gestor/previsao-carga'
+    | '/_authenticated/gestor/qualidade-arrumacao'
     | '/_authenticated/gestor/rendimento'
     | '/_authenticated/gestor/tarefas-extras'
     | '/_authenticated/gestor/totem'
@@ -1032,6 +1045,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedGestorPrevisaoCargaRouteImport
       parentRoute: typeof AuthenticatedGestorRouteRoute
     }
+    '/_authenticated/gestor/qualidade-arrumacao': {
+      id: '/_authenticated/gestor/qualidade-arrumacao'
+      path: '/qualidade-arrumacao'
+      fullPath: '/gestor/qualidade-arrumacao'
+      preLoaderRoute: typeof AuthenticatedGestorQualidadeArrumacaoRouteImport
+      parentRoute: typeof AuthenticatedGestorRouteRoute
+    }
     '/_authenticated/gestor/rendimento': {
       id: '/_authenticated/gestor/rendimento'
       path: '/rendimento'
@@ -1138,6 +1158,7 @@ interface AuthenticatedGestorRouteRouteChildren {
   AuthenticatedGestorFinanceiroRoute: typeof AuthenticatedGestorFinanceiroRoute
   AuthenticatedGestorPontoRoute: typeof AuthenticatedGestorPontoRoute
   AuthenticatedGestorPrevisaoCargaRoute: typeof AuthenticatedGestorPrevisaoCargaRoute
+  AuthenticatedGestorQualidadeArrumacaoRoute: typeof AuthenticatedGestorQualidadeArrumacaoRoute
   AuthenticatedGestorRendimentoRoute: typeof AuthenticatedGestorRendimentoRoute
   AuthenticatedGestorTarefasExtrasRoute: typeof AuthenticatedGestorTarefasExtrasRoute
   AuthenticatedGestorTotemRoute: typeof AuthenticatedGestorTotemRoute
@@ -1152,6 +1173,8 @@ const AuthenticatedGestorRouteRouteChildren: AuthenticatedGestorRouteRouteChildr
     AuthenticatedGestorPontoRoute: AuthenticatedGestorPontoRoute,
     AuthenticatedGestorPrevisaoCargaRoute:
       AuthenticatedGestorPrevisaoCargaRoute,
+    AuthenticatedGestorQualidadeArrumacaoRoute:
+      AuthenticatedGestorQualidadeArrumacaoRoute,
     AuthenticatedGestorRendimentoRoute: AuthenticatedGestorRendimentoRoute,
     AuthenticatedGestorTarefasExtrasRoute:
       AuthenticatedGestorTarefasExtrasRoute,
