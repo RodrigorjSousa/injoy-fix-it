@@ -3623,9 +3623,12 @@ export type Database = {
           created_at: string
           created_by: string | null
           created_by_name: string
+          destinatario_nome: string | null
+          destinatarios: string[] | null
           direction: string
           id: string
           message: string
+          privado: boolean
           property: string
           read_at: string | null
           read_by: string | null
@@ -3636,9 +3639,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name: string
+          destinatario_nome?: string | null
+          destinatarios?: string[] | null
           direction?: string
           id?: string
           message: string
+          privado?: boolean
           property: string
           read_at?: string | null
           read_by?: string | null
@@ -3649,9 +3655,12 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           created_by_name?: string
+          destinatario_nome?: string | null
+          destinatarios?: string[] | null
           direction?: string
           id?: string
           message?: string
+          privado?: boolean
           property?: string
           read_at?: string | null
           read_by?: string | null

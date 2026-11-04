@@ -680,6 +680,13 @@
       "when": 1793814307792,
       "tag": "0096_0098_avaliacao_arrumacao_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1793814905406,
+      "tag": "0097_0099_recado_lider_privado_aplicar",
+      "breakpoints": true
     }
   ]
 }
