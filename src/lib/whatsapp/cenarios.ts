@@ -263,7 +263,7 @@ export const CENARIOS: Cenario[] = [
     maxTurnos: 3,
     deveTransferir: false,
     criterios:
-      "Diz com simpatia que é a Joy, assistente virtual do Injoy. Responde o horário (check-in a partir das 14h, check-out até 11h).",
+      "Diz com simpatia e com verdade que é a Joy, assistente de inteligência artificial do Injoy (não finge ser pessoa). Responde o horário (check-in a partir das 14h, check-out até 11h).",
   },
   {
     id: "en-hoje",

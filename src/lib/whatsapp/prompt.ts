@@ -60,6 +60,22 @@ export function textoConhecimento(c: Conhecimento): string {
   return linhas.join("\n");
 }
 
+/**
+ * Põe o nome configurado da assistente no texto (prompt, base e lições). Aceita o marcador {{nome}} e
+ * também troca "Joy" (o nome antigo, que ainda está em prompts e lições salvos no banco).
+ * "Assistente virtual do Injoy" vira "assistente do Injoy" (pedido de 04/11/2026); a frase de
+ * honestidade sobre ser IA fica como está.
+ */
+export function aplicarNomeAssistente(texto: string, nome: string): string {
+  const n = nome.trim() || "Ana";
+  let t = texto
+    .replaceAll("{{nome}}", n)
+    .replace(/assistente virtual do Injoy/g, "assistente do Injoy")
+    .replace(/Injoy's virtual assistant/g, "Injoy's assistant");
+  if (n !== "Joy") t = t.replace(/\bJoy\b/g, n);
+  return t;
+}
+
 export function montarPromptSistema(prompt: string, c: Conhecimento, ctx: ContextoPrompt): string {
   const partes = [
     prompt.trim(),

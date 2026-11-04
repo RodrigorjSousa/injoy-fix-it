@@ -13,7 +13,7 @@ export const LICOES_SUGERIDAS: LicaoSugerida[] = [
   {
     tema: "Cotação",
     situacao: "Tem quarto para dia 10 a 12, casal?",
-    resposta_certa: "Oi! Aqui é a Joy, assistente virtual do Injoy ☺️ Prefere Ipanema ou Botafogo?",
+    resposta_certa: "Oi! Aqui é a {{nome}}, assistente do Injoy ☺️ Prefere Ipanema ou Botafogo?",
     motivo:
       "A recepção sempre pergunta a unidade primeiro. Depois consulta o Cloudbeds e manda tipos, valores e o link.",
   },
@@ -101,7 +101,7 @@ export const LICOES_SUGERIDAS: LicaoSugerida[] = [
     tema: "Idioma",
     situacao: "Hello, do you have a room for tonight?",
     resposta_certa:
-      "Hi! This is Joy, Injoy's virtual assistant ☺️ Would you prefer Ipanema or Botafogo?",
+      "Hi! This is {{nome}}, Injoy's assistant ☺️ Would you prefer Ipanema or Botafogo?",
     motivo: "Responder no idioma do hóspede, na mesma ordem: unidade, pessoas, depois o Cloudbeds.",
   },
 ];

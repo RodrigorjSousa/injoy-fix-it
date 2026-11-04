@@ -581,6 +581,16 @@ Ligada, o rascunho sai sem aprovação, mas **só** para quem está na lista de 
 número continua o rascunho com aprovação. A mensagem enviada assim fica com `aprovado_por` vazio e
 `meta.envio_automatico = true`. Começa desligada.
 
+#### Nome da assistente: Joy → Ana (04/11/2026)
+Pedido do Rodrigo: a assistente passa a se chamar **Ana** e se apresenta como "assistente do Injoy"
+(sem "virtual"). O nome fica em **Configuração › Nome da assistente** (campo `nomeAssistente` da base),
+para trocar quando quiser. Como funciona: o prompt, a base e as lições usam o marcador `{{nome}}`, e
+`aplicarNomeAssistente` (prompt.ts) põe o nome configurado antes de mandar para a IA; ele também troca o
+nome antigo "Joy" que ainda está no prompt e nas lições salvas no banco, então não é preciso restaurar o
+padrão. A honestidade continua: se perguntarem se é robô, ela diz que é uma assistente de inteligência
+artificial do Injoy. O código e as tabelas continuam com "joy" no nome interno (wa_*, joy*), sem efeito
+para o hóspede.
+
 #### Como ficou ligado em 28/10/2026
 - App da Meta **Joy Injoy** (ID 1046257355103789), publicado, no portfólio **Injoy Suites e Aparts**
   (IN.JOY HOSTEL DESIGN POUSADA LTDA, CNPJ 19.639.185/0001-07, ainda não verificado).
