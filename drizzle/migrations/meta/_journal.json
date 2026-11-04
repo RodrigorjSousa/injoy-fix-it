@@ -673,6 +673,13 @@
       "when": 1793803537219,
       "tag": "0095_0097_lider_camareiras_vistoria_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1793814307792,
+      "tag": "0096_0098_avaliacao_arrumacao_aplicar",
+      "breakpoints": true
     }
   ]
 }
