@@ -19,8 +19,28 @@ const TIPO_LABEL: Record<TuyaDeviceTipo, string> = {
 
 const UNIDADES = ["Botafogo", "Ipanema"];
 
+type Marca = "tuya" | "tuya2" | "ttlock" | "manual";
+
 const usaSenhaFixa = (tipo: TuyaDeviceTipo, fornecedor?: string) =>
-  fornecedor !== "ttlock" && (tipo === "portao" || tipo === "vidro" || tipo === "outro");
+  fornecedor === "manual" || (fornecedor !== "ttlock" && (tipo === "portao" || tipo === "vidro" || tipo === "outro"));
+
+const nomeMarca = (d: TuyaDevice) =>
+  d.fornecedor === "ttlock"
+    ? "TTLock"
+    : d.fornecedor === "manual"
+      ? "Manual (senha fixa)"
+      : d.tuya_projeto === 2
+        ? "Tuya (projeto 2)"
+        : "Tuya";
+
+/** Fechadura manual não tem aparelho: o identificador é montado a partir da unidade e do quarto. */
+const idManual = (unidade: string, tipo: string, quarto: string, rotulo: string) =>
+  `manual-${unidade}-${tipo === "quarto" ? quarto : rotulo}`
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+$/, "");
 
 export function TuyaDevicesManager() {
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);
@@ -32,7 +52,7 @@ export function TuyaDevicesManager() {
     device_id: "",
     label: "",
     senha_fixa: "",
-    fornecedor: "tuya" as "tuya" | "tuya2" | "ttlock",
+    fornecedor: "tuya" as Marca,
   });
   const [saving, setSaving] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -60,7 +80,13 @@ export function TuyaDevicesManager() {
   }, []);
 
   const salvar = async () => {
-    if (!form.device_id.trim() || !form.label.trim()) {
+    const manual = form.fornecedor === "manual";
+    if (manual && !/^\d{4,10}$/.test(form.senha_fixa.trim())) {
+      toast.error("Fechadura manual: digite a senha fixa (4 a 10 dígitos) que já está na fechadura.");
+      return;
+    }
+    const deviceId = manual ? idManual(form.unidade, form.tipo, form.room_number.trim(), form.label.trim()) : form.device_id.trim();
+    if (!deviceId || !form.label.trim()) {
       toast.error("Informe o Device ID e um rótulo.");
       return;
     }
@@ -73,11 +99,11 @@ export function TuyaDevicesManager() {
       unidade: form.unidade,
       tipo: form.tipo,
       room_number: form.tipo === "quarto" ? form.room_number.trim() : null,
-      device_id: form.device_id.trim(),
+      device_id: deviceId,
       label: form.label.trim(),
       ativo: true,
       senha_fixa: usaSenhaFixa(form.tipo, form.fornecedor) ? (form.senha_fixa.trim() || null) : null,
-      ...(form.fornecedor === "ttlock" ? { fornecedor: "ttlock" } : {}),
+      ...(form.fornecedor === "ttlock" || form.fornecedor === "manual" ? { fornecedor: form.fornecedor } : {}),
       // Projeto Tuya 2 (migração 0095): outra conta de desenvolvedor, mais 10 vagas "Controllable".
       ...(form.fornecedor === "tuya2" ? { tuya_projeto: 2 } : {}),
     };
@@ -268,12 +294,13 @@ export function TuyaDevicesManager() {
             </label>
             <select
               value={form.fornecedor}
-              onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value as "tuya" | "tuya2" | "ttlock" }))}
+              onChange={(e) => setForm((f) => ({ ...f, fornecedor: e.target.value as Marca }))}
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
             >
               <option value="tuya">Tuya, projeto 1 (INJOY FECHADURAS)</option>
               <option value="tuya2">Tuya, projeto 2 (INJOY FECHADURAS 2)</option>
               <option value="ttlock">TTLock (teclado com gateway G2)</option>
+              <option value="manual">Manual: teclado sem integração (senha fixa)</option>
             </select>
           </div>
           <div>
@@ -308,6 +335,7 @@ export function TuyaDevicesManager() {
               />
             </div>
           )}
+          {form.fornecedor !== "manual" && (
           <div>
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               {form.fornecedor === "ttlock" ? "Lock ID (TTLock)" : "Device ID (Tuya)"}
@@ -320,6 +348,7 @@ export function TuyaDevicesManager() {
               className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono"
             />
           </div>
+          )}
           <div className="md:col-span-2">
             <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
               Rótulo
@@ -335,7 +364,7 @@ export function TuyaDevicesManager() {
           {usaSenhaFixa(form.tipo, form.fornecedor) && (
             <div className="md:col-span-2">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                Senha fixa compartilhada (cadastrada no app Tuya Smart)
+                {form.fornecedor === "manual" ? "Senha fixa da fechadura (a que já está nela)" : "Senha fixa compartilhada (cadastrada no app Tuya Smart)"}
               </label>
               <input
                 type="text"
@@ -347,7 +376,9 @@ export function TuyaDevicesManager() {
                 className="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-mono tracking-widest"
               />
               <p className="mt-1 text-[11px] text-slate-500">
-                Esta é a senha permanente que a recepção informa ao hóspede para portão/porta de vidro. Cadastre-a antes no app Tuya Smart e digite aqui a mesma senha.
+                {form.fornecedor === "manual"
+                  ? "O sistema não troca essa senha: o totem mostra ela ao hóspede deste quarto e gera a senha dos portões. Se trocar na fechadura, troque aqui também."
+                  : "Esta é a senha permanente que a recepção informa ao hóspede para portão/porta de vidro. Cadastre-a antes no app Tuya Smart e digite aqui a mesma senha."}
               </p>
             </div>
           )}
@@ -410,7 +441,7 @@ export function TuyaDevicesManager() {
                       )}
                     </p>
                     <p className="text-[11px] text-slate-500">
-                      {d.unidade} · {d.fornecedor === "ttlock" ? "TTLock" : d.tuya_projeto === 2 ? "Tuya (projeto 2)" : "Tuya"} · {TIPO_LABEL[d.tipo]}
+                      {d.unidade} · {nomeMarca(d)} · {TIPO_LABEL[d.tipo]}
                       {d.room_number ? ` · Quarto ${d.room_number}` : ""}
                     </p>
                     <p className="text-[10px] font-mono text-slate-400 truncate">{d.device_id}</p>
@@ -448,6 +479,11 @@ export function TuyaDevicesManager() {
                 </div>
                 {usaSenhaFixa(d.tipo, d.fornecedor) && (
                   <div className="flex items-center gap-2 pl-1 flex-wrap">
+                    {d.fornecedor === "manual" && !d.senha_fixa && (
+                      <span className="w-full text-[11px] font-semibold text-amber-700">
+                        Falta a senha fixa: sem ela o totem não libera este quarto.
+                      </span>
+                    )}
                     <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                       Senha fixa:
                     </span>
@@ -475,7 +511,7 @@ export function TuyaDevicesManager() {
                       type="button"
                       disabled={savingSenha === d.id || !d.senha_fixa}
                       onClick={async () => {
-                        if (!confirm(`Excluir a senha fixa de "${d.label}"?\n\nATENÇÃO: apague também no app Tuya Smart e cadastre uma nova senha lá antes de informá-la aqui novamente.`)) return;
+                        if (!confirm(d.fornecedor === "manual" ? `Excluir a senha fixa de "${d.label}"?\n\nSem ela o totem não libera este quarto.` : `Excluir a senha fixa de "${d.label}"?\n\nATENÇÃO: apague também no app Tuya Smart e cadastre uma nova senha lá antes de informá-la aqui novamente.`)) return;
                         setSavingSenha(d.id);
                         const { error } = await supabase
                           .from("tuya_devices")
