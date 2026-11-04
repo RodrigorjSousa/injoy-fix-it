@@ -43,6 +43,7 @@ import { Route as AuthenticatedRelatoriosTurnoRouteImport } from './routes/_auth
 import { Route as AuthenticatedReservasRouteImport } from './routes/_authenticated/reservas'
 import { Route as AuthenticatedServicosRouteImport } from './routes/_authenticated/servicos'
 import { Route as AuthenticatedVistoriaRouteImport } from './routes/_authenticated/vistoria'
+import { Route as AuthenticatedWhatsappRouteImport } from './routes/_authenticated/whatsapp'
 import { Route as AuthIndexRouteImport } from './routes/auth.index'
 import { Route as AuthAdminRouteImport } from './routes/auth.admin'
 import { Route as AuthenticatedChamadosIdRouteImport } from './routes/_authenticated/chamados.$id'
@@ -252,6 +253,11 @@ const AuthenticatedVistoriaRoute = AuthenticatedVistoriaRouteImport.update({
   path: '/vistoria',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWhatsappRoute = AuthenticatedWhatsappRouteImport.update({
+  id: '/whatsapp',
+  path: '/whatsapp',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthIndexRoute = AuthIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -416,6 +422,7 @@ export interface FileRoutesByFullPath {
   '/reservas': typeof AuthenticatedReservasRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/auth/admin': typeof AuthAdminRoute
   '/auth/': typeof AuthIndexRoute
   '/chamados/$id': typeof AuthenticatedChamadosIdRoute
@@ -471,6 +478,7 @@ export interface FileRoutesByTo {
   '/reservas': typeof AuthenticatedReservasRoute
   '/servicos': typeof AuthenticatedServicosRoute
   '/vistoria': typeof AuthenticatedVistoriaRoute
+  '/whatsapp': typeof AuthenticatedWhatsappRoute
   '/auth/admin': typeof AuthAdminRoute
   '/': typeof AuthenticatedIndexRoute
   '/auth': typeof AuthIndexRoute
@@ -531,6 +539,7 @@ export interface FileRoutesById {
   '/_authenticated/reservas': typeof AuthenticatedReservasRoute
   '/_authenticated/servicos': typeof AuthenticatedServicosRoute
   '/_authenticated/vistoria': typeof AuthenticatedVistoriaRoute
+  '/_authenticated/whatsapp': typeof AuthenticatedWhatsappRoute
   '/auth/admin': typeof AuthAdminRoute
   '/_authenticated/': typeof AuthenticatedIndexRoute
   '/auth/': typeof AuthIndexRoute
@@ -592,6 +601,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/servicos'
     | '/vistoria'
+    | '/whatsapp'
     | '/auth/admin'
     | '/auth/'
     | '/chamados/$id'
@@ -647,6 +657,7 @@ export interface FileRouteTypes {
     | '/reservas'
     | '/servicos'
     | '/vistoria'
+    | '/whatsapp'
     | '/auth/admin'
     | '/'
     | '/auth'
@@ -706,6 +717,7 @@ export interface FileRouteTypes {
     | '/_authenticated/reservas'
     | '/_authenticated/servicos'
     | '/_authenticated/vistoria'
+    | '/_authenticated/whatsapp'
     | '/auth/admin'
     | '/_authenticated/'
     | '/auth/'
@@ -989,6 +1001,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedVistoriaRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/whatsapp': {
+      id: '/_authenticated/whatsapp'
+      path: '/whatsapp'
+      fullPath: '/whatsapp'
+      preLoaderRoute: typeof AuthenticatedWhatsappRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth/': {
       id: '/auth/'
       path: '/'
@@ -1218,6 +1237,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedReservasRoute: typeof AuthenticatedReservasRoute
   AuthenticatedServicosRoute: typeof AuthenticatedServicosRoute
   AuthenticatedVistoriaRoute: typeof AuthenticatedVistoriaRoute
+  AuthenticatedWhatsappRoute: typeof AuthenticatedWhatsappRoute
   AuthenticatedIndexRoute: typeof AuthenticatedIndexRoute
   AuthenticatedChamadosIdRoute: typeof AuthenticatedChamadosIdRoute
 }
@@ -1252,6 +1272,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedReservasRoute: AuthenticatedReservasRoute,
   AuthenticatedServicosRoute: AuthenticatedServicosRoute,
   AuthenticatedVistoriaRoute: AuthenticatedVistoriaRoute,
+  AuthenticatedWhatsappRoute: AuthenticatedWhatsappRoute,
   AuthenticatedIndexRoute: AuthenticatedIndexRoute,
   AuthenticatedChamadosIdRoute: AuthenticatedChamadosIdRoute,
 }
