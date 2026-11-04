@@ -294,3 +294,8 @@ das selfies antigas do ponto foi oferecida.
   (`/gestor/qualidade-arrumacao`): nota média, erros mais comuns por item, por camareira, por líder, avaliações com fotos,
   apagar, e editor dos itens (`avaliacao_arrumacao_itens`; 7 iniciais via `avaliacao_arrumacao_preparar()`).
   Não entra na bonificação (decisão do Rodrigo, 04/11/2026). Sem cota: a líder avalia o que conseguir.
+- Recado da líder é PRIVADO (migração 0099, `recados_camareiras.privado/destinatarios/destinatario_nome`): pendência de
+  vistoria aberta pela líder e avaliação com "Refazer" viram recado só para a camareira do quarto
+  (`private.camareira_do_quarto`: último serviço em 24 h, senão a designada), a própria líder e gestor/admin (RLS).
+  No card: caixa roxa "Recado da Gleidiane"/"Recado da Maria" + "Só você vê", botão "Já ajustei". Push só para ela.
+  Pendência resolvida tira o recado do card. Recados da Recepção seguem públicos ("Recado da recepção").
