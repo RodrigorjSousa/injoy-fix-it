@@ -251,7 +251,7 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
     exigeQuartoLimpo: totem.exige_quarto_limpo,
     quartoLimpo: limpo,
     // Na fase de testes a senha provisória vale para qualquer porta.
-    temFechadura: (q) => provisoria || !!S.fechaduraDoQuarto(fechaduras, q),
+    temFechadura: (q) => provisoria || S.quartoAtendido(S.fechaduraDoQuarto(fechaduras, q)),
     saldo,
     // Com a maquininha ligada o saldo vira uma etapa de pagamento, não um bloqueio.
     bloqueiaSaldoAberto: cobraNoTotem ? false : totem.bloqueia_saldo_aberto,
@@ -305,6 +305,9 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
       throw new Error(msg);
     }
   }
+
+  // A senha da estadia substitui a provisória dos portões mandada depois do check-in online.
+  if (!provisoria) await S.revogarSenhaProvisoria(totem, reservationID);
 
   let avisoCloudbeds: string | null = null;
   try {

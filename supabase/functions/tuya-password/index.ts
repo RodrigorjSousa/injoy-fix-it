@@ -636,18 +636,26 @@ function credTuya(projeto: number): CredTuya {
 const resposta = (corpo: unknown, status = 200) =>
   new Response(JSON.stringify(corpo), { status, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
-type Grupo = "ttlock" | number;
+type Grupo = "ttlock" | "manual" | number;
+
+/** Fechadura "manual" (teclado sem integração): só tem a senha fixa cadastrada pelo gestor. */
+const fixasManuais = new Map<string, string | null>();
 
 async function gruposDe(ids: string[]): Promise<Map<string, Grupo>> {
   const mapa = new Map<string, Grupo>();
   if (!ids.length) return mapa;
   // Sem as migrações 0093/0095 as colunas não existem: tenta com menos colunas e, no fim, tudo vai para o projeto 1.
-  for (const colunas of ["device_id,fornecedor,tuya_projeto", "device_id,fornecedor"]) {
+  for (const colunas of ["device_id,fornecedor,tuya_projeto,senha_fixa", "device_id,fornecedor,senha_fixa"]) {
     const { data, error } = await supabaseAdmin.from("tuya_devices").select(colunas).in("device_id", ids);
     if (error) continue;
     // deno-lint-ignore no-explicit-any
-    for (const r of (data ?? []) as any[])
-      mapa.set(String(r.device_id), r.fornecedor === "ttlock" ? "ttlock" : Number(r.tuya_projeto ?? 1) || 1);
+    for (const r of (data ?? []) as any[]) {
+      const id = String(r.device_id);
+      if (r.fornecedor === "manual") {
+        mapa.set(id, "manual");
+        fixasManuais.set(id, String(r.senha_fixa ?? "").replace(/\D/g, "") || null);
+      } else mapa.set(id, r.fornecedor === "ttlock" ? "ttlock" : Number(r.tuya_projeto ?? 1) || 1);
+    }
     break;
   }
   return mapa;
@@ -674,17 +682,59 @@ function juntar(partes: Json[]): Json {
   return out;
 }
 
+/**
+ * Fechaduras manuais nunca vão para a Tuya/TTLock: responde por elas aqui (a senha é a fixa,
+ * com senhaIds = "senha_fixa", como os portões Wi-Fi antigos) e passa o resto adiante.
+ */
+// deno-lint-ignore no-explicit-any
+function respostaManual(action: string | undefined, ids: string[], itens: any[]): Json {
+  if (action === "check_status")
+    return { statuses: ids.map((id) => ({ deviceId: id, online: true, success: true, msg: "manual (senha fixa)" })) };
+  if (action === "unlock")
+    return { unlocks: ids.map((id) => ({ deviceId: id, success: false, msg: "manual: sem abertura remota" })) };
+  if (action === "revoke")
+    return { revokes: itens.map((i) => ({ ...i, success: true, msg: "manual: senha fixa não é apagada" })) };
+  if (action) return {};
+  const senhas: Record<string, string> = {};
+  const senhaIds: Record<string, string> = {};
+  const tuyaResults = ids.map((id) => {
+    const fixa = fixasManuais.get(id);
+    if (!fixa) return { deviceId: id, status: { success: false, msg: "manual: senha fixa não cadastrada em Gestão › Fechaduras" } };
+    senhas[id] = fixa;
+    senhaIds[id] = "senha_fixa";
+    return { deviceId: id, status: { success: true, result: { fixed: true }, msg: "senha_fixa" } };
+  });
+  return { senhas, senhaIds, tuyaResults };
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: corsHeaders });
   try {
     const payload = await req.json();
-    const action: string | undefined = payload.action;
     const ids: string[] = (payload.deviceIds ?? []).map(String);
     const itens: Array<{ deviceId: string; passwordId: string | number }> = payload.items ?? [];
     const grupos = await gruposDe([...ids, ...itens.map((i) => String(i.deviceId))]);
+    const manual = (id: string) => grupos.get(String(id)) === "manual";
+    if (!ids.some(manual) && !itens.some((i) => manual(String(i.deviceId)))) return await rotear(payload, grupos);
+    const resto = { ...payload, deviceIds: ids.filter((id) => !manual(id)), items: itens.filter((i) => !manual(String(i.deviceId))) };
+    const extra = respostaManual(payload.action, ids.filter(manual), itens.filter((i) => manual(String(i.deviceId))));
+    if (!resto.deviceIds.length && !resto.items.length) return resposta(juntar([extra]));
+    const r = await rotear(resto, grupos);
+    if (!r.ok) return r;
+    return resposta(juntar([await r.json(), extra]));
+  } catch (error) {
+    return resposta({ error: msgDe(error) }, 400);
+  }
+});
+
+async function rotear(payload: Json, grupos: Map<string, Grupo>): Promise<Response> {
+  try {
+    const action: string | undefined = payload.action;
+    const ids: string[] = (payload.deviceIds ?? []).map(String);
+    const itens: Array<{ deviceId: string; passwordId: string | number }> = payload.items ?? [];
     const grupo = (id: string): Grupo => grupos.get(String(id)) ?? 1;
     const projetos = [...new Set([...ids.map(grupo), ...itens.map((i) => grupo(String(i.deviceId)))])].filter(
-      (g): g is number => g !== "ttlock",
+      (g): g is number => typeof g === "number",
     );
     // Caso simples (tudo no projeto 1, sem TTLock): exatamente o fluxo antigo.
     if (!ids.some((id) => grupo(id) !== 1) && !itens.some((i) => grupo(String(i.deviceId)) !== 1)) return tratarTuya(payload);
@@ -789,7 +839,9 @@ serve(async (req) => {
     }
 
     // ---- criação: escolhe a senha, grava nos portões TTLock e passa a mesma para cada projeto Tuya
-    const inicio = Math.min(Number(payload.startTime) || Date.now(), Date.now()) - 60_000;
+    // Respeita início no futuro (senha provisória dos portões vale só a partir da chegada),
+    // como a Tuya já faz. Início no passado ou ausente = agora.
+    const inicio = Math.max(Number(payload.startTime) || 0, Date.now()) - 60_000;
     const fim = Number(payload.endTime) || Date.now() + 24 * 3600_000;
     const nome = `${payload.roomNumber ? `Quarto ${payload.roomNumber} ` : ""}${payload.guestName ?? "Hospede"}`.trim();
     const senhas: Record<string, string> = {};
@@ -833,4 +885,4 @@ serve(async (req) => {
   } catch (error) {
     return resposta({ error: msgDe(error) }, 400);
   }
-});
+}

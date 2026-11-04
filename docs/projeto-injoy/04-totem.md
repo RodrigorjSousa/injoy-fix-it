@@ -316,9 +316,55 @@ saída → avaliação (comprovante impresso).
     bloqueada, só os quartos dela param.
   - Nos dois projetos o link é **personalizado**: fechadura nova no app precisa ser vinculada à mão.
 
+### Entrega 6: quartos com senha fixa e senha provisória dos portões (migrações `0097` e `0098`, nov/2026)
+- **Quartos sem fechadura integrada (108, 301, 401 e 501 de Botafogo):** têm teclado com senha manual.
+  Entram em `tuya_devices` com `fornecedor = 'manual'` e `device_id = manual-botafogo-<quarto>`.
+  - A senha fica em `senha_fixa` e é digitada pelo gestor em **Gestão › Fechaduras**. O repositório é
+    público, então ela nunca vai em migração. Sem a senha cadastrada, o totem para em "sem fechadura digital".
+  - No check-in, o totem mostra a senha fixa do quarto como senha principal e gera a senha dos portões
+    (que aparece em "outras portas" e no comprovante). Regras puras em `portas.ts` (`montarSenha`, testes em
+    `portas.test.ts`).
+  - A edge function `tuya-password` nunca manda fechadura manual para a Tuya/TTLock: responde com a
+    senha fixa (`senhaIds = "senha_fixa"`), não apaga nada e não abre remoto. Assim a senha de teste e o
+    check-in da recepção também funcionam com esses quartos.
+- **Senha provisória dos portões** (`senha-portoes.server.ts`, rota `/api/public/senha-portoes`, agendada
+  a cada 15 min por `private.run_senha_portoes`). O totem fica dentro do hotel, então o hóspede precisa
+  passar pelos dois portões antes de chegar nele.
+  - **Quem:** reservas que chegam hoje ou amanhã, ainda não hospedadas, cujo titular já tem documento na
+    reserva do Cloudbeds (check-in online feito). Reserva que já tem senha da estadia não recebe.
+  - **O quê:** uma senha só para os portões integrados (TTLock/Tuya ativos, `tipo <> 'quarto'`), válida da
+    `hora_checkin` do dia da chegada até a `hora_checkout` (12h) do dia seguinte. Fica em
+    `tuya_password_logs` com `provisoria = true`. A edge function passou a respeitar início no futuro também
+    no TTLock (antes começava na hora).
+  - **Envio:** a senha é gravada no **campo personalizado da reserva** do Cloudbeds (código interno
+    `campo_cloudbeds_senha`, padrão `codigo_portoes`) e o sistema confere relendo a reserva
+    (`cloudbeds_campo_em`). O e-mail sai pelo **modelo de e-mail do Cloudbeds**, que mostra o campo.
+  - **Atrasados:** senha criada depois do e-mail automático da véspera (`hora_email_codigos`, padrão 17:00)
+    gera recado para a recepção mandar o modelo à mão pela reserva. Erro (ex.: gateway desligado) gera um
+    recado por reserva a cada 6 h e é tentado de novo a cada 15 min.
+  - **No totem:** o check-in apaga a senha provisória (`revogarSenhaProvisoria`) e entrega a senha da
+    estadia. Se o hóspede não fizer o check-in, ela vence sozinha e a limpeza (`tuya-cleanup`) apaga.
+  - **Ligar:** Área do Gestor › Totem › "Mandar senha provisória dos portões depois do check-in online"
+    (um totem por unidade).
+
+#### Para ativar a Entrega 6
+1. Lovable: aplicar `0097_fechadura_manual_senha_portoes.sql` e depois `0098_senha_portoes_agendamento.sql`.
+2. Gestão › Fechaduras: digitar a senha fixa dos quartos 108, 301, 401 e 501.
+3. Cloudbeds › Configurações › Hóspedes › Campos personalizados: criar o campo **"Código dos portões"**,
+   ligado à **Reserva**, do tipo texto, não obrigatório, **sem** aparecer no motor de reservas, com código
+   interno `codigo_portoes`.
+4. Cloudbeds › Configurações › E-mails: criar o modelo **"Códigos de acesso"** com o campo
+   "Código dos portões" e agendar para **1 dia antes do check-in, às 17h**. Texto sugerido: "Digite o código
+   e # no portão gradeado e na porta de vidro. Vale a partir das 14h do dia da chegada. Dentro do hotel, faça
+   o check-in no totem para receber a senha do seu quarto."
+5. Ligar o portão gradeado e a porta de vidro TTLock em Gestão › Fechaduras.
+6. Área do Gestor › Totem: ligar a opção e conferir o código interno e o horário.
+7. Teste com uma reserva de teste chegando amanhã: preencher o documento do titular no Cloudbeds e, em até
+   15 min, conferir o evento no histórico do totem, o campo na reserva e o código no portão.
+
 ### Pendências / próximos passos
-- Só o quarto 005 de Botafogo tem fechadura cadastrada. Nos outros quartos o totem para em
-  "sem fechadura digital" e manda o hóspede falar com a equipe.
+- Botafogo: os 19 quartos têm fechadura no sistema (15 integradas + 4 manuais). Quarto sem cadastro, ou
+  manual sem a senha fixa, para em "sem fechadura digital" e manda o hóspede falar com a equipe.
 - Ligar `totem_avaliacoes` à Bonificação (notas Geral/Funcionário/Limpeza).
 - Pagamento: implementado com a Stone (Entrega 3), sem teste real ainda. Falta a homologação na Stone e
   os segredos.
