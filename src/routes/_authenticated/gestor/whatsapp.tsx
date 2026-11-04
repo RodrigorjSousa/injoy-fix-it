@@ -91,7 +91,7 @@ import { CENARIOS, type Falha, type SugestaoLicao } from "@/lib/whatsapp/cenario
 // Nada nesta tela envia mensagem real a hóspede (ver docs/projeto-injoy/08-whatsapp-ia.md).
 
 export const Route = createFileRoute("/_authenticated/gestor/whatsapp")({
-  head: () => ({ meta: [{ title: "WhatsApp (Joy) | Área do Gestor" }] }),
+  head: () => ({ meta: [{ title: "WhatsApp (assistente) | Área do Gestor" }] }),
   component: WhatsappGestor,
 });
 
@@ -166,7 +166,7 @@ const NOME_FERRAMENTA: Record<string, string> = {
 };
 
 const MODO: Record<Conversa["modo"], { label: string; cls: string }> = {
-  ia: { label: "Joy", cls: "bg-emerald-100 text-emerald-800" },
+  ia: { label: "IA", cls: "bg-emerald-100 text-emerald-800" },
   humano: { label: "Equipe", cls: "bg-amber-100 text-amber-800" },
   pausada: { label: "Pausada", cls: "bg-slate-200 text-slate-700" },
 };
@@ -187,6 +187,7 @@ function hora(iso: string) {
 // ======================================================================
 
 function WhatsappGestor() {
+  const nome = useNome();
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-4 sm:p-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -194,7 +195,7 @@ function WhatsappGestor() {
           <MessageCircle className="h-6 w-6" />
         </div>
         <div>
-          <h2 className="text-xl font-bold text-slate-900">WhatsApp — Joy</h2>
+          <h2 className="text-xl font-bold text-slate-900">WhatsApp — {nome}</h2>
           <p className="text-sm text-slate-600">
             Assistente de IA da Injoy. WhatsApp em modo rascunho: nada sai sem aprovação.
           </p>
@@ -204,9 +205,10 @@ function WhatsappGestor() {
       <div className="flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0" />
         <p>
-          A Joy só escreve <b>rascunhos</b>: nenhuma mensagem sai sem alguém clicar em "Aprovar e
+          A {nome} só escreve <b>rascunhos</b>: nenhuma mensagem sai sem alguém clicar em "Aprovar e
           enviar", e o envio só vai para os números de teste até o Rodrigo liberar. As consultas ao
-          Cloudbeds são reais, só de leitura. Cada resposta da Joy gasta créditos de IA do Lovable.
+          Cloudbeds são reais, só de leitura. Cada resposta da {nome} gasta créditos de IA do
+          Lovable.
         </p>
       </div>
 
@@ -243,6 +245,31 @@ function WhatsappGestor() {
 }
 
 // ============================================================ simulador
+
+function nomeNoJson(json: string): string {
+  try {
+    const v = (JSON.parse(json) as { nomeAssistente?: unknown }).nomeAssistente;
+    return typeof v === "string" ? v : "";
+  } catch {
+    return "";
+  }
+}
+
+function trocarNomeNoJson(json: string, nome: string): string {
+  try {
+    const obj = JSON.parse(json) as Record<string, unknown>;
+    obj.nomeAssistente = nome;
+    return JSON.stringify(obj, null, 2);
+  } catch {
+    return json;
+  }
+}
+
+/** Nome da assistente (Base de conhecimento › nomeAssistente). */
+function useNome(): string {
+  const c = useConfig();
+  return c.data?.conhecimento?.nomeAssistente?.trim() || "Ana";
+}
 
 function useConfig() {
   return useQuery({
@@ -364,6 +391,7 @@ function Simulador() {
 }
 
 function NovaConversa({ onCriada }: { onCriada: (id: string) => void }) {
+  const assistente = useNome();
   const [nome, setNome] = useState("");
   const [telefone, setTelefone] = useState("");
   const [unidade, setUnidade] = useState<"" | "Botafogo" | "Ipanema">("");
@@ -388,7 +416,7 @@ function NovaConversa({ onCriada }: { onCriada: (id: string) => void }) {
           placeholder="Para testar a busca da reserva"
         />
         <p className="mt-1 text-xs text-slate-500">
-          Com o telefone de uma reserva real, a Joy acha a reserva sozinha.
+          Com o telefone de uma reserva real, a {assistente} acha a reserva sozinha.
         </p>
       </div>
       <div>
@@ -446,6 +474,7 @@ function Chat({
   onMudou: () => void;
   onApagada: () => void;
 }) {
+  const nome = useNome();
   const qc = useQueryClient();
   const [texto, setTexto] = useState("");
   const [pendentes, setPendentes] = useState<string[]>([]);
@@ -501,7 +530,7 @@ function Chat({
         toast.warning(
           "O filtro de segurança barrou parte da resposta (veja os detalhes na mensagem).",
         );
-      if (r.transferida) toast.info("A Joy passou a conversa para a equipe.");
+      if (r.transferida) toast.info(`A ${nome} passou a conversa para a equipe.`);
     } catch (e) {
       setPendentes([]);
       setErro(erroTexto(e));
@@ -563,7 +592,7 @@ function Chat({
         <div className="flex gap-2">
           {comEquipe ? (
             <Button size="sm" variant="outline" onClick={() => void mudarModo("ia")}>
-              <Bot className="mr-1 h-4 w-4" /> Devolver para a Joy
+              <Bot className="mr-1 h-4 w-4" /> Devolver para a {nome}
             </Button>
           ) : (
             <Button size="sm" variant="outline" onClick={() => void mudarModo("humano")}>
@@ -603,10 +632,12 @@ function Chat({
             <div className="rounded-lg bg-emerald-50 px-3 py-2 text-xs text-emerald-800 shadow-sm">
               {respondendo ? (
                 <span className="flex items-center gap-1">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Joy está digitando…
+                  <Loader2 className="h-3 w-3 animate-spin" /> {nome} está digitando…
                 </span>
               ) : (
-                <span>Joy responde em {contagem}s (esperando mensagens picotadas)</span>
+                <span>
+                  {nome} responde em {contagem}s (esperando mensagens picotadas)
+                </span>
               )}
             </div>
           </div>
@@ -623,7 +654,7 @@ function Chat({
         {comEquipe && (
           <p className="mb-2 text-xs text-amber-700">
             A conversa está com a equipe: o que você escrever aqui entra como resposta da equipe e a
-            Joy não responde.
+            {nome} não responde.
           </p>
         )}
         <div className="flex gap-2">
@@ -744,6 +775,7 @@ function situacaoAntes(msgs: Mensagem[], mensagemId: string): string {
 }
 
 function Bolha({ m, onCorrigir }: { m: Mensagem; onCorrigir?: () => void }) {
+  const nome = useNome();
   const [aberto, setAberto] = useState(false);
   if (m.autor === "sistema") {
     return (
@@ -768,7 +800,7 @@ function Bolha({ m, onCorrigir }: { m: Mensagem; onCorrigir?: () => void }) {
       >
         <div className="mb-0.5 flex items-center gap-1 text-[11px] font-semibold text-slate-500">
           {m.autor === "joy" ? <Bot className="h-3 w-3" /> : <UserRound className="h-3 w-3" />}
-          {m.autor === "joy" ? "Joy" : m.autor === "equipe" ? "Equipe" : "Hóspede"}
+          {m.autor === "joy" ? nome : m.autor === "equipe" ? "Equipe" : "Hóspede"}
         </div>
         <p className="whitespace-pre-wrap break-words text-slate-900">{m.texto}</p>
         <div className="mt-1 flex flex-wrap items-center justify-end gap-1 text-[10px] text-slate-500">
@@ -839,6 +871,7 @@ function Bolha({ m, onCorrigir }: { m: Mensagem; onCorrigir?: () => void }) {
 // ========================================================= configuração
 
 function Configuracao() {
+  const nome = useNome();
   const qc = useQueryClient();
   const config = useConfig();
   const [modelo, setModelo] = useState("");
@@ -924,7 +957,7 @@ function Configuracao() {
           wifi: w,
         },
       });
-      toast.success("Configuração da Joy salva.");
+      toast.success(`Configuração da ${nome} salva.`);
       await qc.invalidateQueries({ queryKey: ["joy-config"] });
     } catch (e) {
       toast.error(erroTexto(e));
@@ -1001,7 +1034,20 @@ function Configuracao() {
               onChange={(e) => setEspera(Math.max(0, Math.min(60, Number(e.target.value) || 0)))}
             />
             <p className="mt-1 text-xs text-slate-500">
-              Tempo sem mensagem nova antes de a Joy responder.
+              Tempo sem mensagem nova antes de a {nome} responder.
+            </p>
+          </div>
+          <div>
+            <Label htmlFor="joy-nome-assistente">Nome da assistente</Label>
+            <Input
+              id="joy-nome-assistente"
+              maxLength={30}
+              value={nomeNoJson(conhecimento)}
+              onChange={(e) => setConhecimento(trocarNomeNoJson(conhecimento, e.target.value))}
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Como ela se apresenta: "Aqui é a {nomeNoJson(conhecimento) || "…"}, assistente do
+              Injoy". Vale depois de salvar.
             </p>
           </div>
         </div>
@@ -1012,7 +1058,7 @@ function Configuracao() {
           <div>
             <h3 className="font-semibold text-slate-900">Wi-Fi por unidade</h3>
             <p className="text-xs text-slate-500">
-              Fica só no banco (nunca no código). A Joy só entrega para hóspede identificado,
+              Fica só no banco (nunca no código). A {nome} só entrega para hóspede identificado,
               hospedado ou com check-in hoje/amanhã.
             </p>
           </div>
@@ -1050,7 +1096,7 @@ function Configuracao() {
 
       <Card className="space-y-2 p-4">
         <Label htmlFor="joy-prompt" className="font-semibold">
-          Prompt da Joy (personalidade, regras e transferência)
+          Prompt da {nome} (personalidade, regras e transferência)
         </Label>
         <Textarea
           id="joy-prompt"
@@ -1273,6 +1319,7 @@ function DialogLicao({
   correcao?: { conversaId: string; mensagemId: string };
   onSalva: (refazer: boolean) => void | Promise<void>;
 }) {
+  const nome = useNome();
   const [situacao, setSituacao] = useState(inicial.situacao ?? "");
   const [errada, setErrada] = useState(inicial.resposta_errada ?? "");
   const [certa, setCerta] = useState(inicial.resposta_certa ?? "");
@@ -1300,7 +1347,7 @@ function DialogLicao({
       toast.success(
         inicial.id
           ? "Lição atualizada."
-          : "Lição salva. A Joy passa a seguir nas próximas respostas.",
+          : `Lição salva. A ${nome} passa a seguir nas próximas respostas.`,
       );
       await onSalva(refazer);
     } catch (e) {
@@ -1315,10 +1362,10 @@ function DialogLicao({
       <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
-            {inicial.id ? "Editar lição" : correcao ? "Corrigir a Joy" : "Nova lição"}
+            {inicial.id ? "Editar lição" : correcao ? `Corrigir a ${nome}` : "Nova lição"}
           </DialogTitle>
           <DialogDescription>
-            Escreva como a Joy deveria ter respondido. Ela passa a usar isso como exemplo em
+            Escreva como a {nome} deveria ter respondido. Ela passa a usar isso como exemplo em
             situações parecidas. Não coloque nome, telefone, código de porta nem número de quarto de
             hóspede real.
           </DialogDescription>
@@ -1344,7 +1391,7 @@ function DialogLicao({
             />
           </div>
           <div>
-            <Label htmlFor="l-cer">Como a Joy deveria responder</Label>
+            <Label htmlFor="l-cer">Como a {nome} deveria responder</Label>
             <Textarea
               id="l-cer"
               value={certa}
@@ -1656,6 +1703,7 @@ const GRAVIDADE: Record<string, string> = {
 };
 
 function Testes() {
+  const nome = useNome();
   const qc = useQueryClient();
   const [selecionados, setSelecionados] = useState<Set<string>>(
     () => new Set(CENARIOS.map((c) => c.id)),
@@ -1760,9 +1808,9 @@ function Testes() {
             <div>
               <p className="font-semibold text-slate-900">Hóspedes simulados</p>
               <p className="text-xs text-slate-500">
-                Outra IA faz o papel do hóspede e conversa com a Joy no simulador; no fim, checagens
-                automáticas e uma IA avaliadora dão nota e sugerem lições. Nada sai para hóspedes.
-                Cada cenário gasta mais ou menos o crédito de 10 a 15 respostas da Joy.
+                Outra IA faz o papel do hóspede e conversa com a {nome} no simulador; no fim,
+                checagens automáticas e uma IA avaliadora dão nota e sugerem lições. Nada sai para
+                hóspedes. Cada cenário gasta mais ou menos o crédito de 10 a 15 respostas da {nome}.
               </p>
             </div>
           </div>
@@ -2039,6 +2087,7 @@ const MODO_WA: Record<string, string> = {
 };
 
 function WhatsappReal() {
+  const nome = useNome();
   const [ativa, setAtiva] = useState<string | null>(null);
   const conversas = useQuery({
     queryKey: ["joy-wa-conversas"],
@@ -2144,7 +2193,7 @@ function WhatsappReal() {
           <Card className="grid min-h-[50vh] place-items-center p-6 text-center text-slate-500">
             <div>
               <MessageCircle className="mx-auto mb-2 h-10 w-10 text-slate-300" />
-              Escolha uma conversa para ver os rascunhos da Joy.
+              Escolha uma conversa para ver os rascunhos da {nome}.
             </div>
           </Card>
         )}
@@ -2154,6 +2203,7 @@ function WhatsappReal() {
 }
 
 function ConfigWhatsapp() {
+  const nome = useNome();
   const qc = useQueryClient();
   const status = useQuery({ queryKey: ["joy-wa-status"], queryFn: () => joyWhatsappStatus() });
   const [modo, setModo] = useState("desligado");
@@ -2231,7 +2281,7 @@ function ConfigWhatsapp() {
           </span>
           {d.envio_automatico_teste && (
             <span className="rounded bg-violet-100 px-2 py-0.5 font-semibold text-violet-800">
-              Joy responde sozinha (só teste)
+              {nome} responde sozinha (só teste)
             </span>
           )}
           <span
@@ -2258,7 +2308,7 @@ function ConfigWhatsapp() {
           </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <Label htmlFor="wa-modo">O que a Joy faz</Label>
+              <Label htmlFor="wa-modo">O que a {nome} faz</Label>
               <select
                 id="wa-modo"
                 value={modo}
@@ -2273,7 +2323,9 @@ function ConfigWhatsapp() {
               </select>
             </div>
             <div>
-              <Label htmlFor="wa-pausa">Pausa da Joy depois que a equipe responde (minutos)</Label>
+              <Label htmlFor="wa-pausa">
+                Pausa da {nome} depois que a equipe responde (minutos)
+              </Label>
               <Input
                 id="wa-pausa"
                 type="number"
@@ -2297,7 +2349,7 @@ function ConfigWhatsapp() {
           <div className="flex items-start gap-3 rounded border border-violet-200 bg-violet-50 p-3">
             <Switch checked={automatico} onCheckedChange={setAutomatico} id="wa-auto" />
             <label htmlFor="wa-auto" className="text-violet-900">
-              <b>Joy responde sozinha para os números de teste.</b> O rascunho sai sem aprovação,
+              <b>{nome} responde sozinha para os números de teste.</b> O rascunho sai sem aprovação,
               mas só para quem está na lista acima. Para qualquer outro número, continua precisando
               de aprovação.
             </label>
@@ -2329,6 +2381,7 @@ function ConfigWhatsapp() {
 }
 
 function ConversaWhatsapp({ conversa }: { conversa: Conversa }) {
+  const nome = useNome();
   const qc = useQueryClient();
   const [texto, setTexto] = useState("");
   const [enviando, setEnviando] = useState(false);
@@ -2365,7 +2418,7 @@ function ConversaWhatsapp({ conversa }: { conversa: Conversa }) {
     try {
       await joyEnviarWhatsapp({ data: { conversaId: conversa.id, texto } });
       setTexto("");
-      toast.success("Enviada. A Joy fica pausada nesta conversa por um tempo.");
+      toast.success(`Enviada. A ${nome} fica pausada nesta conversa por um tempo.`);
       await atualizar();
     } catch (e) {
       toast.error(erroTexto(e));
@@ -2430,7 +2483,7 @@ function ConversaWhatsapp({ conversa }: { conversa: Conversa }) {
             </Button>
           ) : (
             <Button size="sm" variant="outline" onClick={() => void mudarModo("ia")}>
-              <Bot className="mr-1 h-4 w-4" /> Devolver para a Joy
+              <Bot className="mr-1 h-4 w-4" /> Devolver para a {nome}
             </Button>
           )}
         </div>
@@ -2479,6 +2532,7 @@ function Rascunho({
   podeEnviar: boolean;
   onMudou: () => Promise<void>;
 }) {
+  const nome = useNome();
   const [texto, setTexto] = useState(m.texto);
   const [ocupado, setOcupado] = useState(false);
   const ferramentas = m.meta?.ferramentas ?? [];
@@ -2514,7 +2568,7 @@ function Rascunho({
   return (
     <div className="ml-auto max-w-[85%] space-y-2 rounded-lg border-2 border-dashed border-yellow-400 bg-yellow-50 p-3 text-sm">
       <p className="flex items-center gap-1 text-[11px] font-semibold text-yellow-800">
-        <Bot className="h-3 w-3" /> Rascunho da Joy · ainda não enviado
+        <Bot className="h-3 w-3" /> Rascunho da {nome} · ainda não enviado
         {ferramentas.length > 0 && (
           <span className="font-normal text-yellow-700">
             · {ferramentas.map((f) => NOME_FERRAMENTA[f.nome] ?? f.nome).join(", ")}

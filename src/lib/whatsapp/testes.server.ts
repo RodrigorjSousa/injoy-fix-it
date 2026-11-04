@@ -15,7 +15,7 @@ import {
   resultadoFinal,
   type MsgTeste,
 } from "./cenarios";
-import { agoraNoHotel, textoConhecimento } from "./prompt";
+import { agoraNoHotel, aplicarNomeAssistente, textoConhecimento } from "./prompt";
 import { mascararCartao } from "./regras";
 
 // Tabelas novas ainda não estão no types.ts gerado.
@@ -130,7 +130,14 @@ export async function passoTeste(testeId: string): Promise<PassoTeste> {
   let tokensEntrada = 0;
   let tokensSaida = 0;
   try {
-    const h = await completarTexto(config.modelo, mensagensHospede(c, msgs, agora));
+    const nome = config.conhecimento.nomeAssistente;
+    const h = await completarTexto(
+      config.modelo,
+      mensagensHospede(c, msgs, agora).map((m) => ({
+        ...m,
+        content: aplicarNomeAssistente(m.content, nome),
+      })),
+    );
     tokensEntrada += h.tokensEntrada;
     tokensSaida += h.tokensSaida;
     const fala = lerFalaHospede(h.texto);
@@ -191,7 +198,10 @@ export async function avaliarTeste(testeId: string): Promise<{ nota: number; apr
   const auto = checagensAutomaticas(c, msgs, transferida);
 
   try {
-    const pedido = mensagensAvaliador(c, msgs, textoConhecimento(config.conhecimento));
+    const pedido = mensagensAvaliador(c, msgs, textoConhecimento(config.conhecimento)).map((m) => ({
+      ...m,
+      content: aplicarNomeAssistente(m.content, config.conhecimento.nomeAssistente),
+    }));
     let r = await completarTexto(config.modelo, pedido);
     let tokensEntrada = r.tokensEntrada;
     let tokensSaida = r.tokensSaida;

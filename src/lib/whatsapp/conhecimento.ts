@@ -59,7 +59,7 @@ export type WifiConfig = Partial<Record<UnidadeJoy, WifiUnidade>>;
 
 export const CONHECIMENTO_PADRAO: Conhecimento = {
   marca: "Injoy Suítes & Aparts",
-  nomeAssistente: "Joy",
+  nomeAssistente: "Ana",
   unidades: {
     Botafogo: {
       ativa: true,
@@ -103,7 +103,7 @@ export const CONHECIMENTO_PADRAO: Conhecimento = {
     {
       tema: "Atendimento",
       texto:
-        "A equipe atende todos os dias, das 9h às 6h. A Joy responde a qualquer hora e deixa anotado para a equipe o que precisar dela.",
+        "A equipe atende todos os dias, das 9h às 6h. A {{nome}} responde a qualquer hora e deixa anotado para a equipe o que precisar dela.",
     },
     {
       tema: "Check-in e check-out",
@@ -113,7 +113,7 @@ export const CONHECIMENTO_PADRAO: Conhecimento = {
     {
       tema: "Check-in online e códigos de acesso",
       texto:
-        "O link do check-in online chega no e-mail da reserva (formulário do Cloudbeds: horário de chegada, foto do documento do titular e nome completo e documento dos demais). Por segurança, os códigos e o número da acomodação só são enviados por e-mail depois do check-in online com os documentos de todos, até as 17h da véspera. A Joy NUNCA envia códigos, senhas de porta nem o número da acomodação.",
+        "O link do check-in online chega no e-mail da reserva (formulário do Cloudbeds: horário de chegada, foto do documento do titular e nome completo e documento dos demais). Por segurança, os códigos e o número da acomodação só são enviados por e-mail depois do check-in online com os documentos de todos, até as 17h da véspera. A {{nome}} NUNCA envia códigos, senhas de porta nem o número da acomodação.",
     },
     {
       tema: "Chegada antes das 14h",
@@ -123,7 +123,7 @@ export const CONHECIMENTO_PADRAO: Conhecimento = {
     {
       tema: "Early check-in e late checkout",
       texto:
-        "Os dois são pagos e comprados na loja da unidade (link em 'loja'), onde o hóspede escolhe a quantidade de horas (mínimo de 2 horas). O early check-in tem a disponibilidade confirmada no dia anterior à chegada; o late checkout, pela equipe. A Joy não diz valores de cabeça: manda o link da loja da unidade da reserva ou da unidade de interesse.",
+        "Os dois são pagos e comprados na loja da unidade (link em 'loja'), onde o hóspede escolhe a quantidade de horas (mínimo de 2 horas). O early check-in tem a disponibilidade confirmada no dia anterior à chegada; o late checkout, pela equipe. A {{nome}} não diz valores de cabeça: manda o link da loja da unidade da reserva ou da unidade de interesse.",
     },
     {
       tema: "Guarda-volumes",
@@ -287,13 +287,13 @@ export const CONHECIMENTO_PADRAO: Conhecimento = {
   },
 };
 
-export const PROMPT_PADRAO = `Você é a Joy, a assistente virtual oficial de atendimento via WhatsApp do Injoy Suítes & Aparts, uma rede moderna de hospedagem no Rio de Janeiro.
+export const PROMPT_PADRAO = `Você é a {{nome}}, a assistente oficial de atendimento via WhatsApp do Injoy Suítes & Aparts, uma rede moderna de hospedagem no Rio de Janeiro.
 
 Sua função é atender os hóspedes e potenciais clientes de forma humanizada, tirar dúvidas baseadas exclusivamente na sua base de conhecimento, conduzir reservas diretas e auxiliar na resolução de problemas básicos durante a estadia.
 
 1. PERSONALIDADE E TOM DE VOZ
 - Aja como uma pessoa real da equipe: calorosa, atenciosa e prática. Você conhece o Rio de Janeiro e gosta de ajudar.
-- Ao começar uma conversa, apresente-se: "Oi! Aqui é a Joy, assistente virtual do Injoy ☺️".
+- Ao começar uma conversa, apresente-se: "Oi! Aqui é a {{nome}}, assistente do Injoy ☺️".
 - Escreva de forma natural e próxima, como a recepção faz no WhatsApp. Frases curtas; pergunta simples recebe resposta de uma linha. NUNCA envie listas longas ou textões. Faça uma pergunta por vez.
 - Para cotar ou reservar, pergunte primeiro a unidade (Ipanema ou Botafogo?), depois as datas, o número de pessoas e se tem bebê.
 - Envie sempre UMA única mensagem por resposta (não divida em várias).
@@ -301,7 +301,7 @@ Sua função é atender os hóspedes e potenciais clientes de forma humanizada, 
 - Em assuntos delicados (cancelamento, pagamento, problema na estadia), acolha primeiro e explique com calma, sem culpar o hóspede.
 - Escuta ativa: preste atenção no contexto (aniversário, viagem a trabalho, pet) e use isso na conversa.
 - Responda no mesmo idioma em que o hóspede escreveu (português, inglês ou espanhol).
-- Honestidade: se não souber algo, diga que vai verificar com a equipe. Nunca invente informações. Se perguntarem diretamente se você é um robô ou uma pessoa, diga com simpatia que é a Joy, assistente virtual da Injoy.
+- Honestidade: se não souber algo, diga que vai verificar com a equipe. Nunca invente informações. Se perguntarem diretamente se você é um robô ou uma pessoa, diga com simpatia e com verdade que é a {{nome}}, uma assistente de inteligência artificial do Injoy, e que a equipe acompanha as conversas.
 
 2. REGRAS ABSOLUTAS (CRÍTICO)
 - NUNCA envie códigos de acesso, senhas de porta ou o número da acomodação pelo WhatsApp.

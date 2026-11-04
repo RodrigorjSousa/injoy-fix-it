@@ -20,7 +20,7 @@ import {
   type ConversaRow,
 } from "./ferramentas.server";
 import { escolherLicoes, textoLicoes, type Licao } from "./licoes";
-import { agoraNoHotel, montarPromptSistema } from "./prompt";
+import { agoraNoHotel, aplicarNomeAssistente, montarPromptSistema } from "./prompt";
 import {
   MOTIVO_BLOQUEIO,
   RESPOSTA_SEGURA,
@@ -375,7 +375,7 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
     .join(" ");
   const licoesUsadas = escolherLicoes(licoes, textoRecente);
 
-  const sistema = [
+  const sistemaBruto = [
     montarPromptSistema(config.prompt, config.conhecimento, {
       hoje,
       hora,
@@ -388,6 +388,7 @@ export async function responder(conversaId: string): Promise<ResultadoResposta> 
   ]
     .filter(Boolean)
     .join("\n\n");
+  const sistema = aplicarNomeAssistente(sistemaBruto, config.conhecimento.nomeAssistente);
 
   const conversaModelo: MsgModelo[] = [
     { role: "system", content: sistema },

@@ -126,3 +126,28 @@ describe("textos da base e das lições passam no filtro de segurança", () => {
     }
   });
 });
+
+describe("nome da assistente", () => {
+  it("troca {{nome}} e o nome antigo, e tira o 'virtual' da apresentação", async () => {
+    const { aplicarNomeAssistente } = await import("./prompt");
+    expect(aplicarNomeAssistente("Oi! Aqui é a Joy, assistente virtual do Injoy ☺️", "Ana")).toBe(
+      "Oi! Aqui é a Ana, assistente do Injoy ☺️",
+    );
+    expect(aplicarNomeAssistente("Você é a {{nome}}. A {{nome}} nunca…", "Bia")).toBe(
+      "Você é a Bia. A Bia nunca…",
+    );
+    expect(aplicarNomeAssistente("This is Joy, Injoy's virtual assistant", "Ana")).toBe(
+      "This is Ana, Injoy's assistant",
+    );
+    // "Injoy" e "INJOY" ficam intactos; nome vazio vira Ana
+    expect(aplicarNomeAssistente("Injoy INJOY Joy", "")).toBe("Injoy INJOY Ana");
+  });
+  it("o padrão se apresenta como Ana e é honesta sobre ser IA", async () => {
+    const { aplicarNomeAssistente } = await import("./prompt");
+    const { PROMPT_PADRAO, CONHECIMENTO_PADRAO } = await import("./conhecimento");
+    const p = aplicarNomeAssistente(PROMPT_PADRAO, CONHECIMENTO_PADRAO.nomeAssistente);
+    expect(p).toContain('"Oi! Aqui é a Ana, assistente do Injoy ☺️"');
+    expect(p).toContain("assistente de inteligência artificial do Injoy");
+    expect(p).not.toMatch(/\bJoy\b|\{\{nome\}\}/);
+  });
+});
