@@ -138,6 +138,87 @@ export type Database = {
           },
         ]
       }
+      avaliacao_arrumacao_itens: {
+        Row: {
+          ativo: boolean
+          created_at: string
+          descricao: string | null
+          id: string
+          nome: string
+          ordem: number
+        }
+        Insert: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome: string
+          ordem?: number
+        }
+        Update: {
+          ativo?: boolean
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          nome?: string
+          ordem?: number
+        }
+        Relationships: []
+      }
+      avaliacoes_arrumacao: {
+        Row: {
+          avaliadora_id: string
+          avaliadora_nome: string | null
+          camareira_nome: string
+          created_at: string
+          elogio: string | null
+          id: string
+          itens: Json
+          nota: number
+          observacao: string | null
+          property: string
+          refazer: boolean
+          room_number: string
+          servico_concluido_em: string | null
+          servico_id: string | null
+          tarefa: string | null
+        }
+        Insert: {
+          avaliadora_id?: string
+          avaliadora_nome?: string | null
+          camareira_nome: string
+          created_at?: string
+          elogio?: string | null
+          id?: string
+          itens?: Json
+          nota: number
+          observacao?: string | null
+          property: string
+          refazer?: boolean
+          room_number: string
+          servico_concluido_em?: string | null
+          servico_id?: string | null
+          tarefa?: string | null
+        }
+        Update: {
+          avaliadora_id?: string
+          avaliadora_nome?: string | null
+          camareira_nome?: string
+          created_at?: string
+          elogio?: string | null
+          id?: string
+          itens?: Json
+          nota?: number
+          observacao?: string | null
+          property?: string
+          refazer?: boolean
+          room_number?: string
+          servico_concluido_em?: string | null
+          servico_id?: string | null
+          tarefa?: string | null
+        }
+        Relationships: []
+      }
       beverage_catalog: {
         Row: {
           cloudbeds_item_id: string | null
@@ -5544,6 +5625,7 @@ export type Database = {
           next_due_date: string
         }[]
       }
+      avaliacao_arrumacao_preparar: { Args: never; Returns: undefined }
       bonificacao_acessos_listar: {
         Args: never
         Returns: {
