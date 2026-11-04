@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { MessageSquare, User, Clock, BellRing } from "lucide-react";
+import { MessageSquare, User, Clock, BellRing, Lock, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useMe } from "@/lib/store";
 
 type Unidade = "Botafogo" | "Ipanema";
 
@@ -14,7 +15,14 @@ type Recado = {
   read_at: string | null;
   read_by: string | null;
   created_at: string;
+  created_by?: string | null;
+  /** Recado da líder das camareiras: só a camareira envolvida vê (migração 0099). */
+  privado?: boolean;
+  destinatarios?: string[] | null;
+  destinatario_nome?: string | null;
 };
+
+const primeiroNome = (n: string | null | undefined) => String(n ?? "").trim().split(/\s+/)[0] || "líder";
 
 function tempoAtras(iso: string) {
   const d = new Date(iso);
@@ -190,8 +198,78 @@ export function RecadosDoQuartoSection({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [unidade, roomNumber]);
 
+  const privados = recados.filter((r) => r.privado);
+  const daRecepcao = recados.filter((r) => !r.privado);
   if (recados.length === 0) return null;
 
+  return (
+    <>
+      {privados.length > 0 && <RecadosDaLider recados={privados} onFeito={carregar} />}
+      {daRecepcao.length > 0 && <RecadosDaRecepcao recados={daRecepcao} />}
+    </>
+  );
+}
+
+/** Recados privados da líder: "Recado da Gleidiane" / "Recado da Maria". Só quem recebeu (e gestor) vê. */
+function RecadosDaLider({ recados, onFeito }: { recados: Recado[]; onFeito: () => void }) {
+  const { data: me } = useMe();
+  const remetentes = [...new Set(recados.map((r) => primeiroNome(r.created_by_name)))];
+  const marcarFeito = async (r: Recado) => {
+    const { error } = await supabase
+      .from("recados_camareiras")
+      .update({ read_at: new Date().toISOString(), read_by: me?.funcionario?.nome ?? me?.email ?? "camareira" })
+      .eq("id", r.id);
+    if (error) return toast.error(error.message);
+    toast.success("Marcado como ajustado");
+    onFeito();
+  };
+  return (
+    <div className="rounded-xl border-2 border-violet-400 bg-violet-50 p-3 space-y-2 shadow-md shadow-violet-200">
+      <div className="flex items-center gap-2">
+        <BellRing size={15} className="text-violet-700 animate-bounce" />
+        <span className="text-[11px] font-black uppercase tracking-wider text-violet-800">
+          Recado da {remetentes.join(" e ")}
+        </span>
+        <span className="ml-auto text-[10px] font-black bg-violet-600 text-white px-2 py-0.5 rounded-full">
+          {recados.length}
+        </span>
+      </div>
+      <p className="flex items-center gap-1 text-[10px] font-semibold text-violet-700">
+        <Lock size={10} /> Só você vê este recado
+      </p>
+      <div className="space-y-2">
+        {recados.map((r) => {
+          const souDestino = !!me?.userId && (r.destinatarios ?? []).includes(me.userId);
+          return (
+            <div key={r.id} className="bg-white rounded-lg border border-violet-300 p-2.5 space-y-1.5">
+              <p className="text-sm text-slate-800 whitespace-pre-wrap leading-snug font-medium">{r.message}</p>
+              <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                <span className="flex items-center gap-1">
+                  <User size={10} /> {r.created_by_name}
+                  {r.destinatario_nome && !souDestino ? ` → ${r.destinatario_nome}` : ""}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Clock size={10} /> {tempoAtras(r.created_at)}
+                </span>
+                {(souDestino || r.created_by === me?.userId) && (
+                  <button
+                    type="button"
+                    onClick={() => marcarFeito(r)}
+                    className="ml-auto flex items-center gap-1 rounded-md bg-violet-600 px-2 py-1 text-[10px] font-bold text-white"
+                  >
+                    <CheckCircle2 size={11} /> {souDestino ? "Já ajustei" : "Resolvido"}
+                  </button>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function RecadosDaRecepcao({ recados }: { recados: Recado[] }) {
   return (
     <div className="rounded-xl border-2 border-amber-400 bg-amber-50 p-3 space-y-2 animate-pulse-attention shadow-md shadow-amber-200">
       <div className="flex items-center gap-2">

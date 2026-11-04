@@ -98,7 +98,12 @@ function buildNotification(evt: Body): {
     }
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
-      const from = paraRecepcao ? "camareira" : "recepção";
+      // Recado privado da líder: "Recado da Gleidiane" (primeiro nome de quem mandou).
+      const from = d.privado
+        ? String(d.created_by_name ?? "líder").trim().split(/\s+/)[0]
+        : paraRecepcao
+          ? "camareira"
+          : "recepção";
       return {
         title: `💬 Recado da ${from}${d.property ? ` · ${d.property}` : ""}`,
         body: `Quarto ${d.room_number}: ${String(d.message ?? "").slice(0, 140)}`,
@@ -376,6 +381,11 @@ async function targetsForEvent(evt: Body): Promise<string[]> {
         : [];
     case "recado_camareira": {
       const paraRecepcao = d.direction === "camareira_to_recepcao" || d.direction === "to_recepcao";
+      // Privado (líder → camareira do quarto): só a camareira envolvida recebe.
+      if (d.privado)
+        return Array.isArray(d.destinatarios)
+          ? (d.destinatarios as unknown[]).filter((x): x is string => typeof x === "string")
+          : [];
       if (paraRecepcao) return juntar(await recepcao(), await byRoles(["admin", "gestor"]));
       return juntar(await camareiras(), await byRoles(["admin", "gestor"]));
     }
