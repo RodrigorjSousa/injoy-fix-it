@@ -666,6 +666,13 @@
       "when": 1793736299023,
       "tag": "0094_0095_tuya_segundo_projeto_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1793803537219,
+      "tag": "0095_0097_lider_camareiras_vistoria_aplicar",
+      "breakpoints": true
     }
   ]
 }
