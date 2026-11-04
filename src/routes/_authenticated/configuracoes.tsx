@@ -27,6 +27,7 @@ async function copiarSenha(valor: string) {
   }
 }
 import { useServerFn } from "@tanstack/react-start";
+import { useLiderCamareirasDoCadastro, useSalvarLiderCamareiras } from "@/lib/lider-camareiras";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { adminSetFuncionarioCredentials, adminSubstituirFuncionario } from "@/lib/user-management.functions";
@@ -767,6 +768,12 @@ function EditarFuncoesDialog({
   const tornarGestor = useTornarGestor();
   const removerGestor = useRemoverGestor();
   const { data: usuariosRoles = [] } = useUsuariosComRoles();
+  const liderQ = useLiderCamareirasDoCadastro(funcionario?.id);
+  const salvarLider = useSalvarLiderCamareiras();
+  const [lider, setLider] = useState<boolean | null>(null);
+  const liderAtual = liderQ.data ?? null;
+  const liderEscolhido = lider ?? liderAtual;
+  const liderChanged = liderAtual !== null && lider !== null && lider !== liderAtual;
 
   const currentRoles = useMemo(() => {
     if (!funcionario?.userId)
@@ -797,6 +804,7 @@ function EditarFuncoesDialog({
   const [lastId, setLastId] = useState<string | null>(null);
   if (funcionario && funcionario.id !== lastId) {
     setLastId(funcionario.id);
+    setLider(null);
     setNome(funcionario.nome);
     setSel(funcionario.categorias);
     setRolCamareira(currentRoles.camareira);
@@ -829,7 +837,7 @@ function EditarFuncoesDialog({
     if (a.length !== b.length) return true;
     return a.some((t) => !b.includes(t)) || b.some((t) => !a.includes(t));
   })();
-  const changed = nomeChanged || categoriasChanged || rolesChanged || telasChanged;
+  const changed = nomeChanged || categoriasChanged || rolesChanged || telasChanged || liderChanged;
 
   const toggle = (c: Categoria) =>
     setSel((prev) => (prev.includes(c) ? prev.filter((x) => x !== c) : [...prev, c]));
@@ -882,6 +890,9 @@ function EditarFuncoesDialog({
           }
         }
       }
+      if (liderChanged && lider !== null) {
+        await salvarLider.mutateAsync({ funcionarioId: funcionario.id, lider });
+      }
       toast.success("Cadastro atualizado");
       onClose();
     } catch (e) {
@@ -896,7 +907,8 @@ function EditarFuncoesDialog({
     atribuirRole.isPending ||
     removerRole.isPending ||
     tornarGestor.isPending ||
-    removerGestor.isPending;
+    removerGestor.isPending ||
+    salvarLider.isPending;
   const rolesDisabled = !funcionario?.userId;
   const gestorDisabled = rolesDisabled || !me?.isAdmin;
 
@@ -998,6 +1010,25 @@ function EditarFuncoesDialog({
                 Gestor
               </button>
             </div>
+            {liderAtual !== null && (
+              <button
+                type="button"
+                onClick={() => setLider(!liderEscolhido)}
+                className={`mt-2 flex w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                  liderEscolhido
+                    ? "border-amber-300 bg-amber-50 text-amber-900"
+                    : "bg-background hover:border-primary/40"
+                }`}
+              >
+                <span className="text-base">{liderEscolhido ? "⭐" : "☆"}</span>
+                <span>
+                  <strong>Líder das camareiras</strong>
+                  <span className="block text-xs text-muted-foreground">
+                    Faz a vistoria antes do check-in pela tela das Camareiras (botão "Vistoriar Quarto").
+                  </span>
+                </span>
+              </button>
+            )}
             {rolesDisabled && (
               <p className="text-xs text-muted-foreground mt-2">
                 O funcionário ainda não criou conta. Perfis de acesso ficam disponíveis após o primeiro login.
