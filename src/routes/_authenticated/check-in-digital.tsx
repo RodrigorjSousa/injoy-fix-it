@@ -6,6 +6,7 @@ import { TuyaLogsButton } from "@/components/recepcao/tuya-logs-modal";
 import { AbrirPortasRemoto } from "@/components/recepcao/abrir-portas-remoto";
 import { SenhasAtivasPanel } from "@/components/recepcao/senhas-ativas-panel";
 import { TuyaDevicesManagerModal } from "@/components/gestao/tuya-devices-manager";
+import { SenhaTesteFechaduras } from "@/components/gestao/senha-teste-fechaduras";
 import { useUnidade } from "@/lib/unidade-context";
 
 import { requireGestor } from "@/lib/require-gestor";
@@ -29,7 +30,7 @@ function CheckInDigitalPage() {
         <div>
           <h1 className="text-2xl font-black tracking-tight text-slate-900">Check-in Digital</h1>
           <p className="text-sm text-slate-500">
-            Gestão das fechaduras inteligentes Tuya · INJOY {unidade}
+            Gestão das fechaduras inteligentes (Tuya e TTLock) · INJOY {unidade}
           </p>
         </div>
       </div>
@@ -44,13 +45,15 @@ function CheckInDigitalPage() {
             <KeyRound className="h-5 w-5" />
           </div>
           <div>
-            <p className="text-sm font-black text-slate-900">Gerenciar Fechaduras Tuya</p>
+            <p className="text-sm font-black text-slate-900">Gerenciar Fechaduras (Tuya e TTLock)</p>
             <p className="text-xs text-slate-500">Cadastro por unidade e por quarto — habilita o check-in digital</p>
           </div>
         </div>
       </button>
 
       <TuyaDevicesManagerModal open={tuyaOpen} onOpenChange={setTuyaOpen} />
+
+      <SenhaTesteFechaduras unidade={unidade} />
 
       {unidade === "Botafogo" ? (
         <>
