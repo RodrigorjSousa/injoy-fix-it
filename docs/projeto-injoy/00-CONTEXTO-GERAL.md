@@ -281,3 +281,8 @@ das selfies antigas do ponto foi oferecida.
   × elogios marcados) = Total, com PDF/planilha. Quem passa do máximo de atrasos ou tem falta sem justificativa perde meta e
   elogios do mês. O gestor marca quem foi elogiado em cada avaliação com elogio (ou lança elogio avulso). Botão "Conferir
   atrasos do mês" roda `bonus_meta_apurar(_mes)`. Regras em `src/lib/bonificacao-pagamento.ts` (+ teste).
+- Líder das camareiras (migração 0097, `funcionarios.lider_camareiras`): o gestor marca em Configurações › Equipe › Editar
+  ("Líder das camareiras"). Hoje: Gleidiane (Botafogo) e Maria (Ipanema). A líder vê "Vistoriar Quarto" nos quartos com
+  check-in na tela das Camareiras também em Botafogo (Ipanema já tinha para todas) e pode abrir/resolver pendências da
+  vistoria (`private.eh_lider_camareiras`; políticas novas só somam). Hook `src/lib/lider-camareiras.ts`. Próximos itens da
+  líder devem usar o mesmo flag.

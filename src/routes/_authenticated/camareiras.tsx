@@ -16,6 +16,7 @@ import { RecadoRecepcaoModal } from "@/components/camareiras/recado-recepcao-mod
 import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-modal";
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
+import { useSouLiderCamareiras } from "@/lib/lider-camareiras";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { TarefasExtrasPainel } from "@/components/camareiras/tarefas-extras-painel";
@@ -140,6 +141,8 @@ function corLegenda(c: string | null) {
 
 function PainelCamareiras() {
   const { data: me } = useMe();
+  const { data: souLider = false } = useSouLiderCamareiras(me?.userId);
+  const podeVistoriar = souLider || !!me?.isGestor || !!me?.isAdmin;
   // Remover "Não Perturbe" é exclusivo da gestão/administração.
   const podeRemoverDnd = !!me && (me.isGestor || me.isAdmin);
   const nomeAutomatico = useMemo(() => {
@@ -1096,7 +1099,8 @@ function PainelCamareiras() {
                 </>
               )}
 
-              {q.property === "Ipanema" && !q.is_dnd && isCheckInTask(q.assigned_task) && (
+              {/* Vistoria antes do check-in: Ipanema (todas) e, em qualquer unidade, a líder das camareiras e o gestor. */}
+              {(q.property === "Ipanema" || podeVistoriar) && !q.is_dnd && isCheckInTask(q.assigned_task) && (
                 <button
                   onClick={() => setVistoriaPara(q)}
                   className="w-full py-2.5 rounded-xl font-bold text-sm border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 flex items-center justify-center gap-2"
