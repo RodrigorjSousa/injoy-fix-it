@@ -1769,6 +1769,7 @@ export type Database = {
           created_at: string
           email: string
           id: string
+          lider_camareiras: boolean
           nome: string
           pontomais_employee_id: string | null
           telas_permitidas: string[] | null
@@ -1781,6 +1782,7 @@ export type Database = {
           created_at?: string
           email: string
           id?: string
+          lider_camareiras?: boolean
           nome: string
           pontomais_employee_id?: string | null
           telas_permitidas?: string[] | null
@@ -1793,6 +1795,7 @@ export type Database = {
           created_at?: string
           email?: string
           id?: string
+          lider_camareiras?: boolean
           nome?: string
           pontomais_employee_id?: string | null
           telas_permitidas?: string[] | null
