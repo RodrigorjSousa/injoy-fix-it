@@ -286,3 +286,11 @@ das selfies antigas do ponto foi oferecida.
   check-in na tela das Camareiras também em Botafogo (Ipanema já tinha para todas) e pode abrir/resolver pendências da
   vistoria (`private.eh_lider_camareiras`; políticas novas só somam). Hook `src/lib/lider-camareiras.ts`. Próximos itens da
   líder devem usar o mesmo flag.
+- Avaliação da arrumação (migração 0098): a líder das camareiras (e o gestor) tem "⭐ Avaliar arrumação" em TODOS os
+  quartos da tela das Camareiras (`AvaliarArrumacaoModal`). Escolhe o serviço (room_housekeeping_history dos últimos 3 dias;
+  ou outra camareira) e marca cada item OK / Ajustar / Refazer (erro pede descrição; Refazer pede foto, bucket
+  `inspections`). Nota 0–10 automática (OK=1, Ajustar=0,5, Refazer=0; `calcularNota`). Refazer → push
+  `arrumacao_refazer` para a camareira (cadastro pelo nome). Gestor: Área do Gestor › Qualidade da arrumação
+  (`/gestor/qualidade-arrumacao`): nota média, erros mais comuns por item, por camareira, por líder, avaliações com fotos,
+  apagar, e editor dos itens (`avaliacao_arrumacao_itens`; 7 iniciais via `avaliacao_arrumacao_preparar()`).
+  Não entra na bonificação (decisão do Rodrigo, 04/11/2026). Sem cota: a líder avalia o que conseguir.

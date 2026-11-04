@@ -1,6 +1,6 @@
 import { Link, useNavigate, useRouterState } from "@tanstack/react-router";
 import { AvisoNovaVersao } from "@/components/aviso-nova-versao";
-import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone, Gauge, CreditCard } from "lucide-react";
+import { PlusCircle, LayoutGrid, Snowflake, LogOut, MessageSquare, ConciergeBell, BedDouble, Wrench, LayoutDashboard, ShieldCheck, ChevronDown, BarChart3, Building2, MoreHorizontal, ClipboardList, Package, GlassWater, Cog, Trophy, Key, CalendarDays, Fingerprint, TabletSmartphone, Gauge, CreditCard, Star } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import injoyLogo from "@/assets/injoy-logo.png.asset.json";
@@ -158,6 +158,7 @@ const MENU_GESTOR: NavItem = {
   children: [
     { to: "/gestor", label: "INÍCIO DA ÁREA", icon: ShieldCheck, exact: true },
     { to: "/gestor/rendimento", label: "RENDIMENTO POR UNIDADE", icon: BarChart3 },
+    { to: "/gestor/qualidade-arrumacao", label: "QUALIDADE DA ARRUMAÇÃO", icon: Star },
   ],
 };
 

@@ -17,6 +17,7 @@ import { RetiradaAlmoxarifadoModal } from "@/components/almoxarifado/retirada-mo
 import { SolicitarCompraModal } from "@/components/almoxarifado/solicitar-compra-modal";
 import { VistoriaModal } from "@/components/recepcao/vistoria-modal";
 import { useSouLiderCamareiras } from "@/lib/lider-camareiras";
+import { AvaliarArrumacaoModal } from "@/components/camareiras/avaliar-arrumacao-modal";
 import { HistoricoLimpezaModal } from "@/components/camareiras/historico-limpeza-modal";
 import { EstoqueGeralModal } from "@/components/almoxarifado/estoque-geral-modal";
 import { TarefasExtrasPainel } from "@/components/camareiras/tarefas-extras-painel";
@@ -160,6 +161,7 @@ function PainelCamareiras() {
   const [selecionarPara, setSelecionarPara] = useState<RoomRow | null>(null);
   const [dndPara, setDndPara] = useState<RoomRow | null>(null);
   const [vistoriaPara, setVistoriaPara] = useState<RoomRow | null>(null);
+  const [avaliarPara, setAvaliarPara] = useState<RoomRow | null>(null);
   const [comentarios, setComentarios] = useState<Record<string, string>>({});
   const [selectedMedia, setSelectedMedia] = useState<
     Record<string, { file: File; kind: "foto" | "video"; preview: string } | null>
@@ -1109,6 +1111,16 @@ function PainelCamareiras() {
                 </button>
               )}
 
+              {/* Líder das camareiras (e gestor): avalia a arrumação feita em qualquer quarto. */}
+              {podeVistoriar && (
+                <button
+                  onClick={() => setAvaliarPara(q)}
+                  className="w-full py-2.5 rounded-xl font-bold text-sm border-2 border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-800 flex items-center justify-center gap-2"
+                >
+                  ⭐ Avaliar arrumação
+                </button>
+              )}
+
               {/* Botafogo e Ipanema: a camareira faz o check-out e a Recepção confere. */}
               {q.guest_name &&
                 q.guest_name !== "Quarto Vazio" &&
@@ -1370,6 +1382,17 @@ function PainelCamareiras() {
             comentarios[`${dndPara.property}-${dndPara.room_number}`] ??
             dndPara.room_comment
           }
+        />
+      )}
+
+      {avaliarPara && me?.userId && (
+        <AvaliarArrumacaoModal
+          open={!!avaliarPara}
+          onClose={() => setAvaliarPara(null)}
+          property={avaliarPara.property}
+          roomNumber={avaliarPara.room_number}
+          avaliadoraNome={me.funcionario?.nome ?? me.email ?? "Líder"}
+          userId={me.userId}
         />
       )}
 
