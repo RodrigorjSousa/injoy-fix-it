@@ -687,6 +687,13 @@
       "when": 1793814905406,
       "tag": "0097_0099_recado_lider_privado_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 98,
+      "version": "7",
+      "when": 1793822408491,
+      "tag": "0098_0100_whatsapp_recepcao_aplicar",
+      "breakpoints": true
     }
   ]
 }

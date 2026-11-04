@@ -5302,6 +5302,7 @@ export type Database = {
       }
       wa_licoes: {
         Row: {
+          aprovada: boolean
           ativa: boolean
           conversa_id: string | null
           created_at: string
@@ -5317,6 +5318,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          aprovada?: boolean
           ativa?: boolean
           conversa_id?: string | null
           created_at?: string
@@ -5332,6 +5334,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          aprovada?: boolean
           ativa?: boolean
           conversa_id?: string | null
           created_at?: string
