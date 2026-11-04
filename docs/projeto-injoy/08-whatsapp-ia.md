@@ -591,6 +591,22 @@ padrão. A honestidade continua: se perguntarem se é robô, ela diz que é uma 
 artificial do Injoy. O código e as tabelas continuam com "joy" no nome interno (wa_*, joy*), sem efeito
 para o hóspede.
 
+#### Acesso da recepção (04/11/2026, migração `0100_whatsapp_recepcao.sql`)
+Pedido do Rodrigo: a recepção acompanha as respostas em tempo real e corrige quando precisar.
+- Tela nova **/whatsapp** (menu "WhatsApp (assistente)" para quem tem acesso à Recepção). É o mesmo painel,
+  em `src/components/whatsapp/painel-whatsapp.tsx`, com papel "recepcao": abas **WhatsApp** (conversas
+  reais, rascunhos com Aprovar/Editar/Descartar, resposta manual, Corrigir) e **Simulador**. Sem
+  Configuração (prompt, base, senhas do Wi-Fi), Lições, Testes, Execuções nem a "Ligação" do WhatsApp.
+- O envio continua com as mesmas travas: só para números de teste até o Rodrigo liberar.
+- **Correção da recepção vira sugestão:** a lição é gravada desativada com `aprovada = false` e só passa a
+  valer quando um gestor clica em **Aprovar** na aba Lições (que mostra um contador das pendentes). Assim
+  nenhuma mudança de comportamento entra sem aprovação.
+- O "Corrigir" também aparece nas respostas já enviadas no WhatsApp real (para gestor e recepção).
+- Banco: `private.pode_usar_whatsapp` (gestor, admin, recepção); `minha_permissao_whatsapp()` passa a
+  devolver `{gerir, usar}`; leitura de conversas, mensagens e passagens para quem pode usar; coluna
+  `wa_licoes.aprovada`. Testado em Postgres local: recepção vê conversas e mensagens, não vê config nem
+  lições; camareira não vê nada; roda duas vezes.
+
 #### Como ficou ligado em 28/10/2026
 - App da Meta **Joy Injoy** (ID 1046257355103789), publicado, no portfólio **Injoy Suites e Aparts**
   (IN.JOY HOSTEL DESIGN POUSADA LTDA, CNPJ 19.639.185/0001-07, ainda não verificado).

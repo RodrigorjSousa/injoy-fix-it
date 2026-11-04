@@ -14,6 +14,17 @@ async function exigirGestor(supabase: any) {
     throw new Error("Somente gestor ou administrador usa a Joy.");
 }
 
+/** Gestor, admin ou recepção (conversas, rascunhos, simulador). Devolve se também pode gerir. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function exigirUsuario(supabase: any): Promise<{ gerir: boolean }> {
+  const { data, error } = await supabase.rpc("minha_permissao_whatsapp");
+  if (error) throw new Error(`Não foi possível verificar seu acesso: ${error.message}`);
+  const p = (data ?? {}) as { gerir?: boolean; usar?: boolean };
+  // antes da migração 0100 o campo "usar" não existe: vale o "gerir"
+  if (!p.gerir && !p.usar) throw new Error("Seu usuário não tem acesso ao WhatsApp da assistente.");
+  return { gerir: !!p.gerir };
+}
+
 async function admin() {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -97,7 +108,7 @@ export const joyNovaConversa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => novaConversaInput.parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { data: row, error } = await db
       .from("wa_conversas")
@@ -124,7 +135,7 @@ export const joyEnviarSimulador = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => enviarInput.parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { data: conv, error: errConv } = await db
       .from("wa_conversas")
@@ -166,7 +177,7 @@ export const joyMensagemEquipe = createServerFn({ method: "POST" })
     z.object({ conversaId: uuid, texto: z.string().trim().min(1).max(2000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { data: conv } = await db
       .from("wa_conversas")
@@ -188,7 +199,7 @@ export const joyMudarModo = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => modoInput.parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { error } = await db
       .from("wa_conversas")
@@ -228,7 +239,7 @@ export const joyApagarConversa = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ conversaId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { data: apagadas, error } = await db
       .from("wa_conversas")
@@ -264,7 +275,9 @@ export const joySalvarLicao = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => licaoInput.parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    const { gerir } = await exigirUsuario(context.supabase);
+    // Recepção: só cria SUGESTÃO (desativada, aguardando aprovação do gestor); não edita lições.
+    if (!gerir && data.id) throw new Error("Somente o gestor edita lições.");
     const db = await admin();
     const { mascararCartao } = await import("@/lib/whatsapp/regras");
     const limpa = (t?: string) => (t && t.trim() ? mascararCartao(t.trim()) : null);
@@ -274,7 +287,11 @@ export const joySalvarLicao = createServerFn({ method: "POST" })
       resposta_certa: mascararCartao(data.resposta_certa),
       motivo: limpa(data.motivo),
       tema: limpa(data.tema),
-      ...(data.ativa !== undefined ? { ativa: data.ativa } : {}),
+      ...(gerir
+        ? data.ativa !== undefined
+          ? { ativa: data.ativa }
+          : {}
+        : { ativa: false, aprovada: false }),
     };
     if (data.id) {
       const { data: rows, error } = await db
@@ -290,7 +307,7 @@ export const joySalvarLicao = createServerFn({ method: "POST" })
       .from("wa_licoes")
       .insert({
         ...campos,
-        origem: data.origem ?? "manual",
+        origem: gerir ? (data.origem ?? "manual") : "correcao",
         conversa_id: data.conversaId ?? null,
         mensagem_id: data.mensagemId ?? null,
         criado_por: context.userId,
@@ -354,7 +371,7 @@ export const joyRefazerResposta = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ conversaId: uuid, mensagemId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const db = await admin();
     const { data: conv } = await db
       .from("wa_conversas")
@@ -533,7 +550,7 @@ export const joyAprovarRascunho = createServerFn({ method: "POST" })
       .parse(input),
   )
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const { aprovarRascunho } = await import("@/lib/whatsapp/whatsapp.server");
     return aprovarRascunho({
       mensagemId: data.mensagemId,
@@ -546,7 +563,7 @@ export const joyDescartarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ mensagemId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const { descartarRascunho } = await import("@/lib/whatsapp/whatsapp.server");
     await descartarRascunho(data.mensagemId);
     return { ok: true };
@@ -558,7 +575,7 @@ export const joyEnviarWhatsapp = createServerFn({ method: "POST" })
     z.object({ conversaId: uuid, texto: z.string().trim().min(1).max(4000) }).parse(input),
   )
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const { enviarManual } = await import("@/lib/whatsapp/whatsapp.server");
     return enviarManual({ conversaId: data.conversaId, texto: data.texto, userId: context.userId });
   });
@@ -568,7 +585,36 @@ export const joyGerarRascunho = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input) => z.object({ conversaId: uuid }).parse(input))
   .handler(async ({ data, context }) => {
-    await exigirGestor(context.supabase);
+    await exigirUsuario(context.supabase);
     const { processarConversa } = await import("@/lib/whatsapp/whatsapp.server");
     return processarConversa(data.conversaId, { forcar: true });
+  });
+
+// ------------------------------------------------- recepção e aprovação
+
+/** Nome da assistente e o que o usuário pode fazer (sem expor prompt, base nem Wi-Fi). */
+export const joyInfo = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { gerir } = await exigirUsuario(context.supabase);
+    const { carregarConfig } = await import("@/lib/whatsapp/agente.server");
+    const c = await carregarConfig();
+    return { nome: c.conhecimento.nomeAssistente, gerir };
+  });
+
+/** Gestor aprova a sugestão de lição feita pela recepção: ela passa a valer. */
+export const joyAprovarLicao = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input) => z.object({ id: uuid }).parse(input))
+  .handler(async ({ data, context }) => {
+    await exigirGestor(context.supabase);
+    const db = await admin();
+    const { data: rows, error } = await db
+      .from("wa_licoes")
+      .update({ aprovada: true, ativa: true })
+      .eq("id", data.id)
+      .select("id");
+    if (error) throw new Error(`Não foi possível aprovar: ${error.message}`);
+    if (!rows?.length) throw new Error("Lição não encontrada.");
+    return { ok: true };
   });
