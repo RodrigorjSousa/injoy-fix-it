@@ -26,7 +26,7 @@ type Resultado = {
 };
 
 const marca = (d: TuyaDevice) =>
-  d.fornecedor === "ttlock" ? "TTLock" : d.tuya_projeto === 2 ? "Tuya 2" : "Tuya 1";
+  d.fornecedor === "ttlock" ? "TTLock" : d.fornecedor === "manual" ? "Senha fixa" : d.tuya_projeto === 2 ? "Tuya 2" : "Tuya 1";
 
 export function SenhaTesteFechaduras({ unidade }: { unidade: string }) {
   const [devices, setDevices] = useState<TuyaDevice[] | null>(null);

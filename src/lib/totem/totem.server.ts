@@ -26,6 +26,7 @@ import {
   type QuartoReserva,
   type Raw,
 } from "./regras";
+import { ehManual, integradas, montarSenha, quartoAtendido, senhaManual, type Fechadura, type Porta } from "./portas";
 
 // As tabelas novas ainda não estão no types.ts gerado pelo Lovable.
 const db = () => supabaseAdmin as unknown as SupabaseClient;
@@ -52,6 +53,12 @@ export type Totem = {
   voz_ativa: boolean;
   /** Fase de testes: senha fixa para todas as portas, sem Tuya. NULL = normal. */
   senha_provisoria: string | null;
+  /** Migração 0097: manda a senha provisória dos portões depois do check-in online. */
+  senha_portoes_auto: boolean;
+  /** Código interno (shortcode) do campo personalizado da reserva no Cloudbeds que recebe a senha. */
+  campo_cloudbeds_senha: string;
+  /** Horário (véspera da chegada) em que o e-mail automático do Cloudbeds sai. */
+  hora_email_codigos: string;
 };
 
 export type ModoTotem = "ambos" | "checkin" | "checkout";
@@ -60,7 +67,7 @@ export type ModoTotem = "ambos" | "checkin" | "checkout";
 // funcionando com os valores padrão em vez de quebrar por coluna inexistente.
 const CAMPOS_TOTEM = "*";
 
-function normalizarTotem(row: Record<string, unknown>): Totem {
+export function normalizarTotem(row: Record<string, unknown>): Totem {
   return {
     id: String(row.id),
     nome: String(row.nome ?? "Totem"),
@@ -80,6 +87,9 @@ function normalizarTotem(row: Record<string, unknown>): Totem {
     mensagem_comprovante: (row.mensagem_comprovante as string | null) ?? null,
     voz_ativa: row.voz_ativa !== false,
     senha_provisoria: ((row.senha_provisoria as string | null) ?? "").trim() || null,
+    senha_portoes_auto: row.senha_portoes_auto === true,
+    campo_cloudbeds_senha: String(row.campo_cloudbeds_senha ?? "").trim() || "codigo_portoes",
+    hora_email_codigos: hhmm(row.hora_email_codigos, "17:00"),
   };
 }
 
@@ -357,12 +367,13 @@ export async function quartosLimpos(totem: Totem): Promise<(nome: string) => boo
   return (nome) => limpos.some((r) => quartosIguais(r, nome));
 }
 
-export type Fechadura = { device_id: string; tipo: string; label: string; room_number: string | null; senha_fixa: string | null };
+export type { Fechadura, Porta } from "./portas";
+export { quartoAtendido };
 
 export async function fechadurasDaUnidade(totem: Totem): Promise<Fechadura[]> {
   const { data, error } = await db()
     .from("tuya_devices")
-    .select("device_id,tipo,label,room_number,senha_fixa")
+    .select("device_id,tipo,label,room_number,senha_fixa,fornecedor")
     .eq("unidade", totem.unidade)
     .eq("ativo", true);
   if (error) throw new Error(`Falha ao consultar as fechaduras: ${error.message}`);
@@ -372,7 +383,7 @@ export async function fechadurasDaUnidade(totem: Totem): Promise<Fechadura[]> {
 export const fechaduraDoQuarto = (fechaduras: Fechadura[], quarto: string) =>
   fechaduras.find((f) => f.tipo === "quarto" && f.room_number && quartosIguais(f.room_number, quarto)) ?? null;
 
-async function chamarTuya(body: Record<string, unknown>): Promise<Record<string, unknown>> {
+export async function chamarTuya(body: Record<string, unknown>): Promise<Record<string, unknown>> {
   const url = process.env.SUPABASE_URL;
   const chave = process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!url || !chave) throw new Error("Servidor sem SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.");
@@ -386,17 +397,7 @@ async function chamarTuya(body: Record<string, unknown>): Promise<Record<string,
   return json;
 }
 
-/** senha = senha própria da porta; mesma = abre com a senha do quarto; nenhum dos dois = sem senha (equipe abre). */
-export type Porta = { label: string; tipo: string; senha: string | null; mesma: boolean };
 export type SenhaGerada = { senha: string; portas: Porta[]; validaAte: string };
-
-function portasDe(fechaduras: Fechadura[], senhas: Record<string, string>, senhaQuarto: string): Porta[] {
-  return fechaduras.map((f) => {
-    const s = senhas[f.device_id] ?? (f.tipo !== "quarto" ? f.senha_fixa : null) ?? null;
-    if (f.tipo === "quarto") return { label: f.label, tipo: f.tipo, senha: senhaQuarto, mesma: true };
-    return { label: f.label, tipo: f.tipo, senha: s && s !== senhaQuarto ? s : null, mesma: s === senhaQuarto };
-  });
-}
 
 /** Senha ainda válida gerada antes para esta reserva (evita duplicar e permite reexibir). */
 export async function senhaExistente(
@@ -410,6 +411,8 @@ export async function senhaExistente(
     .select("room_number,password,device_ids,saida,created_at")
     .eq("reservation_id", reservationID)
     .eq("unidade", totem.unidade)
+    // A senha provisória dos portões (check-in online) não é a senha da estadia.
+    .eq("provisoria", false)
     .is("revoked_at", null)
     .gt("saida", new Date().toISOString())
     .order("created_at", { ascending: false })
@@ -425,11 +428,11 @@ export async function senhaExistente(
     const [dev, senha] = parte.trim().split(":");
     if (dev && senha) senhas[dev.trim()] = senha.trim();
   }
-  const quartoDev = linhas[0].device_ids.find((id) => fechaduras.some((f) => f.device_id === id && f.tipo === "quarto"));
-  const senhaQuarto = (quartoDev && senhas[quartoDev]) || "";
-  if (!senhaQuarto) return null;
   const usadas = fechaduras.filter((f) => linhas.some((l) => l.device_ids.includes(f.device_id)));
-  return { senha: senhaQuarto, portas: portasDe(usadas, senhas, senhaQuarto), validaAte: linhas[0].saida };
+  if (!usadas.some((f) => f.tipo === "quarto")) return null;
+  const { senha, portas } = montarSenha(usadas, senhas);
+  if (!senha) return null;
+  return { senha, portas, validaAte: linhas[0].saida };
 }
 
 /**
@@ -443,35 +446,45 @@ export function senhaProvisoria(totem: Totem, quartos: QuartoReserva[]): SenhaGe
   return { senha: totem.senha_provisoria ?? "", portas: [], validaAte: saida.toISOString() };
 }
 
-/** Gera UMA senha para os quartos da reserva + portas compartilhadas e registra no histórico. */
+/**
+ * Gera UMA senha para os quartos da reserva + portas compartilhadas e registra no histórico.
+ * Quarto com fechadura manual (senha fixa) não vai para a Tuya/TTLock: o hóspede recebe a
+ * senha fixa do quarto e a senha gerada para os portões.
+ */
 export async function gerarSenhaTuya(
   totem: Totem,
   args: { reservationID: string; hospede: string; quartos: QuartoReserva[] },
 ): Promise<SenhaGerada> {
   const fechaduras = await fechadurasDaUnidade(totem);
   const doQuarto = args.quartos.map((q) => ({ q, f: fechaduraDoQuarto(fechaduras, q.nome) }));
-  const faltando = doQuarto.filter((x) => !x.f).map((x) => x.q.nome);
+  const faltando = doQuarto.filter((x) => !quartoAtendido(x.f)).map((x) => x.q.nome);
   if (faltando.length) throw new Error(`Quarto ${faltando.join(", ")} sem fechadura cadastrada.`);
   const compartilhadas = fechaduras.filter((f) => f.tipo !== "quarto");
   const usadas = [...doQuarto.map((x) => x.f as Fechadura), ...compartilhadas];
+  const paraGerar = integradas(usadas);
 
   const checkout = args.quartos.map((q) => q.checkOut).filter(Boolean).sort().pop() ?? relogioSP().hoje;
   const saidaMs = new Date(`${checkout}T${totem.hora_checkout}:00-03:00`).getTime();
   const entradaMs = Date.now();
 
-  const resp = await chamarTuya({
-    deviceIds: usadas.map((f) => f.device_id),
-    guestName: args.hospede,
-    startTime: entradaMs,
-    endTime: saidaMs,
-    roomNumber: args.quartos.map((q) => q.nome).join(","),
-    unidade: totem.unidade,
-  });
-  const senhas = (resp.senhas ?? {}) as Record<string, string>;
-  const senhaIds = (resp.senhaIds ?? {}) as Record<string, string | number>;
-  const semSenha = doQuarto.filter((x) => !senhas[(x.f as Fechadura).device_id]);
+  let senhas: Record<string, string> = {};
+  let senhaIds: Record<string, string | number> = {};
+  let results: Array<{ deviceId: string; status?: { code?: number; msg?: string } }> = [];
+  if (paraGerar.length) {
+    const resp = await chamarTuya({
+      deviceIds: paraGerar.map((f) => f.device_id),
+      guestName: args.hospede,
+      startTime: entradaMs,
+      endTime: saidaMs,
+      roomNumber: args.quartos.map((q) => q.nome).join(","),
+      unidade: totem.unidade,
+    });
+    senhas = (resp.senhas ?? {}) as Record<string, string>;
+    senhaIds = (resp.senhaIds ?? {}) as Record<string, string | number>;
+    results = (resp.tuyaResults ?? []) as typeof results;
+  }
+  const semSenha = doQuarto.filter((x) => !ehManual(x.f as Fechadura) && !senhas[(x.f as Fechadura).device_id]);
   if (semSenha.length) {
-    const results = (resp.tuyaResults ?? []) as Array<{ deviceId: string; status?: { code?: number; msg?: string } }>;
     const detalhe = semSenha
       .map((x) => {
         const r = results.find((y) => y.deviceId === (x.f as Fechadura).device_id);
@@ -480,7 +493,15 @@ export async function gerarSenhaTuya(
       .join("; ");
     throw new Error(`A fechadura não aceitou a senha — ${detalhe}`);
   }
-  const senhaQuarto = senhas[(doQuarto[0].f as Fechadura).device_id];
+  // Senha fixa dos quartos manuais também entra no histórico (reexibir a senha ao hóspede).
+  for (const { f } of doQuarto) {
+    const fixa = senhaManual(f as Fechadura);
+    if (fixa) {
+      senhas[(f as Fechadura).device_id] = fixa;
+      senhaIds[(f as Fechadura).device_id] = "senha_fixa";
+    }
+  }
+  const { senha, portas } = montarSenha(usadas, senhas);
   const resumo = Object.entries(senhas)
     .map(([id, p]) => `${id}:${p}`)
     .join(" | ");
@@ -502,17 +523,62 @@ export async function gerarSenhaTuya(
     });
     if (error) console.error("[totem] falha ao registrar senha", error.message);
   }
-  const portas = portasDe(usadas, senhas, senhaQuarto);
   // Portão sem a senha (ex.: teclado TTLock sem gateway): o hóspede vê "a equipe
   // abre para você" e a recepção é avisada para resolver antes da chegada.
-  const semPortao = portas.filter((p) => p.tipo !== "quarto" && !p.senha && !p.mesma).map((p) => p.label);
+  const semPortao = portas.filter((p) => !p.tipo.startsWith("quarto") && !p.senha && !p.mesma).map((p) => p.label);
   if (semPortao.length)
     await avisarRecepcao(
       totem,
       args.quartos[0]?.nome ?? null,
       `Totem: ${args.hospede} recebeu a senha do quarto, mas ${semPortao.join(", ")} não aceitou a senha. Verificar a fechadura/gateway.`,
     );
-  return { senha: senhaQuarto, portas, validaAte: new Date(saidaMs).toISOString() };
+  return { senha, portas, validaAte: new Date(saidaMs).toISOString() };
+}
+
+/**
+ * Apaga a senha provisória dos portões (check-in online) da reserva. Chamado
+ * quando o totem entrega a senha da estadia. Falha aqui não impede o check-in:
+ * a senha provisória vence sozinha às 12h do dia seguinte à chegada.
+ */
+export async function revogarSenhaProvisoria(totem: Totem, reservationID: string): Promise<number> {
+  const { data, error } = await db()
+    .from("tuya_password_logs")
+    .select("id,room_number,senha_ids")
+    .eq("reservation_id", reservationID)
+    .eq("unidade", totem.unidade)
+    .eq("provisoria", true)
+    .is("revoked_at", null)
+    .limit(10);
+  if (error) {
+    console.error("[totem] falha ao consultar senha provisória", error.message);
+    return 0;
+  }
+  let revogadas = 0;
+  for (const l of (data ?? []) as Array<{ id: string; room_number: string; senha_ids: Record<string, string | number> | null }>) {
+    const items = Object.entries(l.senha_ids ?? {})
+      .filter(([, pid]) => pid && String(pid) !== "senha_fixa")
+      .map(([deviceId, passwordId]) => ({ deviceId, passwordId }));
+    let ok = true;
+    if (items.length) {
+      try {
+        const r = await chamarTuya({ action: "revoke", items, roomNumber: l.room_number, unidade: totem.unidade });
+        ok = Array.isArray(r.revokes) && (r.revokes as Array<{ success: boolean }>).every((x) => x.success);
+      } catch (e) {
+        console.error("[totem] falha ao apagar senha provisória", e);
+        ok = false;
+      }
+    }
+    await db()
+      .from("tuya_password_logs")
+      .update({
+        revoked_at: new Date().toISOString(),
+        revoked_by_name: `Totem ${totem.nome}`,
+        revoke_reason: ok ? "checkin_totem" : "checkin_totem:parcial",
+      })
+      .eq("id", l.id);
+    if (ok) revogadas++;
+  }
+  return revogadas;
 }
 
 /** Revoga as senhas temporárias do quarto no check-out. Devolve quantas foram revogadas. */

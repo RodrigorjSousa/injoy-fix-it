@@ -11,8 +11,11 @@ export type TuyaDevice = {
   label: string;
   ativo: boolean;
   senha_fixa: string | null;
-  /** Migração 0093. TTLock: device_id = lockId do app TTLock. */
-  fornecedor?: "tuya" | "ttlock";
+  /**
+   * Migração 0093. TTLock: device_id = lockId do app TTLock.
+   * Migração 0097: "manual" = teclado sem integração, só a senha fixa (senha_fixa).
+   */
+  fornecedor?: "tuya" | "ttlock" | "manual";
   /** Migração 0095: projeto Tuya da fechadura (1 ou 2), cada um com a sua cota. */
   tuya_projeto?: number;
 };

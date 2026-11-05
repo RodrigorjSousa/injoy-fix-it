@@ -63,6 +63,7 @@ import { Route as ApiPublicPagarmeWebhookRouteImport } from './routes/api/public
 import { Route as ApiPublicPrevisaoCargaRouteImport } from './routes/api/public/previsao-carga'
 import { Route as ApiPublicPushDispatcherRouteImport } from './routes/api/public/push-dispatcher'
 import { Route as ApiPublicReservasCobrancaRouteImport } from './routes/api/public/reservas-cobranca'
+import { Route as ApiPublicSenhaPortoesRouteImport } from './routes/api/public/senha-portoes'
 import { Route as ApiPublicStripeWebhookRouteImport } from './routes/api/public/stripe-webhook'
 import { Route as ApiPublicTuyaCleanupRouteImport } from './routes/api/public/tuya-cleanup'
 import { Route as ApiPublicWhatsappProcessarRouteImport } from './routes/api/public/whatsapp-processar'
@@ -365,6 +366,11 @@ const ApiPublicReservasCobrancaRoute =
     path: '/api/public/reservas-cobranca',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicSenhaPortoesRoute = ApiPublicSenhaPortoesRouteImport.update({
+  id: '/api/public/senha-portoes',
+  path: '/api/public/senha-portoes',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicStripeWebhookRoute = ApiPublicStripeWebhookRouteImport.update({
   id: '/api/public/stripe-webhook',
   path: '/api/public/stripe-webhook',
@@ -441,6 +447,7 @@ export interface FileRoutesByFullPath {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/senha-portoes': typeof ApiPublicSenhaPortoesRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
@@ -498,6 +505,7 @@ export interface FileRoutesByTo {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/senha-portoes': typeof ApiPublicSenhaPortoesRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
@@ -559,6 +567,7 @@ export interface FileRoutesById {
   '/api/public/previsao-carga': typeof ApiPublicPrevisaoCargaRoute
   '/api/public/push-dispatcher': typeof ApiPublicPushDispatcherRoute
   '/api/public/reservas-cobranca': typeof ApiPublicReservasCobrancaRoute
+  '/api/public/senha-portoes': typeof ApiPublicSenhaPortoesRoute
   '/api/public/stripe-webhook': typeof ApiPublicStripeWebhookRoute
   '/api/public/tuya-cleanup': typeof ApiPublicTuyaCleanupRoute
   '/api/public/whatsapp-processar': typeof ApiPublicWhatsappProcessarRoute
@@ -620,6 +629,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/senha-portoes'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/api/public/whatsapp-processar'
@@ -677,6 +687,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/senha-portoes'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/api/public/whatsapp-processar'
@@ -737,6 +748,7 @@ export interface FileRouteTypes {
     | '/api/public/previsao-carga'
     | '/api/public/push-dispatcher'
     | '/api/public/reservas-cobranca'
+    | '/api/public/senha-portoes'
     | '/api/public/stripe-webhook'
     | '/api/public/tuya-cleanup'
     | '/api/public/whatsapp-processar'
@@ -755,6 +767,7 @@ export interface RootRouteChildren {
   ApiPublicPrevisaoCargaRoute: typeof ApiPublicPrevisaoCargaRoute
   ApiPublicPushDispatcherRoute: typeof ApiPublicPushDispatcherRoute
   ApiPublicReservasCobrancaRoute: typeof ApiPublicReservasCobrancaRoute
+  ApiPublicSenhaPortoesRoute: typeof ApiPublicSenhaPortoesRoute
   ApiPublicStripeWebhookRoute: typeof ApiPublicStripeWebhookRoute
   ApiPublicTuyaCleanupRoute: typeof ApiPublicTuyaCleanupRoute
   ApiPublicWhatsappProcessarRoute: typeof ApiPublicWhatsappProcessarRoute
@@ -1141,6 +1154,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicReservasCobrancaRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/senha-portoes': {
+      id: '/api/public/senha-portoes'
+      path: '/api/public/senha-portoes'
+      fullPath: '/api/public/senha-portoes'
+      preLoaderRoute: typeof ApiPublicSenhaPortoesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/stripe-webhook': {
       id: '/api/public/stripe-webhook'
       path: '/api/public/stripe-webhook'
@@ -1303,6 +1323,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPublicPrevisaoCargaRoute: ApiPublicPrevisaoCargaRoute,
   ApiPublicPushDispatcherRoute: ApiPublicPushDispatcherRoute,
   ApiPublicReservasCobrancaRoute: ApiPublicReservasCobrancaRoute,
+  ApiPublicSenhaPortoesRoute: ApiPublicSenhaPortoesRoute,
   ApiPublicStripeWebhookRoute: ApiPublicStripeWebhookRoute,
   ApiPublicTuyaCleanupRoute: ApiPublicTuyaCleanupRoute,
   ApiPublicWhatsappProcessarRoute: ApiPublicWhatsappProcessarRoute,
