@@ -209,8 +209,8 @@ describe("calcularFolha — fixo no banco de horas", () => {
   });
 });
 
-describe("calcularFolha — fixo em plantão extra combinado", () => {
-  it("paga o plantão pelo valor da escala e não conta de novo como hora extra", () => {
+describe("calcularFolha — fixo escalado como extra", () => {
+  it("com batida: entra como hora extra pelo ponto, sem diária de plantão", () => {
     const r = calcularFolha({
       ...base,
       dias: [
@@ -225,8 +225,94 @@ describe("calcularFolha — fixo em plantão extra combinado", () => {
       ],
     });
     const f = r.linhas.find((l) => l.colaborador.id === "c-fixo")!;
-    expect(f.valores.plantoes).toBe(150);
+    expect(f.valores.plantoes).toBe(0);
+    expect(f.horas.he50Folga).toBe(60); // o que o ponto marcou no dia 07
+    expect(f.extrasFixo).toEqual([
+      expect.objectContaining({
+        data: "2026-11-07",
+        fonte: "ponto",
+        cem: false,
+        valorCombinado: 150,
+      }),
+    ]);
+    // ao lançar, a diária do dia vai a zero
+    expect(montarLancamentoFolha(r, "11/2026").plantoes).toContainEqual({
+      id: "c-fixo-2026-11-07",
+      valor: 0,
+    });
+  });
+  it("sem batida em feriado: 100% pelas horas da escala", () => {
+    const r = calcularFolha({
+      ...base,
+      dias: [
+        ...base.dias,
+        dia({
+          colaborador_id: "c-fixo",
+          data: "2026-11-20",
+          status: "extra",
+          horas_contratadas: null,
+          valor_combinado: 150,
+          hora_entrada: "07:00",
+          hora_saida: "15:00",
+        }),
+      ],
+    });
+    const f = r.linhas.find((l) => l.colaborador.id === "c-fixo")!;
+    expect(f.horas.he100).toBe(120 + 480);
+    expect(f.valores.he100).toBe(200); // 10 h × 10 × 2
+    expect(f.avisos.some((a) => /sem batida/.test(a))).toBe(true);
+  });
+  it("folga trabalhada em feriado cadastrado conta como 100%", () => {
+    const r = calcularFolha({
+      ...base,
+      ponto: [
+        {
+          colaborador_id: "c-fixo",
+          modo: "pagamento",
+          dias: [
+            {
+              data: "2026-11-02",
+              classe: "folga_trabalhada",
+              extra50: 480,
+              extra100: 0,
+              debito: 0,
+              noturnoReduzido: 0,
+            },
+          ],
+        },
+      ],
+    });
+    const f = r.linhas.find((l) => l.colaborador.id === "c-fixo")!;
+    expect(f.horas.he100).toBe(480);
     expect(f.horas.he50Folga).toBe(0);
+  });
+});
+
+describe("horas digitadas", () => {
+  it("o gestor digita as horas e o valor é calculado", () => {
+    const r = calcularFolha({
+      ...base,
+      ajustes: [
+        {
+          colaborador_id: "c-fixo",
+          valores: { min_he100: 480, min_he50Folga: 0, min_noturno: 105 },
+          pagar_vt: null,
+          pagar_vr: null,
+          pagar_bonus: null,
+          outros_proventos: 0,
+          outros_descontos: 0,
+          observacao: null,
+        },
+      ],
+    });
+    const f = r.linhas.find((l) => l.colaborador.id === "c-fixo")!;
+    expect(f.horasDigitadas.sort()).toEqual(["he100", "he50Folga", "noturno"]);
+    expect(f.horasCalculadas.he100).toBe(120);
+    expect(f.valores.he100).toBe(160); // 8 h × 10 × 2
+    expect(f.valores.he50Folga).toBe(0);
+    expect(f.horas.noturnoReduzido).toBe(120); // 1h45 reais = 2 h reduzidas
+    expect(f.valores.noturno).toBe(4);
+    expect(f.valores.he50Horario).toBe(7.5); // não digitado: segue o ponto
   });
 });
 

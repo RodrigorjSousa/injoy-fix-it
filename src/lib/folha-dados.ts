@@ -124,7 +124,9 @@ export function useDadosFolha(mes: string) {
           .order("nome"),
         supabase
           .from("escala_dias")
-          .select("id, colaborador_id, unidade, data, status, horas_contratadas, valor_combinado")
+          .select(
+            "id, colaborador_id, unidade, data, status, horas_contratadas, valor_combinado, hora_entrada, hora_saida",
+          )
           .gte("data", inicio)
           .lte("data", fim),
         supabase.from("feriados").select("data").gte("data", inicio).lte("data", fim),
@@ -196,6 +198,8 @@ export function usePontoFolha(mes: string) {
       extra100: d.resultado.extra100,
       debito: d.resultado.debito,
       noturnoReduzido: d.resultado.noturnoReduzido,
+      noturno: d.resultado.noturno,
+      trabalhou: !!d.entrada_real,
     })),
   }));
   return { ponto, carregando: q.isLoading, erro: q.error ? (q.error as Error).message : null };
