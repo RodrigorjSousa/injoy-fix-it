@@ -1549,6 +1549,160 @@ export type Database = {
         }
         Relationships: []
       }
+      fin_folha_ajustes: {
+        Row: {
+          colaborador_id: string
+          competencia: string
+          observacao: string | null
+          outros_descontos: number
+          outros_proventos: number
+          pagar_bonus: boolean | null
+          pagar_vr: boolean | null
+          pagar_vt: boolean | null
+          updated_at: string
+          updated_by: string | null
+          valores: Json
+        }
+        Insert: {
+          colaborador_id: string
+          competencia: string
+          observacao?: string | null
+          outros_descontos?: number
+          outros_proventos?: number
+          pagar_bonus?: boolean | null
+          pagar_vr?: boolean | null
+          pagar_vt?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          valores?: Json
+        }
+        Update: {
+          colaborador_id?: string
+          competencia?: string
+          observacao?: string | null
+          outros_descontos?: number
+          outros_proventos?: number
+          pagar_bonus?: boolean | null
+          pagar_vr?: boolean | null
+          pagar_vt?: boolean | null
+          updated_at?: string
+          updated_by?: string | null
+          valores?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_folha_ajustes_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: false
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fin_folha_config: {
+        Row: {
+          descontar_debitos: boolean
+          dia_pagamento: number
+          divisor_padrao: number
+          dsr_extras: boolean
+          id: number
+          tabela_freela: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          descontar_debitos?: boolean
+          dia_pagamento?: number
+          divisor_padrao?: number
+          dsr_extras?: boolean
+          id?: number
+          tabela_freela?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          descontar_debitos?: boolean
+          dia_pagamento?: number
+          divisor_padrao?: number
+          dsr_extras?: boolean
+          id?: number
+          tabela_freela?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      fin_folha_meses: {
+        Row: {
+          competencia: string
+          lancado_em: string
+          lancado_por: string | null
+          resumo: Json
+          total: number
+        }
+        Insert: {
+          competencia: string
+          lancado_em?: string
+          lancado_por?: string | null
+          resumo?: Json
+          total?: number
+        }
+        Update: {
+          competencia?: string
+          lancado_em?: string
+          lancado_por?: string | null
+          resumo?: Json
+          total?: number
+        }
+        Relationships: []
+      }
+      fin_folha_pessoas: {
+        Row: {
+          colaborador_id: string
+          divisor: number | null
+          freela_modo: string
+          freela_valor_mensal: number | null
+          recebe_bonus: boolean | null
+          recebe_vr: boolean | null
+          recebe_vt: boolean | null
+          salario_base: number | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          colaborador_id: string
+          divisor?: number | null
+          freela_modo?: string
+          freela_valor_mensal?: number | null
+          recebe_bonus?: boolean | null
+          recebe_vr?: boolean | null
+          recebe_vt?: boolean | null
+          salario_base?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          colaborador_id?: string
+          divisor?: number | null
+          freela_modo?: string
+          freela_valor_mensal?: number | null
+          recebe_bonus?: boolean | null
+          recebe_vr?: boolean | null
+          recebe_vt?: boolean | null
+          salario_base?: number | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fin_folha_pessoas_colaborador_id_fkey"
+            columns: ["colaborador_id"]
+            isOneToOne: true
+            referencedRelation: "escala_colaboradores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fin_fornecedores: {
         Row: {
           ativo: boolean
@@ -1661,6 +1815,7 @@ export type Database = {
           observacoes: string | null
           origem_beneficio: string | null
           origem_escala: string | null
+          origem_folha: string | null
           qtd_diarias: number | null
           recorrencia_id: string | null
           recorrencia_modelo_id: string | null
@@ -1692,6 +1847,7 @@ export type Database = {
           observacoes?: string | null
           origem_beneficio?: string | null
           origem_escala?: string | null
+          origem_folha?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
           recorrencia_modelo_id?: string | null
@@ -1723,6 +1879,7 @@ export type Database = {
           observacoes?: string | null
           origem_beneficio?: string | null
           origem_escala?: string | null
+          origem_folha?: string | null
           qtd_diarias?: number | null
           recorrencia_id?: string | null
           recorrencia_modelo_id?: string | null
@@ -5808,6 +5965,17 @@ export type Database = {
       escala_sincronizar_financeiro: {
         Args: { _competencia: string; _unidade: string }
         Returns: number
+      }
+      fin_folha_lancar: {
+        Args: {
+          _beneficios: Json
+          _competencia: string
+          _itens: Json
+          _plantoes: Json
+          _resumo?: Json
+          _total?: number
+        }
+        Returns: Json
       }
       fin_gerar_mes: { Args: { _competencia: string }; Returns: number }
       fin_pagar_com_adiantamentos: {
