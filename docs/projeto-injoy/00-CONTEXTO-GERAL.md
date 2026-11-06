@@ -268,6 +268,24 @@ das selfies antigas do ponto foi oferecida.
   `descontar_a_partir` (1º do mês). No pagamento só vêm marcadas as parcelas liberadas para a competência do lançamento
   (futuras aparecem desmarcadas, dá para adiantar). Recibo do grupo lista as parcelas. Excluir apaga as parcelas abertas.
   Regras em `src/lib/adiantamentos.ts` (+ teste).
+- Financeiro › Folha de pagamento (migração 0101, branch `feat/financeiro-folha`): botão verde "Folha de pagamento" no
+  topo do Financeiro abre a folha do mês (padrão = mês anterior) com todos os fixos e os freelancers com plantão.
+  Colunas: base/plantões, VT, VR, bônus individual, bônus de grupo, HE 100% (domingo/feriado que era folga), HE 50%
+  sábado/folga, HE 50% antes/depois do horário, noturno (20% sobre hora reduzida), DSR das variáveis (liga/desliga),
+  outros, descontos, adiantamentos e total (coluna fixa à direita). Tocar na pessoa abre o editor: cadastro (salário,
+  divisor 220, VT/dia e VR/mês — os vales são as mesmas colunas `vale_*` de `escala_colaboradores` —, modo do ponto
+  pagar/banco, freelancer por plantão ou valor cheio, recebe VT/VR/bônus) e "Este mês" (qualquer valor pode ser trocado
+  à mão; VT/VR/bônus têm caixa para pagar só no mês; outros proventos/descontos; observação), com prévia ao vivo.
+  Horas vêm do ponto do app (`useBancoHoras`; modo banco = extras não pagas). Bônus vêm de Bonificação › Pagamento
+  (grupo = meta do setor, individual = elogios). Freelancer: tabela editável (8 h R$ 150, 12 h R$ 200), fora da tabela
+  usa o valor combinado; não recebe VT/VR/bônus a não ser que marque. Desconto de faltas/atrasos do ponto vem
+  DESLIGADO (liga em Tabela e regras). "Lançar no Financeiro" = RPC `fin_folha_lancar`: preço de cada plantão vai para
+  `escala_dias.valor_combinado` (a sincronização da Escala atualiza "Freelancers (diárias)", sem dobrar), VT/VR por
+  `escala_lancar_beneficios` (mesmas chaves) e o resto num lançamento por pessoa em "Salários" (`origem_folha`,
+  vencimento no dia de pagamento do mês seguinte); pagos não mudam; saiu da folha = cancelado. Tabelas
+  `fin_folha_config` (linha id 1 criada pelo app), `fin_folha_pessoas`, `fin_folha_ajustes`, `fin_folha_meses`.
+  Regras puras em `src/lib/folha.ts` (+ teste), dados em `src/lib/folha-dados.ts`, telas em
+  `src/components/financeiro/folha/`. INSS/FGTS/IR do holerite oficial continuam com o contador.
 - Recado do Gestor (migração 0087): o botão em Boas-vindas envia para Todos, Setores (Camareiras, Recepção, Manutenção,
   Ar condicionado; vários de uma vez) ou Pessoas escolhidas (busca + marcar uma ou várias). Unidade Botafogo/Ipanema/Ambas.
   A lista de quem recebe é resolvida no envio (`recados_gestor.destinatarios` + `destinatarios_nomes`; regra em
