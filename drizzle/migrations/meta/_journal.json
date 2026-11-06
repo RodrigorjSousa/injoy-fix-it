@@ -694,6 +694,13 @@
       "when": 1793822408491,
       "tag": "0098_0100_whatsapp_recepcao_aplicar",
       "breakpoints": true
+    },
+    {
+      "idx": 99,
+      "version": "7",
+      "when": 1793974270035,
+      "tag": "0099_0101_fin_folha_pagamento_aplicar",
+      "breakpoints": true
     }
   ]
 }
