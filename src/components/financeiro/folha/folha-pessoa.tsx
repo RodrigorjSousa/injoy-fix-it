@@ -17,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { currency, dateBR } from "@/lib/financeiro";
 import {
   CAMPO_LABEL,
+  CAMPOS_HORA,
+  chaveMin,
+  type CampoHora,
   DIAS_REFERENCIA_VR,
   VR_PADRAO,
   VT_DIA_PADRAO,
@@ -32,7 +35,7 @@ import { BANCO_INICIO_PADRAO, type ModoBanco } from "@/lib/ponto-banco";
 import { useSalvarBancoConfig } from "@/lib/ponto-gestao";
 import { SETOR_LABEL } from "@/lib/ponto-export";
 import { cn } from "@/lib/utils";
-import { fmtHoras, lerValor, mesLabel, paraTexto } from "./folha-util";
+import { fmtHoras, lerHorasTexto, lerValor, mesLabel, paraTexto } from "./folha-util";
 
 export type RecalcularLinha = (
   colaboradorId: string,
@@ -79,13 +82,18 @@ function detalhe(l: LinhaFolha, campo: Campo, uteis: number, descanso: number, c
       if (!l.pagaBonus) return "Não paga neste mês";
       return l.bonusMotivo ? `Perdeu: ${l.bonusMotivo}` : "Meta do setor (Bonificação › Pagamento)";
     case "he100":
-      return banco ? "No banco de horas" : `${fmtHoras(l.horas.he100)} × ${hora} × 2`;
     case "he50Folga":
-      return banco ? "No banco de horas" : `${fmtHoras(l.horas.he50Folga)} × ${hora} × 1,5`;
-    case "he50Horario":
-      return banco ? "No banco de horas" : `${fmtHoras(l.horas.he50Horario)} × ${hora} × 1,5`;
+    case "he50Horario": {
+      const origem = l.horasDigitadas.includes(campo)
+        ? `digitado (calculado: ${fmtHoras(l.horasCalculadas[campo])})`
+        : campo === "he50Horario"
+          ? "pelo ponto"
+          : "pelo ponto e pelos dias extra da escala";
+      if (banco) return `Vai para o banco de horas · ${origem}`;
+      return `${fmtHoras(l.horas[campo])} × ${hora} × ${campo === "he100" ? "2" : "1,5"} · ${origem}`;
+    }
     case "noturno":
-      return `${fmtHoras(l.horas.noturnoReduzido)} (hora reduzida) × ${hora} × 20%`;
+      return `${fmtHoras(l.horas.noturno)} entre 22h e 5h = ${fmtHoras(l.horas.noturnoReduzido)} reduzidas × ${hora} × 20%${l.horasDigitadas.includes("noturno") ? " · digitado" : ""}`;
     case "dsr":
       return cfg.dsr_extras
         ? `Extras e noturno ÷ ${uteis} dias úteis × ${descanso} domingos/feriados`
@@ -137,9 +145,30 @@ export function FolhaPessoaDialog({
 
   // Este mês
   const aj = linha.ajuste;
+  const ehHora = (k: string): k is CampoHora =>
+    fixo && (CAMPOS_HORA as readonly string[]).includes(k);
+  // Valores em R$ trocados à mão (as horas extras e o noturno são trocados pelas horas).
   const [trocas, setTrocas] = useState<Partial<Record<Campo, string>>>(() =>
-    Object.fromEntries(Object.entries(aj?.valores ?? {}).map(([k, v]) => [k, paraTexto(v)])),
+    Object.fromEntries(
+      Object.entries(aj?.valores ?? {})
+        .filter(([k]) => !k.startsWith("min_") && !ehHora(k))
+        .map(([k, v]) => [k, paraTexto(v as number)]),
+    ),
   );
+  const [horasTxt, setHorasTxt] = useState<Partial<Record<CampoHora, string>>>(() =>
+    Object.fromEntries(
+      CAMPOS_HORA.filter((k) => aj?.valores?.[chaveMin(k)] != null).map((k) => [
+        k,
+        fmtHoras(Number(aj?.valores?.[chaveMin(k)])),
+      ]),
+    ),
+  );
+  const horasInvalidas = CAMPOS_HORA.filter((k) => {
+    const t = horasTxt[k]?.trim();
+    if (!t) return false;
+    const m = lerHorasTexto(t);
+    return m == null || m < 0;
+  });
   const [pagarVT, setPagarVT] = useState<boolean | null>(aj?.pagar_vt ?? null);
   const [pagarVR, setPagarVR] = useState<boolean | null>(aj?.pagar_vr ?? null);
   const [pagarBonus, setPagarBonus] = useState<boolean | null>(aj?.pagar_bonus ?? null);
@@ -158,11 +187,15 @@ export function FolhaPessoaDialog({
     recebe_vr: padraoBool(recebeVR),
     recebe_bonus: padraoBool(recebeBonus),
   };
-  const valoresTrocados = Object.fromEntries(
-    Object.entries(trocas)
+  const valoresTrocados = Object.fromEntries([
+    ...Object.entries(trocas)
       .map(([k, t]) => [k, lerValor(t ?? "")])
       .filter(([, v]) => v != null),
-  ) as Partial<Record<Campo, number>>;
+    ...CAMPOS_HORA.filter((k) => horasTxt[k]?.trim() && !horasInvalidas.includes(k)).map((k) => [
+      chaveMin(k),
+      lerHorasTexto(horasTxt[k] ?? "") ?? 0,
+    ]),
+  ]) as FolhaAjuste["valores"];
   const ajusteNovo: FolhaAjuste = {
     colaborador_id: c.id,
     valores: valoresTrocados,
@@ -184,7 +217,6 @@ export function FolhaPessoaDialog({
   const campos: Campo[] = fixo
     ? [
         "base",
-        ...(linha.plantoes.length ? (["plantoes"] as Campo[]) : []),
         "vt",
         "vr",
         "bonusInd",
@@ -207,6 +239,8 @@ export function FolhaPessoaDialog({
 
   const salvando = salvarPessoa.isPending || salvarAjuste.isPending || salvarModo.isPending;
   const salvar = async () => {
+    if (horasInvalidas.length)
+      return toast.error("Horas inválidas. Use, por exemplo, 8, 8:30 ou 8h30.");
     try {
       const mudouCadastro =
         JSON.stringify(cfgNovo) !== JSON.stringify({ ...linha.cfg, colaborador_id: c.id }) ||
@@ -388,8 +422,29 @@ export function FolhaPessoaDialog({
         <section className="space-y-1">
           <p className="text-sm font-bold">Este mês</p>
           <p className="text-[11px] text-muted-foreground">
-            Deixe em branco para usar o valor calculado. Digite um valor para trocar só neste mês.
+            Deixe em branco para usar o calculado. Digite um valor (ou, nas horas extras e no
+            noturno, as horas: 8, 8:30 ou 8h30) para trocar só neste mês — o sistema calcula o
+            valor.
           </p>
+          {!!previa.extrasFixo.length && (
+            <div className="rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-xs text-sky-900">
+              <p className="font-semibold">Dias “extra” na escala (pagos como hora extra):</p>
+              {previa.extrasFixo.map((e) => (
+                <p key={e.id}>
+                  {dateBR(e.data)} · {e.minutos ? fmtHoras(e.minutos) : "sem horário"} ·{" "}
+                  {e.cem ? "100% (domingo/feriado)" : "50% (folga)"} ·{" "}
+                  {e.fonte === "ponto" ? "horas do ponto" : "sem batida: horas da escala"}
+                  {e.valorCombinado
+                    ? ` · a diária de ${brl(e.valorCombinado)} da escala sai ao lançar`
+                    : ""}
+                </p>
+              ))}
+              <p className="mt-1 text-sky-700">
+                Feriado que não está cadastrado na Escala conta como 50%: cadastre o feriado ou
+                digite as horas na linha de 100%.
+              </p>
+            </div>
+          )}
           <div className="divide-y rounded-xl border">
             {campos.map((campo) => {
               const sw = liga[campo];
@@ -417,29 +472,64 @@ export function FolhaPessoaDialog({
                       {detalhe(previa, campo, diasUteis, diasDescanso, config)}
                     </p>
                   </div>
-                  <div className="w-36 text-right">
-                    <Input
-                      inputMode="decimal"
-                      disabled={!!desligado}
-                      className={cn(
-                        "h-8 text-right",
-                        trocas[campo] && "border-amber-400 bg-amber-50",
-                      )}
-                      value={trocas[campo] ?? ""}
-                      onChange={(e) => setTrocas((t) => ({ ...t, [campo]: e.target.value }))}
-                      placeholder={brl(previa.calculado[campo])}
-                    />
-                    {trocas[campo] ? (
-                      <button
-                        type="button"
-                        className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-sky-700"
-                        onClick={() => setTrocas((t) => ({ ...t, [campo]: "" }))}
-                      >
-                        <RotateCcw className="h-3 w-3" />
-                        voltar a {brl(previa.calculado[campo])}
-                      </button>
-                    ) : null}
-                  </div>
+                  {ehHora(campo) ? (
+                    <div className="flex items-center gap-2">
+                      <div className="w-24 text-right">
+                        <Input
+                          inputMode="decimal"
+                          aria-label={`Horas — ${CAMPO_LABEL[campo]}`}
+                          className={cn(
+                            "h-8 text-right",
+                            horasTxt[campo] && "border-amber-400 bg-amber-50",
+                            horasInvalidas.includes(campo) && "border-rose-500 bg-rose-50",
+                          )}
+                          value={horasTxt[campo] ?? ""}
+                          onChange={(e) => setHorasTxt((t) => ({ ...t, [campo]: e.target.value }))}
+                          placeholder={fmtHoras(previa.horasCalculadas[campo])}
+                        />
+                        <p className="text-[10px] text-slate-500">horas</p>
+                      </div>
+                      <div className="w-28 text-right">
+                        <p className="text-sm font-bold tabular-nums">
+                          {brl(previa.valores[campo])}
+                        </p>
+                        {horasTxt[campo] ? (
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 text-[11px] text-sky-700"
+                            onClick={() => setHorasTxt((t) => ({ ...t, [campo]: "" }))}
+                          >
+                            <RotateCcw className="h-3 w-3" />
+                            voltar a {fmtHoras(previa.horasCalculadas[campo])}
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-36 text-right">
+                      <Input
+                        inputMode="decimal"
+                        disabled={!!desligado}
+                        className={cn(
+                          "h-8 text-right",
+                          trocas[campo] && "border-amber-400 bg-amber-50",
+                        )}
+                        value={trocas[campo] ?? ""}
+                        onChange={(e) => setTrocas((t) => ({ ...t, [campo]: e.target.value }))}
+                        placeholder={brl(previa.calculado[campo])}
+                      />
+                      {trocas[campo] ? (
+                        <button
+                          type="button"
+                          className="mt-0.5 inline-flex items-center gap-1 text-[11px] text-sky-700"
+                          onClick={() => setTrocas((t) => ({ ...t, [campo]: "" }))}
+                        >
+                          <RotateCcw className="h-3 w-3" />
+                          voltar a {brl(previa.calculado[campo])}
+                        </button>
+                      ) : null}
+                    </div>
+                  )}
                 </div>
               );
             })}

@@ -111,10 +111,17 @@ export const CAMPO_CURTO: Record<Campo, string> = {
   descontoFaltas: "Faltas/atrasos",
 };
 
+/** Horas que o gestor pode digitar no mês (o valor em R$ é calculado). */
+export const CAMPOS_HORA = ["he100", "he50Folga", "he50Horario", "noturno"] as const;
+export type CampoHora = (typeof CAMPOS_HORA)[number];
+/** Chave em `valores` com os minutos digitados (noturno = minutos reais entre 22h e 5h). */
+export const chaveMin = (c: CampoHora) => `min_${c}` as const;
+export type ChaveMin = ReturnType<typeof chaveMin>;
+
 /** Ajuste do mês para a pessoa. */
 export type FolhaAjuste = {
   colaborador_id: string;
-  valores: Partial<Record<Campo, number>>;
+  valores: Partial<Record<Campo | ChaveMin, number>>;
   pagar_vt: boolean | null;
   pagar_vr: boolean | null;
   pagar_bonus: boolean | null;
@@ -143,6 +150,8 @@ export type DiaEscalaFolha = {
   status: "trabalho" | "folga" | "falta" | "atestado" | "ferias" | "extra";
   horas_contratadas: number | null;
   valor_combinado: number | null;
+  hora_entrada?: string | null;
+  hora_saida?: string | null;
 };
 
 /** Dia do ponto já calculado (ponto-banco.calcularDia). Minutos. */
@@ -152,7 +161,11 @@ export type DiaPontoFolha = {
   extra50: number;
   extra100: number;
   debito: number;
+  /** Minutos reais entre 22h e 5h. */
+  noturno?: number;
   noturnoReduzido: number;
+  /** Teve batida de entrada no dia. */
+  trabalhou?: boolean;
 };
 
 export type PontoPessoaFolha = {
@@ -200,10 +213,26 @@ export type LinhaFolha = {
     he50Folga: number;
     he50Horario: number;
     noturnoReduzido: number;
+    /** Minutos reais entre 22h e 5h (o que o gestor digita). */
+    noturno: number;
     debito: number;
     /** Extras que ficaram no banco de horas (modo banco). */
     noBanco: number;
   };
+  /** Horas calculadas pelo ponto/escala, antes do que o gestor digitou. */
+  horasCalculadas: Record<CampoHora, number>;
+  /** Horas que o gestor digitou no mês. */
+  horasDigitadas: CampoHora[];
+  /** Dias "extra" na escala do fixo: viram hora extra (do ponto, ou pela escala sem batida). */
+  extrasFixo: {
+    id: string;
+    data: string;
+    minutos: number;
+    fonte: "ponto" | "escala";
+    cem: boolean;
+    /** Valor de diária que estava na escala (vai a zero ao lançar, para não pagar em dobro). */
+    valorCombinado: number | null;
+  }[];
   diasVT: number;
   vtPorUnidade: Record<string, number>;
   valorHora: number;
@@ -274,6 +303,25 @@ export function dividirValor(total: number, n: number): number[] {
   return Array.from({ length: n }, (_, i) => (i === n - 1 ? cent - base * (n - 1) : base) / 100);
 }
 
+const diaSemana = (iso: string) => {
+  const [a, m, d] = iso.split("-").map(Number);
+  return new Date(Date.UTC(a, m - 1, d)).getUTCDay();
+};
+
+/** Minutos de um dia da escala: horas contratadas ou saída − entrada (passando da meia-noite). */
+export function minutosEscala(
+  d: Pick<DiaEscalaFolha, "horas_contratadas" | "hora_entrada" | "hora_saida">,
+) {
+  if (d.horas_contratadas != null && Number(d.horas_contratadas) > 0)
+    return Math.round(Number(d.horas_contratadas) * 60);
+  const a = /^(\d{1,2}):(\d{2})/.exec(d.hora_entrada ?? "");
+  const b = /^(\d{1,2}):(\d{2})/.exec(d.hora_saida ?? "");
+  if (!a || !b) return 0;
+  let min = Number(b[1]) * 60 + Number(b[2]) - (Number(a[1]) * 60 + Number(a[2]));
+  if (min <= 0) min += 24 * 60;
+  return min;
+}
+
 export const cfgPadraoPessoa = (colaborador_id: string): FolhaPessoaCfg => ({
   colaborador_id,
   salario_base: null,
@@ -305,6 +353,7 @@ export function calcularFolha(input: {
   const ajMap = new Map(input.ajustes.map((a) => [a.colaborador_id, a]));
   const pontoMap = new Map(input.ponto.map((p) => [p.colaborador_id, p]));
   const bonusMap = new Map(input.bonus.map((b) => [b.funcionario_id, b]));
+  const fer = new Set(input.feriados.map((f) => f.slice(0, 10)));
   const diasMes = input.dias.filter((d) => d.data >= inicio && d.data <= fim);
   const diasPorPessoa = new Map<string, DiaEscalaFolha[]>();
   for (const d of diasMes) {
@@ -340,19 +389,7 @@ export function calcularFolha(input: {
     // ---- Plantões.
     const plantoes: PlantaoFolha[] = [];
     if (fixo) {
-      // Fixo em plantão extra combinado: pago como plantão (valor da escala), não como hora extra.
-      for (const d of extras)
-        if (d.valor_combinado != null && Number(d.valor_combinado) > 0)
-          plantoes.push({
-            id: d.id,
-            data: d.data,
-            unidade: d.unidade,
-            horas: d.horas_contratadas,
-            valorCombinado: Number(d.valor_combinado),
-            valor: arred(Number(d.valor_combinado)),
-            fonte: "combinado",
-            rotulo: "Plantão extra (escala)",
-          });
+      // Fixo escalado como "extra" é hora extra (logo abaixo), não plantão de freelancer.
     } else if (cfg.freela_modo === "mensal") {
       const partes = dividirValor(num(cfg.freela_valor_mensal), extras.length);
       extras.forEach((d, i) =>
@@ -389,21 +426,85 @@ export function calcularFolha(input: {
           `${fora} plantão(ões) com horas fora da tabela${plantoes.some((p) => p.fonte === "sem_preco") ? " e sem valor" : ""}.`,
         );
     }
-    const datasPlantaoPago = new Set(fixo ? plantoes.map((p) => p.data) : []);
-
     // ---- Ponto (só fixos).
     const ponto = fixo ? pontoMap.get(c.id) : undefined;
     const modo = fixo ? (ponto?.modo ?? "pagamento") : null;
-    const h = { he100: 0, he50Folga: 0, he50Horario: 0, noturnoReduzido: 0, debito: 0, noBanco: 0 };
+    const h = {
+      he100: 0,
+      he50Folga: 0,
+      he50Horario: 0,
+      noturnoReduzido: 0,
+      noturno: 0,
+      debito: 0,
+      noBanco: 0,
+    };
+    const comBatida = new Set<string>();
     for (const d of ponto?.dias ?? []) {
       if (d.data < inicio || d.data > fim) continue;
+      if (d.trabalhou ?? d.extra50 + d.extra100 + d.noturnoReduzido > 0) comBatida.add(d.data);
       h.noturnoReduzido += d.noturnoReduzido;
+      h.noturno += d.noturno ?? Math.round((d.noturnoReduzido * 52.5) / 60);
       h.debito += d.debito;
-      if (datasPlantaoPago.has(d.data)) continue;
-      if (d.classe === "domingo_feriado") h.he100 += d.extra100;
+      // Domingo/feriado de folga = 100%. Dia de folga comum (ex.: sábado do 5x2) = 50%.
+      const cem =
+        d.classe === "domingo_feriado" || (d.classe === "folga_trabalhada" && fer.has(d.data));
+      if (cem) h.he100 += d.extra100 + (d.classe === "folga_trabalhada" ? d.extra50 : 0);
       else if (d.classe === "folga_trabalhada") h.he50Folga += d.extra50;
       else h.he50Horario += d.extra50;
     }
+    // Dias "extra" do fixo na escala: com batida já entraram pelo ponto; sem batida, pelas horas da escala.
+    const extrasFixo: LinhaFolha["extrasFixo"] = [];
+    if (fixo)
+      for (const d of extras) {
+        const cem = fer.has(d.data) || diaSemana(d.data) === 0;
+        if (comBatida.has(d.data)) {
+          const pd = ponto?.dias.find((x) => x.data === d.data);
+          extrasFixo.push({
+            id: d.id,
+            data: d.data,
+            minutos: (pd?.extra100 ?? 0) + (pd?.extra50 ?? 0),
+            fonte: "ponto",
+            cem,
+            valorCombinado: d.valor_combinado,
+          });
+          continue;
+        }
+        const min = minutosEscala(d);
+        extrasFixo.push({
+          id: d.id,
+          data: d.data,
+          minutos: min,
+          fonte: "escala",
+          cem,
+          valorCombinado: d.valor_combinado,
+        });
+        if (cem) h.he100 += min;
+        else h.he50Folga += min;
+      }
+    const semBatida = extrasFixo.filter((e) => e.fonte === "escala");
+    if (semBatida.length)
+      avisos.push(
+        `${semBatida.length} dia(s) extra sem batida no ponto: horas pela escala${semBatida.some((e) => !e.minutos) ? " (sem horário na escala — digite as horas)" : ""}.`,
+      );
+    const horasCalculadas: Record<CampoHora, number> = {
+      he100: h.he100,
+      he50Folga: h.he50Folga,
+      he50Horario: h.he50Horario,
+      noturno: h.noturno,
+    };
+    // Horas digitadas pelo gestor no mês substituem as calculadas.
+    const horasDigitadas: CampoHora[] = [];
+    if (fixo)
+      for (const k of CAMPOS_HORA) {
+        const v = aj?.valores?.[chaveMin(k)];
+        if (v == null || !Number.isFinite(Number(v))) continue;
+        const m = Math.max(0, Math.round(Number(v)));
+        horasDigitadas.push(k);
+        if (k === "noturno") {
+          h.noturno = m;
+          h.noturnoReduzido = Math.round((m * 60) / 52.5);
+        } else h[k] = m;
+      }
     if (modo === "banco") {
       h.noBanco = h.he100 + h.he50Folga + h.he50Horario;
       h.he100 = h.he50Folga = h.he50Horario = 0;
@@ -482,6 +583,9 @@ export function calcularFolha(input: {
       ajuste: aj,
       modo,
       pontoInicio: ponto?.inicio ?? null,
+      horasCalculadas,
+      horasDigitadas,
+      extrasFixo,
       calculado,
       valores,
       trocados,
@@ -565,7 +669,13 @@ export function montarLancamentoFolha(resumo: ResumoFolha, mesLabel: string) {
   for (const l of resumo.linhas) {
     const c = l.colaborador;
     const fixo = c.vinculo === "fixo";
-    if (!fixo) {
+    if (fixo) {
+      // Dia "extra" do fixo é pago como hora extra: zera a diária da escala (e o lançamento de
+      // Freelancers (diárias) dela é cancelado no banco).
+      for (const e of l.extrasFixo)
+        if (e.valorCombinado != null && Number(e.valorCombinado) > 0)
+          plantoes.push({ id: e.id, valor: 0 });
+    } else {
       // Preço final de cada plantão; se o total foi trocado à mão, reparte a troca nos plantões.
       const calc = l.plantoes.map((p) => p.valor);
       const somaCalc = calc.reduce((s, v) => s + v, 0);

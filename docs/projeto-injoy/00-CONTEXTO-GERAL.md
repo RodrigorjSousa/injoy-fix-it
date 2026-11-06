@@ -286,6 +286,11 @@ das selfies antigas do ponto foi oferecida.
   `fin_folha_config` (linha id 1 criada pelo app), `fin_folha_pessoas`, `fin_folha_ajustes`, `fin_folha_meses`.
   Regras puras em `src/lib/folha.ts` (+ teste), dados em `src/lib/folha-dados.ts`, telas em
   `src/components/financeiro/folha/`. INSS/FGTS/IR do holerite oficial continuam com o contador.
+  Correção (migração 0102, branch `fix/folha-horas-extras`): fixo escalado como "extra" é HORA EXTRA (100% em
+  domingo/feriado cadastrado, 50% em folga), pelas horas do ponto ou, sem batida, pelas horas da escala; ao lançar,
+  a diária desse dia vai a 0 na escala e o lançamento "Freelancers (diárias)" dela é cancelado. No editor, HE 100%,
+  HE 50% sábado, HE 50% horário e noturno recebem HORAS (8, 8:30, 8h30; noturno = horas reais 22h–5h) e o sistema
+  calcula o valor (`valores.min_<campo>` em `fin_folha_ajustes`).
 - Recado do Gestor (migração 0087): o botão em Boas-vindas envia para Todos, Setores (Camareiras, Recepção, Manutenção,
   Ar condicionado; vários de uma vez) ou Pessoas escolhidas (busca + marcar uma ou várias). Unidade Botafogo/Ipanema/Ambas.
   A lista de quem recebe é resolvida no envio (`recados_gestor.destinatarios` + `destinatarios_nomes`; regra em
