@@ -61,3 +61,52 @@ export function nivelPrevisao(args: {
         : "verde";
   return { nivel, pct };
 }
+
+const minutosDoDia = (hhmm: string | null | undefined): number | null => {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(hhmm ?? ""));
+  return m ? Number(m[1]) * 60 + Number(m[2]) : null;
+};
+/** Minutos entre entrada e saída (vira a meia-noite se a saída for menor). 0 se faltar horário. */
+export function duracaoTurno(entrada: string | null | undefined, saida: string | null | undefined): number {
+  const a = minutosDoDia(entrada);
+  const b = minutosDoDia(saida);
+  if (a === null || b === null) return 0;
+  return b >= a ? b - a : 1440 - a + b;
+}
+
+export type PadraoEscala = {
+  intervalo_minutos?: number | null;
+  hora_entrada?: string | null;
+  hora_saida?: string | null;
+  vigente_desde?: string | null;
+  vigente_ate?: string | null;
+};
+
+/** Padrão de escala que vale na data (o mais recente vigente; senão qualquer um). */
+export function padraoNaData(padroes: PadraoEscala[] | null | undefined, data: string): PadraoEscala | null {
+  const lista = (padroes ?? []).filter(Boolean);
+  const vigentes = lista
+    .filter((p) => (!p.vigente_desde || p.vigente_desde <= data) && (!p.vigente_ate || p.vigente_ate >= data))
+    .sort((a, b) => String(b.vigente_desde ?? "").localeCompare(String(a.vigente_desde ?? "")));
+  return vigentes[0] ?? lista[0] ?? null;
+}
+
+/**
+ * Tempo de trabalho de uma pessoa escalada no dia (antes da margem operacional).
+ * - Fixa: horário do dia; sem horário no dia, usa o horário do padrão (antes contava 0 e "sumia" da soma).
+ *   Desconta o intervalo do padrão.
+ * - Extra (reforço/substituição): horas contratadas; sem elas, o horário do dia.
+ */
+export function minutosDaPessoa(
+  dia: { status: string; hora_entrada?: string | null; hora_saida?: string | null; horas_contratadas?: number | string | null },
+  padrao: PadraoEscala | null,
+): { brutos: number; intervalo: number } {
+  if (dia.status === "extra") {
+    const contratadas = Number(dia.horas_contratadas ?? 0) * 60;
+    return { brutos: contratadas > 0 ? contratadas : duracaoTurno(dia.hora_entrada, dia.hora_saida), intervalo: 0 };
+  }
+  const doDia = duracaoTurno(dia.hora_entrada, dia.hora_saida);
+  const brutos = doDia > 0 ? doDia : duracaoTurno(padrao?.hora_entrada, padrao?.hora_saida);
+  const intervalo = brutos > 0 ? Math.min(brutos, Number(padrao?.intervalo_minutos ?? 0)) : 0;
+  return { brutos, intervalo };
+}

@@ -149,6 +149,8 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
   todas as pessoas escaladas; os limites de GERAIS (amarelo/vermelho) são POR CAMAREIRA (gerais do dia ÷ pessoas com
   capacidade). Antes o total de gerais era comparado ao limite sozinho e dava "Chamar reforço" com duas fixas
   (Botafogo 17/11/2026: 9 gerais, 513 de 969 min). A calibração usa a mesma regra.
+  Capacidade de cada pessoa (`minutosDaPessoa`): fixa sem horário no dia usa o horário do padrão vigente
+  (`padraoNaData`); extra sem horas contratadas usa o horário do dia. Antes essas pessoas contavam 0 min.
 
 - Reservas (0061 + agendamento 0062): tela `/reservas` com as reservas com saldo em aberto que a recepção deve cobrar
   no Cloudbeds (regras NR do 8º dia e Standard 2 dias antes do check-in). Recepcionista só vê quando o gestor libera

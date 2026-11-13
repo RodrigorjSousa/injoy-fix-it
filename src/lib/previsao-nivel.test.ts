@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nivelPrevisao } from "./previsao-reforco-status";
+import { minutosDaPessoa, nivelPrevisao, padraoNaData } from "./previsao-reforco-status";
 
 const cfg = {
   limite_amarelo_pct: 70,
@@ -35,5 +35,46 @@ describe("nível da Previsão de Carga", () => {
       nivel: "vermelho",
       pct: 999,
     });
+  });
+});
+
+describe("capacidade de cada camareira", () => {
+  const padrao = {
+    hora_entrada: "07:00",
+    hora_saida: "16:00",
+    intervalo_minutos: 60,
+    vigente_desde: "2026-01-01",
+  };
+  it("fixa com horário no dia", () => {
+    expect(
+      minutosDaPessoa({ status: "trabalho", hora_entrada: "08:00", hora_saida: "17:00" }, padrao),
+    ).toEqual({ brutos: 540, intervalo: 60 });
+  });
+  it("fixa sem horário no dia usa o padrão (antes contava 0)", () => {
+    expect(
+      minutosDaPessoa({ status: "trabalho", hora_entrada: null, hora_saida: null }, padrao),
+    ).toEqual({ brutos: 540, intervalo: 60 });
+  });
+  it("extra sem horas contratadas usa o horário do dia", () => {
+    expect(
+      minutosDaPessoa(
+        { status: "extra", horas_contratadas: null, hora_entrada: "09:00", hora_saida: "15:00" },
+        null,
+      ),
+    ).toEqual({ brutos: 360, intervalo: 0 });
+    expect(minutosDaPessoa({ status: "extra", horas_contratadas: 8 }, null)).toEqual({
+      brutos: 480,
+      intervalo: 0,
+    });
+  });
+  it("padrão vigente na data", () => {
+    const p = padraoNaData(
+      [
+        { vigente_desde: "2026-01-01", hora_entrada: "07:00" },
+        { vigente_desde: "2026-11-01", hora_entrada: "08:00" },
+      ],
+      "2026-11-17",
+    );
+    expect(p?.hora_entrada).toBe("08:00");
   });
 });
