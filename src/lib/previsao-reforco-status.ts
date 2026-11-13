@@ -27,3 +27,37 @@ export function situacaoReforco(r: LinhaPrevisao, reforcos?: Set<string> | null,
 export function contarReforcosReais(extrasSemSubstituicao: number, ausenciasDeFixas: number) {
   return Math.max(0, extrasSemSubstituicao - Math.max(0, ausenciasDeFixas));
 }
+
+export type NivelPrevisao = "verde" | "amarelo" | "vermelho";
+
+/**
+ * Nível do dia na Previsão de Carga.
+ * - Carga x capacidade (minutos de todas as pessoas escaladas somados) pelos limites em %.
+ * - Limites de GERAIS valem POR CAMAREIRA: com 2 pessoas escaladas o dia aguenta o dobro de gerais.
+ *   Antes o total de gerais do dia era comparado com o limite sozinho e o card ficava vermelho
+ *   ("chamar reforço") mesmo com duas fixas e carga de 53% (Botafogo, 17/11/2026).
+ */
+export function nivelPrevisao(args: {
+  carga: number;
+  capacidade: number;
+  gerais: number;
+  pessoas: number;
+  limite_amarelo_pct: number;
+  limite_vermelho_pct: number;
+  limite_amarelo_gerais: number;
+  limite_vermelho_gerais: number;
+}): { nivel: NivelPrevisao; pct: number } {
+  const { carga, capacidade, gerais } = args;
+  const pct = capacidade > 0 ? Math.round((carga / capacidade) * 100) : carga > 0 ? 999 : 0;
+  const pessoas = Math.max(1, Math.floor(args.pessoas || 0));
+  const geraisPorPessoa = gerais / pessoas;
+  const nivel: NivelPrevisao =
+    (capacidade === 0 && carga > 0) ||
+    pct > Number(args.limite_vermelho_pct) ||
+    geraisPorPessoa >= Number(args.limite_vermelho_gerais)
+      ? "vermelho"
+      : pct >= Number(args.limite_amarelo_pct) || geraisPorPessoa >= Number(args.limite_amarelo_gerais)
+        ? "amarelo"
+        : "verde";
+  return { nivel, pct };
+}
