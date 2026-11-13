@@ -2,6 +2,7 @@ import { cloudbedsFetch, type CloudbedsProperty } from "@/lib/cloudbeds/client.s
 import { predictHousekeepingTasks, type ForecastReservation } from "@/lib/cloudbeds/housekeeping-rules";
 import { addCivilDays } from "@/lib/escala-engine";
 import { todaySP } from "@/lib/tz";
+import { nivelPrevisao } from "@/lib/previsao-reforco-status";
 
 type Unit = "Botafogo" | "Ipanema";
 type Raw = Record<string, unknown>;
@@ -66,8 +67,9 @@ export async function calculateLoadForecast(units: Unit[]) {
       const reforcoIds=new Set(semVinculo.slice(Math.min(ausenciasDeFixas,semVinculo.length)).map(row=>row.id));
       const ehReforco=(row:{id?:string;status:string;substitui_colaborador_id?:string|null})=>row.status==="extra"&&!row.substitui_colaborador_id&&!!row.id&&reforcoIds.has(row.id);
       const capacityDetails=scheduled.map(row=>{const extra=row.status==="extra";const collaborator=(Array.isArray(row.escala_colaboradores)?row.escala_colaboradores[0]:row.escala_colaboradores) as {nome?:string;escala_padroes?:{intervalo_minutos?:number|null}[]}|null;const pattern=collaborator?.escala_padroes?.find(item=>item.intervalo_minutos!=null);const gross=extra?Number(row.horas_contratadas??0)*60:duration(row.hora_entrada,row.hora_saida);const interval=extra?0:Number(pattern?.intervalo_minutos??0);return {nome:collaborator?.nome??"Camareira",tipo:!extra?"fixa":ehReforco(row)?"reforco":"substituicao",minutos_brutos:gross,intervalo_minutos:interval,minutos_liquidos:Math.max(0,Math.round((gross-interval)*(1-Number(config.margem_pct)/100)))};});
-      const capacity=capacityDetails.reduce((sum,item)=>sum+item.minutos_liquidos,0), pct=capacity>0?Math.round(load/capacity*100):load>0?999:0, generals=counts("GERAL")+counts("GERAL - CHECK-IN");
-      const level=capacity===0&&load>0||pct>Number(config.limite_vermelho_pct)||generals>=config.limite_vermelho_gerais?"vermelho":pct>=Number(config.limite_amarelo_pct)||generals>=config.limite_amarelo_gerais?"amarelo":"verde";
+      const capacity=capacityDetails.reduce((sum,item)=>sum+item.minutos_liquidos,0), generals=counts("GERAL")+counts("GERAL - CHECK-IN");
+      // Limite de gerais é POR CAMAREIRA escalada (capacidade das fixas e extras somada) — nivelPrevisao.
+      const {nivel:level,pct}=nivelPrevisao({carga:load,capacidade:capacity,gerais:generals,pessoas:capacityDetails.filter(item=>item.minutos_liquidos>0).length,limite_amarelo_pct:Number(config.limite_amarelo_pct),limite_vermelho_pct:Number(config.limite_vermelho_pct),limite_amarelo_gerais:Number(config.limite_amarelo_gerais),limite_vermelho_gerais:Number(config.limite_vermelho_gerais)});
       const arrivals=tasks.flatMap(task=>task.chegada?[task.chegada]:[]).sort();
       const {data:previous}=await supabaseAdmin.from("previsao_carga").select("nivel").eq("unidade",unit).eq("data",date).order("calculado_em",{ascending:false}).limit(1).maybeSingle();
       const {data:snapshot,error:snapshotError}=await supabaseAdmin.from("previsao_carga").insert({unidade:unit,data:date,horizonte_dias:offset,qtd_geral:counts("GERAL"),qtd_geral_checkin:counts("GERAL - CHECK-IN"),qtd_troca_arrumacao:counts("TROCA + ARRUMAÇÃO"),qtd_arrumacao:counts("ARRUMAÇÃO"),qtd_checkins:reservations.filter(r=>r.checkIn===date).length,qtd_checkouts:reservations.filter(r=>r.checkOut===date).length,carga_minutos:load,capacidade_minutos:capacity,camareiras_escaladas:scheduled.filter(r=>!ehReforco(r)).length,freelancers_escalados:scheduled.filter(r=>ehReforco(r)).length,ocupacao_carga_pct:pct,nivel:level,chegada_mais_cedo:arrivals[0]??null,detalhes:tasks,capacidade_detalhes:capacityDetails}).select("id").single();
