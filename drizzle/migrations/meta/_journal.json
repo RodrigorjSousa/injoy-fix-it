@@ -715,6 +715,20 @@
       "when": 1794584063760,
       "tag": "0101_security_restrict_staff_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794850130585,
+      "tag": "0102_aplicar_0103_fechadura_manual_estrutura",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1794850196108,
+      "tag": "0103_aplicar_0104_senha_portoes_agendamento",
+      "breakpoints": true
     }
   ]
 }

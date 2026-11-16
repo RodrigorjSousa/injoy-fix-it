@@ -32,6 +32,11 @@ Ipanema não tem recepção fixa, então o totem é especialmente útil lá.
   no navegador.
 
 ## Estado atual
+16/11/2026: migrações 0103 e 0104 aplicadas e verificadas no banco, com os arquivos originais intactos.
+Cadastros da 0103 aplicados separadamente da estrutura; 0104 aplicada com comentário de revisão do agendamento.
+Quartos manuais 108/301/401/501 ativos e porta de vidro TTLock inativa; conferência de 15 minutos ativa.
+Os 9 testes de regras de portas passaram. Senhas físicas e envio pelo Cloudbeds não foram testados nesta aplicação.
+
 Entrega 1 (branch `totem-checkin-checkout`, migração `0041_totem_checkin_checkout.sql`):
 check-in e check-out pelo totem + avaliação rápida no check-out.
 
