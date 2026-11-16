@@ -6,7 +6,7 @@
 --    gestor digita cada uma em Gestão › Fechaduras. Sem a senha cadastrada o
 --    totem continua parando em "sem fechadura digital".
 -- 2) Senha provisória dos portões depois do check-in online no Cloudbeds
---    (/api/public/senha-portoes, agendado na 0098).
+--    (/api/public/senha-portoes, agendado na 0104).
 -- Idempotente.
 
 ALTER TABLE public.tuya_devices DROP CONSTRAINT IF EXISTS tuya_devices_fornecedor_check;
@@ -18,6 +18,12 @@ INSERT INTO public.tuya_devices (unidade, tipo, room_number, device_id, label, f
   ('Botafogo', 'quarto', '301', 'manual-botafogo-301', 'APT 301', 'manual', true),
   ('Botafogo', 'quarto', '401', 'manual-botafogo-401', 'APT 401', 'manual', true),
   ('Botafogo', 'quarto', '501', 'manual-botafogo-501', 'APT 501', 'manual', true)
+ON CONFLICT (device_id) DO NOTHING;
+
+-- Teclado TTLock da porta de vidro (lockId do app TTLock), ainda na bancada: entra desligado,
+-- como o do portão gradeado. Liga em Gestão › Fechaduras quando estiver instalado.
+INSERT INTO public.tuya_devices (unidade, tipo, room_number, device_id, label, fornecedor, ativo) VALUES
+  ('Botafogo', 'vidro', NULL, '34524501', 'Porta de Vidro (TTLock)', 'ttlock', false)
 ON CONFLICT (device_id) DO NOTHING;
 
 -- Senha provisória: marca no histórico e quando entrou no campo da reserva do Cloudbeds.

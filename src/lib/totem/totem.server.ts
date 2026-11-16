@@ -53,7 +53,7 @@ export type Totem = {
   voz_ativa: boolean;
   /** Fase de testes: senha fixa para todas as portas, sem Tuya. NULL = normal. */
   senha_provisoria: string | null;
-  /** Migração 0097: manda a senha provisória dos portões depois do check-in online. */
+  /** Migração 0103: manda a senha provisória dos portões depois do check-in online. */
   senha_portoes_auto: boolean;
   /** Código interno (shortcode) do campo personalizado da reserva no Cloudbeds que recebe a senha. */
   campo_cloudbeds_senha: string;

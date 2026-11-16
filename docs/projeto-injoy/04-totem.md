@@ -316,7 +316,7 @@ saída → avaliação (comprovante impresso).
     bloqueada, só os quartos dela param.
   - Nos dois projetos o link é **personalizado**: fechadura nova no app precisa ser vinculada à mão.
 
-### Entrega 6: quartos com senha fixa e senha provisória dos portões (migrações `0097` e `0098`, nov/2026)
+### Entrega 6: quartos com senha fixa e senha provisória dos portões (migrações `0103` e `0104`, nov/2026)
 - **Quartos sem fechadura integrada (108, 301, 401 e 501 de Botafogo):** têm teclado com senha manual.
   Entram em `tuya_devices` com `fornecedor = 'manual'` e `device_id = manual-botafogo-<quarto>`.
   - A senha fica em `senha_fixa` e é digitada pelo gestor em **Gestão › Fechaduras**. O repositório é
@@ -348,7 +348,7 @@ saída → avaliação (comprovante impresso).
     (um totem por unidade).
 
 #### Para ativar a Entrega 6
-1. Lovable: aplicar `0097_fechadura_manual_senha_portoes.sql` e depois `0098_senha_portoes_agendamento.sql`.
+1. Lovable: aplicar `0103_fechadura_manual_senha_portoes.sql` e depois `0104_senha_portoes_agendamento.sql`.
 2. Gestão › Fechaduras: digitar a senha fixa dos quartos 108, 301, 401 e 501.
 3. Cloudbeds › Configurações › Hóspedes › Campos personalizados: criar o campo **"Código dos portões"**,
    ligado à **Reserva**, do tipo texto, não obrigatório, **sem** aparecer no motor de reservas, com código
@@ -357,7 +357,7 @@ saída → avaliação (comprovante impresso).
    "Código dos portões" e agendar para **1 dia antes do check-in, às 17h**. Texto sugerido: "Digite o código
    e # no portão gradeado e na porta de vidro. Vale a partir das 14h do dia da chegada. Dentro do hotel, faça
    o check-in no totem para receber a senha do seu quarto."
-5. Ligar o portão gradeado e a porta de vidro TTLock em Gestão › Fechaduras.
+5. Ligar o portão gradeado (lockId 36396334) e a porta de vidro (lockId 34524501, cadastrada pela 0103) TTLock em Gestão › Fechaduras.
 6. Área do Gestor › Totem: ligar a opção e conferir o código interno e o horário.
 7. Teste com uma reserva de teste chegando amanhã: preencher o documento do titular no Cloudbeds e, em até
    15 min, conferir o evento no histórico do totem, o campo na reserva e o código no portão.

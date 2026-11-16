@@ -50,7 +50,7 @@ type TotemRow = {
   mensagem_comprovante?: string | null;
   // 0075 (pode faltar se a migração ainda não foi aplicada)
   senha_provisoria?: string | null;
-  // 0097 (pode faltar se a migração ainda não foi aplicada)
+  // 0103 (pode faltar se a migração ainda não foi aplicada)
   senha_portoes_auto?: boolean;
   campo_cloudbeds_senha?: string;
   hora_email_codigos?: string;
@@ -447,7 +447,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
   });
   const tem0059 = totem.pagamento_habilitado !== undefined;
   const tem0075 = totem.senha_provisoria !== undefined;
-  const tem0097 = totem.senha_portoes_auto !== undefined;
+  const tem0103 = totem.senha_portoes_auto !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -462,7 +462,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
               ...(({ senha_provisoria, senha_portoes_auto, campo_cloudbeds_senha, hora_email_codigos, ...resto }) => ({
                 ...resto,
                 ...(tem0075 ? { senha_provisoria: senha_provisoria.trim() || null } : {}),
-                ...(tem0097
+                ...(tem0103
                   ? {
                       senha_portoes_auto,
                       campo_cloudbeds_senha: campo_cloudbeds_senha.trim() || "codigo_portoes",
@@ -606,7 +606,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
               </p>
             </div>
           )}
-          {tem0097 && (
+          {tem0103 && (
             <div className="space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
               <Regra
                 rotulo="Mandar senha provisória dos portões depois do check-in online"
