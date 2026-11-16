@@ -4,7 +4,7 @@
 
 - [x] Aplicar 0103 e verificar cadastros e configuração
 - [x] Aplicar 0104 e verificar agendamento
-- [ ] Conferir segurança e solicitar publicação
+- [x] Conferir segurança e solicitar publicação
 
 ## Revisão do painel do gestor
 
