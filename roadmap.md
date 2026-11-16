@@ -1,5 +1,11 @@
 # Roadmap
 
+## Migrações de fechaduras e publicação
+
+- [ ] Aplicar 0103 e verificar cadastros e configuração
+- [ ] Aplicar 0104 e verificar agendamento
+- [ ] Conferir segurança e solicitar publicação
+
 ## Revisão do painel do gestor
 
 - [x] Conferir e corrigir a ocupação de hoje com os dados do Cloudbeds
