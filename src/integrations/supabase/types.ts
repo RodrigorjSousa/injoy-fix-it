@@ -4852,11 +4852,13 @@ export type Database = {
         Row: {
           ativo: boolean
           bloqueia_saldo_aberto: boolean
+          campo_cloudbeds_senha: string
           criado_em: string
           criado_por: string | null
           exige_quarto_limpo: boolean
           hora_checkin: string
           hora_checkout: string
+          hora_email_codigos: string
           id: string
           impressora: string
           mensagem_comprovante: string | null
@@ -4868,6 +4870,7 @@ export type Database = {
           pareamento_hash: string | null
           pede_documentos: boolean
           pos_serial: string | null
+          senha_portoes_auto: boolean
           senha_provisoria: string | null
           telefone_suporte: string | null
           token_hash: string | null
@@ -4880,11 +4883,13 @@ export type Database = {
         Insert: {
           ativo?: boolean
           bloqueia_saldo_aberto?: boolean
+          campo_cloudbeds_senha?: string
           criado_em?: string
           criado_por?: string | null
           exige_quarto_limpo?: boolean
           hora_checkin?: string
           hora_checkout?: string
+          hora_email_codigos?: string
           id?: string
           impressora?: string
           mensagem_comprovante?: string | null
@@ -4896,6 +4901,7 @@ export type Database = {
           pareamento_hash?: string | null
           pede_documentos?: boolean
           pos_serial?: string | null
+          senha_portoes_auto?: boolean
           senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
@@ -4908,11 +4914,13 @@ export type Database = {
         Update: {
           ativo?: boolean
           bloqueia_saldo_aberto?: boolean
+          campo_cloudbeds_senha?: string
           criado_em?: string
           criado_por?: string | null
           exige_quarto_limpo?: boolean
           hora_checkin?: string
           hora_checkout?: string
+          hora_email_codigos?: string
           id?: string
           impressora?: string
           mensagem_comprovante?: string | null
@@ -4924,6 +4932,7 @@ export type Database = {
           pareamento_hash?: string | null
           pede_documentos?: boolean
           pos_serial?: string | null
+          senha_portoes_auto?: boolean
           senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
@@ -5193,6 +5202,7 @@ export type Database = {
       }
       tuya_password_logs: {
         Row: {
+          cloudbeds_campo_em: string | null
           created_at: string
           device_ids: string[]
           entrada: string
@@ -5201,6 +5211,7 @@ export type Database = {
           guest_name: string
           id: string
           password: string
+          provisoria: boolean
           reservation_id: string | null
           revoke_reason: string | null
           revoked_at: string | null
@@ -5211,6 +5222,7 @@ export type Database = {
           unidade: string | null
         }
         Insert: {
+          cloudbeds_campo_em?: string | null
           created_at?: string
           device_ids?: string[]
           entrada: string
@@ -5219,6 +5231,7 @@ export type Database = {
           guest_name: string
           id?: string
           password: string
+          provisoria?: boolean
           reservation_id?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null
@@ -5229,6 +5242,7 @@ export type Database = {
           unidade?: string | null
         }
         Update: {
+          cloudbeds_campo_em?: string | null
           created_at?: string
           device_ids?: string[]
           entrada?: string
@@ -5237,6 +5251,7 @@ export type Database = {
           guest_name?: string
           id?: string
           password?: string
+          provisoria?: boolean
           reservation_id?: string | null
           revoke_reason?: string | null
           revoked_at?: string | null

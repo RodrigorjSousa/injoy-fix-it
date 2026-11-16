@@ -715,6 +715,13 @@
       "when": 1794584063760,
       "tag": "0101_security_restrict_staff_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1794850130585,
+      "tag": "0102_aplicar_0103_fechadura_manual_estrutura",
+      "breakpoints": true
     }
   ]
 }
