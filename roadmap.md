@@ -2,8 +2,8 @@
 
 ## Migrações de fechaduras e publicação
 
-- [ ] Aplicar 0103 e verificar cadastros e configuração
-- [ ] Aplicar 0104 e verificar agendamento
+- [x] Aplicar 0103 e verificar cadastros e configuração
+- [x] Aplicar 0104 e verificar agendamento
 - [ ] Conferir segurança e solicitar publicação
 
 ## Revisão do painel do gestor
