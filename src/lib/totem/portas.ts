@@ -92,9 +92,9 @@ export function janelaProvisoria(chegada: string, horaCheckin: string, horaCheck
 }
 
 /**
- * O e-mail automático do Cloudbeds com os códigos sai na véspera, no horário
- * configurado. Senha criada depois disso não vai nesse e-mail: a recepção
- * precisa mandar o modelo à mão pela reserva.
+ * A mensagem automática do Whistle com os códigos sai na véspera, no horário
+ * configurado. Senha criada depois disso não vai nessa mensagem: a recepção
+ * precisa mandar o modelo à mão na conversa do hóspede.
  */
 export function emailAutomaticoJaSaiu(chegada: string, horaEmail: string, agoraMs: number): boolean {
   return agoraMs >= emSP(somarDias(chegada, -1), horaEmail);
