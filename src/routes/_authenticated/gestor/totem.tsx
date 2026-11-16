@@ -624,7 +624,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
                   />
                 </div>
                 <div>
-                  <Label htmlFor={`he-${totem.id}`}>E-mail automático na véspera às</Label>
+                  <Label htmlFor={`he-${totem.id}`}>Mensagem automática do Whistle na véspera às</Label>
                   <Input
                     id={`he-${totem.id}`}
                     type="time"
@@ -634,8 +634,9 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
                 </div>
               </div>
               <p className="text-xs text-sky-900">
-                A senha vai para o campo personalizado da reserva com esse código interno, e o modelo de e-mail do Cloudbeds
-                mostra o campo. Se a senha for criada depois do horário do e-mail, a recepção recebe recado para mandar à mão.
+                A senha vai para o campo personalizado da reserva com esse código interno, e a mensagem automática do Whistle
+                (Cloudbeds) usa a variável desse campo. Se a senha for criada depois do horário da mensagem, a recepção recebe
+                recado para mandar o modelo à mão no Whistle.
               </p>
             </div>
           )}

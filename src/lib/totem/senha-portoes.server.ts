@@ -6,12 +6,15 @@
 // reservas que chegam hoje ou amanhã e cujo titular já tem documento na reserva:
 //   1. gera uma senha só para os portões, válida da hora do check-in no dia da
 //      chegada até 12h do dia seguinte;
-//   2. grava a senha num campo personalizado da reserva no Cloudbeds (o modelo
-//      de e-mail "Códigos de acesso" do Cloudbeds mostra esse campo);
+//   2. grava a senha num campo personalizado da reserva no Cloudbeds. A
+//      mensagem automática do Whistle (Cloudbeds Guest Experience) "Códigos de
+//      acesso" usa a variável desse campo e manda pelo canal do hóspede
+//      (WhatsApp, e-mail, SMS...). O Whistle não tem API pública para mandar
+//      mensagem: o caminho indicado pelo Cloudbeds é este campo personalizado;
 //   3. confere relendo a reserva.
 // No check-in do totem essa senha é apagada e entra a senha da estadia
-// (quarto + portões). Se a senha for criada depois do horário do e-mail
-// automático da véspera, a recepção recebe recado para mandar o e-mail à mão.
+// (quarto + portões). Se a senha for criada depois do horário da mensagem
+// automática da véspera, a recepção recebe recado para mandar o modelo à mão no Whistle.
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
@@ -212,9 +215,9 @@ async function processarUnidade(totem: Totem, out: ResultadoReserva[]) {
 
       const recado: string[] = [];
       if (avisoCampo)
-        recado.push(`a senha não entrou na reserva do Cloudbeds (${avisoCampo}). Informe ao hóspede pelo e-mail da reserva.`);
+        recado.push(`a senha não entrou na reserva do Cloudbeds (${avisoCampo}). Mande a senha ao hóspede pelo Whistle.`);
       else if (emailAutomaticoJaSaiu(chegada, totem.hora_email_codigos, Date.now()))
-        recado.push(`a senha foi criada depois do e-mail automático das ${totem.hora_email_codigos}. Mande o modelo "Códigos de acesso" pela reserva no Cloudbeds.`);
+        recado.push(`a senha foi criada depois da mensagem automática das ${totem.hora_email_codigos}. Mande o modelo "Códigos de acesso" na conversa do hóspede no Whistle.`);
       if (faltou.length) recado.push(`${faltou.join(", ")} não aceitou a senha; verificar o gateway.`);
       if (recado.length)
         await avisarRecepcao(totem, quartos[0] ?? null, `Senha provisória dos portões de ${hospede} (chegada ${chegada}): ${recado.join(" ")}`);
