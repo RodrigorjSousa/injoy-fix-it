@@ -162,3 +162,7 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Freelancer que cobre férias/folga de fixa NÃO é reforço: extras sem `substitui_colaborador_id` só contam como reforço além das ausências de fixas (`contarReforcosReais`).
 - Sozinha + sobrecarga mostra alerta vermelho "Camareira sozinha com sobrecarga — escale mais uma pessoa", nunca "Reforço chamado/já escalado". Pedido autorizado também não resolve enquanto ela estiver sozinha.
 - Telas: card do gestor, Previsão de Carga (gestor e recepção) e Serviços de quartos. Após publicar, clicar em "Recalcular agora" para atualizar os snapshots.
+
+## Minha Escala do freelancer (reforço aparece na hora)
+- Plantão `extra` (reforço) lançado na Escala aparece na "Minha Escala" da pessoa imediatamente, sem precisar publicar o mês (migration `0105_minha_escala_reforco_sem_publicar.sql`). Trabalho/folga continuam só após publicar.
+- Pré-requisito: o freelancer precisa estar vinculado a um login (Equipe → colaborador com funcionário/usuário). Sem vínculo, nada aparece para ele.
