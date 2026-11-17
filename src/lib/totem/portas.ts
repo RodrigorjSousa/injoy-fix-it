@@ -84,11 +84,12 @@ function somarDias(data: string, dias: number): string {
 const emSP = (data: string, hora: string) => new Date(`${data}T${hora}:00-03:00`).getTime();
 
 /**
- * Validade da senha provisória (só portões): da hora do check-in no dia da
- * chegada até a hora do check-out (12h) do dia seguinte.
+ * Validade da senha provisória (só portões): de 00h do dia da chegada até a
+ * hora do check-out (12h) do dia seguinte. Começa à meia-noite porque quem
+ * chega antes do check-in (madrugada ou cedo) entra para usar o bagageiro.
  */
-export function janelaProvisoria(chegada: string, horaCheckin: string, horaCheckout: string) {
-  return { inicio: emSP(chegada, horaCheckin), fim: emSP(somarDias(chegada, 1), horaCheckout) };
+export function janelaProvisoria(chegada: string, horaCheckout: string) {
+  return { inicio: emSP(chegada, "00:00"), fim: emSP(somarDias(chegada, 1), horaCheckout) };
 }
 
 /**

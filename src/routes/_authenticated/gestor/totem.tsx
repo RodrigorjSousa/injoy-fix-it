@@ -610,7 +610,7 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
             <div className="space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
               <Regra
                 rotulo="Mandar senha provisória dos portões depois do check-in online"
-                ajuda="A cada 15 min: reserva chegando hoje ou amanhã com documento do titular no Cloudbeds recebe uma senha só do portão e da porta de vidro (da hora do check-in até 12h do dia seguinte). O check-in no totem apaga essa senha e entrega a da estadia. Vale um totem por unidade."
+                ajuda="A cada 15 min: reserva chegando hoje ou amanhã com documento do titular no Cloudbeds recebe uma senha só do portão e da porta de vidro (de 00h do dia da chegada até 12h do dia seguinte). O check-in no totem apaga essa senha e entrega a da estadia. Vale um totem por unidade."
                 valor={form.senha_portoes_auto}
                 onChange={(v) => setForm({ ...form, senha_portoes_auto: v })}
               />

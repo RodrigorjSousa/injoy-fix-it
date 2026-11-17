@@ -4,8 +4,8 @@
 // O totem fica dentro do hotel: o hóspede precisa passar pelos dois portões
 // antes de chegar nele. A cada 15 minutos (/api/public/senha-portoes), para as
 // reservas que chegam hoje ou amanhã e cujo titular já tem documento na reserva:
-//   1. gera uma senha só para os portões, válida da hora do check-in no dia da
-//      chegada até 12h do dia seguinte;
+//   1. gera uma senha só para os portões, válida de 00h do dia da chegada
+//      (quem chega cedo entra para usar o bagageiro) até 12h do dia seguinte;
 //   2. grava a senha num campo personalizado da reserva no Cloudbeds. A
 //      mensagem automática do Whistle (Cloudbeds Guest Experience) "Códigos de
 //      acesso" usa a variável desse campo e manda pelo canal do hóspede
@@ -164,7 +164,7 @@ async function processarUnidade(totem: Totem, out: ResultadoReserva[]) {
       if (!cadastroPrevioFeito(extrairHospedes(rec))) continue;
     }
 
-    const { inicio, fim } = janelaProvisoria(chegada, totem.hora_checkin, totem.hora_checkout);
+    const { inicio, fim } = janelaProvisoria(chegada, totem.hora_checkout);
     if (fim <= Date.now()) continue;
     const quartos = extrairQuartos(rec)
       .map((q) => q.nome)

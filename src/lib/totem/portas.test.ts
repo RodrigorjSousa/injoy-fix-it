@@ -64,9 +64,9 @@ describe("quartoAtendido", () => {
 });
 
 describe("senha provisória dos portões", () => {
-  it("vale da hora do check-in na chegada até 12h do dia seguinte (horário de SP)", () => {
-    const j = janelaProvisoria("2026-11-30", "14:00", "12:00");
-    expect(new Date(j.inicio).toISOString()).toBe("2026-11-30T17:00:00.000Z");
+  it("vale de 00h do dia da chegada até 12h do dia seguinte (horário de SP)", () => {
+    const j = janelaProvisoria("2026-11-30", "12:00");
+    expect(new Date(j.inicio).toISOString()).toBe("2026-11-30T03:00:00.000Z");
     expect(new Date(j.fim).toISOString()).toBe("2026-12-01T15:00:00.000Z");
   });
 
