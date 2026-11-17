@@ -5,14 +5,14 @@
 // seguidas, calculando a "assinatura" do rosto em cada quadro: no tablet a
 // leitura era lenta, a piscada caía entre dois quadros e a foto não saía.
 // Agora a câmera só procura um rosto (leitura leve). Achou por um instante,
-// começa a contagem 3-2-1 e tira a foto. Nenhuma posição é exigida; a
+// começa a contagem regressiva (7 s) e tira a foto. Nenhuma posição é exigida; a
 // comparação com o documento é feita depois, na foto, só como indício.
 
 export const DISPARO = {
   /** Rosto visto sem parar por esse tempo antes de começar a contagem. */
   estavelMs: 500,
-  /** Duração da contagem 3-2-1. */
-  contagemMs: 3000,
+  /** Duração da contagem regressiva (7 s: tempo para posicionar o documento ao lado do rosto). */
+  contagemMs: 7000,
   /** Durante a contagem, perder o rosto por menos que isso não cancela (leitura falha às vezes). */
   toleranciaMs: 1200,
   /** Rosto menor que isso (fração da largura do quadro) está longe demais para o documento sair legível. */

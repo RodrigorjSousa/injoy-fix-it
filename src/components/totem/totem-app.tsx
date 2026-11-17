@@ -2235,7 +2235,7 @@ async function maiorRosto(v: HTMLVideoElement): Promise<{ w: number; centro: num
 
 /**
  * Foto única de identificação: o hóspede segura o documento ao lado do rosto.
- * Achou um rosto, conta 3-2-1 e tira. O botão "Tirar foto" aparece logo, para
+ * Achou um rosto, faz a contagem regressiva (7 s) e tira. O botão "Tirar foto" aparece logo, para
  * nunca depender só da leitura automática.
  */
 function CapturaIdentidade({
@@ -2300,6 +2300,11 @@ function CapturaIdentidade({
     return () => window.clearTimeout(timer);
   }, [camera, leitor, previa]);
 
+  // Voltando da prévia ("Tirar outra" ou foto recusada): garante o vídeo rodando de novo.
+  useEffect(() => {
+    if (!previa) void video.current?.play().catch(() => undefined);
+  }, [previa]);
+
   const tirar = useCallback(() => {
     const v = video.current;
     const foto = v ? fotografar(v) : null;
@@ -2309,7 +2314,7 @@ function CapturaIdentidade({
     }
   }, []);
 
-  // Laço leve: procura um rosto; achou, conta 3-2-1 e tira a foto.
+  // Laço leve: procura um rosto; achou, faz a contagem regressiva e tira a foto.
   useEffect(() => {
     if (camera !== "aberta" || leitor !== "ligado" || previa) return;
     const v = video.current;
@@ -2399,11 +2404,18 @@ function CapturaIdentidade({
       {/* Caixa no formato do vídeo (16:9). */}
       <div className="mt-3 flex min-h-0 flex-1 items-start justify-center">
         <div className="relative aspect-video max-h-full w-full overflow-hidden rounded-[1.5rem] bg-[var(--grafite)]">
+          {/* O vídeo fica sempre montado: desmontado na prévia, o "Tirar outra" voltava com um
+              <video> novo sem a câmera ligada e a foto não saía mais. */}
+          <video
+            ref={video}
+            playsInline
+            muted
+            className={cn("h-full w-full -scale-x-100 object-cover", previa && "hidden")}
+          />
           {previa ? (
-            <img src={previa} alt="" className="h-full w-full object-contain" />
+            <img src={previa} alt="" className="absolute inset-0 h-full w-full object-contain" />
           ) : (
             <>
-              <video ref={video} playsInline muted className="h-full w-full -scale-x-100 object-cover" />
               <div aria-hidden className="pointer-events-none absolute inset-0">
                 <div
                   className={cn(
