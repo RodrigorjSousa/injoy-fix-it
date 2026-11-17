@@ -32,6 +32,10 @@ Ipanema não tem recepção fixa, então o totem é especialmente útil lá.
   no navegador.
 
 ## Estado atual
+17/11/2026: migração `0106_senha_portoes_modo_teste.sql` aplicada e conferida no banco, com original intacto.
+Opção `senha_portoes_so_teste` booleana, obrigatória e com padrão `true`; os 10 testes de portas passaram.
+Verificação básica de segurança sem achados; geração física e envio ao Cloudbeds não testados nesta aplicação.
+
 16/11/2026: migrações 0103 e 0104 aplicadas e verificadas no banco, com os arquivos originais intactos.
 Cadastros da 0103 aplicados separadamente da estrutura; 0104 aplicada com comentário de revisão do agendamento.
 Quartos manuais 108/301/401/501 ativos e porta de vidro TTLock inativa; conferência de 15 minutos ativa.

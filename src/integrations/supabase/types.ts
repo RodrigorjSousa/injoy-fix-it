@@ -4871,6 +4871,7 @@ export type Database = {
           pede_documentos: boolean
           pos_serial: string | null
           senha_portoes_auto: boolean
+          senha_portoes_so_teste: boolean
           senha_provisoria: string | null
           telefone_suporte: string | null
           token_hash: string | null
@@ -4902,6 +4903,7 @@ export type Database = {
           pede_documentos?: boolean
           pos_serial?: string | null
           senha_portoes_auto?: boolean
+          senha_portoes_so_teste?: boolean
           senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null
@@ -4933,6 +4935,7 @@ export type Database = {
           pede_documentos?: boolean
           pos_serial?: string | null
           senha_portoes_auto?: boolean
+          senha_portoes_so_teste?: boolean
           senha_provisoria?: string | null
           telefone_suporte?: string | null
           token_hash?: string | null

@@ -736,6 +736,13 @@
       "when": 1794937885200,
       "tag": "0104_aplicar_0105_minha_escala_reforco_sem_publicar",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1794945347533,
+      "tag": "0105_aplicar_0106_senha_portoes_modo_teste",
+      "breakpoints": true
     }
   ]
 }

@@ -1,5 +1,11 @@
 # Roadmap
 
+## Senha dos portões — migração 0106 e publicação
+
+- [x] Aplicar 0106 pelo nome completo e preservar o arquivo original
+- [x] Conferir o modo de teste no banco e a segurança
+- [x] Solicitar publicação
+
 ## Minha Escala — migração 0105 e publicação
 
 - [x] Aplicar 0105 pelo nome completo e preservar o arquivo original
