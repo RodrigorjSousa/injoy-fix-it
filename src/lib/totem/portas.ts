@@ -101,4 +101,7 @@ export function emailAutomaticoJaSaiu(chegada: string, horaEmail: string, agoraM
   return agoraMs >= emSP(somarDias(chegada, -1), horaEmail);
 }
 
+/** Reserva de teste: o titular tem "TESTE" no nome (modo de teste da senha provisória). */
+export const ehReservaTeste = (nomeTitular: string) => /\bteste\b/i.test(nomeTitular);
+
 export const amanhaDe = (hoje: string) => somarDias(hoje, 1);

@@ -352,11 +352,14 @@ saída → avaliação (comprovante impresso).
     desligado) gera um recado por reserva a cada 6 h e é tentado de novo a cada 15 min.
   - **No totem:** o check-in apaga a senha provisória (`revogarSenhaProvisoria`) e entrega a senha da
     estadia. Se o hóspede não fizer o check-in, ela vence sozinha e a limpeza (`tuya-cleanup`) apaga.
+  - **Modo de teste** (`senha_portoes_so_teste`, migração 0106, padrão ligado): só atende reservas cujo
+    titular tem "TESTE" no nome. Serve para testar com uma reserva de teste sem mexer nas reais; desligar no
+    dia de liberar o totem.
   - **Ligar:** Área do Gestor › Totem › "Mandar senha provisória dos portões depois do check-in online"
     (um totem por unidade).
 
 #### Para ativar a Entrega 6
-1. Lovable: aplicar `0103_fechadura_manual_senha_portoes.sql` e depois `0104_senha_portoes_agendamento.sql`.
+1. Lovable: aplicar `0103_fechadura_manual_senha_portoes.sql`, `0104_senha_portoes_agendamento.sql` e `0106_senha_portoes_modo_teste.sql`.
 2. Gestão › Fechaduras: digitar a senha fixa dos quartos 108, 301, 401 e 501.
 3. Cloudbeds › Configurações › Hóspedes › Campos personalizados: criar o campo **"Código dos portões"**,
    ligado à **Reserva**, do tipo texto, não obrigatório, **sem** aparecer no motor de reservas, com código

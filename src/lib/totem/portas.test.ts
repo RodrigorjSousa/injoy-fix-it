@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aguardandoChegada,
   cadastroPrevioFeito,
+  ehReservaTeste,
   emailAutomaticoJaSaiu,
   janelaProvisoria,
   montarSenha,
@@ -86,5 +87,12 @@ describe("senha provisória dos portões", () => {
     expect(aguardandoChegada("confirmed")).toBe(true);
     expect(aguardandoChegada("checked_in")).toBe(false);
     expect(aguardandoChegada("canceled")).toBe(false);
+  });
+
+  it("modo de teste: só titular com TESTE no nome", () => {
+    expect(ehReservaTeste("Rodrigo TESTE")).toBe(true);
+    expect(ehReservaTeste("teste totem")).toBe(true);
+    expect(ehReservaTeste("Celeste Testa")).toBe(false);
+    expect(ehReservaTeste("Maria Silva")).toBe(false);
   });
 });

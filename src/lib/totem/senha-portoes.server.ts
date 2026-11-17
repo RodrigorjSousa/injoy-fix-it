@@ -24,6 +24,7 @@ import {
   aguardandoChegada,
   amanhaDe,
   cadastroPrevioFeito,
+  ehReservaTeste,
   emailAutomaticoJaSaiu,
   integradas,
   janelaProvisoria,
@@ -139,6 +140,8 @@ async function processarUnidade(totem: Totem, out: ResultadoReserva[]) {
     if (jaTem.some((l) => !l.provisoria && !l.revoked_at)) continue;
     const provisoria = jaTem.find((l) => l.provisoria);
     const hospede = titularDe(rec0);
+    // Modo de teste: só a reserva de teste; as reais ficam como estão.
+    if (totem.senha_portoes_so_teste && !ehReservaTeste(hospede)) continue;
 
     if (provisoria) {
       // Já criada: só tenta de novo o campo do Cloudbeds se da outra vez falhou.
