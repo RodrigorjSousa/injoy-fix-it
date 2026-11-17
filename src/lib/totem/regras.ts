@@ -130,12 +130,28 @@ export type QuartoReserva = {
 const CHAVE_DOCUMENTO = /(document|passport|passaporte|cpf|taxid|tax_id|rg\b|identity|identidade)/i;
 const CHAVE_NAO_DOCUMENTO = /(type|tipo|issue|expir|country|pais|date|data|image|url|photo)/i;
 
+/**
+ * Campos personalizados do hóspede no Cloudbeds. O pré-check-in do Whistle grava o
+ * documento no campo "Documento de Identidade" (e não em guestDocumentNumber).
+ * A API devolve como lista [{customFieldName, customFieldValue}] ou como objeto.
+ */
+function camposPersonalizados(guest: Raw): Array<[string, unknown]> {
+  const cf = guest.customFields ?? guest.guestCustomFields;
+  if (Array.isArray(cf))
+    return cf
+      .filter((c): c is Raw => !!c && typeof c === "object")
+      .map((c) => [String(c.customFieldName ?? c.name ?? c.customFieldShortcode ?? ""), c.customFieldValue ?? c.value]);
+  if (cf && typeof cf === "object") return Object.entries(cf as Raw);
+  return [];
+}
+
 function documentosDe(guest: Raw): string[] {
   const docs: string[] = [];
-  for (const [k, v] of Object.entries(guest)) {
+  for (const [k, v] of [...Object.entries(guest), ...camposPersonalizados(guest)]) {
     if (!CHAVE_DOCUMENTO.test(k) || CHAVE_NAO_DOCUMENTO.test(k)) continue;
+    if (v !== null && typeof v === "object") continue;
     const d = normalizarCodigo(v);
-    if (d.length >= 4) docs.push(d);
+    if (d.length >= 4 && !docs.includes(d)) docs.push(d);
   }
   return docs;
 }

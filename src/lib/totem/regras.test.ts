@@ -63,6 +63,28 @@ describe("identificação", () => {
     expect(primeiroNome(hospedes)).toBe("María");
   });
 
+  it("lê o documento do campo personalizado (pré-check-in do Whistle)", () => {
+    const lista = extrairHospedes({
+      guestList: {
+        g1: {
+          guestFirstName: "Rodrigo",
+          guestLastName: "TESTE",
+          isMainGuest: true,
+          guestDocumentNumber: "",
+          customFields: [
+            { customFieldName: "Documento de Identidade", customFieldValue: "123.456.789-09" },
+            { customFieldName: "Data de nascimento", customFieldValue: "1983-01-01" },
+          ],
+        },
+      },
+    });
+    expect(lista[0].documentos).toEqual(["12345678909"]);
+    const objeto = extrairHospedes({
+      guestList: { g1: { guestFirstName: "Ana", customFields: { "Documento de Identidade": "AB123456" } } },
+    });
+    expect(objeto[0].documentos).toEqual(["AB123456"]);
+  });
+
   it("aceita código do Cloudbeds e do canal, com ou sem pontos", () => {
     expect(codigoConfere(reserva, "8741236985")).toBe(true);
     expect(codigoConfere(reserva, "4512778903")).toBe(true);
