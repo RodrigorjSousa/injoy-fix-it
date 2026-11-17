@@ -16,20 +16,22 @@ describe("disparo da foto com documento", () => {
     ).toEqual(["sem_rosto", "sem_rosto"]);
   });
 
-  it("rosto visto meio segundo começa a contagem 3-2-1 e tira a foto", () => {
+  it("rosto visto meio segundo começa a contagem de 7 s e tira a foto", () => {
     const r = rodar([
       [0, 0.2],
       [300, 0.2],
       [500, 0.2],
       [1500, 0.2],
-      [2600, 0.2],
-      [3500, 0.2],
+      [4600, 0.2],
+      [7400, 0.2],
+      [7500, 0.2],
     ]);
     expect(r).toEqual([
       { fase: "pronto" },
       { fase: "pronto" },
+      { fase: "contando", resta: 7 },
+      { fase: "contando", resta: 6 },
       { fase: "contando", resta: 3 },
-      { fase: "contando", resta: 2 },
       { fase: "contando", resta: 1 },
       { fase: "disparar" },
     ]);
@@ -47,7 +49,7 @@ describe("disparo da foto com documento", () => {
       [900, null],
       [1300, null],
       [1600, 0.2],
-      [3600, 0.2],
+      [7600, 0.2],
     ]);
     expect(r.map((e) => e.fase)).toEqual([
       "pronto",

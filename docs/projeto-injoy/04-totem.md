@@ -183,9 +183,11 @@ saída → avaliação (comprovante impresso).
   - **Foto, segurando o documento ao lado do rosto:** guia do rosto + guia do documento (muda de lado
     conforme o rosto). Durante a espera a câmera só procura **um rosto**: quadro reduzido a 480 px,
     detector com entrada 224, sem landmarks nem "vetor do rosto". Em teste, ficou cerca de 3,5x mais
-    rápida que a leitura antiga. Achou o rosto por 0,5 s, começa a **contagem 3-2-1** na tela e na voz,
+    rápida que a leitura antiga. Achou o rosto por 0,5 s, começa a **contagem regressiva de 7 s** na tela e na voz,
     e a foto sai sozinha. Não exige centralizar nem piscar. Uma leitura falha durante a contagem (até
     1,2 s) não cancela. O botão **"Tirar foto"** aparece em 3 s, ou na hora se o leitor não ligar.
+    O `<video>` fica sempre montado (escondido na prévia): antes, "Tirar outra" voltava com um vídeo novo
+    sem a câmera e a foto travava (corrigido em nov/2026).
     Depois vem a prévia, com "Tirar outra" ou "Usar esta foto".
   - **Indício para a gerência:** calculado na foto já tirada, enquanto o hóspede confere a prévia.
     Mede a distância entre o rosto e a foto 3x4 do documento (`dist_foto_documento`), procurando a 3x4
@@ -215,7 +217,7 @@ saída → avaliação (comprovante impresso).
   - registra "senha provisória (modo teste)" nos eventos.
   O gestor edita ou apaga em Área do Gestor › Totem. Apagar = volta a gerar senha na fechadura.
 - **Voz guiando o hóspede** (`voz.ts`): fala o passo a passo de cada tela e as dicas da câmera
-  ("olhe para a câmera", contagem 3-2-1...) no idioma escolhido (pt-BR, en-US, es-ES).
+  ("olhe para a câmera", contagem de 7 s...) no idioma escolhido (pt-BR, en-US, es-ES).
   - **Como sai o som:** o navegador do Fully Kiosk (Android WebView) não tem voz própria, então a
     fala usa `fully.textToSpeech` (JavaScript Interface, recurso **PLUS**). No computador, usa a voz
     do Chrome.
@@ -268,7 +270,7 @@ saída → avaliação (comprovante impresso).
      do Google e baixe as vozes de português (Brasil), inglês e espanhol.
    - Teste a impressão e a câmera.
    - Teste a identificação com uma pessoa de verdade e um RG/CNH real, na luz do balcão: a foto
-     precisa sair sozinha depois do 3-2-1; anote se a foto 3x4 do documento é reconhecida (indício na
+     precisa sair sozinha depois da contagem de 7 s; anote se a foto 3x4 do documento é reconhecida (indício na
      tela do gestor).
 
 #### Cuidados (LGPD)
