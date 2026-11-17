@@ -55,6 +55,8 @@ export type Totem = {
   senha_provisoria: string | null;
   /** Migração 0103: manda a senha provisória dos portões depois do check-in online. */
   senha_portoes_auto: boolean;
+  /** Migração 0106: só reservas de teste (titular com "TESTE" no nome). Sem a coluna, vale true. */
+  senha_portoes_so_teste: boolean;
   /** Código interno (shortcode) do campo personalizado da reserva no Cloudbeds que recebe a senha. */
   campo_cloudbeds_senha: string;
   /** Horário (véspera da chegada) em que o e-mail automático do Cloudbeds sai. */
@@ -88,6 +90,7 @@ export function normalizarTotem(row: Record<string, unknown>): Totem {
     voz_ativa: row.voz_ativa !== false,
     senha_provisoria: ((row.senha_provisoria as string | null) ?? "").trim() || null,
     senha_portoes_auto: row.senha_portoes_auto === true,
+    senha_portoes_so_teste: row.senha_portoes_so_teste !== false,
     campo_cloudbeds_senha: String(row.campo_cloudbeds_senha ?? "").trim() || "codigo_portoes",
     hora_email_codigos: hhmm(row.hora_email_codigos, "17:00"),
   };

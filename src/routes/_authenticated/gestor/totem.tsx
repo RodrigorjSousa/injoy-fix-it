@@ -52,6 +52,7 @@ type TotemRow = {
   senha_provisoria?: string | null;
   // 0103 (pode faltar se a migração ainda não foi aplicada)
   senha_portoes_auto?: boolean;
+  senha_portoes_so_teste?: boolean; // 0106
   campo_cloudbeds_senha?: string;
   hora_email_codigos?: string;
 };
@@ -442,12 +443,14 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
     mensagem_comprovante: totem.mensagem_comprovante ?? "",
     senha_provisoria: totem.senha_provisoria ?? "",
     senha_portoes_auto: totem.senha_portoes_auto ?? false,
+    senha_portoes_so_teste: totem.senha_portoes_so_teste ?? true,
     campo_cloudbeds_senha: totem.campo_cloudbeds_senha ?? "codigo_portoes",
     hora_email_codigos: hhmm(totem.hora_email_codigos ?? "17:00"),
   });
   const tem0059 = totem.pagamento_habilitado !== undefined;
   const tem0075 = totem.senha_provisoria !== undefined;
   const tem0103 = totem.senha_portoes_auto !== undefined;
+  const tem0106 = totem.senha_portoes_so_teste !== undefined;
   const [salvando, setSalvando] = useState(false);
   const [codigo, setCodigo] = useState<{ codigo: string; expira: string } | null>(null);
   const [gerando, setGerando] = useState(false);
@@ -459,12 +462,13 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
       .update(
         tem0059
           ? {
-              ...(({ senha_provisoria, senha_portoes_auto, campo_cloudbeds_senha, hora_email_codigos, ...resto }) => ({
+              ...(({ senha_provisoria, senha_portoes_auto, senha_portoes_so_teste, campo_cloudbeds_senha, hora_email_codigos, ...resto }) => ({
                 ...resto,
                 ...(tem0075 ? { senha_provisoria: senha_provisoria.trim() || null } : {}),
                 ...(tem0103
                   ? {
                       senha_portoes_auto,
+                      ...(tem0106 ? { senha_portoes_so_teste } : {}),
                       campo_cloudbeds_senha: campo_cloudbeds_senha.trim() || "codigo_portoes",
                       hora_email_codigos,
                     }
@@ -610,10 +614,18 @@ function TotemCard({ totem, onMudou }: { totem: TotemRow; onMudou: () => void })
             <div className="space-y-2 rounded-xl border border-sky-200 bg-sky-50 p-3">
               <Regra
                 rotulo="Mandar senha provisória dos portões depois do check-in online"
-                ajuda="A cada 15 min: reserva chegando hoje ou amanhã com documento do titular no Cloudbeds recebe uma senha só do portão e da porta de vidro (da hora do check-in até 12h do dia seguinte). O check-in no totem apaga essa senha e entrega a da estadia. Vale um totem por unidade."
+                ajuda="A cada 15 min: reserva chegando hoje ou amanhã com documento do titular no Cloudbeds recebe uma senha só do portão e da porta de vidro (de 00h do dia da chegada até 12h do dia seguinte). O check-in no totem apaga essa senha e entrega a da estadia. Vale um totem por unidade."
                 valor={form.senha_portoes_auto}
                 onChange={(v) => setForm({ ...form, senha_portoes_auto: v })}
               />
+              {tem0106 && (
+                <Regra
+                  rotulo="Só reservas de teste (titular com TESTE no nome)"
+                  ajuda="Para testar sem mexer nas reservas reais. Desligue no dia de liberar o totem para os hóspedes."
+                  valor={form.senha_portoes_so_teste}
+                  onChange={(v) => setForm({ ...form, senha_portoes_so_teste: v })}
+                />
+              )}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label htmlFor={`cf-${totem.id}`}>Código interno do campo no Cloudbeds</Label>

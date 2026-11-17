@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   aguardandoChegada,
   cadastroPrevioFeito,
+  ehReservaTeste,
   emailAutomaticoJaSaiu,
   janelaProvisoria,
   montarSenha,
@@ -64,9 +65,9 @@ describe("quartoAtendido", () => {
 });
 
 describe("senha provisória dos portões", () => {
-  it("vale da hora do check-in na chegada até 12h do dia seguinte (horário de SP)", () => {
-    const j = janelaProvisoria("2026-11-30", "14:00", "12:00");
-    expect(new Date(j.inicio).toISOString()).toBe("2026-11-30T17:00:00.000Z");
+  it("vale de 00h do dia da chegada até 12h do dia seguinte (horário de SP)", () => {
+    const j = janelaProvisoria("2026-11-30", "12:00");
+    expect(new Date(j.inicio).toISOString()).toBe("2026-11-30T03:00:00.000Z");
     expect(new Date(j.fim).toISOString()).toBe("2026-12-01T15:00:00.000Z");
   });
 
@@ -86,5 +87,12 @@ describe("senha provisória dos portões", () => {
     expect(aguardandoChegada("confirmed")).toBe(true);
     expect(aguardandoChegada("checked_in")).toBe(false);
     expect(aguardandoChegada("canceled")).toBe(false);
+  });
+
+  it("modo de teste: só titular com TESTE no nome", () => {
+    expect(ehReservaTeste("Rodrigo TESTE")).toBe(true);
+    expect(ehReservaTeste("teste totem")).toBe(true);
+    expect(ehReservaTeste("Celeste Testa")).toBe(false);
+    expect(ehReservaTeste("Maria Silva")).toBe(false);
   });
 });

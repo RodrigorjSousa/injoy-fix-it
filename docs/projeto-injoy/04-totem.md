@@ -338,7 +338,7 @@ saída → avaliação (comprovante impresso).
   - **Quem:** reservas que chegam hoje ou amanhã, ainda não hospedadas, cujo titular já tem documento na
     reserva do Cloudbeds (check-in online feito). Reserva que já tem senha da estadia não recebe.
   - **O quê:** uma senha só para os portões integrados (TTLock/Tuya ativos, `tipo <> 'quarto'`), válida da
-    `hora_checkin` do dia da chegada até a `hora_checkout` (12h) do dia seguinte. Fica em
+    00h do dia da chegada (quem chega cedo entra para usar o bagageiro) até a `hora_checkout` (12h) do dia seguinte. Fica em
     `tuya_password_logs` com `provisoria = true`. A edge function passou a respeitar início no futuro também
     no TTLock (antes começava na hora).
   - **Envio:** a senha é gravada no **campo personalizado da reserva** do Cloudbeds (código interno
@@ -352,20 +352,26 @@ saída → avaliação (comprovante impresso).
     desligado) gera um recado por reserva a cada 6 h e é tentado de novo a cada 15 min.
   - **No totem:** o check-in apaga a senha provisória (`revogarSenhaProvisoria`) e entrega a senha da
     estadia. Se o hóspede não fizer o check-in, ela vence sozinha e a limpeza (`tuya-cleanup`) apaga.
+  - **Modo de teste** (`senha_portoes_so_teste`, migração 0106, padrão ligado): só atende reservas cujo
+    titular tem "TESTE" no nome. Serve para testar com uma reserva de teste sem mexer nas reais; desligar no
+    dia de liberar o totem.
   - **Ligar:** Área do Gestor › Totem › "Mandar senha provisória dos portões depois do check-in online"
     (um totem por unidade).
 
 #### Para ativar a Entrega 6
-1. Lovable: aplicar `0103_fechadura_manual_senha_portoes.sql` e depois `0104_senha_portoes_agendamento.sql`.
+1. Lovable: aplicar `0103_fechadura_manual_senha_portoes.sql`, `0104_senha_portoes_agendamento.sql` e `0106_senha_portoes_modo_teste.sql`.
 2. Gestão › Fechaduras: digitar a senha fixa dos quartos 108, 301, 401 e 501.
 3. Cloudbeds › Configurações › Hóspedes › Campos personalizados: criar o campo **"Código dos portões"**,
    ligado à **Reserva**, do tipo texto, não obrigatório, **sem** aparecer no motor de reservas, com código
    interno `codigo_portoes`.
-4. Whistle (Cloudbeds Guest Experience): no modelo de mensagem **"Códigos de acesso"** que a recepção já
-   manda, trocar o código digitado à mão pela **variável do campo personalizado "Código dos portões"**, e
-   criar a **automação** para 1 dia antes do check-in, às 17h. Texto sugerido: "Digite o código e # no
-   portão gradeado e na porta de vidro. Vale a partir das 14h do dia da chegada. Dentro do hotel, faça o
-   check-in no totem para receber a senha do seu quarto."
+4. Cloudbeds/Whistle de Botafogo (feito em 17/11/2026):
+   - Campo personalizado da reserva **"Código dos portões"** (código interno `codigo_portoes`, só no painel)
+     criado. No Whistle ele aparece como a variável `{{cloudbeds_codigo_dos_portoes}}`.
+   - Modelos do Whistle **"PT / INGLÊS / ESPANHOL - Código dos portões (totem)"** criados com a variável.
+   - **Falta, no dia de liberar o totem:** criar a automação "X dias antes da chegada", 1 dia, às 17h, com o
+     filtro "Fluxo de check-in = Finalizado", um por idioma (como as automações "Docs pendentes"), e
+     parar de mandar à mão os modelos antigos "Códigos Check-In". Antes disso a automação mandaria o código em
+     branco, porque o sistema só preenche o campo com a opção ligada no totem.
 5. Ligar o portão gradeado (lockId 36396334) e a porta de vidro (lockId 34524501, cadastrada pela 0103) TTLock em Gestão › Fechaduras.
 6. Área do Gestor › Totem: ligar a opção e conferir o código interno e o horário.
 7. Teste com uma reserva de teste chegando amanhã: preencher o documento do titular no Cloudbeds e, em até
