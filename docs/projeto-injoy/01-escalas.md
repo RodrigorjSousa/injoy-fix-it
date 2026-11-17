@@ -31,6 +31,7 @@ Leia antes o `00-CONTEXTO-GERAL.md`.
 - Os dias editados à mão (`origem='manual'`) são preservados quando o mês é regerado.
 
 ## Estado atual
+- 17/11/2026: aplicada `0105_minha_escala_reforco_sem_publicar.sql` pelo conteúdo integral, com original preservado (SHA-256 `486e79da9461075ff18db76afc8f451ba8716d872a7b31cfff9d43eb5b11014d`). A ferramenta criou `0104_aplicar_0105_minha_escala_reforco_sem_publicar.sql`. Conferidos no banco o filtro de extras sem publicação, o vínculo com `auth.uid()`, a ausência de valores financeiros e os acessos (authenticated permitido, anon recusado). Checagem básica de segurança sem achados; fluxo com login de freelancer não testado nesta aplicação.
 - Entregue: gerar, publicar e ver a própria escala; freelancers com integração ao Financeiro;
   previsão de carga D+2; correções da auditoria (0017/0018).
 - Revezamento corrigido (PR #13, sem migração):

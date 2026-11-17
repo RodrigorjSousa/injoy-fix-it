@@ -1,5 +1,11 @@
 # Roadmap
 
+## Minha Escala — migração 0105 e publicação
+
+- [x] Aplicar 0105 pelo nome completo e preservar o arquivo original
+- [x] Conferir a função no banco e a segurança
+- [x] Solicitar publicação
+
 ## Migrações de fechaduras e publicação
 
 - [x] Aplicar 0103 e verificar cadastros e configuração
