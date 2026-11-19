@@ -61,6 +61,20 @@ export function montarSenha(usadas: Fechadura[], senhas: Record<string, string>)
   return { senha: principal, portas };
 }
 
+/**
+ * Texto gravado no campo "Código dos portões" da reserva no Cloudbeds quando a
+ * senha da estadia é gerada (totem ou balcão), para a recepção reenviar ao hóspede.
+ * Mesma senha em tudo: só o número. Quarto com senha própria (manual): os dois.
+ */
+export function textoCampoSenha(g: { senha: string; portas: Porta[] }): string {
+  const outras = [...new Set(g.portas.filter((p) => p.senha && p.senha !== g.senha).map((p) => p.senha as string))];
+  if (!outras.length) return g.senha;
+  const quartoProprio = g.portas.some((p) => p.tipo === "quarto" && p.mesma);
+  const portoes = g.portas.filter((p) => !p.tipo.startsWith("quarto") && p.senha).map((p) => p.senha as string);
+  if (quartoProprio && portoes.length) return `${[...new Set(portoes)].join(" / ")} (portões) | ${g.senha} (quarto)`;
+  return [g.senha, ...outras].join(" / ");
+}
+
 // --------------------------------------------- senha provisória dos portões
 
 /** Reserva que ainda vai chegar (não cancelada, não hospedada, sem check-out). */

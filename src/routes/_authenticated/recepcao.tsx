@@ -46,6 +46,7 @@ import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-quarto";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
+import { SenhaBalcaoButton } from "@/components/recepcao/senha-balcao";
 import {
   EmptyState,
   ErrorState,
@@ -843,6 +844,20 @@ function RecepcaoPage() {
                     roomNumber={padQuarto(q.quarto)}
                     unidade={q.unidade}
                   />
+                  {q.ocupacao !== "Bloqueado" && (
+                    <SenhaBalcaoButton
+                      unidade={q.unidade}
+                      quarto={padQuarto(q.quarto)}
+                      opcoes={[
+                        ...(q.temReserva
+                          ? [{ reservationId: String(q.id), hospede: q.hospede, rotulo: q.hospedeSaindoHoje ? "Sai hoje" : "Hóspede do quarto" }]
+                          : []),
+                        ...(q.proximoReservationId
+                          ? [{ reservationId: q.proximoReservationId, hospede: q.proximoHospede ?? "", rotulo: "Chega hoje" }]
+                          : []),
+                      ]}
+                    />
+                  )}
 
                   {q.ocupacao !== "Bloqueado" && (
                     <button

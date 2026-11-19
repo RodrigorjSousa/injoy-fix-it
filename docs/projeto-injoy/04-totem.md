@@ -383,6 +383,21 @@ saída → avaliação (comprovante impresso).
 7. Teste com uma reserva de teste chegando amanhã: preencher o documento do titular no Cloudbeds e, em até
    15 min, conferir o evento no histórico do totem, o campo na reserva e o código no portão.
 
+### Entrega 7: senha da estadia gravada no Cloudbeds e gerada no balcão (nov/2026)
+- **Registro no Cloudbeds:** quando o totem gera a senha da estadia, ela é gravada no mesmo campo da
+  reserva da senha provisória, o "Código dos portões" (`gravarSenhaDaEstadia`). Assim a recepção consegue
+  reenviar ao hóspede. Se for a mesma senha em tudo, grava só o número. No quarto com senha fixa, grava
+  "portões X | quarto Y" (`textoCampoSenha`). Falha aqui não impede a senha: vai recado para a recepção.
+- **Balcão:** na Recepção, cada quarto com reserva tem **"Senha da estadia (balcão)"**
+  (`senha-balcao.functions.ts`, `components/recepcao/senha-balcao.tsx`). Serve para quando o hóspede não
+  consegue usar o totem, e faz o mesmo que o totem:
+  - senha do(s) quarto(s) e dos portões até o check-out;
+  - apaga a senha provisória;
+  - grava na reserva;
+  - registra no histórico do totem (`senha_balcao`).
+  Se a reserva já tem senha válida, mostra a mesma. Não faz o check-in no Cloudbeds, que continua no botão
+  de check-in. Usa a configuração do totem ativo da unidade (`totemDaUnidade`).
+
 ### Pendências / próximos passos
 - Botafogo: os 19 quartos têm fechadura no sistema (15 integradas + 4 manuais). Quarto sem cadastro, ou
   manual sem a senha fixa, para em "sem fechadura digital" e manda o hóspede falar com a equipe.

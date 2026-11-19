@@ -306,8 +306,19 @@ async function executarCheckin(input: z.infer<typeof checkinInput>, confirmar: b
     }
   }
 
-  // A senha da estadia substitui a provisória dos portões mandada depois do check-in online.
-  if (!provisoria) await S.revogarSenhaProvisoria(totem, reservationID);
+  // A senha da estadia substitui a provisória dos portões mandada depois do check-in online,
+  // e fica gravada no mesmo campo da reserva no Cloudbeds (a recepção consegue reenviar).
+  if (!provisoria) {
+    await S.revogarSenhaProvisoria(totem, reservationID);
+    const { gravarSenhaDaEstadia } = await import("@/lib/totem/senha-portoes.server");
+    const erroCampo = await gravarSenhaDaEstadia(totem, reservationID, senha);
+    if (erroCampo)
+      await S.avisarRecepcao(
+        totem,
+        quartos[0] ?? null,
+        `Totem: senha de ${nomeCompleto} (quarto ${quartos.join(", ")}) não foi gravada na reserva do Cloudbeds: ${erroCampo}`,
+      );
+  }
 
   let avisoCloudbeds: string | null = null;
   try {

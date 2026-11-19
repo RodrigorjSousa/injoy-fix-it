@@ -28,6 +28,8 @@ import {
   emailAutomaticoJaSaiu,
   integradas,
   janelaProvisoria,
+  textoCampoSenha,
+  type Porta,
 } from "./portas";
 import {
   avisarRecepcao,
@@ -89,6 +91,25 @@ export async function gravarCampoCloudbeds(
     throw new Error(
       `O Cloudbeds aceitou, mas o campo "${campo}" não aparece na reserva. Confira se o código interno do campo personalizado é "${campo}".`,
     );
+}
+
+/**
+ * Grava a senha da estadia (totem ou balcão) no mesmo campo da reserva que guarda a
+ * senha provisória, para a recepção conseguir reenviar ao hóspede. Devolve o erro
+ * (texto) ou null; nunca impede a entrega da senha.
+ */
+export async function gravarSenhaDaEstadia(
+  totem: Totem,
+  reservationID: string,
+  g: { senha: string; portas: Porta[] },
+): Promise<string | null> {
+  if (!g.senha) return null;
+  try {
+    await gravarCampoCloudbeds(propriedade(totem), reservationID, totem.campo_cloudbeds_senha, textoCampoSenha(g));
+    return null;
+  } catch (e) {
+    return String((e as Error).message ?? e);
+  }
 }
 
 function chegadaDe(rec: Raw): string {
