@@ -90,7 +90,9 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
     avaliação marca "Teve elogio nominal?" e escolhe o(s) nome(s) (`registrar_bonificacao_com_elogios`; ao editar,
     `bonificacao_definir_elogiados`); cada nome vira uma linha em `bonus_elogios`. Apagar a avaliação apaga os
     elogios dela. Bonificação › Pagamento mostra por pessoa: Comentário individual | Nota ≥ 9 (meta) | Geral
-    (total), com as mesmas regras de atrasos e faltas. Avaliações antigas não foram recalculadas.
+    (total), com as mesmas regras de atrasos e faltas. A 0108 recalculou as avaliações de novembro/2026 com elogio
+    (ex.: Vanessa 13/11: -20 em cada setor e R$ 20 só para a Julia) e ligou o nome elogiado quando a observação cita
+    o primeiro nome de um único funcionário; meses anteriores ficaram como estavam.
 - Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa quando a nota Geral E a nota do setor do mês ficam na nota mínima (regra do Rodrigo, 02/11/2026; antes, 0039, a Geral não contava): Recepção → Geral + Funcionário; Camareiras/Manutenção → Geral + Limpeza (`avaliarMetaSetores`). A pessoa perde
   as duas bonificações com mais de 3 atrasos (tolerância de 10 min contra a Escala) ou com falta
   sem justificativa.
