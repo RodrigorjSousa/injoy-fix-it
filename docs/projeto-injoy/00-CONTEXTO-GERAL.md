@@ -159,6 +159,15 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - WhatsApp com IA (Joy), entrega E1 (0074): simulador, configuração e execuções em Área do Gestor ›
   WhatsApp (Joy), sem WhatsApp ainda e sem mensagem real a hóspede. Ver `08-whatsapp-ia.md`.
 
+- FNRH Digital (pré-checagem): o app "Brazil Police Report (FNRH)" do Cloudbeds envia a ficha no check-in e um
+  hóspede com erro trava a reserva toda. A edge function `dados-recepcao` checa todos os hóspedes da reserva
+  (`supabase/functions/_shared/fnrh.ts`, teste `src/lib/fnrh.test.ts`): nome completo, nascimento, nacionalidade,
+  CPF válido (brasileiro; aceita no taxID) ou passaporte (estrangeiro), cidade, UF (brasileiro), país, CPF repetido
+  entre hóspedes, acompanhantes sem cadastro e, se o campo existir, motivo da viagem / meio de transporte. O card
+  da Recepção mostra "FNRH: falta …" (laranja; clique mostra por hóspede). Erros vistos em 11/2026: "cidade_id não
+  informado" e CPF que não bate com a pessoa na Receita (não dá para checar daqui — só formato e repetição).
+  Mudou a edge function: pedir deploy de `dados-recepcao` no Lovable.
+
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
   — ver `03-lavanderia.md`.
 
