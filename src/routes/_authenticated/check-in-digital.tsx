@@ -7,6 +7,7 @@ import { AbrirPortasRemoto } from "@/components/recepcao/abrir-portas-remoto";
 import { SenhasAtivasPanel } from "@/components/recepcao/senhas-ativas-panel";
 import { TuyaDevicesManagerModal } from "@/components/gestao/tuya-devices-manager";
 import { SenhaTesteFechaduras } from "@/components/gestao/senha-teste-fechaduras";
+import { SenhasExistentesTTLock } from "@/components/gestao/senhas-existentes-ttlock";
 import { useUnidade } from "@/lib/unidade-context";
 
 import { requireGestor } from "@/lib/require-gestor";
@@ -54,6 +55,7 @@ function CheckInDigitalPage() {
       <TuyaDevicesManagerModal open={tuyaOpen} onOpenChange={setTuyaOpen} />
 
       <SenhaTesteFechaduras unidade={unidade} />
+      <SenhasExistentesTTLock unidade={unidade} />
 
       {unidade === "Botafogo" ? (
         <>
