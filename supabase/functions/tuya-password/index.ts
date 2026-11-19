@@ -847,9 +847,12 @@ async function rotear(payload: Json, grupos: Map<string, Grupo>): Promise<Respon
     const senhas: Record<string, string> = {};
     const senhaIds: Record<string, string | number> = {};
     const tuyaResults: Array<{ deviceId: string; status: unknown }> = [];
-    let senha = Math.floor(100000 + Math.random() * 900000).toString();
+    // Senha informada (ex.: passar para os teclados TTLock a senha que o hóspede já usa no app
+    // da Tuya). Não é trocada por outra se já existir no teclado: volta como erro.
+    const informada = typeof payload.senha === "string" && /^\d{4,9}$/.test(payload.senha) ? payload.senha : null;
+    let senha = informada ?? Math.floor(100000 + Math.random() * 900000).toString();
     for (let tentativa = 0; ttIds.length && tentativa < 4; tentativa++) {
-      senha = Math.floor(100000 + Math.random() * 900000).toString();
+      senha = informada ?? Math.floor(100000 + Math.random() * 900000).toString();
       const criadas: Array<[string, number]> = [];
       let repetida = false;
       for (const id of ttIds) {
@@ -859,11 +862,14 @@ async function rotear(payload: Json, grupos: Map<string, Grupo>): Promise<Respon
           await log(id, "keyboardPwd/add", true, { keyboardPwdId: pwdId });
         } catch (e) {
           await log(id, "keyboardPwd/add", false, msgDe(e));
-          if (ehRepetida(e) && tentativa < 3) {
+          if (ehRepetida(e) && !informada && tentativa < 3) {
             repetida = true;
             break;
           }
-          tuyaResults.push({ deviceId: id, status: { success: false, msg: msgDe(e) } });
+          tuyaResults.push({
+            deviceId: id,
+            status: { success: false, msg: ehRepetida(e) && informada ? "essa senha já está cadastrada neste teclado" : msgDe(e) },
+          });
         }
       }
       if (repetida) {
