@@ -7,6 +7,7 @@ import {
   janelaProvisoria,
   montarSenha,
   quartoAtendido,
+  textoCampoSenha,
   type Fechadura,
 } from "./portas";
 
@@ -94,5 +95,23 @@ describe("senha provisória dos portões", () => {
     expect(ehReservaTeste("teste totem")).toBe(true);
     expect(ehReservaTeste("Celeste Testa")).toBe(false);
     expect(ehReservaTeste("Maria Silva")).toBe(false);
+  });
+});
+
+describe("textoCampoSenha", () => {
+  it("mesma senha em todas as portas: só o número", () => {
+    expect(textoCampoSenha({ senha: "482913", portas: [{ label: "APT 113", tipo: "quarto", senha: null, mesma: true }, { label: "Portão", tipo: "portao", senha: null, mesma: true }] })).toBe("482913");
+  });
+  it("quarto com senha fixa: portões e quarto separados", () => {
+    expect(
+      textoCampoSenha({
+        senha: "1111",
+        portas: [
+          { label: "APT 301", tipo: "quarto", senha: null, mesma: true },
+          { label: "Portão", tipo: "portao", senha: "735102", mesma: false },
+          { label: "Vidro", tipo: "vidro", senha: "735102", mesma: false },
+        ],
+      }),
+    ).toBe("735102 (portões) | 1111 (quarto)");
   });
 });

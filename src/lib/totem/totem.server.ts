@@ -147,6 +147,19 @@ export async function parearTotem(codigo: string): Promise<{ token: string; tote
   return { token, totem };
 }
 
+/**
+ * Configuração do totem de check-in da unidade, para o check-in feito no balcão
+ * (horários, fechaduras e campo do Cloudbeds são os mesmos do totem).
+ */
+export async function totemDaUnidade(unidade: string): Promise<Totem> {
+  const { data, error } = await db().from("totem_dispositivos").select(CAMPOS_TOTEM).eq("unidade", unidade).eq("ativo", true);
+  if (error) throw new Error(`Falha ao ler a configuração do totem: ${error.message}`);
+  const totens = ((data ?? []) as Record<string, unknown>[]).map(normalizarTotem);
+  const t = totens.find((x) => x.modo !== "checkout") ?? totens[0];
+  if (!t) throw new Error(`Nenhum totem ativo cadastrado para ${unidade} (Área do Gestor › Totem).`);
+  return t;
+}
+
 /** Garante que o tablet só faz a função para a qual foi configurado. */
 export function exigirModo(totem: Totem, acao: "checkin" | "checkout") {
   if (totem.modo !== "ambos" && totem.modo !== acao) {
@@ -456,7 +469,13 @@ export function senhaProvisoria(totem: Totem, quartos: QuartoReserva[]): SenhaGe
  */
 export async function gerarSenhaTuya(
   totem: Totem,
-  args: { reservationID: string; hospede: string; quartos: QuartoReserva[] },
+  args: {
+    reservationID: string;
+    hospede: string;
+    quartos: QuartoReserva[];
+    /** Quem gerou (histórico). Padrão: o totem. Na recepção: "Recepção (balcão) · Fulano". */
+    origem?: { nome: string; userId: string | null };
+  },
 ): Promise<SenhaGerada> {
   const fechaduras = await fechadurasDaUnidade(totem);
   const doQuarto = args.quartos.map((q) => ({ q, f: fechaduraDoQuarto(fechaduras, q.nome) }));
@@ -520,8 +539,8 @@ export async function gerarSenhaTuya(
       device_ids: ids,
       senha_ids: Object.fromEntries(ids.filter((id) => senhaIds[id] !== undefined).map((id) => [id, senhaIds[id]])),
       unidade: totem.unidade,
-      generated_by_user_id: null,
-      generated_by_name: `Totem ${totem.nome}`,
+      generated_by_user_id: args.origem?.userId ?? null,
+      generated_by_name: args.origem?.nome ?? `Totem ${totem.nome}`,
       reservation_id: args.reservationID,
     });
     if (error) console.error("[totem] falha ao registrar senha", error.message);
