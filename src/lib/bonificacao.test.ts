@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calcularMediasBonificacao, nivelNota, type RegistroBonificacao } from "./bonificacao";
+import { calcularMediasBonificacao, calcularValor, nivelNota, type ConfigBonificacao, type RegistroBonificacao } from "./bonificacao";
 
 const r = (p: Partial<RegistroBonificacao>): RegistroBonificacao => ({
   id: Math.random().toString(36),
@@ -50,5 +50,26 @@ describe("médias da bonificação", () => {
     expect(nivelNota(8.4)).toBe("amarelo");
     expect(nivelNota(7.8)).toBe("vermelho");
     expect(nivelNota(null)).toBe("sem");
+  });
+});
+
+describe("valor da avaliação do setor", () => {
+  const cfg: ConfigBonificacao = {
+    id: "c",
+    valor_nota_10: 15,
+    valor_nota_9: 10,
+    penalidade_1_ruim: -5,
+    penalidade_2_ruins: -10,
+    valor_elogio: 20,
+  };
+  it("segue as notas do setor e a geral", () => {
+    expect(calcularValor(10, 9, cfg)).toBe(15);
+    expect(calcularValor(9, 10, cfg)).toBe(10);
+    expect(calcularValor(8, 10, cfg)).toBe(-5);
+    expect(calcularValor(7, 6, cfg)).toBe(-10);
+  });
+  it("o elogio nominal não entra no valor do setor (vai só para a pessoa elogiada)", () => {
+    // antes: 15 + 20 = 35 para o setor inteiro
+    expect(calcularValor(10, 10, cfg)).toBe(15);
   });
 });
