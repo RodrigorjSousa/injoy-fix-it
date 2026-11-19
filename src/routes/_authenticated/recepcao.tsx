@@ -44,6 +44,7 @@ import { formatTaskLabel, isCheckInTask } from "@/lib/task-labels";
 import { nowSP, spInstant } from "@/lib/tz";
 import { NaoPerturbeBadge } from "@/components/recepcao/nao-perturbe-badge";
 import { AvisosCloudbedsQuarto } from "@/components/recepcao/avisos-cloudbeds-quarto";
+import { AvisoFnrh, type PendenciaFnrh } from "@/components/recepcao/aviso-fnrh";
 import { EciLcoBadges } from "@/components/recepcao/eci-lco-badges";
 import { CheckInDigitalButton } from "@/components/recepcao/check-in-digital-modal";
 import { SenhaBalcaoButton } from "@/components/recepcao/senha-balcao";
@@ -93,6 +94,8 @@ interface QuartoRecepcao {
   /** Airbnb: já pago ao canal (repasse em até 48h), sem débito. */
   canalPrePago?: boolean;
   docPendente: boolean;
+  /** FNRH: o que falta no cadastro de cada hóspede da reserva (dados-recepcao). */
+  fnrhPendencias?: PendenciaFnrh[];
   statusCheckin: StatusCheckin;
   temReserva: boolean;
   hospedeSaindoHoje?: string;
@@ -104,6 +107,7 @@ interface QuartoRecepcao {
   proximoPagamentoPendente?: boolean;
   proximoPagamentoValor?: number;
   proximoDocPendente?: boolean;
+  proximoFnrhPendencias?: PendenciaFnrh[];
   temProximoHospede?: boolean;
   isDnd?: boolean;
   hasEci?: boolean;
@@ -665,6 +669,10 @@ function RecepcaoPage() {
                           Airbnb · já pago ao canal
                         </span>
                       )}
+                      <AvisoFnrh
+                        pendencias={q.fnrhPendencias}
+                        checkinFeito={q.statusCheckin === "Realizado"}
+                      />
                       {(q.pagamentoPendente || (q.docPendente && q.pagamentoPendente)) && (
                           <div className="space-y-1.5 pt-1">
                             <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
@@ -737,6 +745,7 @@ function RecepcaoPage() {
                             Chegada prevista:{" "}
                             <span className="font-semibold">{q.proximoChegadaHora || "A definir"}</span>
                           </div>
+                          <AvisoFnrh pendencias={q.proximoFnrhPendencias} compacto />
                           {(q.proximoPagamentoPendente || q.proximoDocPendente) && (
                             <div className="flex flex-wrap gap-1.5 pt-0.5">
                               {q.proximoPagamentoPendente && (

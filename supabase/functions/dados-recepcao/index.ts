@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { canalPrePago, saldoACobrar } from '../_shared/canal-pagamento.ts'
+import { pendenciasFnrhDaReserva } from '../_shared/fnrh.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import {
   analisarRoomBlocks,
@@ -283,6 +284,15 @@ serve(async (req) => {
         if (roomsMap.size === 0) continue
 
         const isMultiRoom = roomsMap.size > 1
+        // FNRH: um hóspede com erro trava a reserva toda — checa todos de uma vez.
+        const fnrhReserva = (() => {
+          try {
+            const pax = (parseInt(res.adults || 1, 10) || 0) + (parseInt(res.children || 0, 10) || 0)
+            return pendenciasFnrhDaReserva(guestsAll.length ? guestsAll : [mainGuest], pax)
+          } catch {
+            return []
+          }
+        })()
         for (const [quarto, roomInfo] of roomsMap.entries()) {
         // Hóspede exibido no quarto: primeiro guest cujas rooms contêm esse quarto,
         // fallback para o principal (reservas sem split explícito).
@@ -409,6 +419,7 @@ serve(async (req) => {
           pagamentoValor: saldoACobrar(res),
           canalPrePago: canalPrePago(res),
           docPendente: docFaltando,
+          fnrh: fnrhReserva,
           statusCheckin: emCasa ? 'Realizado' : 'Aguardando',
           checkedIn: emCasa,
           startISO,
@@ -489,6 +500,7 @@ serve(async (req) => {
         pagamentoPendente: r?.pagamentoPendente ?? false,
         pagamentoValor: r?.pagamentoValor ?? 0,
         docPendente: r?.docPendente ?? false,
+        fnrhPendencias: r?.fnrh ?? [],
         statusCheckin: r?.statusCheckin ?? 'Aguardando',
         temReserva: Boolean(r),
         hospedeSaindoHoje: r?.saindoHoje ? (r?.hospede ?? '') : '',
@@ -501,6 +513,7 @@ serve(async (req) => {
         proximoPagamentoPendente: prox?.pagamentoPendente ?? false,
         proximoPagamentoValor: prox?.pagamentoValor ?? 0,
         proximoDocPendente: prox?.docPendente ?? false,
+        proximoFnrhPendencias: prox?.fnrh ?? [],
         temProximoHospede: Boolean(prox),
         hasEci: roomBlockEciLco.eci || ((bucket.atual?.hasEci ?? prox?.hasEci) ?? false),
         hasLco: roomBlockEciLco.lco || ((bucket.atual?.hasLco ?? prox?.hasLco) ?? false),
