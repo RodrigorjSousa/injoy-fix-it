@@ -5835,6 +5835,21 @@ export type Database = {
         }
         Returns: undefined
       }
+      bonificacao_definir_elogiados: {
+        Args: { _avaliacao_ref: string; _elogiados: string[] }
+        Returns: undefined
+      }
+      bonificacao_elogiados: {
+        Args: { _avaliacao_ref: string }
+        Returns: string[]
+      }
+      bonificacao_pessoas_elogio: {
+        Args: never
+        Returns: {
+          id: string
+          nome: string
+        }[]
+      }
       bonus_meta_apurar: { Args: { _mes?: string }; Returns: number }
       bonus_meta_excluir_ocorrencia: {
         Args: { _ocorrencia_id: string }
@@ -6306,6 +6321,20 @@ export type Database = {
           _user_agent?: string
         }
         Returns: undefined
+      }
+      registrar_bonificacao_com_elogios: {
+        Args: {
+          _data: string
+          _elogiados: string[]
+          _nome_hospede: string
+          _nota_funcionarios: number
+          _nota_geral: number
+          _nota_limpeza: number
+          _observacao: string
+          _teve_elogio: boolean
+          _unidade: string
+        }
+        Returns: string
       }
       registrar_bonificacao_conjunta: {
         Args: {

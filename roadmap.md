@@ -78,3 +78,8 @@
 - [x] Liberar leitura das regras necessárias para preencher e salvar avaliações
 - [x] Validar o preenchimento autenticado como Mayara
 - [x] Permitir o salvamento mesmo quando as regras financeiras não estão visíveis ao funcionário
+
+## Bonificação — migração 0107 (elogio individual)
+
+- [x] Aplicar 0107_bonificacao_elogio_individual preservando o arquivo original
+- [x] Conferir no banco as 7 funções e o gatilho de limpeza de elogios

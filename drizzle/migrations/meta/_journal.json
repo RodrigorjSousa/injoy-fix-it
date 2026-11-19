@@ -743,6 +743,13 @@
       "when": 1794945347533,
       "tag": "0105_aplicar_0106_senha_portoes_modo_teste",
       "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795110001190,
+      "tag": "0106_aplicar_0107_bonificacao_elogio_individual",
+      "breakpoints": true
     }
   ]
 }
