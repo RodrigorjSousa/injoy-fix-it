@@ -30,26 +30,18 @@ export interface RegistroBonificacao {
 
 export type SetorBonificacao = "recepcao" | "camareiras";
 
-export function calcularValor(
-  notaFuncionarios: number,
-  notaGeral: number,
-  teveElogio: boolean,
-  cfg: ConfigBonificacao,
-): number {
-  const funcPos = notaFuncionarios >= 9;
+/**
+ * Valor da avaliação para o SETOR (Recepção ou Camareiras/Manutenção), pelas notas.
+ * O elogio nominal (comentário individual) NÃO entra aqui desde 19/11/2026: ele vale só para a pessoa
+ * elogiada (tabela bonus_elogios, somado em Bonificação › Pagamento). Mesma regra do banco
+ * (public.calcular_registro_bonificacao, migração 0107).
+ */
+export function calcularValor(notaSetor: number, notaGeral: number, cfg: ConfigBonificacao): number {
+  const setorPos = notaSetor >= 9;
   const geralPos = notaGeral >= 9;
-
-  let base = 0;
-  if (funcPos && geralPos) {
-    base = notaFuncionarios >= 10 ? Number(cfg.valor_nota_10) : Number(cfg.valor_nota_9);
-  } else if (funcPos !== geralPos) {
-    base = Number(cfg.penalidade_1_ruim);
-  } else {
-    base = Number(cfg.penalidade_2_ruins);
-  }
-
-  if (teveElogio) base += Number(cfg.valor_elogio);
-  return base;
+  if (setorPos && geralPos) return notaSetor >= 10 ? Number(cfg.valor_nota_10) : Number(cfg.valor_nota_9);
+  if (setorPos !== geralPos) return Number(cfg.penalidade_1_ruim);
+  return Number(cfg.penalidade_2_ruins);
 }
 
 export function useConfigBonificacao() {
@@ -145,11 +137,15 @@ export function useCriarRegistroBonificacao() {
       observacao: string | null;
       teve_elogio: boolean;
       unidade: Unidade;
+      /** Quem foi elogiado pelo nome (comentário individual): só essas pessoas recebem o valor do elogio. */
+      elogiados: string[];
     }) => {
       const { data: u, error: userError } = await supabase.auth.getUser();
       if (userError || !u.user)
         throw new Error("Sua sessão expirou. Entre novamente para salvar a avaliação.");
-      const { error } = await supabase.rpc("registrar_bonificacao_conjunta", {
+      if (input.teve_elogio && !input.elogiados.length)
+        throw new Error("Escolha quem foi elogiado pelo nome.");
+      const { error } = await db.rpc("registrar_bonificacao_com_elogios", {
         _data: input.data,
         _nome_hospede: input.nome_hospede,
         _nota_funcionarios: input.nota_funcionarios,
@@ -158,10 +154,51 @@ export function useCriarRegistroBonificacao() {
         _observacao: input.observacao ?? "",
         _teve_elogio: input.teve_elogio,
         _unidade: input.unidade,
+        _elogiados: input.teve_elogio ? input.elogiados : [],
       });
-      if (error) throw error;
+      if (error) throw new Error(mensagemElogio(error.message));
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["registros_bonificacao"] });
+      void qc.invalidateQueries({ queryKey: ["bonus_elogios"] });
+      void qc.invalidateQueries({ queryKey: ["bonificacao_pagamento"] });
+    },
+  });
+}
+
+/** Erro de banco sem a migração 0107 vira uma instrução clara. */
+function mensagemElogio(msg: string): string {
+  if (/registrar_bonificacao_com_elogios|bonificacao_definir_elogiados|bonificacao_pessoas_elogio|bonificacao_elogiados|schema cache/i.test(msg))
+    return "O banco ainda não recebeu a atualização do elogio individual (migração 0107). Aplique a migração e publique o app.";
+  return msg;
+}
+
+/** Nomes que podem ser escolhidos como elogiados (funcionários). */
+export function usePessoasElogio(enabled = true) {
+  return useQuery({
+    queryKey: ["bonificacao_pessoas_elogio"],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: async (): Promise<{ id: string; nome: string }[]> => {
+      const { data, error } = await db.rpc("bonificacao_pessoas_elogio");
+      if (error) throw new Error(mensagemElogio(error.message));
+      return (data ?? []) as { id: string; nome: string }[];
+    },
+  });
+}
+
+/** Quem já está marcado como elogiado numa avaliação (para a tela de editar). */
+export function useElogiadosDaAvaliacao(avaliacaoRef: string | null) {
+  return useQuery({
+    queryKey: ["bonus_elogios", "avaliacao", avaliacaoRef],
+    enabled: !!avaliacaoRef,
+    queryFn: async (): Promise<string[]> => {
+      const { data, error } = await db.rpc("bonificacao_elogiados", { _avaliacao_ref: avaliacaoRef });
+      if (error) throw new Error(mensagemElogio(error.message));
+      return ((data ?? []) as unknown[]).map((x) =>
+        typeof x === "string" ? x : String((x as Record<string, unknown>).bonificacao_elogiados ?? ""),
+      );
+    },
   });
 }
 
@@ -197,7 +234,12 @@ export function useEditarRegistroBonificacao() {
       observacao_limpeza: string;
       teve_elogio: boolean;
       unidade: Unidade;
+      /** id da avaliação (avaliacao_id ?? id) e quem foi elogiado; lista vazia tira os elogios. */
+      avaliacao_ref: string;
+      elogiados: string[];
     }) => {
+      if (input.teve_elogio && !input.elogiados.length)
+        throw new Error("Escolha quem foi elogiado pelo nome.");
       const { data: auth, error: authError } = await supabase.auth.getUser();
       if (authError || !auth.user)
         throw new Error("Sua sessão expirou. Entre novamente para editar a avaliação.");
@@ -214,8 +256,18 @@ export function useEditarRegistroBonificacao() {
         _unidade: input.unidade,
       });
       if (error) throw error;
+      const { error: errElogio } = await db.rpc("bonificacao_definir_elogiados", {
+        _avaliacao_ref: input.avaliacao_ref,
+        _elogiados: input.teve_elogio ? input.elogiados : [],
+      });
+      if (errElogio)
+        throw new Error(`Avaliação salva, mas os elogiados não: ${mensagemElogio(errElogio.message)}`);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["registros_bonificacao"] }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ["registros_bonificacao"] });
+      void qc.invalidateQueries({ queryKey: ["bonus_elogios"] });
+      void qc.invalidateQueries({ queryKey: ["bonificacao_pagamento"] });
+    },
   });
 }
 

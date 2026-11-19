@@ -198,10 +198,10 @@ export function BonificacaoPagamento() {
       l.unidade,
       String(l.atrasos),
       String(l.faltas),
-      l.perdeu ? `Perdeu: ${l.motivo}` : l.metaAtingida ? "Meta batida" : "Meta não batida",
-      formatBRL(l.valorMeta),
+      l.perdeu ? `Perdeu: ${l.motivo}` : l.metaAtingida ? "Nota ≥ meta" : "Nota abaixo da meta",
       `${l.qtdElogios} × ${formatBRL(valorElogio)}`,
       formatBRL(l.valorElogios),
+      formatBRL(l.valorMeta),
       formatBRL(l.total),
     ]);
   const cabecalho = [
@@ -211,10 +211,10 @@ export function BonificacaoPagamento() {
     "Atrasos",
     "Faltas",
     "Situação",
-    "Meta",
-    "Elogios",
-    "Valor elogios",
-    "Total",
+    "Comentários individuais",
+    "Valor comentário individual",
+    "Nota ≥ 9 (meta)",
+    "Geral (total)",
   ];
   const pdf = () => {
     if (!resumo) return;
@@ -223,7 +223,7 @@ export function BonificacaoPagamento() {
     doc.text(titulo, 14, 16);
     doc.setFontSize(9);
     doc.text(
-      `Meta: Geral e nota do setor >= ${q.data?.cfg.nota_minima.toFixed(1)} = ${formatBRL(q.data?.cfg.valor_por_pessoa ?? 0)} por pessoa · Elogio direto = ${formatBRL(valorElogio)} · Perde tudo com mais de ${q.data?.cfg.max_atrasos} atrasos ou falta sem justificativa.`,
+      `Meta: Geral e nota do setor >= ${q.data?.cfg.nota_minima.toFixed(1)} = ${formatBRL(q.data?.cfg.valor_por_pessoa ?? 0)} por pessoa · Comentário individual = ${formatBRL(valorElogio)} só para a pessoa elogiada · Perde tudo com mais de ${q.data?.cfg.max_atrasos} atrasos ou falta sem justificativa.`,
       14,
       22,
     );
@@ -374,15 +374,15 @@ export function BonificacaoPagamento() {
 
           <div className="grid grid-cols-3 gap-2">
             <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Meta em grupo</p>
-              <p className="text-xl font-black">{formatBRL(resumo.totalMeta)}</p>
-            </div>
-            <div className="rounded-lg border p-3">
-              <p className="text-xs text-muted-foreground">Elogios diretos</p>
+              <p className="text-xs text-muted-foreground">Comentários individuais</p>
               <p className="text-xl font-black">{formatBRL(resumo.totalElogios)}</p>
             </div>
+            <div className="rounded-lg border p-3">
+              <p className="text-xs text-muted-foreground">Nota ≥ 9 (meta)</p>
+              <p className="text-xl font-black">{formatBRL(resumo.totalMeta)}</p>
+            </div>
             <div className="rounded-lg border-2 border-emerald-400 bg-emerald-50 p-3">
-              <p className="text-xs text-muted-foreground">Total a pagar</p>
+              <p className="text-xs text-muted-foreground">Geral a pagar</p>
               <p className="text-xl font-black text-emerald-700">{formatBRL(resumo.total)}</p>
             </div>
           </div>
@@ -393,9 +393,9 @@ export function BonificacaoPagamento() {
                 <tr>
                   <th className="p-2 text-left">Pessoa</th>
                   <th className="p-2 text-center">Atrasos / Faltas</th>
-                  <th className="p-2 text-right">Meta</th>
-                  <th className="p-2 text-right">Elogios</th>
-                  <th className="p-2 text-right">Total</th>
+                  <th className="p-2 text-right">Comentário individual</th>
+                  <th className="p-2 text-right">Nota ≥ 9</th>
+                  <th className="p-2 text-right">Geral</th>
                 </tr>
               </thead>
               <tbody>
@@ -439,12 +439,19 @@ export function BonificacaoPagamento() {
                         />
                       )}
                     </td>
-                    <td className="p-2 text-right">{formatBRL(l.valorMeta)}</td>
                     <td className="p-2 text-right">
                       {formatBRL(l.valorElogios)}
                       {l.qtdElogios > 0 && (
                         <span className="block text-[11px] text-muted-foreground">
                           {l.qtdElogios} × {formatBRL(valorElogio)}
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-2 text-right">
+                      {formatBRL(l.valorMeta)}
+                      {l.participante && !l.perdeu && (
+                        <span className="block text-[11px] text-muted-foreground">
+                          {l.metaAtingida ? "nota do setor ≥ meta" : "nota abaixo da meta"}
                         </span>
                       )}
                     </td>
@@ -464,17 +471,17 @@ export function BonificacaoPagamento() {
           <p className="text-xs text-muted-foreground">
             Atrasos e faltas contam só os sem justificativa (toque nos números para ver e
             justificar). Quem passa de {q.data.cfg.max_atrasos} atrasos ou tem falta sem
-            justificativa perde a meta e os elogios do mês.
+            justificativa perde a nota ≥ 9 e os comentários individuais do mês.
           </p>
 
           {!q.data.semTabela && (
             <section className="space-y-3 rounded-lg border p-3">
               <h3 className="flex items-center gap-1.5 font-bold">
                 <Heart className="h-4 w-4 text-rose-500" />
-                Elogios diretos de {mesBR(mes)} ({formatBRL(valorElogio)} cada)
+                Comentários individuais de {mesBR(mes)} ({formatBRL(valorElogio)} para cada pessoa elogiada)
               </h3>
               <p className="text-xs text-muted-foreground">
-                Marque quem foi elogiado pelo nome em cada avaliação com elogio. Se o hóspede
+                Quem lança a avaliação já escolhe o nome; aqui o gestor confere e corrige. Se o hóspede
                 elogiou duas pessoas, marque as duas.
               </p>
               <ul className="space-y-2">

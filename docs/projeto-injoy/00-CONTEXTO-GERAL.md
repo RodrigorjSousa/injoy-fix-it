@@ -85,6 +85,12 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - Bonificação: lançamento conjunto Recepção + Camareiras, aba **Acessos** (tabela
   `bonificacao_acessos`, RPC `minha_permissao_bonificacao`), botões Editar e Excluir, e notas
   Geral/Funcionário/Limpeza na tela inicial com janela só de visualização (0003–0005, 0026–0032).
+  - Comentário individual (0107, 19/11/2026): o elogio nominal vale só para a pessoa elogiada
+    (`config_bonificacao.valor_elogio`, ex.: R$ 20) e NÃO soma mais no valor da avaliação do setor. Quem lança a
+    avaliação marca "Teve elogio nominal?" e escolhe o(s) nome(s) (`registrar_bonificacao_com_elogios`; ao editar,
+    `bonificacao_definir_elogiados`); cada nome vira uma linha em `bonus_elogios`. Apagar a avaliação apaga os
+    elogios dela. Bonificação › Pagamento mostra por pessoa: Comentário individual | Nota ≥ 9 (meta) | Geral
+    (total), com as mesmas regras de atrasos e faltas. Avaliações antigas não foram recalculadas.
 - Meta da equipe (0034 + agendamento 0035; a 0033 foi recusada pelo Lovable por inserir dados): +R$ 100 por pessoa quando a nota Geral E a nota do setor do mês ficam na nota mínima (regra do Rodrigo, 02/11/2026; antes, 0039, a Geral não contava): Recepção → Geral + Funcionário; Camareiras/Manutenção → Geral + Limpeza (`avaliarMetaSetores`). A pessoa perde
   as duas bonificações com mais de 3 atrasos (tolerância de 10 min contra a Escala) ou com falta
   sem justificativa.

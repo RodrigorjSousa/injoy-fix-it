@@ -38,6 +38,8 @@ import {
   useRegistrosBonificacaoPorMes,
   useSalvarConfigBonificacao,
   usePermissaoBonificacao,
+  usePessoasElogio,
+  useElogiadosDaAvaliacao,
   type ConfigBonificacao,
   type RegistroBonificacao,
 } from "@/lib/bonificacao";
@@ -218,6 +220,59 @@ function SaldoBanner({ total, count, titulo }: { total: number; count?: number; 
   );
 }
 
+/* ------------------------- Comentário individual ------------------------- */
+
+/** Escolha de quem foi elogiado pelo nome: só essas pessoas recebem o valor do elogio. */
+function ElogiadosPicker({
+  id,
+  marcados,
+  onChange,
+  valorElogio,
+}: {
+  id: string;
+  marcados: string[];
+  onChange: (ids: string[]) => void;
+  valorElogio: number;
+}) {
+  const pessoas = usePessoasElogio();
+  const nomes = new Map((pessoas.data ?? []).map((p) => [p.id, p.nome]));
+  return (
+    <div className="space-y-2 rounded-lg border border-rose-200 bg-rose-50/60 p-3">
+      <p className="text-sm font-semibold text-rose-900">
+        Quem foi elogiado? <span className="font-normal">({formatBRL(valorElogio)} só para cada pessoa marcada)</span>
+      </p>
+      <div className="flex flex-wrap items-center gap-1.5">
+        {marcados.map((fid) => (
+          <span key={fid} className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-xs font-semibold text-rose-800">
+            {nomes.get(fid) ?? "…"}
+            <button type="button" onClick={() => onChange(marcados.filter((m) => m !== fid))} aria-label={`Tirar ${nomes.get(fid) ?? ""}`}>
+              ×
+            </button>
+          </span>
+        ))}
+        <Select value="" onValueChange={(v) => v && onChange([...marcados, v])}>
+          <SelectTrigger id={id} className="h-8 w-52 bg-white text-xs">
+            <SelectValue placeholder={pessoas.isLoading ? "Carregando nomes…" : "+ Escolher pessoa"} />
+          </SelectTrigger>
+          <SelectContent>
+            {(pessoas.data ?? [])
+              .filter((p) => !marcados.includes(p.id))
+              .map((p) => (
+                <SelectItem key={p.id} value={p.id}>
+                  {p.nome}
+                </SelectItem>
+              ))}
+          </SelectContent>
+        </Select>
+      </div>
+      {pessoas.error && <p className="text-xs text-red-700">{(pessoas.error as Error).message}</p>}
+      {!marcados.length && !pessoas.error && (
+        <p className="text-xs text-rose-800">Escolha pelo menos uma pessoa para salvar com elogio.</p>
+      )}
+    </div>
+  );
+}
+
 /* ------------------------------- Formulário ------------------------------- */
 
 function FormRegistro({ unidade }: { unidade: Unidade }) {
@@ -230,6 +285,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
   const [notaGeral, setNotaGeral] = useState("");
   const [obs, setObs] = useState("");
   const [elogio, setElogio] = useState(false);
+  const [elogiados, setElogiados] = useState<string[]>([]);
 
   const preview = useMemo(() => {
     if (!cfg) return null;
@@ -237,10 +293,10 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
     const nl = Number(notaLimpeza);
     const ng = Number(notaGeral);
     return {
-      recepcao: notaFuncionarios !== "" && notaGeral !== "" && Number.isFinite(nf) && Number.isFinite(ng) ? calcularValor(nf, ng, elogio, cfg) : 0,
-      camareiras: notaLimpeza !== "" && notaGeral !== "" && Number.isFinite(nl) && Number.isFinite(ng) ? calcularValor(nl, ng, elogio, cfg) : 0,
+      recepcao: notaFuncionarios !== "" && notaGeral !== "" && Number.isFinite(nf) && Number.isFinite(ng) ? calcularValor(nf, ng, cfg) : 0,
+      camareiras: notaLimpeza !== "" && notaGeral !== "" && Number.isFinite(nl) && Number.isFinite(ng) ? calcularValor(nl, ng, cfg) : 0,
     };
-  }, [cfg, notaFuncionarios, notaLimpeza, notaGeral, elogio]);
+  }, [cfg, notaFuncionarios, notaLimpeza, notaGeral]);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -251,6 +307,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
     if (notaFuncionarios === "" || !Number.isFinite(nf) || nf < 0 || nf > 10) return toast.error("Nota dos funcionários inválida (0-10)");
     if (notaLimpeza === "" || !Number.isFinite(nl) || nl < 0 || nl > 10) return toast.error("Nota de limpeza inválida (0-10)");
     if (notaGeral === "" || !Number.isFinite(ng) || ng < 0 || ng > 10) return toast.error("Nota geral inválida (0-10)");
+    if (elogio && !elogiados.length) return toast.error("Escolha quem foi elogiado pelo nome.");
     try {
       await criar.mutateAsync({
         data,
@@ -261,6 +318,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
         observacao: obs.trim() || null,
         teve_elogio: elogio,
         unidade,
+        elogiados,
       });
       toast.success("Avaliação registrada para Recepção e Camareiras / Manutenção");
       setNome("");
@@ -269,6 +327,7 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
       setNotaGeral("");
       setObs("");
       setElogio(false);
+      setElogiados([]);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Falha ao registrar");
     }
@@ -339,9 +398,17 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
       <div className="flex items-center gap-2">
         <Checkbox id="bonif-elogio" checked={elogio} onCheckedChange={(v) => setElogio(v === true)} />
         <Label htmlFor="bonif-elogio" className="cursor-pointer text-sm">
-          Teve elogio nominal?
+          Teve elogio nominal? (comentário individual)
         </Label>
       </div>
+      {elogio && (
+        <ElogiadosPicker
+          id="bonif-elogiados"
+          marcados={elogiados}
+          onChange={setElogiados}
+          valorElogio={Number(cfg?.valor_elogio ?? 0)}
+        />
+      )}
 
       <div className="space-y-1.5">
         <Label htmlFor="bonif-obs">Observação</Label>
@@ -359,6 +426,11 @@ function FormRegistro({ unidade }: { unidade: Unidade }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
           <SaldoBanner total={preview.recepcao} titulo="Valor previsto · Recepção" />
           <SaldoBanner total={preview.camareiras} titulo="Valor previsto · Camareiras / Manutenção" />
+          {elogio && elogiados.length > 0 && cfg && (
+            <p className="sm:col-span-2 text-xs text-muted-foreground">
+              + {formatBRL(Number(cfg.valor_elogio))} de comentário individual para cada pessoa elogiada (fora do valor do setor).
+            </p>
+          )}
         </div>
       )}
 
@@ -613,6 +685,11 @@ function EditarAvaliacao({ registro, par, unidade, onSaved }: {
   const [obsRecepcao, setObsRecepcao] = useState(recepcao?.observacao ?? "");
   const [obsLimpeza, setObsLimpeza] = useState(limpeza?.observacao ?? "");
   const [elogio, setElogio] = useState(registro.teve_elogio);
+  const ref = registro.avaliacao_id ?? registro.id;
+  const atuais = useElogiadosDaAvaliacao(ref);
+  const { data: cfg } = useConfigBonificacao();
+  const [elogiados, setElogiados] = useState<string[] | null>(null);
+  const listaElogiados = elogiados ?? atuais.data ?? [];
 
   async function salvar(e: React.FormEvent) {
     e.preventDefault();
@@ -622,8 +699,10 @@ function EditarAvaliacao({ registro, par, unidade, onSaved }: {
         [nf, nl, ng].some((v) => !Number.isFinite(v) || v < 0 || v > 10)) {
       return toast.error("Informe as três notas entre 0 e 10.");
     }
+    if (atuais.isLoading && elogiados === null) return toast.error("Aguarde: carregando quem foi elogiado.");
+    if (elogio && !listaElogiados.length) return toast.error("Escolha quem foi elogiado pelo nome.");
     try {
-      await editar.mutateAsync({ registro_id: registro.id, data, nome_hospede: nome.trim(),
+      await editar.mutateAsync({ registro_id: registro.id, avaliacao_ref: ref, elogiados: listaElogiados, data, nome_hospede: nome.trim(),
         nota_funcionarios: nf, nota_limpeza: nl, nota_geral: ng,
         observacao_recepcao: obsRecepcao.trim(), observacao_limpeza: obsLimpeza.trim(),
         teve_elogio: elogio, unidade });
@@ -642,7 +721,9 @@ function EditarAvaliacao({ registro, par, unidade, onSaved }: {
       <div className="space-y-1"><Label htmlFor="editar-nl">Nota Limpeza (0–10)</Label><Input id="editar-nl" type="number" inputMode="decimal" min={0} max={10} step="0.5" value={notaLimpeza} onChange={(e) => setNotaLimpeza(e.target.value)} required /></div>
       <div className="space-y-1"><Label htmlFor="editar-ng">Nota Geral (0–10)</Label><Input id="editar-ng" type="number" inputMode="decimal" min={0} max={10} step="0.5" value={notaGeral} onChange={(e) => setNotaGeral(e.target.value)} required /></div>
     </div>
-    <div className="flex items-center gap-2"><Checkbox id="editar-elogio" checked={elogio} onCheckedChange={(v) => setElogio(v === true)} /><Label htmlFor="editar-elogio">Teve elogio nominal?</Label></div>
+    <div className="flex items-center gap-2"><Checkbox id="editar-elogio" checked={elogio} onCheckedChange={(v) => setElogio(v === true)} /><Label htmlFor="editar-elogio">Teve elogio nominal? (comentário individual)</Label></div>
+    {elogio && <ElogiadosPicker id="editar-elogiados" marcados={listaElogiados} onChange={setElogiados} valorElogio={Number(cfg?.valor_elogio ?? 0)} />}
+    {atuais.error && <p className="text-xs text-red-700">{(atuais.error as Error).message}</p>}
     <div className="space-y-1"><Label htmlFor="editar-obs-recepcao">Comentário · Recepção</Label><Textarea id="editar-obs-recepcao" value={obsRecepcao} onChange={(e) => setObsRecepcao(e.target.value)} maxLength={500} rows={2} /></div>
     <div className="space-y-1"><Label htmlFor="editar-obs-limpeza">Comentário · Camareiras / Manutenção</Label><Textarea id="editar-obs-limpeza" value={obsLimpeza} onChange={(e) => setObsLimpeza(e.target.value)} maxLength={500} rows={2} /></div>
     <Button type="submit" className="w-full" disabled={editar.isPending}>{editar.isPending ? "Salvando..." : "Salvar alterações"}</Button>
