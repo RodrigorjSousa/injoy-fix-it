@@ -20,7 +20,17 @@ export type Peca = {
   preco: number;
   ordem: number;
   ativo: boolean;
+  /** Grupo e preço próprios de cada unidade (lav_pecas_unidade, 0109). Sem linha, vale o catálogo. */
+  por_unidade?: Partial<Record<UnidadeLav, { grupo_fatura: string; preco: number }>>;
 };
+
+/** Catálogo com o grupo da fatura e o preço da unidade (Botafogo tem tabela própria). */
+export function pecasDaUnidade(pecas: Peca[], unidade: UnidadeLav): Peca[] {
+  return pecas.map((p) => {
+    const u = p.por_unidade?.[unidade];
+    return u ? { ...p, grupo_fatura: u.grupo_fatura, preco: Number(u.preco) } : p;
+  });
+}
 
 export type TalaoItem = {
   peca_id: string;
@@ -46,6 +56,8 @@ export type Talao = {
   retorno_foto: string | null;
   retorno_obs: string | null;
   retorno_em: string | null;
+  /** Uber cobrado pela Clean Soft neste talão (entrega de urgência). Ausente antes da 0109. */
+  uber_valor?: number | null;
   itens: TalaoItem[];
 };
 
@@ -428,6 +440,11 @@ export type Fechamento = {
   valorPagar: number;
   valorDesconto: number;
   valorFaturaCalculado: number | null;
+  /** Uber dos talões do mês (cobrado à parte na fatura). */
+  valorUber: number;
+  taloesUber: Talao[];
+  /** Peças a pagar + Uber: o que a fatura deve somar. */
+  valorTotal: number;
   taloes: Talao[];
   taloesSemRetorno: Talao[];
   numerosFaltando: number[];
@@ -524,6 +541,8 @@ export function calcularFechamento(
       };
     });
   const soma = (f: (l: LinhaFechamento) => number) => linhas.reduce((s, l) => s + f(l), 0);
+  const taloesUber = taloes.filter((t) => n(t.uber_valor) > 0);
+  const valorUber = centavos(taloesUber.reduce((s, t) => s + n(t.uber_valor), 0));
   return {
     linhas,
     totalPecasHotel: soma((l) => l.qtdHotel),
@@ -537,6 +556,9 @@ export function calcularFechamento(
     valorPagar: centavos(soma((l) => l.valorPagar)),
     valorDesconto: centavos(soma((l) => l.valorDesconto)),
     valorFaturaCalculado: algumaFatura ? centavos(valorFatura) : null,
+    valorUber,
+    taloesUber,
+    valorTotal: centavos(soma((l) => l.valorPagar) + valorUber),
     taloes,
     taloesSemRetorno: taloes.filter(talaoAberto),
     numerosFaltando: numerosFaltando(taloes.map((t) => t.numero)),
