@@ -11,6 +11,7 @@ import {
   difItem,
   filtrarPecas,
   normalizarRetorno,
+  pecasDaUnidade,
   type Peca,
   type Talao,
 } from "./lavanderia";
@@ -426,5 +427,64 @@ describe("relave separado pelas camareiras", () => {
     expect(
       resumoTalao(talao({ itens: [comRelave(2, 10, null, null, null)] }), "2026-10-02").relaveHotel,
     ).toBe(2);
+  });
+});
+
+describe("preço por unidade e Uber (0109)", () => {
+  // Botafogo: tabela da fatura de outubro/2026 (fronha R$ 2,43; prot. travesseiro em coluna própria).
+  const comBotafogo: Peca[] = PECAS.map((p) =>
+    p.nome === "Fronha"
+      ? { ...p, por_unidade: { Botafogo: { grupo_fatura: "Fronha", preco: 2.43 } } }
+      : p.nome === "Protetor Travesseiro"
+        ? { ...p, por_unidade: { Botafogo: { grupo_fatura: "Prot. travesseiro", preco: 5.25 } } }
+        : p,
+  );
+
+  it("usa o grupo e o preço da unidade; sem linha da unidade, vale o catálogo", () => {
+    const bot = pecasDaUnidade(comBotafogo, "Botafogo");
+    const ipa = pecasDaUnidade(comBotafogo, "Ipanema");
+    expect(bot.find((p) => p.nome === "Fronha")!.preco).toBe(2.43);
+    expect(ipa.find((p) => p.nome === "Fronha")!.preco).toBe(1.26);
+    expect(bot.find((p) => p.nome === "Protetor Travesseiro")!.grupo_fatura).toBe(
+      "Prot. travesseiro",
+    );
+    expect(bot.find((p) => p.nome === "Piso")!.preco).toBe(1.46);
+  });
+
+  it("fechamento de Botafogo usa a tabela de Botafogo e soma o Uber dos talões", () => {
+    const t1 = talao({
+      unidade: "Botafogo",
+      data_coleta: "2026-10-11",
+      retorno_data: "2026-10-12",
+      uber_valor: 95.94,
+      itens: [item("Fronha", 10, 10, 10, 10), item("Protetor Travesseiro", 2, 2, 2, 2)],
+    });
+    const t2 = talao({
+      unidade: "Botafogo",
+      data_coleta: "2026-10-25",
+      uber_valor: 130.12, // ainda sem retorno: o Uber já entra (vem na fatura do mês)
+      itens: [item("Fronha", 4)],
+    });
+    const f = calcularFechamento([t1, t2], pecasDaUnidade(comBotafogo, "Botafogo"), "2026-10", {
+      Fronha: 10,
+      "Prot. travesseiro": 2,
+    });
+    expect(f.valorPagar).toBe(34.8); // 10 × 2,43 + 2 × 5,25
+    expect(f.valorUber).toBe(226.06);
+    expect(f.taloesUber).toHaveLength(2);
+    expect(f.valorTotal).toBe(260.86);
+    expect(f.valorFaturaCalculado).toBe(34.8);
+    expect(f.linhas.find((l) => l.grupo === "Prot. travesseiro")!.qtdPagar).toBe(2);
+  });
+
+  it("sem Uber, o total é o valor das peças", () => {
+    const t = talao({
+      data_coleta: "2026-10-02",
+      retorno_data: "2026-10-04",
+      itens: [item("Fronha", 10, 10, 10, 10)],
+    });
+    const f = calcularFechamento([t], PECAS, "2026-10");
+    expect(f.valorUber).toBe(0);
+    expect(f.valorTotal).toBe(12.6);
   });
 });

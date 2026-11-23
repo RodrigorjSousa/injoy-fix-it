@@ -43,10 +43,36 @@ export async function buscarPecas(): Promise<Peca[]> {
     .order("ordem")
     .order("nome");
   if (error) throw erro(error);
-  return ((data ?? []) as Peca[]).map((p) => ({ ...p, preco: Number(p.preco) }));
+  const pecas = ((data ?? []) as Peca[]).map((p) => ({ ...p, preco: Number(p.preco) }));
+  // Grupo/preço por unidade (0109). Se a migração ainda não foi aplicada, segue com o catálogo.
+  const { data: pu, error: ePu } = await db
+    .from("lav_pecas_unidade")
+    .select("peca_id, unidade, grupo_fatura, preco");
+  if (!ePu) {
+    const porPeca = new Map(pecas.map((p) => [p.id, p]));
+    for (const r of (pu ?? []) as {
+      peca_id: string;
+      unidade: UnidadeLav;
+      grupo_fatura: string;
+      preco: number;
+    }[]) {
+      const p = porPeca.get(r.peca_id);
+      if (!p) continue;
+      p.por_unidade = {
+        ...p.por_unidade,
+        [r.unidade]: { grupo_fatura: r.grupo_fatura, preco: Number(r.preco) },
+      };
+    }
+  }
+  return pecas;
 }
 
 type TalaoRow = Omit<Talao, "itens"> & { lav_talao_itens: Talao["itens"] | null };
+
+const COLUNAS_TALAO =
+  "id, unidade, numero, data_coleta, coleta_por_nome, coleta_foto, coleta_obs, coleta_em, retorno_data, retorno_por_nome, retorno_foto, retorno_obs, retorno_em, lav_talao_itens(*)";
+/** uber_valor só existe depois da 0109; até lá a busca segue sem ele. */
+let temUber = true;
 
 /** Todos os talões da unidade desde `desde` (paginado: o servidor devolve no máximo 1000 por vez). */
 export async function buscarTaloes(
@@ -59,9 +85,7 @@ export async function buscarTaloes(
   for (let de = 0; ; de += PAGINA) {
     let q = db
       .from("lav_taloes")
-      .select(
-        "id, unidade, numero, data_coleta, coleta_por_nome, coleta_foto, coleta_obs, coleta_em, retorno_data, retorno_por_nome, retorno_foto, retorno_obs, retorno_em, lav_talao_itens(*)",
-      )
+      .select(temUber ? `${COLUNAS_TALAO}, uber_valor` : COLUNAS_TALAO)
       .eq("unidade", unidade)
       .gte("data_coleta", desde);
     if (somenteAbertos) q = q.is("retorno_data", null);
@@ -69,9 +93,18 @@ export async function buscarTaloes(
       .order("data_coleta", { ascending: true })
       .order("numero", { ascending: true })
       .range(de, de + PAGINA - 1);
+    if (error && temUber && /uber_valor/.test(error.message ?? "")) {
+      temUber = false;
+      return buscarTaloes(unidade, desde, somenteAbertos);
+    }
     if (error) throw erro(error);
-    const rows = (data ?? []) as TalaoRow[];
-    for (const { lav_talao_itens, ...t } of rows) out.push({ ...t, itens: lav_talao_itens ?? [] });
+    const rows = (data ?? []) as unknown as TalaoRow[];
+    for (const { lav_talao_itens, ...t } of rows)
+      out.push({
+        ...t,
+        uber_valor: t.uber_valor == null ? null : Number(t.uber_valor),
+        itens: lav_talao_itens ?? [],
+      });
     if (rows.length < PAGINA) break;
   }
   return out;
@@ -170,21 +203,55 @@ export async function excluirTalao(talaoId: string) {
   await apagarFotos((data as string[] | null) ?? []);
 }
 
-export async function salvarPeca(p: Omit<Peca, "id"> & { id?: string }) {
-  const row = {
-    nome: p.nome.trim(),
-    grupo_fatura: p.grupo_fatura.trim(),
-    preco: p.preco,
-    ordem: p.ordem,
-    ativo: p.ativo,
-  };
-  if (!row.nome || !row.grupo_fatura) throw new Error("Preencha o nome e o grupo da fatura.");
+/**
+ * Salva a peça. Nome, ordem e ativo valem para as duas unidades; o grupo da fatura e o preço
+ * valem só para `unidade` (lav_pecas_unidade). Peça nova também leva grupo/preço ao catálogo,
+ * que é o padrão da outra unidade até alguém definir o dela.
+ */
+export async function salvarPeca(
+  p: Omit<Peca, "id" | "por_unidade"> & { id?: string },
+  unidade: UnidadeLav,
+) {
+  const nome = p.nome.trim();
+  const grupo = p.grupo_fatura.trim();
+  if (!nome || !grupo) throw new Error("Preencha o nome e o grupo da fatura.");
   const q = p.id
-    ? db.from("lav_pecas").update(row).eq("id", p.id).select("id")
-    : db.from("lav_pecas").insert(row).select("id");
+    ? db
+        .from("lav_pecas")
+        .update({ nome, ordem: p.ordem, ativo: p.ativo })
+        .eq("id", p.id)
+        .select("id")
+    : db
+        .from("lav_pecas")
+        .insert({ nome, grupo_fatura: grupo, preco: p.preco, ordem: p.ordem, ativo: p.ativo })
+        .select("id");
   const { data, error } = await q;
   if (error) throw erro(error);
   if (!data?.length) throw new Error("Nada foi salvo. Só o gestor pode alterar o catálogo.");
+  const pecaId = (data[0] as { id: string }).id;
+  const { data: d2, error: e2 } = await db
+    .from("lav_pecas_unidade")
+    .upsert(
+      { peca_id: pecaId, unidade, grupo_fatura: grupo, preco: p.preco },
+      { onConflict: "peca_id,unidade" },
+    )
+    .select("peca_id");
+  if (e2) {
+    if (/lav_pecas_unidade/.test(e2.message ?? ""))
+      throw new Error("Falta aplicar a migração 0109 (preço por unidade) no Lovable.");
+    throw erro(e2);
+  }
+  if (!d2?.length) throw new Error("Preço não salvo. Só o gestor pode alterar o catálogo.");
+}
+
+/** Uber cobrado no talão (só gestor). 0 ou vazio apaga. */
+export async function definirUber(talaoId: string, valor: number | null) {
+  const { error } = await db.rpc("lav_definir_uber", { p_talao_id: talaoId, p_valor: valor });
+  if (error) {
+    if (/lav_definir_uber/.test(error.message ?? ""))
+      throw new Error("Falta aplicar a migração 0109 (Uber no talão) no Lovable.");
+    throw erro(error);
+  }
 }
 
 export type FaturaLav = {

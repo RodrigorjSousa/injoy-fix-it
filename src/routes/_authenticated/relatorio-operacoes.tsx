@@ -52,6 +52,7 @@ import {
   mesDe,
   mesesDesdeInicio,
   nomeMes,
+  pecasDaUnidade,
   resumoTalao,
   type Fechamento,
   type Peca,
@@ -62,6 +63,7 @@ import {
   aprovarFatura,
   buscarFatura,
   buscarTaloes,
+  definirUber,
   desfazerRetorno,
   excluirTalao,
   salvarFatura,
@@ -82,7 +84,8 @@ function LavanderiaGestor() {
   const qc = useQueryClient();
   const hoje = todaySP();
   const { pecas: pecasQ } = useLavanderiaBase();
-  const pecas = pecasQ.data ?? [];
+  // Grupo da fatura e preço da unidade escolhida (Botafogo tem tabela própria).
+  const pecas = useMemo(() => pecasDaUnidade(pecasQ.data ?? [], unidade), [pecasQ.data, unidade]);
   const taloesQ = useQuery({
     queryKey: ["lav_taloes", unidade],
     queryFn: () => buscarTaloes(unidade),
@@ -182,6 +185,7 @@ function LavanderiaGestor() {
             <TabsContent value="pecas" className="mt-4">
               <PecasTab
                 pecas={pecas}
+                unidade={unidade}
                 onChanged={() => qc.invalidateQueries({ queryKey: ["lav_pecas"] })}
               />
             </TabsContent>
@@ -754,7 +758,14 @@ function TalaoLinha({
         )}
         onClick={onToggle}
       >
-        <td className="p-3 font-black text-sky-800">Nº {t.numero}</td>
+        <td className="p-3 font-black text-sky-800">
+          Nº {t.numero}
+          {(t.uber_valor ?? 0) > 0 && (
+            <span className="block text-[10px] font-bold text-amber-700">
+              🚕 Uber {brl.format(t.uber_valor!)}
+            </span>
+          )}
+        </td>
         <td className="p-3 text-xs text-slate-600">
           {dataBR(t.data_coleta)}
           <br />
@@ -865,6 +876,13 @@ function TalaoLinha({
                     Retorno: {t.retorno_obs}
                   </p>
                 )}
+                <CampoUber
+                  talao={t}
+                  onSalvar={(v) =>
+                    acao(() => definirUber(t.id, v), v ? "Uber registrado" : "Uber removido")
+                  }
+                  ocupado={ocupado}
+                />
                 <button
                   onClick={() => onEditar({ tipo: "coleta", talao: t })}
                   className="w-full inline-flex items-center justify-center gap-1 bg-white border border-slate-200 rounded-lg px-2 py-2 font-bold"
@@ -914,6 +932,50 @@ function TalaoLinha({
         </tr>
       )}
     </>
+  );
+}
+
+/** Uber que a Clean Soft cobrou neste talão (entrega de urgência). Entra no fechamento do mês. */
+function CampoUber({
+  talao: t,
+  onSalvar,
+  ocupado,
+}: {
+  talao: Talao;
+  onSalvar: (valor: number | null) => void;
+  ocupado: boolean;
+}) {
+  const atual = t.uber_valor ?? null;
+  const fmt = (v: number | null) => (v ? String(v.toFixed(2)).replace(".", ",") : "");
+  const [v, setV] = useState(fmt(atual));
+  useEffect(() => setV(fmt(atual)), [atual]);
+  const num = v.trim() === "" ? null : Number(v.replace(/\./g, "").replace(",", "."));
+  const valido = num === null || (Number.isFinite(num) && num >= 0);
+  const mudou = (num ?? 0) !== (atual ?? 0);
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded-lg p-2">
+      <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+        🚕 Uber (urgência) neste talão
+      </span>
+      <div className="mt-1 flex gap-1.5">
+        <input
+          value={v}
+          inputMode="decimal"
+          onChange={(e) => setV(e.target.value.replace(/[^0-9.,]/g, ""))}
+          placeholder="R$ 0,00"
+          aria-label={`Valor do Uber do talão ${t.numero}`}
+          className="min-w-0 flex-1 border border-amber-300 rounded-md px-2 py-1.5 font-bold bg-white"
+        />
+        <button
+          disabled={ocupado || !mudou || !valido}
+          onClick={() => onSalvar(num)}
+          className="bg-amber-600 text-white font-bold rounded-md px-2.5 disabled:opacity-40"
+        >
+          Salvar
+        </button>
+      </div>
+      {!valido && <p className="mt-1 text-red-700 font-bold">Valor inválido.</p>}
+    </div>
   );
 }
 
@@ -967,7 +1029,7 @@ function FechamentoTab({
   const aprovada = faturaQ.data?.status === "aprovada";
   const diferenca =
     valorNum !== null && Number.isFinite(valorNum)
-      ? Math.round((valorNum - f.valorPagar) * 100) / 100
+      ? Math.round((valorNum - f.valorTotal) * 100) / 100
       : null;
 
   const salvar = async () => {
@@ -980,7 +1042,7 @@ function FechamentoTab({
         mes,
         qtdFatura: qtdNum,
         valorFatura: valorNum,
-        valorEsperado: f.valorPagar,
+        valorEsperado: f.valorTotal,
         obs: obs.trim() || null,
       });
       toast.success("Fechamento salvo");
@@ -1001,7 +1063,7 @@ function FechamentoTab({
           mes,
           qtdFatura: qtdNum,
           valorFatura: valorNum,
-          valorEsperado: f.valorPagar,
+          valorEsperado: f.valorTotal,
           obs: obs.trim() || null,
         });
       if (!id) throw new Error("Salve o fechamento antes.");
@@ -1046,8 +1108,10 @@ function FechamentoTab({
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <Kpi
           titulo="Valor a pagar"
-          valor={brl.format(f.valorPagar)}
-          sub={`${f.totalPagar} peças · saída da lavanderia limitada ao contado`}
+          valor={brl.format(f.valorTotal)}
+          sub={`${f.totalPagar} peças: ${brl.format(f.valorPagar)}${
+            f.valorUber ? ` + 🚕 Uber ${brl.format(f.valorUber)} (${f.taloesUber.length})` : ""
+          } · saída da lavanderia limitada ao contado`}
         />
         <Kpi
           titulo="C · Descontos"
@@ -1085,7 +1149,8 @@ function FechamentoTab({
         <b>Regra do pagamento:</b> vale o que <b>saiu da lavanderia</b> (Saída Lav.). Se a camareira
         contou menos ao guardar, paga-se o que ela contou e a diferença é descontada (ex.: saiu 8,
         contou 7 → paga 7). Relave (B) não é pago agora: entra quando voltar em outro talão. Peças ♻
-        que as camareiras mandaram para relave não são pagas.
+        que as camareiras mandaram para relave não são pagas. Preços da tabela de <b>{unidade}</b>.
+        O Uber de urgência é lançado no talão (aba Talões → abrir o talão) e soma no valor a pagar.
       </div>
 
       {(f.taloesSemRetorno.length > 0 || f.numerosFaltando.length > 0 || faltas.length > 0) && (
@@ -1290,6 +1355,7 @@ function FechamentoTab({
               <th className="p-2 text-right">Contado</th>
               <th className="p-2 text-right text-red-700">C desc.</th>
               <th className="p-2 text-right">Pagar</th>
+              <th className="p-2 text-right">Uber</th>
               <th className="p-2">Fotos</th>
             </tr>
           </thead>
@@ -1317,6 +1383,9 @@ function FechamentoTab({
                   </td>
                   <CelDif v={r.desconto} tipo="C" />
                   <td className="p-2 text-right font-black text-emerald-700">{r.aPagar ?? "—"}</td>
+                  <td className="p-2 text-right font-bold text-amber-700 whitespace-nowrap">
+                    {(t.uber_valor ?? 0) > 0 ? brl.format(t.uber_valor!) : ""}
+                  </td>
                   <td className="p-2 text-center whitespace-nowrap">
                     <BotaoFoto path={t.coleta_foto} titulo={`Talão nº ${t.numero} · coleta`}>
                       coleta
@@ -1332,7 +1401,7 @@ function FechamentoTab({
             })}
             {f.taloes.length === 0 && (
               <tr>
-                <td colSpan={11} className="p-4 text-center text-slate-500">
+                <td colSpan={12} className="p-4 text-center text-slate-500">
                   Nenhum talão neste mês.
                 </td>
               </tr>
@@ -1372,21 +1441,23 @@ function imprimirFechamento(
         r.difColeta ? sinal(r.difColeta) : ""
       }</td><td>${r.saidaLav ?? "—"}</td><td>${r.relave ? sinal(r.relave) : ""}</td><td>${r.guardado ?? "sem retorno"}</td><td class="v">${
         r.desconto ? "−" + r.desconto : ""
-      }</td><td><b>${r.aPagar ?? "—"}</b></td></tr>`;
+      }</td><td><b>${r.aPagar ?? "—"}</b></td><td>${t.uber_valor ? brl.format(t.uber_valor) : ""}</td></tr>`;
     })
     .join("");
-  const dif = valorFatura === null ? null : Math.round((valorFatura - f.valorPagar) * 100) / 100;
+  const dif = valorFatura === null ? null : Math.round((valorFatura - f.valorTotal) * 100) / 100;
   const html = `<!doctype html><html><head><meta charset="utf-8"><title>Lavanderia ${esc(unidade)} ${esc(nomeMes(mes))}</title>
 <style>body{font-family:Arial,sans-serif;font-size:11px;margin:20px;color:#111}h1{font-size:17px;margin:0}h2{font-size:13px;margin:16px 0 6px}
 table{border-collapse:collapse;width:100%}td,th{border:1px solid #bbb;padding:3px 5px;text-align:right}td:first-child,th:first-child{text-align:left}
 th{background:#eee}.r{display:flex;gap:22px;margin-top:8px;font-size:13px}.b{font-weight:bold}.v{color:#b91c1c;font-weight:bold}.n{margin-top:6px;color:#333}</style></head><body>
 <h1>INJOY ${esc(unidade)} — Fechamento da lavanderia (Clean Soft)</h1><div>${esc(nomeMes(mes))} · gerado em ${dataBR(todaySP())}</div>
-<div class="r"><div>Valor a pagar: <span class="b">${brl.format(f.valorPagar)}</span></div><div>Descontos: <span class="b v">${brl.format(
+<div class="r"><div>Valor a pagar: <span class="b">${brl.format(f.valorTotal)}</span>${
+    f.valorUber ? ` (peças ${brl.format(f.valorPagar)} + Uber ${brl.format(f.valorUber)})` : ""
+  }</div><div>Descontos: <span class="b v">${brl.format(
     f.valorDesconto,
   )}</span></div><div>Fatura: <span class="b">${valorFatura === null ? "—" : brl.format(valorFatura)}</span></div><div>Fatura − a pagar: <span class="b">${
     dif === null ? "—" : brl.format(dif)
   }</span></div></div>
-<div class="n">Regra: paga-se o que saiu da lavanderia; se a camareira contou menos, paga-se o contado. Relave (B) entra quando voltar. Peças ♻ de relave mandadas pelo hotel não são pagas.</div>
+<div class="n">Preços da tabela de ${esc(unidade)}. Regra: paga-se o que saiu da lavanderia; se a camareira contou menos, paga-se o contado. Relave (B) entra quando voltar. Peças ♻ de relave mandadas pelo hotel não são pagas.</div>
 <h2>Por coluna da fatura</h2><table><tr><th>Coluna</th><th>Preço</th><th>Saída hotel</th><th>Ent. Lav.</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desconto</th><th>Qtd a pagar</th><th>Valor a pagar</th><th>Fatura</th></tr>${linhas}</table>
 ${
   faltas.length
@@ -1399,7 +1470,7 @@ ${
     : ""
 }
 ${f.numerosFaltando.length ? `<p><b>Números pulados:</b> ${f.numerosFaltando.join(", ")}</p>` : ""}
-<h2>Talões (${f.taloes.length})</h2><table><tr><th>Data</th><th>Talão</th><th>Saída hotel</th><th>Ent. Lav.</th><th>A</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desc.</th><th>Pagar</th></tr>${taloes}</table>
+<h2>Talões (${f.taloes.length})</h2><table><tr><th>Data</th><th>Talão</th><th>Saída hotel</th><th>Ent. Lav.</th><th>A</th><th>Saída Lav.</th><th>B relave</th><th>Contado</th><th>C desc.</th><th>Pagar</th><th>Uber</th></tr>${taloes}</table>
 <script>window.onload=function(){window.print()}</script></body></html>`;
   const w = window.open("", "_blank");
   if (!w) return toast.error("Libere as janelas pop-up para imprimir.");
@@ -1409,13 +1480,23 @@ ${f.numerosFaltando.length ? `<p><b>Números pulados:</b> ${f.numerosFaltando.jo
 
 /* ===================================================================== PEÇAS */
 
-function PecasTab({ pecas, onChanged }: { pecas: Peca[]; onChanged: () => void }) {
+function PecasTab({
+  pecas,
+  unidade,
+  onChanged,
+}: {
+  pecas: Peca[];
+  unidade: UnidadeLav;
+  onChanged: () => void;
+}) {
   const grupos = [...new Set(pecas.map((p) => p.grupo_fatura))];
   return (
     <div className="space-y-3 max-w-4xl">
       <p className="text-xs text-slate-500">
-        Preços da tabela da Clean Soft. Peças no mesmo <b>grupo da fatura</b> somam na mesma coluna
-        do fechamento. Desative em vez de excluir peças que já foram usadas.
+        Preços da tabela da Clean Soft para <b>{unidade}</b> (cada unidade tem a sua: troque a
+        unidade no topo para ver a outra). Peças no mesmo <b>grupo da fatura</b> somam na mesma
+        coluna do fechamento. Nome, ordem e ativo valem para as duas unidades. Desative em vez de
+        excluir peças que já foram usadas.
       </p>
       <datalist id="lav-grupos">
         {grupos.map((g) => (
@@ -1436,10 +1517,16 @@ function PecasTab({ pecas, onChanged }: { pecas: Peca[]; onChanged: () => void }
           </thead>
           <tbody>
             {pecas.map((p) => (
-              <PecaLinha key={p.id} peca={p} onChanged={onChanged} />
+              <PecaLinha
+                key={`${unidade}-${p.id}-${p.grupo_fatura}-${p.preco}`}
+                peca={p}
+                unidade={unidade}
+                onChanged={onChanged}
+              />
             ))}
             <PecaLinha
-              key="nova"
+              key={`nova-${unidade}`}
+              unidade={unidade}
               peca={{
                 nome: "",
                 grupo_fatura: "",
@@ -1458,9 +1545,11 @@ function PecasTab({ pecas, onChanged }: { pecas: Peca[]; onChanged: () => void }
 
 function PecaLinha({
   peca,
+  unidade,
   onChanged,
 }: {
   peca: Omit<Peca, "id"> & { id?: string };
+  unidade: UnidadeLav;
   onChanged: () => void;
 }) {
   const [v, setV] = useState({
@@ -1480,14 +1569,17 @@ function PecaLinha({
     if (!Number.isFinite(preco) || preco < 0) return toast.error("Preço inválido.");
     setSalvando(true);
     try {
-      await salvarPeca({
-        id: peca.id,
-        nome: v.nome,
-        grupo_fatura: v.grupo_fatura,
-        preco,
-        ordem: parseInt(v.ordem, 10) || 0,
-        ativo: v.ativo,
-      });
+      await salvarPeca(
+        {
+          id: peca.id,
+          nome: v.nome,
+          grupo_fatura: v.grupo_fatura,
+          preco,
+          ordem: parseInt(v.ordem, 10) || 0,
+          ativo: v.ativo,
+        },
+        unidade,
+      );
       toast.success(peca.id ? "Peça atualizada" : "Peça incluída");
       if (!peca.id) setV({ ...v, nome: "", grupo_fatura: "" });
       onChanged();

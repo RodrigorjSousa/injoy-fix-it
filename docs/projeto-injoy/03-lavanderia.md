@@ -94,6 +94,22 @@ Combinado com o Rodrigo:
   (`src/components/aviso-nova-versao.tsx`, vale para todas as telas). Na coleta, botão "♻ Separar peça para relave"
   no topo leva direto à busca do relave.
 
+### Preço por unidade e Uber no talão (0109, 23/11/2026, branch `feat/lavanderia-preco-unidade-uber`)
+Motivo: na conferência das faturas de outubro, Botafogo vem com outra tabela de preços (e outras colunas) e com
+Uber de urgência (R$ 330,09 em 3 talões); o app usava uma tabela só e não tinha onde lançar Uber.
+- `lav_pecas_unidade (peca_id, unidade, grupo_fatura, preco)`: grupo da fatura e preço por unidade. Sem linha,
+  vale o catálogo (`lav_pecas`). `lav_preparar` v4 preenche uma vez: Ipanema = cópia do catálogo atual;
+  Botafogo = tabela da fatura de out/2026 (fronha 2,43; banho 3,17; piso/rosto 1,35; tapete pequeno 6,96;
+  tapete 1,5×2,0 145,47; cobertor/edredom 9,60; prot. travesseiro 5,25 em coluna própria; peseira 8,85…).
+- Tela do gestor: tudo (Saldo, Talões, Fechamento, PDF) usa o preço da unidade escolhida no topo
+  (`pecasDaUnidade` em `src/lib/lavanderia.ts`). Em "Peças e preços", grupo e preço salvam só para a unidade
+  escolhida; nome, ordem e ativo valem para as duas.
+- `lav_taloes.uber_valor` + RPC `lav_definir_uber` (só gestor; 0 apaga). Em Talões → abrir o talão → "🚕 Uber".
+  No Fechamento: valor a pagar = peças + Uber dos talões do mês (pela data da coleta, mesmo sem retorno), coluna
+  Uber na lista de talões e no PDF; "Fatura − a pagar" compara com esse total.
+- Antes da 0109 o app continua funcionando (sem preço por unidade e sem Uber).
+- Pendente: confirmar no contrato o preço da fronha de Botafogo (R$ 2,43 contra R$ 1,26 em Ipanema).
+
 ## Ideias e pendências
 - Conferir no primeiro fechamento se a Clean Soft cobra pela contagem dela (Ent. Lav.). O app assume que sim.
 - Confirmar o preço de Protetor Colchão Solteiro e de Peseira (foram para o grupo "Prot. colchão casal / saia",
