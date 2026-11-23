@@ -83,3 +83,6 @@
 
 - [x] Aplicar 0107_bonificacao_elogio_individual preservando o arquivo original
 - [x] Conferir no banco as 7 funções e o gatilho de limpeza de elogios
+
+## Lavanderia — migração 0109
+- [x] Aplicar 0109 e verificar tabela, coluna do Uber e funções

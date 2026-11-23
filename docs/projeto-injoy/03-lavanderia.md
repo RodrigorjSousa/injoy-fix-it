@@ -48,6 +48,11 @@ Controle por **saldo de cada peça** (conta corrente), começando em **01/10/202
   intactas, só não aparecem mais na tela.
 
 ## Estado atual
+- 23/11/2026: migração 0109 aplicada e verificada (original intacto). Nova tabela de preços por unidade
+  (Botafogo usa a tabela da fatura de out/2026 da Clean Soft; Ipanema copia o catálogo; sem linha, vale o
+  catálogo). Talões ganham o valor do Uber cobrado em entregas urgentes — só o gestor grava, entra no
+  fechamento do mês. `lav_preparar()` passa à versão 4 e preenche os preços por unidade uma única vez, sem
+  sobrescrever o que já existir.
 - Entrega pronta na branch `lavanderia-conta-corrente`. SQL testado em Postgres local (49 verificações por
   usuário). tsc, vitest e build passando.
 - Para ativar: (1) merge; (2) criar no Lovable o bucket **privado** `lavanderia`; (3) aplicar a 0043 e depois

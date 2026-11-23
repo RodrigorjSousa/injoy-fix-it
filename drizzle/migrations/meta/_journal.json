@@ -750,6 +750,13 @@
       "when": 1795110001190,
       "tag": "0106_aplicar_0107_bonificacao_elogio_individual",
       "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795469701158,
+      "tag": "0107_aplicar_0109_lavanderia_preco_unidade_uber",
+      "breakpoints": true
     }
   ]
 }

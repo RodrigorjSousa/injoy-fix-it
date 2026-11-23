@@ -2540,6 +2540,38 @@ export type Database = {
         }
         Relationships: []
       }
+      lav_pecas_unidade: {
+        Row: {
+          grupo_fatura: string
+          peca_id: string
+          preco: number
+          unidade: string
+          updated_at: string
+        }
+        Insert: {
+          grupo_fatura: string
+          peca_id: string
+          preco?: number
+          unidade: string
+          updated_at?: string
+        }
+        Update: {
+          grupo_fatura?: string
+          peca_id?: string
+          preco?: number
+          unidade?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lav_pecas_unidade_peca_id_fkey"
+            columns: ["peca_id"]
+            isOneToOne: false
+            referencedRelation: "lav_pecas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       lav_talao_itens: {
         Row: {
           ent_lav: number | null
@@ -2602,6 +2634,7 @@ export type Database = {
           retorno_obs: string | null
           retorno_por: string | null
           retorno_por_nome: string | null
+          uber_valor: number | null
           unidade: string
           updated_at: string
         }
@@ -2621,6 +2654,7 @@ export type Database = {
           retorno_obs?: string | null
           retorno_por?: string | null
           retorno_por_nome?: string | null
+          uber_valor?: number | null
           unidade: string
           updated_at?: string
         }
@@ -2640,6 +2674,7 @@ export type Database = {
           retorno_obs?: string | null
           retorno_por?: string | null
           retorno_por_nome?: string | null
+          uber_valor?: number | null
           unidade?: string
           updated_at?: string
         }
@@ -6034,6 +6069,10 @@ export type Database = {
       }
       lav_aprovar_fatura: {
         Args: { p_aprovar?: boolean; p_fatura_id: string }
+        Returns: undefined
+      }
+      lav_definir_uber: {
+        Args: { p_talao_id: string; p_valor: number }
         Returns: undefined
       }
       lav_desfazer_retorno: { Args: { p_talao_id: string }; Returns: string }
