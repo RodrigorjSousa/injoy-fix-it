@@ -29,4 +29,11 @@ describe("incluir pessoa", () => {
     const livre = montarInclusao({ modo: "mesclada", pattern: null, ano: 2026, mes: 10, inicio: "2026-11-07", fim: "2026-11-07", somentePadrao: false, existentes: [{ data: "2026-11-07", status: "folga", origem: "gerado" }] });
     expect(livre).toEqual([{ data: "2026-11-07", status: "trabalho", origem: "manual" }]);
   });
+
+  it("fixa que trabalha em Botafogo pode ser movida para cobrir Ipanema no mesmo dia", () => {
+    const base = { modo: "mesclada" as const, pattern: null, ano: 2026, mes: 10, inicio: "2026-11-24", fim: "2026-11-24", somentePadrao: false };
+    const existentes = [{ data: "2026-11-24", status: "trabalho", origem: "gerado", unidade: "Botafogo" }];
+    expect(montarInclusao({ ...base, existentes, unidade: "Ipanema" })).toHaveLength(1);
+    expect(montarInclusao({ ...base, existentes, unidade: "Botafogo" })).toHaveLength(0);
+  });
 });

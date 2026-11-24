@@ -23,7 +23,7 @@ export function IncluirPessoaDialog({ open, preset, unit, sector, year, month, p
 }) {
   const saveMany = useSalvarEscalaDias();
   const b = monthBounds(year, month);
-  const fixos = people.filter((p) => p.ativo && p.vinculo === "fixo" && p.setor === sector && (unit === "Ambas" || p.unidade === "Ambas" || p.unidade === unit));
+  const fixos = people.filter((p) => p.ativo && p.vinculo === "fixo" && p.setor === sector && true); // qualquer fixo do setor pode cobrir a outra unidade num dia (modo mesclada)
   const [pessoaId, setPessoaId] = useState("");
   const [modo, setModo] = useState<"completa" | "mesclada">(preset ? "mesclada" : "completa");
   const [inicio, setInicio] = useState(preset?.date ?? b.start);
@@ -34,13 +34,14 @@ export function IncluirPessoaDialog({ open, preset, unit, sector, year, month, p
   const pessoa = fixos.find((p) => p.id === pessoaId);
   const pt = pessoa ? padraoAtivo(pessoa) : null;
   const dividida = !!pt && isDuasUnidades(pt as EnginePattern);
-  const unidadeFinal: Unit = pessoa && pessoa.unidade !== "Ambas" ? (pessoa.unidade as Unit) : unidadeEsc;
-  const existentes = useMemo(() => days.filter((d) => d.colaborador_id === pessoaId).map((d) => ({ data: d.data, status: d.status, origem: d.origem })), [days, pessoaId]);
+  const cobreOutra = modo === "mesclada" && !!pessoa && pessoa.unidade !== "Ambas" && pessoa.unidade !== unidadeEsc;
+  const unidadeFinal: Unit = modo === "mesclada" ? unidadeEsc : pessoa && pessoa.unidade !== "Ambas" ? (pessoa.unidade as Unit) : unidadeEsc;
+  const existentes = useMemo(() => days.filter((d) => d.colaborador_id === pessoaId).map((d) => ({ data: d.data, status: d.status, origem: d.origem, unidade: d.unidade })), [days, pessoaId]);
   const folgasRodizio = useMemo(() => {
     const lista = people.filter((p) => p.ativo && p.vinculo === "fixo" && p.setor === sector).flatMap((p) => { const x = padraoAtivo(p); return x && x.tipo === "5x2_revezamento" && x.rodizio && x.data_base ? [{ id: p.id, data_base: x.data_base }] : []; });
     return calcularRodizio(lista, b.end).get(pessoaId);
   }, [people, sector, b.end, pessoaId]);
-  const plano = useMemo(() => pessoa ? montarInclusao({ modo, pattern: pt as EnginePattern | null, ano: year, mes: month, inicio, fim, somentePadrao, existentes, folgasRodizio }) : [], [pessoa, modo, pt, year, month, inicio, fim, somentePadrao, existentes, folgasRodizio]);
+  const plano = useMemo(() => pessoa ? montarInclusao({ modo, pattern: pt as EnginePattern | null, ano: year, mes: month, inicio, fim, somentePadrao, existentes, folgasRodizio, unidade: unidadeFinal }) : [], [pessoa, modo, pt, year, month, inicio, fim, somentePadrao, existentes, folgasRodizio, unidadeFinal]);
   const trabalhos = plano.filter((p) => p.status === "trabalho").length;
   const semPadrao = modo === "completa" && !!pessoa && !pt;
   const faltaBase = modo === "completa" && !!pt && pt.tipo !== "5x2_fixo" && !pt.data_base;
@@ -86,7 +87,7 @@ export function IncluirPessoaDialog({ open, preset, unit, sector, year, month, p
           <div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Label>De</Label><Input type="date" value={inicio} min={b.start} max={b.end} onChange={(e) => { setInicio(e.target.value); if (fim < e.target.value) setFim(e.target.value); }} /></div><div className="space-y-1"><Label>Até</Label><Input type="date" value={fim} min={inicio} max={b.end} onChange={(e) => setFim(e.target.value)} /></div></div>
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={somentePadrao} onChange={(e) => setSomentePadrao(e.target.checked)} />Só nos dias em que o padrão dela(e) manda trabalhar</label>
         </div>}
-        {pessoa && pessoa.unidade === "Ambas" && !dividida && <div className="space-y-1"><Label>Unidade</Label><Select value={unidadeEsc} onValueChange={(v) => setUnidadeEsc(v as Unit)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Botafogo">Botafogo</SelectItem><SelectItem value="Ipanema">Ipanema</SelectItem></SelectContent></Select></div>}
+        {pessoa && (modo === "mesclada" || (pessoa.unidade === "Ambas" && !dividida)) && <div className="space-y-1"><Label>Unidade em que vai trabalhar</Label><Select value={unidadeEsc} onValueChange={(v) => setUnidadeEsc(v as Unit)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Botafogo">Botafogo</SelectItem><SelectItem value="Ipanema">Ipanema</SelectItem></SelectContent></Select>{cobreOutra && <p className="text-xs text-amber-700">{pessoa?.nome} é de {pessoa?.unidade}: nesses dias ela cobre em {unidadeEsc}.</p>}</div>}
         <div className="grid grid-cols-2 gap-3"><div className="space-y-1"><Label>Entrada</Label><Input type="time" value={entrada || pt?.hora_entrada?.slice(0, 5) || ""} onChange={(e) => setEntrada(e.target.value)} /></div><div className="space-y-1"><Label>Saída</Label><Input type="time" value={saida || pt?.hora_saida?.slice(0, 5) || ""} onChange={(e) => setSaida(e.target.value)} /></div></div>
         {semPadrao && <p className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs"><AlertTriangle className="h-4 w-4" />{pessoa?.nome} não tem padrão cadastrado. Defina em Equipe ou use "Mesclada".</p>}
         {faltaBase && <p className="flex items-center gap-2 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-xs"><AlertTriangle className="h-4 w-4" />Falta a data-base do padrão em Equipe.</p>}

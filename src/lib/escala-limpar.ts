@@ -19,7 +19,7 @@ export function selecionarParaLimpar(dias: LimparDia[], escopo: EscopoLimpar) {
 }
 
 export type InclusaoDia = { data: string; status: "trabalho" | "folga"; origem: "gerado" | "manual" };
-export type ExistenteDia = { data: string; status: string; origem: string };
+export type ExistenteDia = { data: string; status: string; origem: string; unidade?: string };
 
 /**
  * Dias a gravar ao incluir uma pessoa fixa.
@@ -29,9 +29,9 @@ export type ExistenteDia = { data: string; status: string; origem: string };
  */
 export function montarInclusao(args: {
   modo: "completa" | "mesclada"; pattern: EnginePattern | null; ano: number; mes: number;
-  inicio: string; fim: string; somentePadrao: boolean; existentes: ExistenteDia[]; folgasRodizio?: Set<string>;
+  inicio: string; fim: string; somentePadrao: boolean; existentes: ExistenteDia[]; folgasRodizio?: Set<string>; unidade?: string;
 }): InclusaoDia[] {
-  const { modo, pattern, ano, mes, inicio, fim, somentePadrao, existentes, folgasRodizio } = args;
+  const { modo, pattern, ano, mes, inicio, fim, somentePadrao, existentes, folgasRodizio, unidade } = args;
   const por = new Map(existentes.map((e) => [e.data, e]));
   if (modo === "completa") {
     if (!pattern) return [];
@@ -44,6 +44,6 @@ export function montarInclusao(args: {
   if (ate < de) return [];
   return civilRange(de, ate)
     .filter((data) => !somentePadrao || (pattern ? (folgasRodizio && data >= RODIZIO_EPOCA ? !folgasRodizio.has(data) : worksOnDate(pattern, data)) : false))
-    .filter((data) => { const e = por.get(data); return !e || !["trabalho", "extra"].includes(e.status); })
+    .filter((data) => { const e = por.get(data); return !e || !["trabalho", "extra"].includes(e.status) || (!!unidade && !!e.unidade && e.unidade !== unidade); })
     .map((data) => ({ data, status: "trabalho" as const, origem: "manual" as const }));
 }
