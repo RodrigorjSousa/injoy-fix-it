@@ -43,7 +43,7 @@ export function AvisoFnrh({
           ))}
           <p className="text-orange-700/80">
             {checkinFeito
-              ? "A ficha pode ter dado erro no check-in: corrija no Cloudbeds e reenvie em Integration Sync."
+              ? "A ficha pode ter dado erro no check-in. Corrija no Cloudbeds e reenvie: mude o status da reserva para Confirmada (\"Confirmar\", sem e-mail) e volte para Hospedado."
               : "Corrija no cadastro do hóspede no Cloudbeds antes do check-in — um hóspede com erro trava a FNRH da reserva toda."}
           </p>
         </div>

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   cpfValido,
+  ufDoCep,
+  ufDoEstado,
   pendenciasDoHospede,
   pendenciasFnrhDaReserva,
   resumoFnrh,
@@ -17,6 +19,7 @@ const ok = {
   guestCountry: "BR",
   guestCity: "Rio de Janeiro",
   guestState: "RJ",
+  guestZip: "22250-040",
   guestDocumentType: "cpf",
   guestDocumentNumber: CPF_A,
 };
@@ -43,6 +46,38 @@ describe("FNRH — pré-checagem do cadastro", () => {
     expect(r.faltando).toEqual(["nascimento", "cidade", "estado (UF)"]);
   });
 
+  it("CEP obrigatório e tem que ser do estado informado", () => {
+    expect(pendenciasDoHospede({ ...ok, guestZip: "" }).faltando).toEqual(["CEP"]);
+    expect(pendenciasDoHospede({ ...ok, guestZip: "2225" }).faltando).toEqual(["CEP inválido"]);
+    // Caso real: Minas Gerais com cidade/CEP de Sergipe (Poço Redondo).
+    expect(
+      pendenciasDoHospede({
+        ...ok,
+        guestState: "Minas Gerais",
+        guestCity: "Poço Redondo",
+        guestZip: "49810-000",
+      }).faltando,
+    ).toEqual(["estado (MG) não bate com o CEP (SE)"]);
+    expect(
+      pendenciasDoHospede({
+        ...ok,
+        guestState: "Sao Paulo",
+        guestCity: "Osasco",
+        guestZip: "06010000",
+      }).faltando,
+    ).toEqual([]);
+  });
+
+  it("UF pelo nome e pelo CEP", () => {
+    expect(ufDoEstado("São Paulo")).toBe("SP");
+    expect(ufDoEstado("rj")).toBe("RJ");
+    expect(ufDoEstado("Mato Grosso do Sul")).toBe("MS");
+    expect(ufDoEstado("Narnia")).toBeNull();
+    expect(ufDoCep("70040-010")).toBe("DF");
+    expect(ufDoCep("74000-000")).toBe("GO");
+    expect(ufDoCep("69301-000")).toBe("RR");
+  });
+
   it("brasileiro com CPF inválido ou ausente; CPF pode estar no taxID", () => {
     expect(pendenciasDoHospede({ ...ok, guestDocumentNumber: "52998224726" }).faltando).toEqual([
       "CPF inválido",
@@ -54,7 +89,7 @@ describe("FNRH — pré-checagem do cadastro", () => {
   });
 
   it("estrangeiro precisa de passaporte, não de CPF nem UF", () => {
-    const g = { ...ok, guestCountry: "AR", guestState: "", guestDocumentNumber: "" };
+    const g = { ...ok, guestCountry: "AR", guestState: "", guestZip: "", guestDocumentNumber: "" };
     expect(pendenciasDoHospede(g).faltando).toEqual(["documento (passaporte)"]);
     expect(pendenciasDoHospede({ ...g, guestDocumentNumber: "AAB123456" }).faltando).toEqual([]);
   });
