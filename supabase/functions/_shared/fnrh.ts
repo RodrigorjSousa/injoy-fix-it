@@ -60,6 +60,45 @@ const dataValida = (v: string) => {
   return ano > 1900 && ano <= new Date().getFullYear()
 }
 
+const UFS: Record<string, string> = {
+  acre: 'AC', alagoas: 'AL', amapa: 'AP', amazonas: 'AM', bahia: 'BA', ceara: 'CE',
+  'distrito federal': 'DF', 'espirito santo': 'ES', goias: 'GO', maranhao: 'MA', 'mato grosso': 'MT',
+  'mato grosso do sul': 'MS', 'minas gerais': 'MG', para: 'PA', paraiba: 'PB', parana: 'PR',
+  pernambuco: 'PE', piaui: 'PI', 'rio de janeiro': 'RJ', 'rio grande do norte': 'RN',
+  'rio grande do sul': 'RS', rondonia: 'RO', roraima: 'RR', 'santa catarina': 'SC', 'sao paulo': 'SP',
+  sergipe: 'SE', tocantins: 'TO',
+}
+
+/** "São Paulo" / "sp" → "SP" (null se não reconhecer). */
+export function ufDoEstado(v: string): string | null {
+  const s = semAcento(v).replace(/[^a-z ]/g, ' ').replace(/\s+/g, ' ').trim()
+  if (!s) return null
+  if (s.length === 2) {
+    const sigla = s.toUpperCase()
+    return Object.values(UFS).includes(sigla) ? sigla : null
+  }
+  return UFS[s] ?? null
+}
+
+// Faixas de CEP dos Correios por UF (5 primeiros dígitos).
+const FAIXAS_CEP: Array<[number, number, string]> = [
+  [1000, 19999, 'SP'], [20000, 28999, 'RJ'], [29000, 29999, 'ES'], [30000, 39999, 'MG'],
+  [40000, 48999, 'BA'], [49000, 49999, 'SE'], [50000, 56999, 'PE'], [57000, 57999, 'AL'],
+  [58000, 58999, 'PB'], [59000, 59999, 'RN'], [60000, 63999, 'CE'], [64000, 64999, 'PI'],
+  [65000, 65999, 'MA'], [66000, 68899, 'PA'], [68900, 68999, 'AP'], [69000, 69299, 'AM'],
+  [69300, 69399, 'RR'], [69400, 69899, 'AM'], [69900, 69999, 'AC'], [70000, 72799, 'DF'],
+  [72800, 72999, 'GO'], [73000, 73699, 'DF'], [73700, 76799, 'GO'], [76800, 76999, 'RO'],
+  [77000, 77999, 'TO'], [78000, 78899, 'MT'], [79000, 79999, 'MS'], [80000, 87999, 'PR'],
+  [88000, 89999, 'SC'], [90000, 99999, 'RS'],
+]
+
+/** UF pelo CEP (8 dígitos) — null se fora das faixas. */
+export function ufDoCep(cep: string): string | null {
+  const n = Number(digitos(cep).slice(0, 5))
+  if (!n) return null
+  return FAIXAS_CEP.find(([a, b]) => n >= a && n <= b)?.[2] ?? null
+}
+
 /** Valor de um campo personalizado cujo nome casa com o padrão (undefined = o campo não existe). */
 function campo(cfs: Array<[string, string]>, padrao: RegExp): string | undefined {
   const achado = cfs.filter(([k]) => padrao.test(semAcento(k)))
@@ -104,7 +143,20 @@ export function pendenciasDoHospede(g: Raw): { nome: string; cpf: string | null;
 
   // Endereço: o erro mais comum é "cidade_id não informado".
   if (!texto(g.guestCity ?? g.city)) faltando.push('cidade')
-  if (brasileiro && !texto(g.guestState ?? g.state)) faltando.push('estado (UF)')
+  // Endereço no Brasil: a FNRH acha a cidade pelo estado; CEP de outro estado = "cidade_id não informado".
+  const enderecoNoBrasil = pais ? ehBrasil(pais) : brasileiro
+  if (enderecoNoBrasil) {
+    const estado = texto(g.guestState ?? g.state)
+    const uf = ufDoEstado(estado)
+    const cep = digitos(texto(g.guestZip ?? g.zip ?? g.zipCode ?? g.postalCode))
+    if (!estado) faltando.push('estado (UF)')
+    if (!cep) faltando.push('CEP')
+    else if (cep.length !== 8) faltando.push('CEP inválido')
+    else {
+      const ufCep = ufDoCep(cep)
+      if (uf && ufCep && uf !== ufCep) faltando.push(`estado (${uf}) não bate com o CEP (${ufCep})`)
+    }
+  }
   if (!pais) faltando.push('país')
 
   // Motivo da viagem / meio de transporte: só cobramos se o campo existe na reserva

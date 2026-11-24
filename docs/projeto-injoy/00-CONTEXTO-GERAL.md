@@ -170,10 +170,14 @@ Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
 - FNRH Digital (pré-checagem): o app "Brazil Police Report (FNRH)" do Cloudbeds envia a ficha no check-in e um
   hóspede com erro trava a reserva toda. A edge function `dados-recepcao` checa todos os hóspedes da reserva
   (`supabase/functions/_shared/fnrh.ts`, teste `src/lib/fnrh.test.ts`): nome completo, nascimento, nacionalidade,
-  CPF válido (brasileiro; aceita no taxID) ou passaporte (estrangeiro), cidade, UF (brasileiro), país, CPF repetido
+  CPF válido (brasileiro; aceita no taxID) ou passaporte (estrangeiro), cidade, UF e CEP (endereço no Brasil; o estado
+  tem que bater com a faixa de CEP da UF — caso real: Minas Gerais + Poço Redondo/SE), país, CPF repetido
   entre hóspedes, acompanhantes sem cadastro e, se o campo existir, motivo da viagem / meio de transporte. O card
   da Recepção mostra "FNRH: falta …" (laranja; clique mostra por hóspede). Erros vistos em 11/2026: "cidade_id não
   informado" e CPF que não bate com a pessoa na Receita (não dá para checar daqui — só formato e repetição).
+  Reenvio: o app do Cloudbeds só manda a ficha quando o STATUS da reserva muda; corrigir o hóspede depois do
+  check-in não reenvia. Para reenviar: status → Confirmada ("Confirmar", sem e-mail) → Hospedado ("check-in de
+  qualquer maneira" se reclamar de Raça/Necessidade especial). Conferir em Reservas no site da FNRH.
   Mudou a edge function: pedir deploy de `dados-recepcao` no Lovable.
 
 - Lavanderia: conta corrente de peças por talão Clean Soft, com foto obrigatória e fechamento mensal (0043–0044)
